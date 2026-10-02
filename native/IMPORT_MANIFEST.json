@@ -1,0 +1,1071 @@
+{
+  "files": [
+    {
+      "path": "native/audio-host/CMakeLists.txt",
+      "bytes": 23418,
+      "sha256": "bc3afaba6596586e1523b33f4f5ac2ea99a9134b9a356b287fea73c2d80255aa"
+    },
+    {
+      "path": "native/audio-host/src/asio_host.cpp",
+      "bytes": 87924,
+      "sha256": "128c5aa2019d2015a7037d75e55d1f115dce32d38a8485525ab487d0cd132429"
+    },
+    {
+      "path": "native/audio-host/src/asio_host.h",
+      "bytes": 5400,
+      "sha256": "2225998a5a361fb8e9de1aadd2f6888a7e830747122c1964c64fd4730091eca9"
+    },
+    {
+      "path": "native/audio-host/src/audio_host_exit_codes.h",
+      "bytes": 131,
+      "sha256": "7c1e41c3a0efc25fb7a5b147c49541d3e5c48197dc9c31b0870b6ed381cc7a3e"
+    },
+    {
+      "path": "native/audio-host/src/AudioDaemon.cpp",
+      "bytes": 131719,
+      "sha256": "64d95e4fbd6fa23bc6a3fda8d0f35d6fa685523b5051beaeb20fad9402d2b727"
+    },
+    {
+      "path": "native/audio-host/src/AudioDaemon.h",
+      "bytes": 15998,
+      "sha256": "b04b2f7b15b4042506678884982417045ac958e4902a0b937c670259c10eed08"
+    },
+    {
+      "path": "native/audio-host/src/AutomixFeatureAnalysis.cpp",
+      "bytes": 16077,
+      "sha256": "2ea7cd24395818e0b6c78c82875c855c177a99cd202ae74a946187dd97d4876d"
+    },
+    {
+      "path": "native/audio-host/src/AutomixFeatureAnalysis.h",
+      "bytes": 185,
+      "sha256": "722bc67e3caed8fc9a95b3ad70750cecda3186e2a4e0cb262409cd8623bc764a"
+    },
+    {
+      "path": "native/audio-host/src/AutomixHandoffSchedule.h",
+      "bytes": 1352,
+      "sha256": "952bd90c49495e18750158336d57b88a09584cfe2811f3ed1aa4ff7e3bcd804d"
+    },
+    {
+      "path": "native/audio-host/src/AutomixTempoProcessor.cpp",
+      "bytes": 9607,
+      "sha256": "be436f98a82d1f6024563f3234a4e9abb28d8068e8e8d003e5a8b988c88ec102"
+    },
+    {
+      "path": "native/audio-host/src/AutomixTempoProcessor.h",
+      "bytes": 3118,
+      "sha256": "583049bfde1fe163cbc3c339e8a53dcaec4f6f37c0b35129b2b7c1816bdc3e2e"
+    },
+    {
+      "path": "native/audio-host/src/CachePcmProducer.cpp",
+      "bytes": 2727,
+      "sha256": "645a0161083b45a0c56a17ef95d13da15fde975b68f6202dbc40786745b43c36"
+    },
+    {
+      "path": "native/audio-host/src/CachePcmProducer.h",
+      "bytes": 1183,
+      "sha256": "9f10a3850e81f90266c1f40a1e457e95a3bf0ce3f8ec8d1a767a3c6cb7df67d9"
+    },
+    {
+      "path": "native/audio-host/src/CddaDeemphasis.h",
+      "bytes": 1125,
+      "sha256": "84edc13251f808fc6277d2aaf7018167fe169ba967a2fd93c36b922d039460fb"
+    },
+    {
+      "path": "native/audio-host/src/CddaOutputResampler.h",
+      "bytes": 3350,
+      "sha256": "74f7642e9d30ea132ba7c0bae5522898538d943b84b5eee917d0969af15e503a"
+    },
+    {
+      "path": "native/audio-host/src/CddaPcmProcessor.h",
+      "bytes": 2308,
+      "sha256": "5c8ab0c017a35ae8bc074747c62e599c3e709813bf2630244e343669f1870224"
+    },
+    {
+      "path": "native/audio-host/src/CddaReadErrors.h",
+      "bytes": 2019,
+      "sha256": "955f7018eee568ecaa8bf6ca94aea864bc0a15ee3b452cd1c5fd4805ff7181c0"
+    },
+    {
+      "path": "native/audio-host/src/CddaReadPolicy.h",
+      "bytes": 5215,
+      "sha256": "cb621bc0d9d228c2f23740a3b539a697803bd48c046d3fd7fc46cc75f1cb7380"
+    },
+    {
+      "path": "native/audio-host/src/CddaSectorStream.h",
+      "bytes": 4591,
+      "sha256": "2de7df69543f915f8225bbad07aad3c7804754d452655796710792c6e3d5ca77"
+    },
+    {
+      "path": "native/audio-host/src/CoreAudioDopPacking.h",
+      "bytes": 854,
+      "sha256": "2720ec44b5ac2b06063a0671809125bd02cb1a320cba799f7d30d744d8fd43f5"
+    },
+    {
+      "path": "native/audio-host/src/CudaDeviceSelection.h",
+      "bytes": 7412,
+      "sha256": "3c6bc802129ccff85261fb00825fcf9a83b3d4a2a21ff783632cc7d3dfb1f7d5"
+    },
+    {
+      "path": "native/audio-host/src/CudaFirProcessor.cu",
+      "bytes": 26144,
+      "sha256": "6c9d0b106775c9a36e13348e0f5bea6ec904ea00f1e60852e86cb571677278a5"
+    },
+    {
+      "path": "native/audio-host/src/CudaFirProcessor.h",
+      "bytes": 1950,
+      "sha256": "4f9e7870b17b14b2e759cb9ec9b10afa2b08a546fa58f7cb35e23e89ee02556c"
+    },
+    {
+      "path": "native/audio-host/src/CudaFirProcessorStub.cpp",
+      "bytes": 1625,
+      "sha256": "5a7447c25cc1ebeafb204d0c663a0f9e6463a8bf00626266492b0efce9cd7128"
+    },
+    {
+      "path": "native/audio-host/src/CudaSdmProcessor.cu",
+      "bytes": 66811,
+      "sha256": "bb29de80b9d27585377f17cf75fe0de38ae86e9c54101cc7dcd5d546ce181372"
+    },
+    {
+      "path": "native/audio-host/src/CudaSdmProcessor.h",
+      "bytes": 1541,
+      "sha256": "744700186b97f48d1799bc38d7f3893f8d4dfdfb7e35ca302fb131e6f1a2f8fa"
+    },
+    {
+      "path": "native/audio-host/src/CudaSdmProcessorStub.cpp",
+      "bytes": 1909,
+      "sha256": "7efcc221626f99390ea561e4d643f12f3d25d170ca1c675b2ddd8073c5334092"
+    },
+    {
+      "path": "native/audio-host/src/DeviceTypes.h",
+      "bytes": 4125,
+      "sha256": "2aa9cbeeeb1754f6348233b9ebac5e2eeb177a933a68376f8dcbd2e67271b30a"
+    },
+    {
+      "path": "native/audio-host/src/DopRingSource.cpp",
+      "bytes": 13836,
+      "sha256": "8536c3b8e4931a6d68ff3f2ef31bb2a1997573c18ead3d853432d3538e6da0ee"
+    },
+    {
+      "path": "native/audio-host/src/DopRingSource.h",
+      "bytes": 3298,
+      "sha256": "e91d2deaab2eb70dffd64139b4372dbec3babc0e963b65de0e3d9d72e4a300a4"
+    },
+    {
+      "path": "native/audio-host/src/HostCommon.h",
+      "bytes": 2616,
+      "sha256": "68b29f43be2c3aa882a620d4885bdbe34eb466cdac2c04235a3331cdd729bf63"
+    },
+    {
+      "path": "native/audio-host/src/HostUtils.cpp",
+      "bytes": 1292,
+      "sha256": "e42861f31a81d6d2d2e9dc50607b842e8904cc523ca7afb7ed7e2f6376b97dfc"
+    },
+    {
+      "path": "native/audio-host/src/HostUtils.h",
+      "bytes": 392,
+      "sha256": "debeee10aba3a0db3d84d9370f94e638f9b48cab1785190bb76ce64e6fd2d681"
+    },
+    {
+      "path": "native/audio-host/src/ks_output.cpp",
+      "bytes": 26029,
+      "sha256": "919a39ff6b59af45d7f43747855c76a7594e62827f256bacada50061e1750401"
+    },
+    {
+      "path": "native/audio-host/src/ks_output.h",
+      "bytes": 1093,
+      "sha256": "89f655e24c7940f30537802d5cb1dbf45a14905b60d437d64bfc5c9b071402ab"
+    },
+    {
+      "path": "native/audio-host/src/LinuxAlsaDevicePolicy.cpp",
+      "bytes": 1353,
+      "sha256": "a21a775e98b8c0cc3d92a897821929c8f3f78bda93a3699c59230cd816a86e0f"
+    },
+    {
+      "path": "native/audio-host/src/LinuxAlsaDevicePolicy.h",
+      "bytes": 1184,
+      "sha256": "67b3cfcc6a0e77d6cecb626d65a07473970d4b6fd4da34d000a58ad6e7af07b5"
+    },
+    {
+      "path": "native/audio-host/src/LinuxAlsaNativeDsdOutput.cpp",
+      "bytes": 11828,
+      "sha256": "5e28b79e395a68d9cbd5e3dea63282cb83a9f19c21c806cbda7488fbd7c32fe6"
+    },
+    {
+      "path": "native/audio-host/src/LinuxAlsaNativeDsdOutput.h",
+      "bytes": 1777,
+      "sha256": "02dc2e365233039d639b4393c17d003e12fe60bf7185390b90b88e96bce483e3"
+    },
+    {
+      "path": "native/audio-host/src/LinuxAlsaPcmWrite.h",
+      "bytes": 2350,
+      "sha256": "8acf9c3f0fb17e860d3d33d9ecb28a619257cdb3f071dcf9804ddf16008d6a6d"
+    },
+    {
+      "path": "native/audio-host/src/LinuxCddaDevice.cpp",
+      "bytes": 5807,
+      "sha256": "b3e54bdf345b576a1774916f2afa049fcf5453d3b72c566feebd35e238090812"
+    },
+    {
+      "path": "native/audio-host/src/LinuxCddaDevice.h",
+      "bytes": 2049,
+      "sha256": "4aa11cedb1743597192da733fef00596beab6936acc0e7b2cac976f9e5d3b19f"
+    },
+    {
+      "path": "native/audio-host/src/LinuxOutputFailure.h",
+      "bytes": 904,
+      "sha256": "2df92d06ada1160f86e428c83e432c94fb9eb0358c719a7d4a9e995052f12f9d"
+    },
+    {
+      "path": "native/audio-host/src/LinuxPipeWireOutput.cpp",
+      "bytes": 21524,
+      "sha256": "c85533f8838e4946d6588bc2fd4fb9bf31d269ebe9717304f88b7aac6187210c"
+    },
+    {
+      "path": "native/audio-host/src/LinuxPipeWireOutput.h",
+      "bytes": 1837,
+      "sha256": "3e8cfd90909cc18ebfcc1d60cc275d593e6b7bb6d5b8feea1cad60904f435353"
+    },
+    {
+      "path": "native/audio-host/src/ListeningMediaClock.h",
+      "bytes": 2127,
+      "sha256": "ee24998f926c4f48a4891a58c8244bce4c4a7087f60ad147858a1514aafb6a43"
+    },
+    {
+      "path": "native/audio-host/src/ListeningPlayoutClock.h",
+      "bytes": 1660,
+      "sha256": "0d9fd99da1a94b8184ae52162738faa719ef44e903a7d8557236c499e89c6be2"
+    },
+    {
+      "path": "native/audio-host/src/ListenTogetherAudioTransport.cpp",
+      "bytes": 8911,
+      "sha256": "d565cebf90e3dd0ecb21ad6623fa79f76e3ce8aac81320b9906ede1e15ae93e6"
+    },
+    {
+      "path": "native/audio-host/src/ListenTogetherAudioTransport.h",
+      "bytes": 3326,
+      "sha256": "d241ebfe2d8564dd4fa44789a4636606e0146787ec39ae0ebcb0c4bd8fc7d585"
+    },
+    {
+      "path": "native/audio-host/src/ListenTogetherOpusCodec.cpp",
+      "bytes": 13336,
+      "sha256": "31a12d4ec147b412c47e54c8c1ff08a9573173999b89a4495c061c23ba6d83d1"
+    },
+    {
+      "path": "native/audio-host/src/ListenTogetherOpusCodec.h",
+      "bytes": 1211,
+      "sha256": "19a83170b9d94ecdfc392b67b68382a09e33e3c5f465ddb76e79d236735e7857"
+    },
+    {
+      "path": "native/audio-host/src/ListenTogetherRealtimeAudio.cpp",
+      "bytes": 28401,
+      "sha256": "827958391467584585e5f64ff8bf0d6b04a25c7998988a912e4fb53f69a1edf0"
+    },
+    {
+      "path": "native/audio-host/src/ListenTogetherRealtimeAudio.h",
+      "bytes": 3076,
+      "sha256": "6ddbc53c3f1c4097a5a7f0234ad38a8b1d00744dca94c8020889a2a08508bbf8"
+    },
+    {
+      "path": "native/audio-host/src/ListenTogetherRpc.cpp",
+      "bytes": 8998,
+      "sha256": "4152e197a2e9d3f95a91dba6424483bf98b10c254cd21072f99b5ee480cf96e9"
+    },
+    {
+      "path": "native/audio-host/src/ListenTogetherRpc.h",
+      "bytes": 847,
+      "sha256": "e92cc4afac1cefa4042a70e258c045ccd67d881c2e4bd3bbc825a6756445ab76"
+    },
+    {
+      "path": "native/audio-host/src/MacCoreAudioDeviceInfo.cpp",
+      "bytes": 3439,
+      "sha256": "06095d67258e4dd62832e061269fd86b9faf14a5e03f45f82d06ededd577d6aa"
+    },
+    {
+      "path": "native/audio-host/src/MacCoreAudioDeviceInfo.h",
+      "bytes": 449,
+      "sha256": "8ecb1f5694a0cae3f2d5cbf0c22df20a336bfc9c67bb2996c355ca11946a05da"
+    },
+    {
+      "path": "native/audio-host/src/MacCoreAudioDeviceWatcher.cpp",
+      "bytes": 8468,
+      "sha256": "fd86c8315fa452752545ef2304d45707c503d7ce72f1186e6fd1634ade25b79d"
+    },
+    {
+      "path": "native/audio-host/src/MacCoreAudioDeviceWatcher.h",
+      "bytes": 1867,
+      "sha256": "0cb32a3ba0fc01315f92f3253782fff7bb17865dbcc029e96d2d73fd0225da39"
+    },
+    {
+      "path": "native/audio-host/src/MacCoreAudioDopOutput.cpp",
+      "bytes": 30289,
+      "sha256": "7ccb944b0ca704d14c20a517c2a0b78af48ecc41273b3305274894d5615c70df"
+    },
+    {
+      "path": "native/audio-host/src/MacCoreAudioDopOutput.h",
+      "bytes": 2727,
+      "sha256": "e2703a805e8ce992830433c4cb9625aea0fc2fcb42120bec73282357579cff15"
+    },
+    {
+      "path": "native/audio-host/src/MacCoreAudioHogMode.cpp",
+      "bytes": 4208,
+      "sha256": "01eccfdb88c319d25ce19b430eb9c68094b4d7cadd2dfebfd4038d13d85b7a1f"
+    },
+    {
+      "path": "native/audio-host/src/MacCoreAudioHogMode.h",
+      "bytes": 485,
+      "sha256": "c1f3d7a40bebe907c88299b6a966989a25decf9af163f4f8e5dfa006c6c1c5db"
+    },
+    {
+      "path": "native/audio-host/src/main.cpp",
+      "bytes": 241458,
+      "sha256": "3db14fc878ed404ff8190b800d9eb1abd99b0db140d6adddbf1806d43825abf6"
+    },
+    {
+      "path": "native/audio-host/src/miniaudio_output.cpp",
+      "bytes": 12126,
+      "sha256": "6ab5db1297fad51f820f686dc71280bea7bcf12a3db220622b483468eb410175"
+    },
+    {
+      "path": "native/audio-host/src/miniaudio_output.h",
+      "bytes": 1329,
+      "sha256": "fc2c2ddd8abba621e5c1dd75f664a4d212f5a53d0216f0ad4977dd4fce07f2c4"
+    },
+    {
+      "path": "native/audio-host/src/MqaPassthroughPolicy.cpp",
+      "bytes": 2633,
+      "sha256": "e347d105589a4d1aba1a85846fb542443ef680757e4b42267fc7497f23a8896a"
+    },
+    {
+      "path": "native/audio-host/src/MqaPassthroughPolicy.h",
+      "bytes": 558,
+      "sha256": "03b44055b4464544d822f3b44426192314548b838592c407f040455d96466bff"
+    },
+    {
+      "path": "native/audio-host/src/NativeDaemonBootstrap.cpp",
+      "bytes": 2842,
+      "sha256": "d46ab9777a9cddf608f54a531fb4b68fa8218b1691f91489c1b4509b11134ef6"
+    },
+    {
+      "path": "native/audio-host/src/NativeDaemonBootstrap.h",
+      "bytes": 168,
+      "sha256": "e38b537f9f577c974db509b4fa98164e454dbb61c3c0979f48f41d67adfc4caf"
+    },
+    {
+      "path": "native/audio-host/src/NativeDsdRingSource.cpp",
+      "bytes": 12238,
+      "sha256": "6e2ad7962da8ed0687fb09d200fdcdc9b4c60d520b0ad65eb358a789d46542dc"
+    },
+    {
+      "path": "native/audio-host/src/NativeDsdRingSource.h",
+      "bytes": 2993,
+      "sha256": "da14393289233916c7806d8932207a57aa31e517fa1d972f3026f76b63cc6666"
+    },
+    {
+      "path": "native/audio-host/src/NativeFirProcessor.cpp",
+      "bytes": 11866,
+      "sha256": "2ce6676aa734c1362c0c2109e1150298260309a808c6caffeee757ff8afc4bd1"
+    },
+    {
+      "path": "native/audio-host/src/NativeFirProcessor.h",
+      "bytes": 3050,
+      "sha256": "1539ee1767bce87bb4f84a7d04f8129e026f10402e71d363f3dcf965fd01a231"
+    },
+    {
+      "path": "native/audio-host/src/NativePcmChannelPolicy.h",
+      "bytes": 664,
+      "sha256": "f5e8c0d648847c431f62b331fe554c0ece53d5c86f44848fce8acb8bd244e74a"
+    },
+    {
+      "path": "native/audio-host/src/NativePlaybackPipeline.cpp",
+      "bytes": 59956,
+      "sha256": "b4e0aabfe6761e613ef1af977bd7853cc62f9ce9a5b1e92228386a2ae259634a"
+    },
+    {
+      "path": "native/audio-host/src/NativePlaybackPipeline.h",
+      "bytes": 13968,
+      "sha256": "50afac0182af6e32f63d636230934c12a123ecdb19ca72989542286c8ab9428d"
+    },
+    {
+      "path": "native/audio-host/src/NativePrimitives.h",
+      "bytes": 12008,
+      "sha256": "9f3369fe0ef2d5f0ff1194bbbe5a66c7de85ae34ac8584aa1e2ebf9ce750b8fd"
+    },
+    {
+      "path": "native/audio-host/src/NativeSdmProcessor.cpp",
+      "bytes": 12252,
+      "sha256": "d11689b817af02acbfcb1ce6a384a0b78413594be110319a00d5e3ab4bd4095e"
+    },
+    {
+      "path": "native/audio-host/src/NativeSdmProcessor.h",
+      "bytes": 3771,
+      "sha256": "da38b392b11f0791eee69e9ab91cd6c8208d781da29539a521a9bf9d70e14890"
+    },
+    {
+      "path": "native/audio-host/src/Options.h",
+      "bytes": 1551,
+      "sha256": "bcf41a137f90812cbee0d30df3bbdc7c05526689ea2973eaaf7147415e4ee085"
+    },
+    {
+      "path": "native/audio-host/src/PcmDomainDspStage.cpp",
+      "bytes": 3068,
+      "sha256": "266e377bc16d18d7997c18f7d59f0fb7f4d93420bb87f33e6e95d0bf78e1bbf7"
+    },
+    {
+      "path": "native/audio-host/src/PcmDomainDspStage.h",
+      "bytes": 1645,
+      "sha256": "d0a96bf36b2959cf48e4cfc0bfa354f385ae2d290de4966519d6ec034ccdf33f"
+    },
+    {
+      "path": "native/audio-host/src/PcmRingAudioSource.cpp",
+      "bytes": 120915,
+      "sha256": "247c96a5da509609790d01f80a22418c2e9f8bd87a04393024f241aa37794749"
+    },
+    {
+      "path": "native/audio-host/src/PcmRingAudioSource.h",
+      "bytes": 18897,
+      "sha256": "c5aa4cd9ac071c1968aa9da73ae8ab557adcecbbd1939c089a5cc3c2b5c65c77"
+    },
+    {
+      "path": "native/audio-host/src/PcmSampleConversion.h",
+      "bytes": 643,
+      "sha256": "8908cf9787dcde413a6894cfa92ff366a2c55638004f2ed892716fabc12c7a5a"
+    },
+    {
+      "path": "native/audio-host/src/PlaybackSession.h",
+      "bytes": 2971,
+      "sha256": "d5d774004750d813f8a16a317cbca892aaffde4d056b3f789e3be00c2321ec33"
+    },
+    {
+      "path": "native/audio-host/src/ProcessMemoryTelemetry.cpp",
+      "bytes": 1793,
+      "sha256": "2003d7c298f230dc96158a8c6cc92f1604947cb5be89ae91febafca49b98447c"
+    },
+    {
+      "path": "native/audio-host/src/ProcessMemoryTelemetry.h",
+      "bytes": 290,
+      "sha256": "c16b35dc2a941073fa36df649338789df90b108f94b2bbd56bb9103171d39c8c"
+    },
+    {
+      "path": "native/audio-host/src/RawPcmInputReader.cpp",
+      "bytes": 7769,
+      "sha256": "7788ecf7448915d672c7b94c00c10580439d86c1c20fe92337a610baee084c72"
+    },
+    {
+      "path": "native/audio-host/src/RawPcmInputReader.h",
+      "bytes": 1565,
+      "sha256": "7d1ca8abef04a0038ca6fd0c8a6d89b8ae9e6789774510a013a2fae46558829c"
+    },
+    {
+      "path": "native/audio-host/src/RealtimeProgramPcmSink.h",
+      "bytes": 520,
+      "sha256": "5c9d9d411542ca953f89580e89263b4369d59f8212618c617fdb76a8ca4d9b96"
+    },
+    {
+      "path": "native/audio-host/src/RpcOutputWriter.cpp",
+      "bytes": 3799,
+      "sha256": "640dac1b45ff9ece7af8c785184059a6c0f11145564d46eaac2ec2abb4fba14f"
+    },
+    {
+      "path": "native/audio-host/src/RpcOutputWriter.h",
+      "bytes": 1423,
+      "sha256": "aefaf34a8e470f3a0348c0f549b9f98b70492ddbb8f8edfa927d1e0a32cb3b26"
+    },
+    {
+      "path": "native/audio-host/src/RuntimeOutputTransitionCoordinator.h",
+      "bytes": 6808,
+      "sha256": "e94c763a415eb3702716f04ad37a1d13f7fb99b50ff245479454d6b53b307dee"
+    },
+    {
+      "path": "native/audio-host/src/wasapi_diag.h",
+      "bytes": 3291,
+      "sha256": "0c7d9cf16a8afccb713d77a2b07fb39a5132200fc170acbfd932f69e2495712d"
+    },
+    {
+      "path": "native/audio-host/src/wasapi_exclusive.cpp",
+      "bytes": 52300,
+      "sha256": "4570fb052512c7b44ac410590ea05387ff61eb86086f474dbe04efa26c98f209"
+    },
+    {
+      "path": "native/audio-host/src/wasapi_exclusive.h",
+      "bytes": 2488,
+      "sha256": "456afa72202525af1ee7ca31b2162ec2393c3b98245a829e7efe58293a7a2776"
+    },
+    {
+      "path": "native/audio-host/src/wasapi_shared.cpp",
+      "bytes": 60154,
+      "sha256": "e9baa0875e3022988ef5a1c87887ede04631a56c97ab4ef82994fb7430e0e005"
+    },
+    {
+      "path": "native/audio-host/src/wasapi_shared.h",
+      "bytes": 1314,
+      "sha256": "396d86d5df28f882ddfd14da02851f853255529dda6dfa2df81a3bbc2c8a51a9"
+    },
+    {
+      "path": "native/audio-host/src/wasapi_timeout.h",
+      "bytes": 10443,
+      "sha256": "30d6c0d805d40c63f2997aeafb3d45c9b085d11755de3ad0123107990ead459f"
+    },
+    {
+      "path": "native/audio-host/src/WindowsCddaReader.cpp",
+      "bytes": 14235,
+      "sha256": "99638531bf2f7317fc6e5596bdce06fcf4cec29cffa2201c0c0d8c2f6138e1af"
+    },
+    {
+      "path": "native/audio-host/src/WindowsCddaReader.h",
+      "bytes": 1725,
+      "sha256": "ee313ef703379a89b825800469ed5c05908a2b5546c6a65f6dac302df66a1391"
+    },
+    {
+      "path": "native/audio-host/tests/asio_queue_channel_tests.cpp",
+      "bytes": 4210,
+      "sha256": "d7942b38c90bcb6df8c53015408820c642b25cc46074b40d128bab5f21ccf33b"
+    },
+    {
+      "path": "native/audio-host/tests/asio_queue_channel_tests.h",
+      "bytes": 128,
+      "sha256": "b894d51d8c5f811fcc9b598d8d74ac55cf8033ae3401b13972db9de1f542295a"
+    },
+    {
+      "path": "native/audio-host/tests/audio_engine_tests.cpp",
+      "bytes": 434293,
+      "sha256": "de8463d004d512be286abd34db3cf5ca592a23889ee3e7e511cd872f5deb492c"
+    },
+    {
+      "path": "native/audio-host/tests/automix_handoff_schedule_tests.h",
+      "bytes": 2716,
+      "sha256": "a6637768d8ad146b57eec273b18c1ac88bebfe0653994d407032623ace23ed75"
+    },
+    {
+      "path": "native/audio-host/tests/cache_pcm_producer_tests.cpp",
+      "bytes": 4996,
+      "sha256": "887906347c0e7a0190ee53b7fade8d037797b7fec987cec7c7adb0654d3e10ca"
+    },
+    {
+      "path": "native/audio-host/tests/cdda_signal_integrity_tests.cpp",
+      "bytes": 11550,
+      "sha256": "104818c8923638724fe962253dac3fc938dda6b79f9d3e1aee9ed2b653ea31ab"
+    },
+    {
+      "path": "native/audio-host/tests/coreaudio_dop_packing_tests.cpp",
+      "bytes": 1695,
+      "sha256": "9f1aa80278750d2be8c0ab1c6442b1096daa49cc063047b2c3aaab7b338d5162"
+    },
+    {
+      "path": "native/audio-host/tests/dsd_ring_source_characterization.cpp",
+      "bytes": 12058,
+      "sha256": "b3c1965091c98cf4827eb0707b82058a6fcb0ae890aa922f4712c2b7459a7888"
+    },
+    {
+      "path": "native/audio-host/tests/eq_editing_tests.cpp",
+      "bytes": 2777,
+      "sha256": "6acdb40336c40b7ddf3210d78ba9bf2d96cf8e2d00c44412ba4633176215bbc6"
+    },
+    {
+      "path": "native/audio-host/tests/jsonrpc_protocol_characterization.cpp",
+      "bytes": 48683,
+      "sha256": "23bd887eed99a2a6cac1c2ba91e3057b398cf04df6a86208a9e86fc3a289f022"
+    },
+    {
+      "path": "native/audio-host/tests/level_meter_processor_tests.cpp",
+      "bytes": 19678,
+      "sha256": "db8036b69cbea341af357b23646f673b52412769d50b0ea10312d1c53433a438"
+    },
+    {
+      "path": "native/audio-host/tests/libav_seek_tests.cpp",
+      "bytes": 3773,
+      "sha256": "fd533b6fda40a6b89ed9c51d087852860097883961879d7c54d543869ffddb84"
+    },
+    {
+      "path": "native/audio-host/tests/linux_output_tests.cpp",
+      "bytes": 5562,
+      "sha256": "90e5850d0173dc5124ae68d881216c17d19762da0a5ba2cb4d5255232911fb5b"
+    },
+    {
+      "path": "native/audio-host/tests/listen_together_audio_transport_tests.cpp",
+      "bytes": 8799,
+      "sha256": "d7eb841c3380bdf23c4928f01b22bdeffbe4766b7a464ecacc90c42946124962"
+    },
+    {
+      "path": "native/audio-host/tests/listen_together_opus_codec_tests.cpp",
+      "bytes": 3826,
+      "sha256": "2c0aca5a4b2e3a48faf96a8f1933743f60419c24d739ab71c5679f0d439b4bad"
+    },
+    {
+      "path": "native/audio-host/tests/listen_together_realtime_audio_tests.cpp",
+      "bytes": 14545,
+      "sha256": "efe54269891fe0d1ef693bfb219d85ac8abe5c44063a66e2e5ad9e2ec23093bc"
+    },
+    {
+      "path": "native/audio-host/tests/listening_volume_tests.cpp",
+      "bytes": 4516,
+      "sha256": "ddde172f149675c2d2f58283e29240d472ad658116e68cdb708ceb4a819e8562"
+    },
+    {
+      "path": "native/audio-host/tests/listening_volume_tests.h",
+      "bytes": 137,
+      "sha256": "a18f21794b31e52eb33d1e8d718f8f1adedcab28d3ef4fd412a2b5a6d5609f9d"
+    },
+    {
+      "path": "native/audio-host/tests/native_pcm_channel_tests.cpp",
+      "bytes": 2652,
+      "sha256": "448f6172694a8a27d8c6b134605a63eebda1cdfa88307e144e3ab053bde1c6db"
+    },
+    {
+      "path": "native/audio-host/tests/native_pcm_decode_tests.cpp",
+      "bytes": 1508,
+      "sha256": "942c38ca5f2bd4ed2486a0ddd68265bedcbc7feeecccb6c8f7e76a989371eb54"
+    },
+    {
+      "path": "native/audio-host/tests/native_playback_pipeline_tests.cpp",
+      "bytes": 73036,
+      "sha256": "04dd09b04c7b10f314deb646ff91d8c1a584445c0db1aad56bdfcb6c489b3ee5"
+    },
+    {
+      "path": "native/audio-host/tests/replay_gain_smoothing_tests.h",
+      "bytes": 6032,
+      "sha256": "4647a30d47714313b03560677d4dba1815411f52ff3c25e72038a8c575fcc6b8"
+    },
+    {
+      "path": "native/audio-host/tests/windows_cdda_reader_tests.cpp",
+      "bytes": 10950,
+      "sha256": "e0d569d5aca0b16e02d1d3ad1495c9f663c2451f54146aa8d703df16495d40f8"
+    },
+    {
+      "path": "native/audio-host/tests/workshop_chiptune_dynamics_tests.h",
+      "bytes": 12042,
+      "sha256": "46c59caaf268ecd202c686febbca5a65152eca244d9607cf75aa09c76c327929"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/pcm-3point0.wav",
+      "bytes": 6212,
+      "sha256": "dcabad1f14bca2a3711dc77f34f7f16ff61f4475c097f5d201dc134b18e219f4"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/pcm-5point1.wav",
+      "bytes": 12356,
+      "sha256": "d9efe7d4358ea60b683c7f44cb94c2e54bec37496a93134160409aaa283cb6c1"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/pcm-7point1.wav",
+      "bytes": 16452,
+      "sha256": "bc283d9d9ad5c182a7eac312fa8d5aac4d167175615b58a93691a86045365990"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/pcm-channel-fixtures.md",
+      "bytes": 669,
+      "sha256": "3371811daeaa1a3a24891913143c718d3dfd955bc6ee1605ccb6d7fb23659178"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/room-correction-planar-float.m4a",
+      "bytes": 1642,
+      "sha256": "4d68cbba41320b307935d8d3c1dd99fb54e270dd9d7ec96cb067582e3fa25ec9"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/room-correction-s16.aiff",
+      "bytes": 1974,
+      "sha256": "24753193808e79492b0da322b028a98558a8517c14e8eb7e7bef7bfcf9c7f393"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/room-correction-s24.flac",
+      "bytes": 9547,
+      "sha256": "c3af4d5e0b82cd09fcda39f784fa3be2e9199c3472380ae622c4e9661c480c82"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/seek-fixtures.md",
+      "bytes": 997,
+      "sha256": "4939bb10ea7a4f12fbb062663b3ee97db61c77bd4756647da7f35063607e7d64"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/seek-tta.tta",
+      "bytes": 73785,
+      "sha256": "a7fddcbf4e81c61d6918165503caffc3ef8b2045c0b3a7fb5e07268f810439b8"
+    },
+    {
+      "path": "native/audio-host/tests/fixtures/seek-vorbis.ogg",
+      "bytes": 13061,
+      "sha256": "e24a01da8f2e61970cebd727882d7a1ae2a27b7eb7bf53e7a26a927afa08bfc6"
+    },
+    {
+      "path": "native/audio-host/third_party/miniaudio.h",
+      "bytes": 4204032,
+      "sha256": "e9e742f8c4d7cdd0fc81ba7f1c47b719d98d45e0138849aa0ec1e574d554a1ee"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/README.md",
+      "bytes": 8322,
+      "sha256": "50ca264d2f71c877732689a9613a104d9ce75147f9cf4313e4802d0e36922d5f"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/common/asio.cpp",
+      "bytes": 6265,
+      "sha256": "4ecee2bfaebd8b0777db96175d2b2ea8d0cd684dfaf9651480c44b0ebec0fd61"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/common/asio.h",
+      "bytes": 44265,
+      "sha256": "93d2f80d49b4ac9c963514e7c1307ab5111d8104246192233745beb058534ea1"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/common/asiosys.h",
+      "bytes": 2165,
+      "sha256": "f44a1ed0fd7c056ff047aeebc4c05a8c185f0585a24d8debc55c70107777dbef"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/common/iasiodrv.h",
+      "bytes": 2379,
+      "sha256": "86ad4788452c74823653cf57d4bd557c48bb6542d7e6eb7fff80102c705a066d"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/common/LICENSE.txt",
+      "bytes": 2685,
+      "sha256": "8240f014c79fa5ff9ff5c2d577237c42e0c6aab547412cba3881b7bec549354c"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/host/asiodrivers.cpp",
+      "bytes": 5577,
+      "sha256": "6f5c7529047c482998201df4b9c9e6bcdeee782ed764e6324d49b3bca4340601"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/host/asiodrivers.h",
+      "bytes": 2868,
+      "sha256": "23f78334ed9aff7f9db4b0d36b228595005c6f6a3ad842e9d0ad33edfb041a8f"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/host/ginclude.h",
+      "bytes": 2803,
+      "sha256": "96db001a91c469702afac88178f289bd50f78dd43ed12c174f898a44a7a56676"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/host/pc/asiolist.cpp",
+      "bytes": 9347,
+      "sha256": "d3f7d83f561eaafed17393c3c95ba077f2ec109e2f7c762dcdf905f0e5c17f02"
+    },
+    {
+      "path": "native/audio-host/third_party/asio-sdk/host/pc/asiolist.h",
+      "bytes": 3213,
+      "sha256": "daab5066bcb9ca79552541bc2981cf43cde7ac72bd4572286764097c9cc92010"
+    },
+    {
+      "path": "native/audio-host/tools/automix-features/main.cpp",
+      "bytes": 366,
+      "sha256": "495972a4a3dee6cf1faee5529d432de59359f22ec0850bab5de632cb2ce3310f"
+    },
+    {
+      "path": "native/audio-host/tools/connect-src-renderer/main.cpp",
+      "bytes": 17762,
+      "sha256": "52c5509aaf32211fc25b38d1779a5759287bfa109bcfb0e1eac6a9e72705f806"
+    },
+    {
+      "path": "native/audio-host/tools/sdm-quality-lab/CMakeLists.txt",
+      "bytes": 1600,
+      "sha256": "7ec1d7b3cd71a9fe81a2c9f2e5dca87f8ad80af4bf9580c2706226539a494c98"
+    },
+    {
+      "path": "native/audio-host/tools/sdm-quality-lab/main.cpp",
+      "bytes": 76100,
+      "sha256": "67ec89f8bea313bb2a15d739c6c5aa54b4b3ae58bb1dcec5465f76e13d34da4e"
+    },
+    {
+      "path": "native/audio-engine/buffer.h",
+      "bytes": 5672,
+      "sha256": "0ce5ea7724948ace40c5947a74ad21537001c4efabb61bede69d2bd68aa6a511"
+    },
+    {
+      "path": "native/audio-engine/ChannelBalanceProcessor.cpp",
+      "bytes": 24969,
+      "sha256": "3d7ca5853ab3bb6658d75b4bf00c6458659d880914ed20ba5c2027355bcf41d0"
+    },
+    {
+      "path": "native/audio-engine/ChannelBalanceProcessor.h",
+      "bytes": 5726,
+      "sha256": "6e94da5a143379b65bc52bdc9b0ae59c1349da1bf910682ac89cccb74920184a"
+    },
+    {
+      "path": "native/audio-engine/CompressorProcessor.cpp",
+      "bytes": 20006,
+      "sha256": "59091c2c6d587de3a5857c2c690c0f76246eae7b93374862e3f80dee0efe7797"
+    },
+    {
+      "path": "native/audio-engine/CompressorProcessor.h",
+      "bytes": 3760,
+      "sha256": "bb9544943a684ab7cc09d20130a53af2e873d0f1301eba2d2c8406a02e41c516"
+    },
+    {
+      "path": "native/audio-engine/ConvolutionProcessor.cpp",
+      "bytes": 32682,
+      "sha256": "a0055f77500c58eccd5b3f4bc54da8fb5ced70ded136d7c3b5e6fc4854ef36b8"
+    },
+    {
+      "path": "native/audio-engine/ConvolutionProcessor.h",
+      "bytes": 5144,
+      "sha256": "1aaff0d034e22ad4eb2669748538863f5fc5fbc376ec8b55d00d05f710016552"
+    },
+    {
+      "path": "native/audio-engine/DspChain.cpp",
+      "bytes": 9539,
+      "sha256": "7a10a1adf52cf869ec9d8bf29be77f489da7245a985d38bf10c80e762f8263f6"
+    },
+    {
+      "path": "native/audio-engine/DspChain.h",
+      "bytes": 3378,
+      "sha256": "26e45bbd1d8d41ab902536702f28bac4ac4b74d3f83c5f783804b46e03b841e3"
+    },
+    {
+      "path": "native/audio-engine/DspHeadroomProcessor.cpp",
+      "bytes": 2841,
+      "sha256": "a6a7fa43f41d1546762cc640ea1f98fd43ebe2484922d471418275777359945b"
+    },
+    {
+      "path": "native/audio-engine/DspHeadroomProcessor.h",
+      "bytes": 736,
+      "sha256": "61310bc0e3374527768f21d2db992eb233f6704669219cdc440c3571f60a230e"
+    },
+    {
+      "path": "native/audio-engine/DspRackOrder.cpp",
+      "bytes": 4167,
+      "sha256": "916aaaf61eab32ebabbcf537cc4206af5e7a127f05cbe0e87e236b12c8bc3245"
+    },
+    {
+      "path": "native/audio-engine/DspRackOrder.h",
+      "bytes": 1243,
+      "sha256": "79dc4b2b940f7092f2bc025d5edfdb84f4f9afee2237174d86545de40a5b58c8"
+    },
+    {
+      "path": "native/audio-engine/DspSafetyLimiter.h",
+      "bytes": 473,
+      "sha256": "b25047b47f1184d3222622de920275598daafee522ddb04c69d7ac071298be3c"
+    },
+    {
+      "path": "native/audio-engine/EqAuditionProcessor.h",
+      "bytes": 3771,
+      "sha256": "402a81936abaa83222405cdc3c2a102515f6fc540f24f1343cef257dde319869"
+    },
+    {
+      "path": "native/audio-engine/EqBand.h",
+      "bytes": 9685,
+      "sha256": "1076281beaf18092986454f6efa9c13ead3a41fdb3f4cf86367e0e281ff4724f"
+    },
+    {
+      "path": "native/audio-engine/EqMessageProtocol.cpp",
+      "bytes": 18569,
+      "sha256": "ce8fd974942b5872d526a32a9b06a481eb4a8e28963e4e36c406c543a9c5b4eb"
+    },
+    {
+      "path": "native/audio-engine/EqMessageProtocol.h",
+      "bytes": 1407,
+      "sha256": "fbb125d9710bc1416d32a71e3fd5a327d14f3b52ec0f284db10b6a7080e49163"
+    },
+    {
+      "path": "native/audio-engine/EqPresetStore.cpp",
+      "bytes": 9115,
+      "sha256": "90b6ce370f8b3bd148d20da79d187ed1b4eae9beae269727155f69ec82179543"
+    },
+    {
+      "path": "native/audio-engine/EqPresetStore.h",
+      "bytes": 253,
+      "sha256": "98145a85b175e80d8ac7e7bec943b683750b20ad628f3a4b9ca237640a4abfc9"
+    },
+    {
+      "path": "native/audio-engine/EqProcessor.cpp",
+      "bytes": 15381,
+      "sha256": "979c3884910258d8183c9cd756450057c7f7a0e4a47de5f7669f072ed662f498"
+    },
+    {
+      "path": "native/audio-engine/EqProcessor.h",
+      "bytes": 3562,
+      "sha256": "ea68aa281b718e50ec022ed50dce5748081f280404b3267131c76f1193b8ab15"
+    },
+    {
+      "path": "native/audio-engine/EqTypes.h",
+      "bytes": 6131,
+      "sha256": "cfd490845694326c04b10f3fbad8ada5a6793071a68e239f6d4d0dbb516819a8"
+    },
+    {
+      "path": "native/audio-engine/GaplessReplayGainTimeline.h",
+      "bytes": 1778,
+      "sha256": "f80eb3f6e3dba296db02f4fbce93b04619719d951108251ce50ef3f00e124571"
+    },
+    {
+      "path": "native/audio-engine/JsonRpcProtocol.cpp",
+      "bytes": 60206,
+      "sha256": "7775831e8a37fbf9624b7e25e69b0b11aab5f4f78c90ddbefc47626543e7d9da"
+    },
+    {
+      "path": "native/audio-engine/JsonRpcProtocol.h",
+      "bytes": 4915,
+      "sha256": "03d61eec095a6a53a22d37419702b9808007b394d3a6fae7902e2c8cbc10e34a"
+    },
+    {
+      "path": "native/audio-engine/LevelMeterProcessor.cpp",
+      "bytes": 20275,
+      "sha256": "07552944c1611b8cbd2b849c8589500a90bfd944a15bef611bc18b74652140a4"
+    },
+    {
+      "path": "native/audio-engine/LevelMeterProcessor.h",
+      "bytes": 6213,
+      "sha256": "fe702385d918e2aaf61d7e33aea8313493ab4d3b33da01cea58e16bde8d93b9a"
+    },
+    {
+      "path": "native/audio-engine/libav_decoder.h",
+      "bytes": 29975,
+      "sha256": "c203bc4e604803bb6b5119a7c282af99a2d6857a6d68ccdbfb779c99227f772d"
+    },
+    {
+      "path": "native/audio-engine/mqa_metadata.h",
+      "bytes": 2093,
+      "sha256": "7a59a484bf098d98d3fb566a0139c8b8dfc1899afa32ec3a13e91e712500571f"
+    },
+    {
+      "path": "native/audio-engine/NativeFormatProcessor.cpp",
+      "bytes": 57121,
+      "sha256": "b11fcae764a61a4dca64c1030d884863913850b5f6f6bf62cf055b380766eb83"
+    },
+    {
+      "path": "native/audio-engine/NativeFormatProcessor.h",
+      "bytes": 11841,
+      "sha256": "c99522d8c228e6e007c7a4d5a11fb05f6b8877a22c96bb992f6e46c106db8452"
+    },
+    {
+      "path": "native/audio-engine/PartitionedConvolutionEngine.cpp",
+      "bytes": 11060,
+      "sha256": "a27c6c41ead8f4f488a893709c60dc946d335f712d847d5b97c62dd007458be1"
+    },
+    {
+      "path": "native/audio-engine/PartitionedConvolutionEngine.h",
+      "bytes": 1869,
+      "sha256": "c14dae8f711627548d27acec5bc1e995948810bfc660113ee6ec02be4172e2dd"
+    },
+    {
+      "path": "native/audio-engine/PlaybackRateProcessor.cpp",
+      "bytes": 10230,
+      "sha256": "9ee2d9be10451af6d126d3ff4c9b5993695348b8b5026fccec4f730b4e373704"
+    },
+    {
+      "path": "native/audio-engine/PlaybackRateProcessor.h",
+      "bytes": 2239,
+      "sha256": "27adc97d53c9244996c4adddb0e35e27ddc01e9acb698d725789e029e1595c2a"
+    },
+    {
+      "path": "native/audio-engine/ReplayGainProcessor.cpp",
+      "bytes": 5431,
+      "sha256": "a3eb172dcf401771897917f1a7d526f94811ef2bf3c340b1f9e546bf681cc6c0"
+    },
+    {
+      "path": "native/audio-engine/ReplayGainProcessor.h",
+      "bytes": 1988,
+      "sha256": "e8bfc5fdbca1c9cf6562f76432b7b64c37e1829ac8467b08363c645fa256c613"
+    },
+    {
+      "path": "native/audio-engine/SdmExtraLoop.h",
+      "bytes": 25353,
+      "sha256": "ac19e93dea6acfa7c14720b302df0ae57a9fa4ed76b5c6948953631110be324f"
+    },
+    {
+      "path": "native/audio-engine/SdmNtfDesign.cpp",
+      "bytes": 14876,
+      "sha256": "41e65c13aff2f380cb09df74ab46a4b0e6f2b26ffe88c98829412858fbb0695c"
+    },
+    {
+      "path": "native/audio-engine/SdmNtfDesign.h",
+      "bytes": 3846,
+      "sha256": "f35257492972825e037a87fbab43451958add36450bfdf2e5e6dbb88f2b9116f"
+    },
+    {
+      "path": "native/audio-engine/SdmPreModulator.cpp",
+      "bytes": 15131,
+      "sha256": "e5ee6ad92a6fe4e7d1eeaa52f142328185a80fcf210b9e2f96ca21f5b96a18d1"
+    },
+    {
+      "path": "native/audio-engine/SdmPreModulator.h",
+      "bytes": 3415,
+      "sha256": "ebfbc2fbf1f7b49a6e60540baf5f2bd0d1a5793f93cd180d2d50ecaa810bcc96"
+    },
+    {
+      "path": "native/audio-engine/SpatialDspProcessor.cpp",
+      "bytes": 8220,
+      "sha256": "a7e3feec962ee8e3e90eec0b65ab6a1e55aeaaee904bd96122821d199d4f2be3"
+    },
+    {
+      "path": "native/audio-engine/SpatialDspProcessor.h",
+      "bytes": 2552,
+      "sha256": "a967216aa61250bb6339e353b7aa18e6959a8011eafe887ec94bda869bc4ca08"
+    },
+    {
+      "path": "native/audio-engine/TruePeakLimiterProcessor.cpp",
+      "bytes": 3560,
+      "sha256": "7d47cfdf40d2034269d1a651c44b4abc07b07c0127d0e5b0f51a07ec7fe55f2c"
+    },
+    {
+      "path": "native/audio-engine/TruePeakLimiterProcessor.h",
+      "bytes": 708,
+      "sha256": "01127ca99bf39e70e3762fd72bcd7a885ebcdeccd06973074afe91c729c5f084"
+    },
+    {
+      "path": "native/audio-engine/WorkshopAudioEffectProcessor.cpp",
+      "bytes": 20130,
+      "sha256": "5319435a334582d96e422599defce2645e8f928dfc4b2da959aca5c1ac3cd095"
+    },
+    {
+      "path": "native/audio-engine/WorkshopAudioEffectProcessor.h",
+      "bytes": 3845,
+      "sha256": "5416be380dcc7b7d85aedd6c4739c97527d36ab0f6d6ef243bb35f887e81270b"
+    },
+    {
+      "path": "native/audio-engine/WorkshopToneRamp.h",
+      "bytes": 1765,
+      "sha256": "73933612f77f4543f844a5a395fbf673cca54700ccd92b93d497b72ca996e5b5"
+    },
+    {
+      "path": "native/audio-engine/third_party/nlohmann_json.hpp",
+      "bytes": 944740,
+      "sha256": "853b2eb3bf7632c949f4a2dd6fb8a629c5ff25cc0059d29c7d21915dc719487f"
+    },
+    {
+      "path": "native/runtime/win-x64/avcodec-62.dll",
+      "bytes": 70869504,
+      "sha256": "7841b61935e19de12ddf0b0130991f9cdc00602f65b4c266ef52296bae2e4f51"
+    },
+    {
+      "path": "native/runtime/win-x64/avdevice-62.dll",
+      "bytes": 3923968,
+      "sha256": "daad819cdcf5885e9822c6090157264c8fd63d70a349c87937cc5a95873f8de4"
+    },
+    {
+      "path": "native/runtime/win-x64/avfilter-11.dll",
+      "bytes": 30029312,
+      "sha256": "223e6a352a42e92352373b766dad3365598673847bc4bd0bf715e69b6da59e6c"
+    },
+    {
+      "path": "native/runtime/win-x64/avformat-62.dll",
+      "bytes": 22107648,
+      "sha256": "1134a8e7307b592c0f6e0b38ca276e5a11d0b26ea310778d0a4c763214970391"
+    },
+    {
+      "path": "native/runtime/win-x64/avutil-60.dll",
+      "bytes": 2937344,
+      "sha256": "391fca8b7b97f6b30024073cbdcc961cca15f58a5200d27946176bec1d401f69"
+    },
+    {
+      "path": "native/runtime/win-x64/echo-audio-host.exe",
+      "bytes": 2633216,
+      "sha256": "bafee13a3c665eb86bd962c652020b48ceb381de77b9ce532960b909d52a9bde"
+    },
+    {
+      "path": "native/runtime/win-x64/echo-smtc-host.exe",
+      "bytes": 241152,
+      "sha256": "6936a61dd270c38b3ad9e2581846f0f937d35fedbbd9208c2c639be4291a5b3e"
+    },
+    {
+      "path": "native/runtime/win-x64/swresample-6.dll",
+      "bytes": 722944,
+      "sha256": "3797bd73c3dcf9557ac7a2ea08ddc5d80704f09ba88fec765367ab30c0949ab7"
+    },
+    {
+      "path": "native/runtime/win-x64/swscale-9.dll",
+      "bytes": 12759040,
+      "sha256": "cc52d8ecb6782b8517b3ce3167f759d1cd5dc1e69695ff8725a96465c172739e"
+    }
+  ],
+  "sourceCommit": "3dbf28993cddf9f10ea355b88b0105abe85e5174",
+  "sourceWorkspaceSnapshot": true
+}

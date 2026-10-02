@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:albums="using:Echo.Desktop.Features.Albums" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Albums.AlbumsView" x:DataType="albums:AlbumsViewModel">
+  <Grid>
+    <Grid Name="Wall" RowDefinitions="Auto,Auto,Auto,*">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
+        <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+          <TextBlock Text="专辑" Classes="heading" FontSize="30" FontStyle="Normal" />
+          <TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Name="ImportButton" Click="OnImport" ToolTip.Tip="将音乐文件夹导入曲库"><TextBlock Text="导入文件夹" FontSize="13" /></Button>
+          <Button Classes="icon" Click="OnRefresh" ToolTip.Tip="刷新专辑"><icon:GlyphIcon Kind="refresh" Width="18" Height="18" /></Button>
+        </StackPanel>
+      </Grid>
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="0,0,0,20">
+        <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="120">
+          <icon:GlyphIcon Kind="search" Width="18" Height="18" Margin="12,0" ZIndex="1" />
+          <TextBox Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="搜索专辑或艺术家" Padding="40,10,60,10" CornerRadius="6" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
+          <Button Grid.Column="2" Content="×" Click="OnClearSearch" Classes="icon" ToolTip.Tip="清空搜索" Margin="8,0" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </Grid>
+        <Button Grid.Column="1" ToolTip.Tip="筛选与布局">
+          <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="settings" Width="16" Height="16" /><TextBlock Text="筛选" FontSize="13" /><TextBlock Text="⌄" /></StackPanel>
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedRight">
+              <StackPanel Spacing="14" Width="200">
+                <TextBlock Text="音质" FontWeight="SemiBold" />
+                <CheckBox Content="仅无损专辑" IsChecked="{Binding LosslessOnly, Mode=TwoWay}" />
+                <Border Height="1" Background="{DynamicResource EchoDivider}" />
+                <TextBlock Text="每行专辑" FontWeight="SemiBold" />
+                <ComboBox Name="Density" SelectedIndex="0" SelectionChanged="OnDensityChanged" HorizontalAlignment="Stretch">
+                  <ComboBoxItem Content="自动" /><ComboBoxItem Content="4 张" /><ComboBoxItem Content="5 张" /><ComboBoxItem Content="6 张" />
+                </ComboBox>
+                <Button Content="重置筛选" Click="OnResetFilter" />
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+          <ComboBox SelectedIndex="{Binding SortIndex, Mode=TwoWay}" MinWidth="120" VerticalAlignment="Center">
+            <ComboBoxItem Content="专辑名称" /><ComboBoxItem Content="艺术家" /><ComboBoxItem Content="发行年份" />
+            <ComboBoxItem Content="最近入库" /><ComboBoxItem Content="专辑时长" /><ComboBoxItem Content="曲目数量" />
+          </ComboBox>
+          <ToggleButton IsChecked="{Binding Descending, Mode=TwoWay}" Content="↓" ToolTip.Tip="降序排列" Width="32" />
+        </StackPanel>
+      </Grid>
+      <StackPanel Grid.Row="2" Spacing="8" Margin="0,0,0,8">
+        <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <Grid Name="ScanProgressRow" ColumnDefinitions="*,Auto" IsVisible="False">
+          <TextBlock Name="ScanText" Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Content="取消导入" Click="OnCancelImport" />
+        </Grid>
+      </StackPanel>
+      <Grid Grid.Row="3">
+        <ContentControl Name="ViewportHost" />
+        <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+          <icon:GlyphIcon Kind="album" Width="32" Height="32" HorizontalAlignment="Center" />
+          <TextBlock Text="没有找到专辑" Classes="heading" FontSize="18" HorizontalAlignment="Center" />
+          <TextBlock Text="导入音乐文件夹，或调整搜索与筛选。" Classes="muted" FontSize="13" />
+          <Button Content="导入文件夹" Click="OnImport" HorizontalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+    <ContentControl Name="DetailHost" IsVisible="False" />
+  </Grid>
+</UserControl>

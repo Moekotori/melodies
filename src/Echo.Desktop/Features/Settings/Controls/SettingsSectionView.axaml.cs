@@ -1,0 +1,16 @@
+using Avalonia.Controls;
+
+namespace Echo.Desktop.Features.Settings.Controls;
+
+public partial class SettingsSectionView : UserControl
+{
+    public SettingsSectionView() => InitializeComponent();
+    public SettingsSectionView(SettingsViewModel model) : this()
+    {
+        DataContext = model;
+        if (model.IsAppearance)
+            ExtraContent.Content = new Expander { Header = "动效预览", Content = new MotionSettingsView { DataContext = model.Shell }, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+        if (model.IsPlayback)
+            ExtraContent.Content = new PlaybackSettingsView { DataContext = model.Shell };
+    }
+}

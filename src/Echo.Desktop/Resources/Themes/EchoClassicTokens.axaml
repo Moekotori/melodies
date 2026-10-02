@@ -1,0 +1,52 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Final default palette, from theme-classic-colors.css, not the earlier tokens.css gradients. -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="EchoText">#30323c</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHeading">#222530</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoMuted">#656978</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSubtle">#737787</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoAccent">#6069df</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoAccentText">#4b52bc</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoIconAccent">#6069df</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoBorder">#66e0e1e9</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDivider">#e0e1e9</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHover">#eeeef3</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSelected">Transparent</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPanelMuted">#eeeef3</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoTitlebar">#ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPage">#f5f5f8</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPageBase">#f5f5f8</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPageGlow">Transparent</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSidebar">#f5f5f8</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPlayer">#fafafd</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoField">#ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPlaceholder">#f2f4fa</SolidColorBrush>
+      <Bitmap x:Key="EchoPlaceholderImage">avares://Echo.Desktop/Resources/Artwork/placeholder-light.png</Bitmap>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="EchoText">#dddfe7</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHeading">#f0f1f6</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoMuted">#a7abba</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSubtle">#9197a8</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoAccent">#969bf1</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoAccentText">#c6c9ff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoIconAccent">#969bf1</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoBorder">#34363f</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDivider">#34363f</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHover">#191a20</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSelected">Transparent</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPanelMuted">#191a20</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoTitlebar">#202127</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPage">#14151a</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPageBase">#14151a</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPageGlow">Transparent</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSidebar">#202127</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPlayer">#1b1c22</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoField">#202127</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPlaceholder">#0d1939</SolidColorBrush>
+      <Bitmap x:Key="EchoPlaceholderImage">avares://Echo.Desktop/Resources/Artwork/placeholder-dark.png</Bitmap>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+  <FontFamily x:Key="EchoFont">avares://Echo.Desktop/Resources/Fonts#Outfit, Microsoft YaHei, Noto Sans SC, Segoe UI, PingFang SC</FontFamily>
+</ResourceDictionary>

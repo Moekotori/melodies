@@ -1,0 +1,99 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:models="using:Echo.Desktop.Features.Settings.Models" xmlns:settings="using:Echo.Desktop.Features.Settings.Controls" xmlns:icon="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Settings.Controls.SettingRowView" x:DataType="models:SettingRowViewModel">
+  <UserControl.Resources>
+    <DataTemplate x:Key="ToggleEditor" x:DataType="models:SettingRowViewModel">
+      <ToggleButton Theme="{StaticResource SettingsToggleTheme}" IsChecked="{Binding BoolValue, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Title}" />
+    </DataTemplate>
+    <DataTemplate x:Key="SelectEditor" x:DataType="models:SettingRowViewModel">
+      <ComboBox Classes="settings-select" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedValue, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Title}" />
+    </DataTemplate>
+    <DataTemplate x:Key="ChoiceEditor" x:DataType="models:SettingRowViewModel">
+      <ItemsControl ItemsSource="{Binding Choices}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel HorizontalAlignment="Right" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:SettingChoice">
+            <Button Classes="settings-choice" Classes.selected="{Binding IsSelected}" Content="{Binding Label}" IsEnabled="{Binding IsEnabled}" Margin="6,3,0,3" Command="{Binding $parent[settings:SettingRowView].((models:SettingRowViewModel)DataContext).SelectCommand}" CommandParameter="{Binding Label}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </DataTemplate>
+    <DataTemplate x:Key="ActionEditor" x:DataType="models:SettingRowViewModel">
+      <ItemsControl ItemsSource="{Binding Choices}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel HorizontalAlignment="Right" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="models:SettingChoice">
+            <Button Classes="settings-control" Margin="6,3,0,3" IsEnabled="{Binding IsEnabled}" Command="{Binding $parent[settings:SettingRowView].((models:SettingRowViewModel)DataContext).InvokeCommand}" CommandParameter="{Binding Label}">
+              <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="{Binding Icon}" Width="15" Height="15" IsVisible="{Binding HasIcon}" /><TextBlock Text="{Binding Label}" FontSize="13" Foreground="{Binding $parent[Button].Foreground}" /></StackPanel>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </DataTemplate>
+    <DataTemplate x:Key="ScaleEditor" x:DataType="models:SettingRowViewModel">
+      <StackPanel Orientation="Horizontal" Spacing="7" IsEnabled="{Binding IsEnabled}">
+        <Border BorderThickness="1" BorderBrush="{DynamicResource SettingsBorder}" CornerRadius="6" Background="{DynamicResource EchoField}" ClipToBounds="True">
+          <Grid ColumnDefinitions="38,70,38" Height="34">
+            <Button Command="{Binding DecreaseCommand}" Padding="0" ToolTip.Tip="缩小界面">
+              <icon:GlyphIcon Kind="minus" Width="15" Height="15" />
+            </Button>
+            <Border Grid.Column="1" BorderThickness="1,0" BorderBrush="{DynamicResource SettingsBorder}">
+              <TextBlock Text="{Binding ScaleLabel}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Button Grid.Column="2" Command="{Binding IncreaseCommand}" Padding="0" ToolTip.Tip="放大界面">
+              <icon:GlyphIcon Kind="plus" Width="15" Height="15" />
+            </Button>
+          </Grid>
+        </Border>
+        <Button Classes="settings-control" Width="38" Padding="0" Command="{Binding ResetScaleCommand}" ToolTip.Tip="恢复默认">
+          <icon:GlyphIcon Kind="reset" Width="17" Height="17" />
+        </Button>
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="SliderEditor" x:DataType="models:SettingRowViewModel">
+      <StackPanel Orientation="Horizontal" Spacing="12" IsEnabled="{Binding IsEnabled}">
+        <Slider Width="200" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Value="{Binding NumberValue, Mode=TwoWay}" />
+        <TextBlock Text="{Binding SliderLabel}" Classes="muted" FontSize="13" VerticalAlignment="Center" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="TextEditor" x:DataType="models:SettingRowViewModel">
+      <TextBlock Text="{Binding SelectedValue}" Classes="muted" FontSize="13" MaxWidth="420" TextWrapping="Wrap" VerticalAlignment="Center" />
+    </DataTemplate>
+    <DataTemplate x:Key="ShortcutEditor" x:DataType="models:SettingRowViewModel">
+      <ItemsControl ItemsSource="{Binding Options}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="20" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Button Classes="settings-control" Content="{Binding}" IsEnabled="False" Width="138" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </DataTemplate>
+  </UserControl.Resources>
+  <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource SettingsDivider}" Padding="20,8" MinHeight="{Binding RowHeight}" Background="Transparent" Name="RowBorder" ToolTip.Tip="{Binding UnavailableHint}">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <StackPanel VerticalAlignment="Center" Spacing="5" Margin="0,0,6,0">
+        <WrapPanel>
+          <TextBlock Text="{Binding Title}" FontSize="15" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Border IsVisible="{Binding HasBadge}" Margin="8,0,0,0" Padding="6,3" Background="{DynamicResource SettingsBadge}" CornerRadius="10">
+            <TextBlock Text="{Binding Badge}" Foreground="{DynamicResource SettingsBadgeText}" FontSize="10" />
+          </Border>
+          <Button IsVisible="{Binding HasHelp}" ToolTip.Tip="{Binding Help}" Width="20" Height="24" MinHeight="24" Padding="0" Margin="4,0,0,0">
+            <icon:GlyphIcon Kind="help" Width="14" Height="14" />
+          </Button>
+        </WrapPanel>
+      </StackPanel>
+      <ContentControl Name="RowEditor" Grid.Column="1" VerticalAlignment="Center" MaxWidth="520" />
+    </Grid>
+  </Border>
+</UserControl>

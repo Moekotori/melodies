@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" x:Class="Echo.Desktop.Features.Lyrics.LyricsSettingsView"
+             x:DataType="lyrics:LyricsAppearance">
+  <ScrollViewer MaxHeight="560" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Width="280" Spacing="12" Margin="4">
+      <TextBlock Text="歌词显示" Classes="heading" FontSize="18" />
+      <TextBlock Text="字号" Classes="muted" />
+      <Slider Minimum="18" Maximum="72" Value="{Binding FontSize}" TickFrequency="1" />
+      <TextBlock Text="译文 / 罗马音字号" Classes="muted" />
+      <Slider Minimum="10" Maximum="32" Value="{Binding SecondarySize}" TickFrequency="1" />
+      <TextBlock Text="字体" Classes="muted" />
+      <ComboBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding Font}" HorizontalAlignment="Stretch" />
+      <TextBlock Text="对齐" Classes="muted" />
+      <ComboBox ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment}" HorizontalAlignment="Stretch" />
+      <Border Background="{DynamicResource EchoDivider}" Height="1" />
+      <CheckBox Content="逐字高亮" IsChecked="{Binding WordHighlight}" />
+      <CheckBox Content="显示上下文" IsChecked="{Binding Context}" />
+      <CheckBox Content="显示译文" IsChecked="{Binding Translation}" />
+      <CheckBox Content="显示罗马音" IsChecked="{Binding Romanization}" />
+      <TextBlock Text="歌词时间偏移 / 毫秒" Classes="muted" />
+      <NumericUpDown Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" />
+      <TextBlock Text="正值让歌词提前，负值让歌词延后。" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+      <TextBlock Text="Afterglow 主题" Classes="heading" IsVisible="{Binding IsAfterglow}" />
+      <ComboBox ItemsSource="{Binding Looks}" SelectedItem="{Binding SelectedLook}" IsVisible="{Binding IsAfterglow}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:AfterglowLook"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

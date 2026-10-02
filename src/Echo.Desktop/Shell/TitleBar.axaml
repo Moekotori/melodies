@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Shell.TitleBar" x:DataType="shell:ShellViewModel">
+  <Border Background="{DynamicResource EchoTitlebar}" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="0,0,0,1" Padding="16,0,10,0">
+    <Grid ColumnDefinitions="220,*,Auto" PointerPressed="OnTitlePointerPressed">
+      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <TextBlock Text="ECHO" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource EchoHeading}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
+        <Button Classes="icon" Command="{Binding ShowPendingCommand}" CommandParameter="全局搜索" ToolTip.Tip="搜索（Ctrl+F）"><icon:GlyphIcon Kind="search" Width="17" Height="17" /></Button>
+        <Button Name="AudioDrawerButton" Classes="icon" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="audio" ToolTip.Tip="音频设置" AutomationProperties.Name="音频设置"><icon:GlyphIcon Kind="headphones" Width="17" Height="17" /></Button>
+        <Button Name="LyricsDrawerButton" Classes="icon" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="lyrics" ToolTip.Tip="歌词设置" AutomationProperties.Name="歌词设置"><icon:EchoIcon Kind="lyrics" Scope="player" Width="22" Height="22" /></Button>
+        <Button Classes="icon" Command="{Binding ToggleThemeCommand}" ToolTip.Tip="切换浅色 / 深色主题"><icon:GlyphIcon Kind="moon" Width="17" Height="17" /></Button>
+        <Button Classes="icon" Command="{Binding NavigateCommand}" CommandParameter="settings" ToolTip.Tip="设置"><icon:GlyphIcon Kind="settings" Width="17" Height="17" /></Button>
+      </StackPanel>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+        <Button Classes="window" Click="OnMinimize" ToolTip.Tip="隐藏窗口"><icon:GlyphIcon Kind="hide" Width="15" Height="15" /></Button>
+        <Button Classes="window" Click="OnFullscreen" ToolTip.Tip="全屏（F11）"><icon:GlyphIcon Kind="fullscreen" Width="15" Height="15" /></Button>
+        <Button Classes="window" Click="OnMinimize" ToolTip.Tip="最小化"><icon:GlyphIcon Kind="minus" Width="16" Height="16" /></Button>
+        <Button Classes="window" Click="OnMaximize" ToolTip.Tip="最大化 / 还原"><icon:GlyphIcon Kind="maximize" Width="14" Height="14" /></Button>
+        <Button Classes="window close" Click="OnClose" ToolTip.Tip="关闭"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

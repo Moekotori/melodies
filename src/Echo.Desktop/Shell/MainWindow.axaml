@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:Echo.Desktop.Shell" xmlns:home="using:Echo.Desktop.Features.Home"
+        xmlns:player="using:Echo.Desktop.Features.Player" xmlns:icon="using:Echo.Desktop.Controls"
+        xmlns:motion="using:Echo.Desktop.Motion"
+        xmlns:queue="using:Echo.Desktop.Features.Queue"
+        xmlns:drawers="using:Echo.Desktop.Features.Settings.Drawers"
+        x:Class="Echo.Desktop.Shell.MainWindow" x:DataType="shell:ShellViewModel"
+        Title="ECHO" Width="1440" Height="900" MinWidth="800" MinHeight="600"
+        WindowDecorations="None" WindowStartupLocation="CenterScreen" Background="{DynamicResource EchoPage}">
+  <Grid>
+  <LayoutTransformControl Name="UiScaleHost">
+  <Grid RowDefinitions="40,*,108" ColumnDefinitions="220,*" Name="ShellGrid">
+    <shell:TitleBar Grid.ColumnSpan="2" />
+    <Grid Grid.Row="1" Grid.Column="1" Name="PageArea" Background="{DynamicResource EchoPageBase}" ClipToBounds="True">
+      <Border Background="{DynamicResource EchoPageGlow}" IsHitTestVisible="False" />
+      <motion:MotionPresenter Name="PageHost" SurfaceBrush="{DynamicResource EchoPageBase}" />
+      <motion:MotionSurface VerticalAlignment="Top" Margin="24" IsOpen="{Binding HasMediaTransportError}">
+      <Border Background="{DynamicResource EchoField}" Padding="16,10">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding MediaTransportErrorDisplay}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="重试系统媒体控制" Command="{Binding RetryMediaTransportCommand}" Margin="12,0,0,0" />
+        </Grid>
+      </Border>
+      </motion:MotionSurface>
+      <motion:MotionSurface Name="NoticeSurface" VerticalAlignment="Bottom" Margin="24" IsOpen="{Binding Notice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+      <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}"
+              BorderThickness="1" CornerRadius="6" Padding="16,10">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{Binding NoticeDisplay}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="icon" Content="×" Command="{Binding DismissNoticeCommand}" ToolTip.Tip="关闭提示" />
+        </Grid>
+      </Border>
+      </motion:MotionSurface>
+      <Button Background="#40000000" Padding="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+              IsVisible="{Binding IsQueueDrawerOpen}" Command="{Binding CloseQueueDrawerCommand}" ToolTip.Tip="关闭队列" />
+      <motion:MotionSurface HorizontalAlignment="Right" Width="420" IsOpen="{Binding IsQueueDrawerOpen}">
+        <queue:QueueDrawer />
+      </motion:MotionSurface>
+    </Grid>
+    <shell:SidebarHost Name="NavigationSidebar" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" />
+    <player:PlayerBar Grid.Row="2" Grid.ColumnSpan="2" />
+    <drawers:QuickSettingsDrawer Name="QuickSettingsOverlay" Grid.RowSpan="3" Grid.ColumnSpan="2" />
+  </Grid>
+  </LayoutTransformControl>
+  <ContentControl Name="LyricsStageHost" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+  </Grid>
+</Window>

@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Shell.SidebarHost" x:DataType="shell:ShellViewModel">
+  <Grid ClipToBounds="True">
+    <Border Name="NavigationPanel" Background="{DynamicResource EchoSidebar}"
+            BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,1,0">
+      <shell:Sidebar />
+    </Border>
+    <Grid Name="EdgeReveal" Background="Transparent" PointerEntered="OnEdgeEntered">
+      <Button Name="RevealButton" Width="22" Height="64" MinHeight="64" Padding="0" VerticalAlignment="Center"
+              Background="{DynamicResource EchoSidebar}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,1,1"
+              CornerRadius="0,6,6,0" Click="OnRevealClicked" ToolTip.Tip="展开侧栏（Ctrl+B）" AutomationProperties.Name="展开侧栏">
+        <icon:GlyphIcon Kind="chevron-right" Width="14" Height="14" />
+      </Button>
+    </Grid>
+  </Grid>
+</UserControl>

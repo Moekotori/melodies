@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:controls="using:Echo.Desktop.Controls.Lyrics"
+             xmlns:motion="using:Echo.Desktop.Motion" x:Class="Echo.Desktop.Features.Lyrics.LyricsView"
+             x:DataType="lyrics:LyricsViewModel">
+  <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource EchoPage}">
+    <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="18,8" ColumnSpacing="12">
+      <Button Content="‹ 返回" Click="OnBack" ToolTip.Tip="返回上一页面" />
+      <ComboBox Name="StylePicker" Grid.Column="1" MaxWidth="250" HorizontalAlignment="Left"
+                ItemsSource="{Binding Appearance.Styles}" SelectedItem="{Binding Appearance.SelectedStyle}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsStyle"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Grid.Column="2" Content="导入歌词" Click="OnImport" IsEnabled="{Binding !IsLoading}" />
+      <Button Grid.Column="3" Content="显示设置" ToolTip.Tip="字体、译文、时间偏移与 Afterglow 主题">
+        <Button.Flyout><motion:MotionFlyout><lyrics:LyricsSettingsView DataContext="{Binding Appearance}" /></motion:MotionFlyout></Button.Flyout>
+      </Button>
+    </Grid>
+    <Grid Grid.Row="1">
+      <controls:LyricsBackdropControl Name="Backdrop" />
+      <controls:LyricsViewportControl Name="Viewport" />
+      <ScrollBar Name="LineScroll" Orientation="Vertical" SmallChange="1" LargeChange="5" Minimum="0" Width="10"
+                 HorizontalAlignment="Right" Margin="0,16,6,16" ValueChanged="OnScroll" />
+      <Button Name="FollowButton" Content="回到当前歌词" Click="OnFollow" IsVisible="False"
+              HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,18" />
+    </Grid>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="20,8" ColumnSpacing="16">
+      <TextBlock Name="StatusText" Text="{Binding Message}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="{Binding Origin}" Classes="muted" FontSize="11" MaxWidth="200" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        <Button Content="重新读取" Command="{Binding ReloadCommand}" IsEnabled="{Binding !IsLoading}" Padding="8,2" MinHeight="24" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

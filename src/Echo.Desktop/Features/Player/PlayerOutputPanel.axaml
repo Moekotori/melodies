@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="using:Echo.Desktop.Shell" xmlns:player="using:Echo.Desktop.Features.Player" xmlns:playback="using:Echo.Playback" xmlns:motion="using:Echo.Desktop.Motion" x:Class="Echo.Desktop.Features.Player.PlayerOutputPanel" x:DataType="shell:ShellViewModel">
+<ScrollViewer MaxHeight="650" HorizontalScrollBarVisibility="Disabled">
+              <StackPanel Width="360" Spacing="12">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12"><TextBlock Text="{Binding Player.ZoneName}" Classes="heading" /><TextBlock Grid.Column="1" Text="{Binding Player.OutputName}" Classes="muted" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /></Grid>
+                <Button Content="打开音频文件" Click="OpenFiles" HorizontalAlignment="Stretch" />
+                <Button Content="播放队列" Command="{Binding ToggleQueueDrawerCommand}" HorizontalAlignment="Stretch" />
+                <Button Content="迷你播放器" Command="{Binding ShowPendingCommand}" CommandParameter="迷你播放器" HorizontalAlignment="Stretch" />
+                <Button Content="信号路径" HorizontalAlignment="Stretch"><Button.Flyout><motion:MotionFlyout><TextBlock Text="{Binding Player.SignalPath}" MaxWidth="360" TextWrapping="Wrap" /></motion:MotionFlyout></Button.Flyout></Button>
+                <Button Content="重试播放" Command="{Binding Player.RecoverCommand}" HorizontalAlignment="Stretch" />
+                <Border Height="1" Background="{DynamicResource EchoDivider}" />
+                <Button Content="输出设备与音效" Command="{Binding Player.AudioSettings.RefreshCommand}" HorizontalAlignment="Stretch" />
+                <ComboBox ItemsSource="{Binding Player.AudioSettings.Devices}" SelectedItem="{Binding Player.AudioSettings.SelectedDevice}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputDevice"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="输出模式" Classes="muted" />
+                <ComboBox ItemsSource="{Binding Player.AudioSettings.Modes}" SelectedItem="{Binding Player.AudioSettings.SelectedMode}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputMode"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="请求采样率 / Hz" Classes="muted" />
+                <ComboBox ItemsSource="{Binding Player.AudioSettings.Rates}" SelectedItem="{Binding Player.AudioSettings.SampleRate}" HorizontalAlignment="Stretch" />
+                <TextBlock Text="缓冲帧数" Classes="muted" />
+                <NumericUpDown Minimum="64" Maximum="32768" Increment="64" Value="{Binding Player.AudioSettings.BufferFrames}" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" IsVisible="{Binding Player.AudioSettings.IsAsio}">
+                  <StackPanel Spacing="6"><TextBlock Text="输出声道数" Classes="muted" /><NumericUpDown Minimum="2" Maximum="8" Increment="1" Value="{Binding Player.AudioSettings.OutputChannels}" /></StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="ASIO 起始声道（1 起）" Classes="muted" /><NumericUpDown Minimum="1" Maximum="129" Increment="1" Value="{Binding Player.AudioSettings.AsioChannelStart}" /></StackPanel>
+                </Grid>
+                <TextBlock Text="输出格式" Classes="muted" />
+                <ComboBox ItemsSource="{Binding Player.AudioSettings.Formats}" SelectedItem="{Binding Player.AudioSettings.SelectedFormat}" IsEnabled="{Binding Player.AudioSettings.CanUseDsd}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="player:OutputFormatChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <ComboBox ItemsSource="{Binding Player.AudioSettings.DsdRates}" SelectedItem="{Binding Player.AudioSettings.DsdTransportRate}" IsVisible="{Binding Player.AudioSettings.IsDsd}" HorizontalAlignment="Stretch" />
+                <Button Content="探测 ASIO DSD 支持（需停止播放）" Command="{Binding Player.AudioSettings.ProbeDsdCommand}" IsVisible="{Binding Player.AudioSettings.IsAsio}" />
+                <TextBlock Text="{Binding Player.AudioSettings.DsdCapabilities}" IsVisible="{Binding Player.AudioSettings.IsAsio}" Classes="muted" TextWrapping="Wrap" />
+                <Border Height="1" Background="{DynamicResource EchoDivider}" />
+                <CheckBox Content="启用均衡器" IsChecked="{Binding Player.AudioSettings.EqualizerEnabled}" />
+                <CheckBox Content="耳机交叉馈送" IsChecked="{Binding Player.AudioSettings.CrossfeedEnabled}" />
+                <TextBlock Text="播放速度" Classes="muted" />
+                <NumericUpDown Minimum="0.5" Maximum="2" Increment="0.05" Value="{Binding Player.AudioSettings.PlaybackRate}" />
+                <Button Content="应用设置" Command="{Binding Player.AudioSettings.ApplyCommand}" />
+                <TextBlock Text="{Binding Player.AudioSettings.Message}" TextWrapping="Wrap" Classes="muted" />
+              </StackPanel>
+              </ScrollViewer>
+</UserControl>
+

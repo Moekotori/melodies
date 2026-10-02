@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Shell.PendingPage" x:DataType="shell:ShellViewModel">
+  <StackPanel Spacing="20" Margin="12">
+    <TextBlock Name="PageTitle" Classes="heading" FontSize="28" />
+    <Border Height="1" Background="{DynamicResource EchoDivider}" />
+    <StackPanel Spacing="12" Margin="0,90" HorizontalAlignment="Center" MaxWidth="440">
+      <icon:EchoIcon Name="PageIcon" Width="48" Height="48" HorizontalAlignment="Center" />
+      <TextBlock Text="此页面正在迁移" Classes="heading" FontSize="18" HorizontalAlignment="Center" />
+      <TextBlock Text="将按原版 ECHO 的布局、控件和交互逐项接入。" Classes="muted" TextWrapping="Wrap" HorizontalAlignment="Center" />
+      <Button Content="返回主页" Command="{Binding NavigateCommand}" CommandParameter="home" HorizontalAlignment="Center" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

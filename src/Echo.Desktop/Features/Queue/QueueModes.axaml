@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:queue="using:Echo.Desktop.Features.Queue" x:Class="Echo.Desktop.Features.Queue.QueueModes" x:DataType="queue:QueueViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.active"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  </UserControl.Styles>
+  <WrapPanel Orientation="Horizontal" IsEnabled="{Binding !IsBusy}">
+    <Button Content="顺序播放" Command="{Binding SequentialCommand}" Classes.active="{Binding IsSequential}" Padding="12,0" />
+    <Button Content="随机播放" Command="{Binding ShuffleCommand}" Classes.active="{Binding IsShuffle}" Padding="12,0" />
+    <Button Content="单曲循环" Command="{Binding RepeatOneCommand}" Classes.active="{Binding IsRepeatOne}" Padding="12,0" />
+    <Button Content="列表循环" Command="{Binding RepeatAllCommand}" Classes.active="{Binding IsRepeatAll}" Padding="12,0" />
+  </WrapPanel>
+</UserControl>

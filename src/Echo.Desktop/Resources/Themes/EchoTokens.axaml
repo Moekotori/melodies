@@ -1,0 +1,69 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Source: ECHO tokens.css, layout.css, ui-polish.css and player-bar-polish.css. -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="EchoText">#292e37</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHeading">#181d26</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoMuted">#616977</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSubtle">#767e8c</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoAccent">#4b55e8</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoAccentText">#3239c7</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoIconAccent">#4b55e8</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoBorder">#24202631</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDivider">#18202631</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHover">#80ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSelected">#dbeceeff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPanelMuted">#e0ebeef3</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoTitlebar">#ebffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPage">#f4f5f7</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoField">#edffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPlaceholder">#767e8c</SolidColorBrush>
+      <LinearGradientBrush x:Key="EchoSidebar" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#fcfcfd" Offset="0" /><GradientStop Color="#f4f6f9" Offset="0.58" /><GradientStop Color="#eceff4" Offset="1" />
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="EchoPlayer" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#ffffff" Offset="0" /><GradientStop Color="#f4f7fa" Offset="1" />
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="EchoPageBase" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#ffffff" Offset="0" /><GradientStop Color="#f7f8fa" Offset="0.48" /><GradientStop Color="#eff1f5" Offset="1" />
+      </LinearGradientBrush>
+      <RadialGradientBrush x:Key="EchoPageGlow" Center="13%,-8%" GradientOrigin="13%,-8%" RadiusX="36%" RadiusY="36%">
+        <GradientStop Color="#194b55e8" Offset="0" /><GradientStop Color="#004b55e8" Offset="1" />
+      </RadialGradientBrush>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="EchoText">#dee4ed</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHeading">#ebeff5</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoMuted">#b8c0cc</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSubtle">#9ea7b3</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoAccent">#64b5ff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoAccentText">#a8d6ff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoIconAccent">#64b5ff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoBorder">#24e4edf7</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDivider">#18e8eef7</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHover">#7a2b3745</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSelected">#52245f65</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPanelMuted">#d6121821</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoTitlebar">#ed0c1118</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPage">#0c1016</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoField">#f50d141d</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPlaceholder">#9ea7b3</SolidColorBrush>
+      <LinearGradientBrush x:Key="EchoSidebar" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#151c26" Offset="0" /><GradientStop Color="#0e141d" Offset="0.56" /><GradientStop Color="#080c13" Offset="1" />
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="EchoPlayer" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#242f3e" Offset="0" /><GradientStop Color="#18212d" Offset="1" />
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="EchoPageBase" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#181f2a" Offset="0" /><GradientStop Color="#080b10" Offset="0.54" /><GradientStop Color="#0c1016" Offset="1" />
+      </LinearGradientBrush>
+      <RadialGradientBrush x:Key="EchoPageGlow" Center="12%,-8%" GradientOrigin="12%,-8%" RadiusX="36%" RadiusY="36%">
+        <GradientStop Color="#1f64b5ff" Offset="0" /><GradientStop Color="#0064b5ff" Offset="1" />
+      </RadialGradientBrush>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+  <FontFamily x:Key="EchoFont">avares://Echo.Desktop/Resources/Fonts#Outfit, Segoe UI, Microsoft YaHei UI, Noto Sans, DejaVu Sans, PingFang SC</FontFamily>
+  <x:Double x:Key="EchoTitlebarHeight">40</x:Double>
+  <x:Double x:Key="EchoSidebarWidth">220</x:Double>
+  <x:Double x:Key="EchoPlayerHeight">108</x:Double>
+</ResourceDictionary>

@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Application/Echo.Application.csproj" /><ProjectReference Include="../../src/Echo.Infrastructure/Echo.Infrastructure.csproj" /></ItemGroup>
+</Project>

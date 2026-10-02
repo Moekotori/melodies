@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:queue="using:Echo.Desktop.Features.Queue" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Queue.QueueList" x:DataType="queue:QueueViewModel">
+  <UserControl.Resources>
+    <ControlTheme x:Key="QueueItemTheme" TargetType="ListBoxItem">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Name="RowSelection" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      <Style Selector="^:selected"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+      <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="queue|QueueList.compact queue|QueueColumnsGrid"><Setter Property="Compact" Value="True" /></Style>
+    <Style Selector="queue|QueueList.compact TextBlock.fullColumn"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector="Border.current"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+    <Style Selector="ListBoxItem"><Setter Property="Theme" Value="{StaticResource QueueItemTheme}" /><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="70" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+    <Style Selector="queue|QueueList.compact ListBoxItem"><Setter Property="MinHeight" Value="62" /></Style>
+    <Style Selector="ListBoxItem.dropTarget /template/ Border#RowSelection"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="0,2,0,0" /></Style>
+    <Style Selector="ListBoxItem.dropTarget.dropAfter /template/ Border#RowSelection"><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+    <queue:QueueColumnsGrid Margin="12,0,12,4">
+      <TextBlock Text="#" Classes="muted fullColumn" FontSize="11" />
+      <TextBlock Grid.Column="2" Text="曲目" Classes="muted" FontSize="11" />
+      <TextBlock Grid.Column="3" Text="专辑" Classes="muted fullColumn" FontSize="11" />
+      <TextBlock Grid.Column="4" Text="音质" Classes="muted fullColumn" FontSize="11" />
+      <TextBlock Grid.Column="5" Text="时长" Classes="muted fullColumn" FontSize="11" HorizontalAlignment="Right" />
+    </queue:QueueColumnsGrid>
+    <ListBox Name="Tracks" Grid.Row="1" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" Padding="0"
+             SelectionMode="Multiple,Toggle" DoubleTapped="OnPlay" SelectionChanged="OnSelectionChanged" KeyDown="OnKeyDown"
+             ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+      <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="queue:QueueRowViewModel">
+          <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="12,9" Classes.current="{Binding IsCurrent}">
+            <queue:QueueColumnsGrid VerticalAlignment="Center">
+              <TextBlock Text="{Binding Number}" Classes="muted fullColumn" FontSize="12" VerticalAlignment="Center" />
+              <queue:QueueArtwork Grid.Column="1" Width="40" Height="40" FilePath="{Binding Track.FilePath}" Cache="{Binding Artwork}" />
+              <StackPanel Grid.Column="2" Spacing="3" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Title}" Classes="heading" FontSize="14" TextTrimming="CharacterEllipsis" />
+                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="11.5" MaxWidth="200" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding State}" Foreground="{DynamicResource EchoAccentText}" FontSize="10.5" /></StackPanel>
+              </StackPanel>
+              <TextBlock Grid.Column="3" Text="{Binding Album}" Classes="muted fullColumn" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="4" Text="{Binding Quality}" Classes="muted fullColumn" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="5" Text="{Binding Duration}" Classes="muted fullColumn" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
+              <Button Grid.Column="6" Classes="icon" Click="OnRowMenu" ToolTip.Tip="曲目操作"><icon:EchoIcon Scope="player" Kind="more" Width="18" Height="18" /></Button>
+            </queue:QueueColumnsGrid>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" IsHitTestVisible="False">
+      <icon:GlyphIcon Kind="queue" Width="36" Height="36" HorizontalAlignment="Center" />
+      <TextBlock Text="{Binding EmptyTitle}" Classes="heading" FontSize="18" HorizontalAlignment="Center" />
+      <TextBlock Text="{Binding EmptyHint}" Classes="muted" FontSize="12" MaxWidth="320" TextWrapping="Wrap" TextAlignment="Center" />
+    </StackPanel>
+    <WrapPanel Grid.Row="2" IsVisible="{Binding HasSelection}" IsEnabled="{Binding !IsBusy}">
+      <Button Content="下一首播放" Command="{Binding MoveNextCommand}" />
+      <Button Content="播后移除" Command="{Binding RemoveAfterPlayCommand}" />
+      <Button Content="移除" Command="{Binding RemoveSelectedCommand}" />
+    </WrapPanel>
+  </Grid>
+</UserControl>

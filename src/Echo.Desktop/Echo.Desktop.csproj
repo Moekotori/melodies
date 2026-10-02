@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <IsAotCompatible>true</IsAotCompatible>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Application/Echo.Application.csproj" />
+    <ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" />
+    <ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" />
+    <ProjectReference Include="../Echo.Platform/Echo.Platform.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <AvaloniaResource Include="Resources/Icons/**" />
+    <AvaloniaResource Include="Resources/Fonts/**" />
+    <AvaloniaResource Include="Resources/Artwork/**" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="Avalonia.Markup.Xaml.Loader" PrivateAssets="All" Publish="True" />
+    <PackageReference Include="HotAvalonia" PrivateAssets="All" Publish="True" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Content Include="../../native/runtime/win-x64/echo-audio-host.exe;../../native/runtime/win-x64/echo-smtc-host.exe;../../native/runtime/win-x64/*.dll">
+      <Link>native/%(Filename)%(Extension)</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-3 -3 30 30">
+  <!-- Tuning marker and lower corner, matching the shared two-layer sidebar icons. -->
+  <path d="M21.3 16.7v1.2a3.1 3.1 0 0 1-3.1 3.1h-1" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="16.8" cy="13.3" r="1.3" fill="#fff"/>
+</svg>

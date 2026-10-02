@@ -1,0 +1,164 @@
+using System.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Echo.Desktop.Features.Settings.Catalog;
+using Echo.Desktop.Features.Settings.Models;
+using Echo.Desktop.Motion;
+using Echo.Desktop.Shell;
+using Echo.Desktop.Features.Lyrics;
+
+namespace Echo.Desktop.Features.Settings;
+
+// Window-owned local settings state. Only the active category owns row VMs.
+public sealed partial class SettingsViewModel : ObservableObject, IDisposable
+{
+    public ShellViewModel Shell { get; }
+    public IReadOnlyList<SettingsNavigationGroup> NavigationGroups { get; }
+    private readonly SettingsCategoryItem[] _categories;
+    private LyricsAppearance? _lyrics;
+    [ObservableProperty] private SettingsCategoryItem activeCategory;
+    [ObservableProperty] private IReadOnlyList<SettingsSectionViewModel> sections = [];
+    [ObservableProperty] private string query = "";
+    [ObservableProperty] private IReadOnlyList<SettingsSearchResult> searchResults = [];
+    [ObservableProperty] private int sectionVersion;
+    [ObservableProperty] private int activeSearchIndex;
+    [ObservableProperty] private string feedback = "";
+    public bool HasSearchResults => Query.Trim().Length > 0;
+    public bool HasNoSearchResults => HasSearchResults && SearchResults.Count == 0;
+    public bool IsAppearance => ActiveCategory.Id == "appearance";
+    public bool IsPlayback => ActiveCategory.Id == "playback";
+
+    public SettingsViewModel(ShellViewModel shell)
+    {
+        Shell = shell;
+        _categories = SettingsCatalog.Categories.Select(definition => new SettingsCategoryItem(definition)).ToArray();
+        activeCategory = _categories[0]; activeCategory.IsActive = true;
+        NavigationGroups = _categories.GroupBy(category => category.Definition.Group).Select(group => new SettingsNavigationGroup(group.Key, group.ToArray())).ToArray();
+        Shell.PropertyChanged += OnShellChanged; Shell.Motion.PropertyChanged += OnMotionChanged;
+        BuildSections();
+    }
+    [RelayCommand] private void SelectCategory(string? id)
+    {
+        var category = _categories.FirstOrDefault(category => category.Id == id);
+        if (category is null || category == ActiveCategory) return;
+        ActiveCategory.IsActive = false; ActiveCategory = category; category.IsActive = true;
+        foreach (var group in NavigationGroups) group.IsActive = group.Items.Any(item => item.IsActive);
+        Feedback = ""; BuildSections(); SectionVersion++;
+        OnPropertyChanged(nameof(IsAppearance)); OnPropertyChanged(nameof(IsPlayback));
+    }
+    [RelayCommand] private void Back() => Shell.LeaveSettingsCommand.Execute(null);
+    [RelayCommand] private void ClearSearch() => Query = "";
+    [RelayCommand] private void OpenResult(SettingsSearchResult? result)
+    {
+        if (result is null) return;
+        SelectCategory(result.CategoryId); Query = "";
+        foreach (var row in Sections.SelectMany(section => section.Rows)) row.IsHighlighted = row.Id == result.RowId;
+        SectionVersion++;
+    }
+    partial void OnQueryChanged(string value)
+    {
+        var terms = value.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        SearchResults = terms.Length == 0 ? [] : SettingsCatalog.Categories.SelectMany(category => category.Sections.SelectMany(section =>
+            section.Rows.Where(row => terms.All(term => $"{row.Title} {row.Help} {section.Title} {category.Title} {string.Join(' ', row.Options ?? [])}".Contains(term, StringComparison.OrdinalIgnoreCase)))
+                .Select(row => new SettingsSearchResult(category.Id, row.Id, row.Title, category.Title)))).Take(18).ToArray();
+        ActiveSearchIndex = 0;
+        UpdateSearchSelection();
+        OnPropertyChanged(nameof(HasSearchResults)); OnPropertyChanged(nameof(HasNoSearchResults));
+    }
+    partial void OnActiveSearchIndexChanged(int value) => UpdateSearchSelection();
+    private void UpdateSearchSelection()
+    { for (var index = 0; index < SearchResults.Count; index++) SearchResults[index].IsActive = index == ActiveSearchIndex; }
+    private void BuildSections()
+    {
+        if (_lyrics != Shell.LyricsAppearance)
+        {
+            if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged;
+            _lyrics = Shell.LyricsAppearance; _lyrics.PropertyChanged += OnLyricsChanged;
+        }
+        Sections = ActiveCategory.Definition.Sections.Select(section => new SettingsSectionViewModel(section.Title, section.Rows.Select(CreateRow).ToArray())).ToArray();
+    }
+
+    private SettingRowViewModel CreateRow(SettingDefinition definition)
+    {
+        var supported = definition.Id is "ui-scale" or "sidebar-auto-hide" or "sidebar-icon-only" or "settings-hide-sidebar" or "remember-window-size"
+            or "theme" or "disable-all-animations" or "appearance-reset" or "smtc" or "about-community"
+            or "lyrics-font-size" or "lyrics-secondary-size" or "lyrics-translation" or "lyrics-romanization"
+            or "lyrics-context" or "lyrics-word-highlight" or "lyrics-font" or "lyrics-page-style";
+        if (definition.Id == "lyrics-font") definition = definition with { Options = Shell.LyricsAppearance.Fonts.ToArray(), Value = Shell.LyricsAppearance.Font };
+        if (definition.Id == "lyrics-page-style") definition = definition with { Options = Shell.LyricsAppearance.Styles.Select(style => style.Label).ToArray(), Value = Shell.LyricsAppearance.SelectedStyle.Label };
+        var row = new SettingRowViewModel(definition, supported, Changed, label => Invoke(definition.Id, label),
+            definition.Id == "theme" ? label => label is "浅色" or "深色" : null);
+        Synchronize(row); return row;
+    }
+    private void Changed(SettingRowViewModel row)
+    {
+        switch (row.Id)
+        {
+            case "sidebar-auto-hide": Shell.SidebarAutoHideEnabled = row.BoolValue; break;
+            case "ui-scale": Shell.UiScalePercent = Math.Clamp((int)row.NumberValue, 75, 150); break;
+            case "sidebar-icon-only": Shell.IsSidebarExpanded = !row.BoolValue; break;
+            case "settings-hide-sidebar": Shell.HideSidebarInSettings = row.BoolValue; break;
+            case "remember-window-size": Shell.RememberWindowSize = row.BoolValue; break;
+            case "theme": Shell.IsDark = row.SelectedValue == "深色"; break;
+            case "disable-all-animations": Shell.Motion.SelectedChoice = Shell.Motion.Choices.First(choice => choice.Mode == (row.BoolValue ? MotionMode.Off : MotionMode.System)); break;
+            case "lyrics-font-size": Shell.LyricsAppearance.FontSize = row.NumberValue; break;
+            case "lyrics-secondary-size": Shell.LyricsAppearance.SecondarySize = row.NumberValue; break;
+            case "lyrics-translation": Shell.LyricsAppearance.Translation = row.BoolValue; break;
+            case "lyrics-romanization": Shell.LyricsAppearance.Romanization = row.BoolValue; break;
+            case "lyrics-word-highlight": Shell.LyricsAppearance.WordHighlight = row.BoolValue; break;
+            case "lyrics-context": Shell.LyricsAppearance.Context = row.BoolValue; break;
+            case "lyrics-font": Shell.LyricsAppearance.Font = row.SelectedValue; break;
+            case "lyrics-page-style": Shell.LyricsAppearance.SelectedStyle = Shell.LyricsAppearance.Styles.FirstOrDefault(style => style.Label == row.SelectedValue) ?? Shell.LyricsAppearance.Styles[0]; break;
+        }
+    }
+    private void Invoke(string id, string action)
+    {
+        switch (id)
+        {
+            case "sidebar-layout":
+                if (action == "恢复默认" || action == "全部显示") { Shell.SidebarAutoHideEnabled = false; Shell.IsSidebarExpanded = true; Shell.HideSidebarInSettings = false; }
+                else { Shell.IsSidebarExpanded = !Shell.IsSidebarExpanded; }
+                break;
+            case "appearance-reset": Shell.IsDark = false; Shell.UiScalePercent = 100; Shell.SidebarAutoHideEnabled = false; Shell.IsSidebarExpanded = true; break;
+            case "smtc": Shell.RetryMediaTransportCommand.Execute(null); break;
+            case "about-community": ExternalLinkRequested?.Invoke(action); break;
+            default: Feedback = "此功能暂未接入。"; break;
+        }
+    }
+    public event Action<string>? ExternalLinkRequested;
+    private void Synchronize(SettingRowViewModel row)
+    {
+        switch (row.Id)
+        {
+            case "sidebar-auto-hide": row.Synchronize(toggle: Shell.SidebarAutoHideEnabled); break;
+            case "ui-scale": row.Synchronize(number: Shell.UiScalePercent); break;
+            case "sidebar-icon-only": row.Synchronize(toggle: !Shell.IsSidebarExpanded); break;
+            case "settings-hide-sidebar": row.Synchronize(toggle: Shell.HideSidebarInSettings); break;
+            case "remember-window-size": row.Synchronize(toggle: Shell.RememberWindowSize); break;
+            case "theme": row.Synchronize(selection: Shell.IsDark ? "深色" : "浅色"); break;
+            case "disable-all-animations": row.Synchronize(toggle: Shell.Motion.SelectedChoice.Mode == MotionMode.Off); break;
+            case "lyrics-font-size": row.Synchronize(number: Shell.LyricsAppearance.FontSize); break;
+            case "lyrics-secondary-size": row.Synchronize(number: Shell.LyricsAppearance.SecondarySize); break;
+            case "lyrics-translation": row.Synchronize(toggle: Shell.LyricsAppearance.Translation); break;
+            case "lyrics-romanization": row.Synchronize(toggle: Shell.LyricsAppearance.Romanization); break;
+            case "lyrics-word-highlight": row.Synchronize(toggle: Shell.LyricsAppearance.WordHighlight); break;
+            case "lyrics-context": row.Synchronize(toggle: Shell.LyricsAppearance.Context); break;
+            case "lyrics-font": row.Synchronize(selection: Shell.LyricsAppearance.Font); break;
+            case "lyrics-page-style": row.Synchronize(selection: Shell.LyricsAppearance.SelectedStyle.Label); break;
+        }
+    }
+    private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ShellViewModel.IsDark) or nameof(ShellViewModel.IsSidebarExpanded) or nameof(ShellViewModel.UiScalePercent)
+            or nameof(ShellViewModel.HideSidebarInSettings) or nameof(ShellViewModel.SidebarAutoHideEnabled) or nameof(ShellViewModel.RememberWindowSize))
+            foreach (var row in Sections.SelectMany(section => section.Rows)) Synchronize(row);
+    }
+    private void OnMotionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MotionPolicy.SelectedChoice))
+            foreach (var row in Sections.SelectMany(section => section.Rows).Where(row => row.Id == "disable-all-animations")) Synchronize(row);
+    }
+    private void OnLyricsChanged(object? sender, PropertyChangedEventArgs e)
+    { foreach (var row in Sections.SelectMany(section => section.Rows).Where(row => row.Id.StartsWith("lyrics-", StringComparison.Ordinal))) Synchronize(row); }
+    public void Dispose() { Shell.PropertyChanged -= OnShellChanged; Shell.Motion.PropertyChanged -= OnMotionChanged; if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged; ExternalLinkRequested = null; }
+}

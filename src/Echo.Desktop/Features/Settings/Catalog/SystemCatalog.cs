@@ -1,0 +1,29 @@
+using Echo.Desktop.Features.Settings.Models;
+
+namespace Echo.Desktop.Features.Settings.Catalog;
+
+public static partial class SettingsCatalog
+{
+    private static IReadOnlyList<SettingsSectionDefinition> Backup() => [
+        Section("数据与备份", Action("data-backup", "自动数据备份", "选择目录", "立即备份", "导入备份", "打开目录"),
+            Action("settings-export", "导入 / 导出设置", "导出设置", "导入设置"),
+            Action("data-package", "一键导出 / 迁移 ECHO 数据包", "导出 ECHO 数据包", "恢复入口"),
+            Action("webdav-backup", "网盘备份 · WebDAV", "配置网盘备份"))];
+
+    private static IReadOnlyList<SettingsSectionDefinition> About() => [
+        Section("版本与更新", new("about-version", "版本号", SettingKind.Text, Value: "ECHO Avalonia · 开发版本"),
+            Action("about-community", "文档与社区", "产品文档", "哔哩哔哩", "QQ 群", "Discord"),
+            Action("about-contributors", "贡献者", "查看贡献者"), Action("about-special-thanks", "特别鸣谢", "查看特别鸣谢")),
+        Section("诊断与安全模式", new("steam-status", "Steamworks", SettingKind.Text, Value: "尚未接入"),
+            Action("safe-mode", "安全模式", "打开控制台", "导出诊断包"), Action("diagnostics-assistant", "诊断助手", "收集本机状态"),
+            Action("diagnostics", "Diagnostics / 崩溃报告", "刷新", "导出 Markdown", "打开报告文件夹"))];
+
+    private static IReadOnlyList<SettingsSectionDefinition> Danger() => [
+        Section("曲库数据库", Action("danger-database", "曲库状态", "检查", "创建快照", "打开目录", "导出诊断"),
+            Action("danger-duplicates", "扫描清理", "扫描")),
+        Section("维护与排查", new("danger-clear-cache", "清空曲库缓存", SettingKind.Action, ["清空曲库缓存"], Help: "移除索引和封面缓存，不会删除音乐文件。"),
+            Toggle("danger-hardware-acceleration", "硬件加速", true, "排查图形兼容问题。切换后需要完全重启。"),
+            Action("danger-reset", "恢复默认设置", "恢复默认设置")),
+        Section("不可逆操作", Action("danger-repair", "重建曲库数据库", "重建曲库数据库"),
+            Action("danger-delete-database", "删除曲库数据库", "删除曲库数据库"), Action("danger-delete-all", "恢复为首次启动状态", "恢复首次启动状态"))];
+}

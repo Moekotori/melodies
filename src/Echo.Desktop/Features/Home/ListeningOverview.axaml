@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Home.ListeningOverview" x:DataType="shell:ShellViewModel">
+  <StackPanel Spacing="24">
+    <StackPanel Spacing="16">
+      <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource EchoDivider}" Padding="0,0,0,10">
+        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="This Week" Classes="heading" FontSize="16" VerticalAlignment="Center" /><Button Grid.Column="1" Content="历史" Command="{Binding NavigateCommand}" CommandParameter="history" FontSize="12" /></Grid>
+      </Border>
+      <Grid ColumnDefinitions="*,*">
+        <StackPanel Spacing="4"><TextBlock Text="本周播放" Classes="muted" FontSize="12" /><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="0" FontSize="19" Classes="heading" FontWeight="Medium" /><TextBlock Text="次" Classes="muted" FontSize="11" VerticalAlignment="Bottom" Margin="0,0,0,4" /></StackPanel></StackPanel>
+        <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="聆听时长" Classes="muted" FontSize="12" /><TextBlock Text="0 分钟" FontSize="19" Classes="heading" FontWeight="Medium" /></StackPanel>
+      </Grid>
+      <StackPanel Spacing="7">
+        <TextBlock Text="7月           8月           9月" FontSize="10" Classes="subtle" Margin="20,0,0,0" />
+        <Grid Height="116">
+          <icon:ListeningHeatmap Height="116" CellBrush="{DynamicResource EchoPanelMuted}" />
+          <Canvas IsHitTestVisible="False"><TextBlock Text="一" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="1" /><TextBlock Text="三" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="35" /><TextBlock Text="五" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="69" /></Canvas>
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="0 周活跃" FontSize="10" Classes="subtle" />
+          <UniformGrid Grid.Column="1" Columns="5" Rows="1" Width="86" Height="14"><Border Background="{DynamicResource EchoPanelMuted}" Margin="1,0" /><Border Background="{DynamicResource EchoAccent}" Opacity="0.18" Margin="1,0" /><Border Background="{DynamicResource EchoAccent}" Opacity="0.36" Margin="1,0" /><Border Background="{DynamicResource EchoAccent}" Opacity="0.65" Margin="1,0" /><Border Background="{DynamicResource EchoAccent}" Margin="1,0" /></UniformGrid>
+        </Grid>
+      </StackPanel>
+      <TextBlock Text="播放后，格子会按每周节奏被点亮。" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+    </StackPanel>
+    <StackPanel Spacing="16">
+      <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource EchoDivider}" Padding="0,0,0,10"><TextBlock Text="艺人排行榜" Classes="heading" FontSize="16" /></Border>
+      <StackPanel Spacing="8" Margin="0,12">
+        <TextBlock Text="还没有艺人排行" Classes="heading" FontWeight="Medium" FontSize="13" />
+        <TextBlock Text="播放更多音乐后，这里会形成你的高频艺人榜。" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="19" />
+      </StackPanel>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

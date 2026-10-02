@@ -1,0 +1,57 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <!-- Own the button theme so Fluent's template-state rules cannot paint gray boxes. -->
+    <ControlTheme x:Key="EchoButtonTheme" TargetType="Button">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Name="PART_ButtonBorder" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                              Background="Transparent" Padding="0" Foreground="{TemplateBinding Foreground}"
+                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="Center" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="icon|EchoIcon"><Setter Property="BaseBrush" Value="{DynamicResource EchoHeading}" /><Setter Property="AccentBrush" Value="{DynamicResource EchoIconAccent}" /></Style>
+  <Style Selector="icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="icon|ListeningHeatmap"><Setter Property="CellBrush" Value="{DynamicResource EchoDivider}" /></Style>
+  <Style Selector="icon|PlayerWaveform"><Setter Property="BarBrush" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="{StaticResource EchoFont}" />
+    <Setter Property="FontSize" Value="14" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+  </Style>
+  <Style Selector="TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="TextBlock.subtle"><Setter Property="Foreground" Value="{DynamicResource EchoSubtle}" /></Style>
+  <Style Selector="TextBlock.heading"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Button">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="3" /><Setter Property="Padding" Value="8,0" /><Setter Property="MinHeight" Value="32" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+  <Style Selector="Button:pressed"><Setter Property="Opacity" Value="0.75" /></Style>
+  <Style Selector="Button:disabled"><Setter Property="Opacity" Value="0.45" /><Setter Property="Cursor" Value="Arrow" /><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="Button:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="Button.icon"><Setter Property="Width" Value="32" /><Setter Property="Height" Value="32" /><Setter Property="Padding" Value="0" /></Style>
+  <Style Selector="Button.window"><Setter Property="Width" Value="34" /><Setter Property="Height" Value="28" /><Setter Property="MinHeight" Value="28" /><Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="6" /></Style>
+  <Style Selector="Button.close:pointerover"><Setter Property="Background" Value="#e5484d" /><Setter Property="Foreground" Value="White" /></Style>
+  <Style Selector="Button.nav"><Setter Property="Height" Value="38" /><Setter Property="Padding" Value="6,0,9,0" /><Setter Property="CornerRadius" Value="8" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+  <Style Selector="Button.nav.active"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="Button.primary"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Foreground" Value="White" /><Setter Property="MinHeight" Value="38" /><Setter Property="Padding" Value="18,0" /></Style>
+  <Style Selector="Button.primary TextBlock"><Setter Property="Foreground" Value="White" /></Style>
+  <Style Selector="Button.primary:disabled"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /></Style>
+  <Style Selector="Button.transport"><Setter Property="Width" Value="38" /><Setter Property="Height" Value="38" /><Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="6" /></Style>
+  <Style Selector="Button.play"><Setter Property="Width" Value="48" /><Setter Property="Height" Value="48" /></Style>
+  <Style Selector="Button.metric"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="Padding" Value="24,18" /><Setter Property="MinHeight" Value="96" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
+  <Style Selector="Button:disabled /template/ Border#PART_ButtonBorder"><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="Button.primary:disabled /template/ Border#PART_ButtonBorder"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /></Style>
+  <Style Selector="Button.nav icon|EchoIcon"><Setter Property="BaseBrush" Value="{DynamicResource EchoMuted}" /><Setter Property="AccentBrush" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.nav.active icon|EchoIcon"><Setter Property="BaseBrush" Value="{DynamicResource EchoAccentText}" /><Setter Property="AccentBrush" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="Button.tab.active"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="Bold" /></Style>
+  <Style Selector="Button.tab.active"><Setter Property="BorderBrush" Value="{DynamicResource EchoHeading}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+</Styles>

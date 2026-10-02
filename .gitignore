@@ -1,0 +1,25 @@
+**/bin/
+**/obj/
+artifacts/
+misc/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.writer.lock
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pfx
+*.p12
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Local IDE state
+.vs/
+*.user
+*.suo

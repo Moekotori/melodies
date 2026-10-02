@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:motion="using:Echo.Desktop.Motion" x:Class="Echo.Desktop.Features.Settings.MotionPreview">
+  <StackPanel Spacing="18">
+    <StackPanel Orientation="Horizontal" Spacing="6">
+      <Button Name="PageTab" Classes="tab active" Content="页面切换" Tag="page" Click="SelectExample" />
+      <Button Name="CoverTab" Classes="tab" Content="封面切换" Tag="cover" Click="SelectExample" />
+      <Button Name="ListTab" Classes="tab" Content="列表反馈" Tag="list" Click="SelectExample" />
+    </StackPanel>
+    <Border Background="{DynamicResource EchoPanelMuted}" Padding="28" MinHeight="180">
+      <motion:MotionPresenter Name="ExampleHost" SurfaceBrush="{DynamicResource EchoPanelMuted}" />
+    </Border>
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <Button Content="再次播放" Click="Replay" />
+      <Button Content="展开 / 收起" Click="ToggleDetails" />
+      <Button Content="打开弹层">
+        <Button.Flyout><motion:MotionFlyout><StackPanel Width="240" Spacing="10">
+          <TextBlock Text="轻盈展开，从容退场" Classes="heading" FontSize="16" />
+          <TextBlock Text="点击空白处或按 Esc 关闭。" Classes="muted" TextWrapping="Wrap" />
+          <Button Content="显示提示" Click="ShowNotice" />
+        </StackPanel></motion:MotionFlyout></Button.Flyout>
+      </Button>
+    </StackPanel>
+    <motion:MotionSurface Name="Details">
+      <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,16">
+        <TextBlock Text="短促的按压反馈，轻柔的内容衔接。快速重复操作时，动画始终跟随最新选择。" Classes="muted" TextWrapping="Wrap" MaxWidth="620" />
+      </Border>
+    </motion:MotionSurface>
+  </StackPanel>
+</UserControl>

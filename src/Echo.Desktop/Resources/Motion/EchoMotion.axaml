@@ -1,0 +1,20 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:motion="using:Echo.Desktop.Motion">
+  <Style Selector="Button, ToggleSwitch, CheckBox, RadioButton, ComboBox, TextBox, ListBoxItem">
+    <Setter Property="motion:MotionFeedback.Enabled" Value="True" />
+    <Setter Property="RenderTransform" Value="scale(1)" />
+    <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+  </Style>
+  <Style Selector="ToggleSwitch /template/ Border, ToggleSwitch /template/ ContentPresenter">
+    <Setter Property="motion:MotionFeedback.Enabled" Value="True" />
+  </Style>
+  <Style Selector="Button.motion-spatial:pressed"><Setter Property="RenderTransform" Value="scale(0.97)" /></Style>
+  <Style Selector="Button.transport.motion-spatial:pointerover"><Setter Property="RenderTransform" Value="scale(1.06)" /></Style>
+  <Style Selector="Button.transport.motion-spatial:pressed"><Setter Property="RenderTransform" Value="scale(0.94)" /></Style>
+  <Style Selector="Button.metric.motion-spatial:pointerover"><Setter Property="RenderTransform" Value="translate(0px, -2px) scale(1)" /></Style>
+  <Style Selector="Button.metric.motion-spatial:pressed"><Setter Property="RenderTransform" Value="translate(0px, 0px) scale(0.99)" /></Style>
+  <Style Selector="Button.window.motion-spatial:pressed, Button.nav.motion-spatial:pressed"><Setter Property="RenderTransform" Value="scale(1)" /></Style>
+  <Style Selector="ListBoxItem:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="ListBoxItem:selected"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+  <Style Selector="ToggleSwitch:disabled, CheckBox:disabled, ComboBox:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+</Styles>

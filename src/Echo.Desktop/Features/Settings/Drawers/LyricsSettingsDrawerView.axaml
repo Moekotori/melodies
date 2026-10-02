@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lyrics="using:Echo.Desktop.Features.Lyrics"
+             x:Class="Echo.Desktop.Features.Settings.Drawers.LyricsSettingsDrawerView" x:DataType="lyrics:LyricsAppearance">
+  <Grid RowDefinitions="*,Auto">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="15" Margin="22,24,22,24">
+        <TextBlock Text="显示样式" Classes="heading" FontSize="15" FontWeight="SemiBold" />
+        <ComboBox Name="LyricStyleInput" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Stretch">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsStyle"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Text="{Binding SelectedStyle.Description}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+        <ComboBox ItemsSource="{Binding Looks}" SelectedItem="{Binding SelectedLook}" IsVisible="{Binding IsAfterglow}" HorizontalAlignment="Stretch">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:AfterglowLook"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,6" />
+        <TextBlock Text="文字与排版" Classes="heading" FontSize="15" FontWeight="SemiBold" />
+        <Grid ColumnDefinitions="*,120"><TextBlock Text="歌词字号" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Name="LyricFontInput" Grid.Column="1" Minimum="18" Maximum="72" Increment="1" Value="{Binding FontSize}" /></Grid>
+        <Grid ColumnDefinitions="*,120"><TextBlock Text="译文 / 罗马音字号" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="10" Maximum="32" Increment="1" Value="{Binding SecondarySize}" /></Grid>
+        <ComboBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding Font}" HorizontalAlignment="Stretch" AutomationProperties.Name="歌词字体" />
+        <ComboBox ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment}" HorizontalAlignment="Stretch" AutomationProperties.Name="歌词对齐" />
+        <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,6" />
+        <TextBlock Text="显示内容" Classes="heading" FontSize="15" FontWeight="SemiBold" />
+        <CheckBox Name="LyricHighlightInput" Content="逐字高亮" IsChecked="{Binding WordHighlight}" />
+        <CheckBox Content="显示上下文" IsChecked="{Binding Context}" />
+        <CheckBox Name="LyricTranslationInput" Content="显示译文" IsChecked="{Binding Translation}" />
+        <CheckBox Content="显示罗马音" IsChecked="{Binding Romanization}" />
+        <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,6" />
+        <TextBlock Text="时间同步" Classes="heading" FontSize="15" FontWeight="SemiBold" />
+        <NumericUpDown Name="LyricOffsetInput" Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" />
+        <TextBlock Text="单位：毫秒。正值让歌词提前，负值让歌词延后。" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+        <Button Content="恢复歌词显示默认值" Click="OnReset" HorizontalAlignment="Left" />
+      </StackPanel>
+    </ScrollViewer>
+    <Border Grid.Row="1" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="22,14,22,20">
+      <StackPanel Spacing="10"><TextBlock Text="修改立即生效，并自动保存。" FontSize="12" Classes="muted" />
+        <Button Content="打开歌词页" Click="OnOpenLyrics" Classes="primary" HorizontalContentAlignment="Center" /></StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

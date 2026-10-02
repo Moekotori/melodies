@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:player="using:Echo.Desktop.Features.Player" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Lyrics.LyricsTransportView" x:DataType="player:PlayerViewModel" MaxWidth="720">
+  <Grid Name="TransportLayout" RowDefinitions="Auto,Auto" RowSpacing="12" Width="640">
+    <Grid ColumnDefinitions="48,*,48" ColumnSpacing="14">
+      <TextBlock Text="{Binding PositionText}" FontSize="11" Opacity="0.68" VerticalAlignment="Center" HorizontalAlignment="Center" />
+      <Slider Name="SeekSlider" Grid.Column="1" Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position, Mode=OneWay}" IsEnabled="{Binding HasTrack}" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="2" Text="{Binding DurationText}" FontSize="11" Opacity="0.68" VerticalAlignment="Center" HorizontalAlignment="Center" />
+    </Grid>
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="28">
+      <Button Command="{Binding PreviousCommand}" IsEnabled="{Binding HasTrack}" Classes="transport" ToolTip.Tip="上一首"><icon:EchoIcon Scope="player" Kind="previous" Width="21" Height="21" /></Button>
+      <Button Command="{Binding ToggleCommand}" IsEnabled="{Binding HasTrack}" Classes="transport" ToolTip.Tip="播放 / 暂停"><icon:EchoIcon Scope="player" Kind="{Binding PlayIcon}" Width="34" Height="34" /></Button>
+      <Button Command="{Binding NextCommand}" IsEnabled="{Binding HasTrack}" Classes="transport" ToolTip.Tip="下一首"><icon:EchoIcon Scope="player" Kind="next" Width="21" Height="21" /></Button>
+    </StackPanel>
+  </Grid>
+</UserControl>

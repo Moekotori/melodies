@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:Echo.Desktop.Features.Settings" xmlns:models="using:Echo.Desktop.Features.Settings.Models"
+             xmlns:controls="using:Echo.Desktop.Features.Settings.Controls" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Settings.Controls.SettingsSectionView" x:DataType="settings:SettingsViewModel">
+  <StackPanel Spacing="0" Margin="26,22,31,34">
+    <Border Height="44" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource SettingsDivider}" Padding="2,0,0,6" Margin="0,0,0,22">
+      <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Top">
+        <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource SettingsSelected}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1"><icon:GlyphIcon Kind="{Binding ActiveCategory.Icon}" Width="18" Height="18" Stroke="{DynamicResource EchoAccentText}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+        <TextBlock Text="{Binding ActiveCategory.Title}" FontSize="23" FontWeight="Bold" Classes="heading" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+    <ItemsControl ItemsSource="{Binding Sections}">
+      <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="12" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingsSectionViewModel">
+        <Border Background="{DynamicResource SettingsSurface}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1" CornerRadius="9" ClipToBounds="True">
+          <StackPanel>
+            <Border IsVisible="{Binding HasTitle}" Background="{DynamicResource SettingsHeaderSurface}" Padding="20,14,20,12" MinHeight="48"><TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" /></Border>
+            <ItemsControl ItemsSource="{Binding Rows}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingRowViewModel"><controls:SettingRowView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          </StackPanel>
+        </Border>
+      </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <ContentControl Name="ExtraContent" Margin="0,22,0,0" />
+    <TextBlock Text="{Binding Feedback}" IsVisible="{Binding Feedback, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Classes="muted" FontSize="13" Margin="0,16" TextWrapping="Wrap" />
+  </StackPanel>
+</UserControl>

@@ -1,0 +1,39 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using Avalonia.Controls;
+using Echo.Desktop.Bootstrap;
+
+namespace Echo.Desktop;
+
+public partial class App : Avalonia.Application
+{
+    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var playback = DesktopComposition.CreatePlaybackRuntime();
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            desktop.MainWindow = DesktopComposition.CreateWindow(playback: playback);
+            var exiting = false;
+            var released = false;
+            desktop.ShutdownRequested += (_, args) =>
+            {
+                if (released) return;
+                args.Cancel = true;
+                desktop.MainWindow.Close();
+            };
+            desktop.MainWindow.Closed += async (_, _) =>
+            {
+                if (exiting) return;
+                exiting = true;
+                try { await playback.DisposeAsync(); }
+                catch (Exception) { /* Core releases audio and storage even if a shutdown step fails. */ }
+                finally { released = true; desktop.Shutdown(); }
+            };
+        }
+        base.OnFrameworkInitializationCompleted();
+    }
+}

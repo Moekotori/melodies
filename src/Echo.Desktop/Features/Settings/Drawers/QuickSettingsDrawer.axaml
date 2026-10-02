@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Settings.Drawers.QuickSettingsDrawer" x:DataType="shell:ShellViewModel">
+  <Grid ClipToBounds="True">
+    <Border Name="Scrim" Background="#260F1628" PointerPressed="OnScrimPressed" />
+    <Border Name="DrawerPanel" Width="440" HorizontalAlignment="Right" Background="{DynamicResource EchoPage}"
+            BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1,0,0,0" CornerRadius="20,0,0,20" ClipToBounds="True">
+      <Grid RowDefinitions="Auto,*">
+        <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="22,20,14,18">
+          <Grid ColumnDefinitions="*,32">
+            <StackPanel Spacing="5"><TextBlock Text="{Binding QuickSettingsTitle}" FontSize="21" FontWeight="Bold" Classes="heading" />
+              <TextBlock Text="调整当前播放器" FontSize="12" Classes="muted" /></StackPanel>
+            <Button Name="CloseDrawerButton" Grid.Column="1" Width="32" Height="32" MinHeight="32" Padding="0" VerticalAlignment="Top"
+                    Click="OnCloseClicked" ToolTip.Tip="关闭（Esc）" AutomationProperties.Name="关闭设置抽屉"><icon:GlyphIcon Kind="close" Width="18" Height="18" /></Button>
+          </Grid>
+        </Border>
+        <ContentControl Name="DrawerContent" Grid.Row="1" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

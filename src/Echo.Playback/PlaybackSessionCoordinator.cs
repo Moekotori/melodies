@@ -1,0 +1,195 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace Echo.Playback;
+
+/// <summary>Single owner of native command order, queue identity and confirmed playback state.</summary>
+public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
+{
+    private readonly INativeAudio native;
+    private readonly PlaybackCommandLane lane = new();
+    private QueueTrack[] queue = [];
+    private IReadOnlyList<QueueTrack> queueView = Array.Empty<QueueTrack>();
+    private long revision;
+    private double positionBase;
+    private bool initialized, disposed;
+    private RepeatMode repeat;
+    private JsonElement? deviceConfiguration;
+    private readonly Dictionary<string, JsonElement> dspCommands = new();
+    private PlaybackSnapshot snapshot = new(0, PlaybackStatus.Stopped, null, 0, 0, 1, 0, 48000, 2, null, null, null);
+    public PlaybackSnapshot Snapshot => Volatile.Read(ref snapshot);
+    public IReadOnlyList<QueueTrack> Queue => Volatile.Read(ref queueView);
+    public RepeatMode Repeat => repeat;
+    public event Action<PlaybackSnapshot>? Changed;
+
+    public PlaybackSessionCoordinator(INativeAudio native)
+    {
+        this.native = native;
+        native.Notification += OnNotification;
+        native.Failed += OnFailed;
+    }
+
+    private Task Command(Func<Task> action, CancellationToken token = default, bool affectsPlayback = true)
+        => lane.InvokeAsync(async () =>
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            try { await action().ConfigureAwait(false); }
+            catch (Exception e)
+            {
+                Publish(snapshot with { Status = affectsPlayback ? PlaybackStatus.Faulted : snapshot.Status, Error = e.Message });
+                throw;
+            }
+        }, token);
+
+    private async Task EnsureStartedAsync()
+    {
+        if (initialized) return;
+        Interlocked.Increment(ref transportEpoch);
+        suppressNativeEvents = true;
+        try
+        {
+            if (native is INativeOutputControl outputControl && deviceConfiguration is { } desired)
+                await outputControl.SetOutputChannelsAsync((int)desired.Long("channels", 2)).ConfigureAwait(false);
+            await native.StartAsync().ConfigureAwait(false);
+        }
+        finally { suppressNativeEvents = false; }
+        if (deviceConfiguration is { } configuration)
+        {
+            var output = await native.CallAsync("device.configure", Params(new JsonArray(JsonNode.Parse(configuration.GetRawText())))).ConfigureAwait(false);
+            if (!output.Flag("accepted")) throw new IOException("无法恢复输出设备设置");
+            Publish(snapshot with { Output = output, SampleRate = (int)output.Number("sampleRate", snapshot.SampleRate),
+                Channels = (int)output.Number("channels", snapshot.Channels), Processing = output.Child("processing") });
+        }
+        foreach (var entry in dspCommands)
+            await native.CallAsync(entry.Key[..entry.Key.IndexOf(':')], entry.Value).ConfigureAwait(false);
+        initialized = true;
+    }
+
+    private async Task OpenAsync(QueueTrack track, double start = 0, bool paused = false)
+    {
+        Publish(snapshot with { Current = track, Status = PlaybackStatus.Loading, Error = null, OperationId = 0 });
+        var ready = await native.CallAsync("audio.sessionBegin", Params(new JsonObject
+        {
+            ["sr"] = snapshot.SampleRate, ["ch"] = deviceConfiguration?.Long("channels", 2) ?? 2,
+            ["buffer"] = deviceConfiguration?.Long("bufferSize", 1024) ?? 1024,
+            ["fifoMs"] = 8000, ["prebufferMs"] = 60, ["startPaused"] = true,
+            ["initialPlayGate"] = !paused && (deviceConfiguration?.Child("processing")?.Text("outputFormat") ?? "pcm") == "pcm"
+        })).ConfigureAwait(false);
+        if (!ready.Flag("accepted") || ready.Long("sessionId") <= 0) throw new IOException("Native 会话未确认");
+        var output = ready.Child("ready");
+        var requestedChannels = deviceConfiguration?.Long("channels", 2) ?? 2;
+        if (output is { } facts && facts.Long("channels", requestedChannels) != requestedChannels)
+            throw new IOException("输出设备未提供请求的完整声道范围");
+        var rate = (int)(output?.Number("sampleRate", snapshot.SampleRate) ?? snapshot.SampleRate);
+        await native.CallAsync("audio.setVolume", Params(new JsonArray(new JsonObject { ["volume"] = snapshot.Volume }))).ConfigureAwait(false);
+        var source = track.Source ?? AudioSource.Local(track.FilePath);
+        var request = new JsonObject { ["sampleRate"] = rate, ["startSeconds"] = start };
+        string method;
+        if (source.Kind == "local" && source.Range is null) { method = "audio.openFile"; request["filePath"] = source.Uri; }
+        else { method = "audio.openSource"; request["source"] = SourceJson(source); }
+        var opened = await native.CallAsync(method, Params(new JsonArray(request))).ConfigureAwait(false);
+        var op = opened.Long("operationId");
+        if (op <= 0) throw new IOException("Native 未返回 operationId");
+        var confirmation = ArmOutputConfirmation(op);
+        positionBase = opened.Number("startSeconds");
+        Publish(snapshot with { OperationId = op, PositionSeconds = positionBase, DurationSeconds = opened.Number("durationSeconds"),
+            SampleRate = (int)opened.Number("sampleRate", rate), Channels = (int)(output?.Long("channels", requestedChannels) ?? requestedChannels),
+            Output = output, Status = paused ? PlaybackStatus.Paused : PlaybackStatus.Loading });
+        if (!paused)
+        {
+            await AcceptedAsync("audio.play").ConfigureAwait(false);
+            if (deviceConfiguration?.Text("outputMode") is "asio" or "exclusive" or "ks")
+                await ConfirmProfessionalOutputAsync(confirmation).ConfigureAwait(false);
+        }
+    }
+
+    public Task PauseAsync(CancellationToken token = default) => Command(async () =>
+    {
+        if (snapshot.OperationId == 0) return;
+        await AcceptedAsync("audio.pause").ConfigureAwait(false);
+        Publish(snapshot with { Status = PlaybackStatus.Paused });
+    }, token);
+
+    public Task ResumeAsync(CancellationToken token = default) => Command(async () =>
+    {
+        if ((snapshot.Status == PlaybackStatus.Ended || snapshot.OperationId == 0) && (snapshot.Current ?? queue.FirstOrDefault()) is { } track)
+        {
+            await EnsureStartedAsync().ConfigureAwait(false);
+            await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
+            await OpenAsync(track, snapshot.Status == PlaybackStatus.Paused ? snapshot.PositionSeconds : 0).ConfigureAwait(false);
+            return;
+        }
+        if (snapshot.OperationId == 0 || snapshot.Status == PlaybackStatus.Faulted) return;
+        await AcceptedAsync("audio.resume").ConfigureAwait(false);
+        Publish(snapshot with { Status = PlaybackStatus.Loading });
+    }, token);
+
+    public Task SeekAsync(double seconds, CancellationToken token = default)
+    {
+        if (!double.IsFinite(seconds) || seconds < 0) throw new ArgumentOutOfRangeException(nameof(seconds));
+        return Command(async () =>
+        {
+            if (snapshot.OperationId == 0) return;
+            var position = snapshot.DurationSeconds > 0 ? Math.Min(seconds, Math.Max(0, snapshot.DurationSeconds - 0.25)) : seconds;
+            var result = await native.CallAsync("audio.seek", OperationParams(new JsonObject { ["positionSeconds"] = position })).ConfigureAwait(false);
+            positionBase = position;
+            Publish(snapshot with { OperationId = result.Long("operationId", snapshot.OperationId), PositionSeconds = position });
+        }, token);
+    }
+
+    public Task StopAsync(CancellationToken token = default) => Command(StopNowAsync, token);
+    private async Task StopNowAsync()
+    {
+        if (initialized) await native.CallAsync("audio.stop", OperationParams()).ConfigureAwait(false);
+        positionBase = 0;
+        Publish(snapshot with { Status = PlaybackStatus.Stopped, OperationId = 0, PositionSeconds = 0, Error = null });
+    }
+
+    private JsonElement OperationParams(JsonObject? value = null)
+    { value ??= new(); if (snapshot.OperationId > 0) value["expectedOperationId"] = snapshot.OperationId; return Params(new JsonArray(value)); }
+    private async Task AcceptedAsync(string method)
+    { if ((await native.CallAsync(method, OperationParams()).ConfigureAwait(false)).ValueKind != JsonValueKind.True) throw new IOException($"Native 拒绝 {method}"); }
+    internal static JsonElement Params(JsonNode node)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream)) node.WriteTo(writer);
+        using var document = JsonDocument.Parse(stream.ToArray());
+        return document.RootElement.Clone();
+    }
+    private static JsonObject SourceJson(AudioSource source)
+    {
+        var node = new JsonObject { ["kind"] = source.Kind, ["uri"] = source.Uri };
+        if (source.Range is { } r) node["range"] = new JsonObject { ["startSeconds"] = r.StartSeconds, ["endSeconds"] = r.EndSeconds };
+        if (source.Headers is { } headers) { var h = new JsonObject(); foreach (var item in headers) h[item.Key] = item.Value; node["headers"] = h; }
+        return node;
+    }
+    private void Publish(PlaybackSnapshot state)
+    {
+        var previousItem = snapshot.Current?.ItemId;
+        Volatile.Write(ref snapshot, state with { Version = snapshot.Version + 1 });
+        if (previousItem != state.Current?.ItemId) PublishQueue();
+        if (Changed is { } handlers)
+            foreach (Action<PlaybackSnapshot> handler in handlers.GetInvocationList()) try { handler(snapshot); } catch (Exception) { /* A UI subscriber cannot stop audio. */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (disposed) return;
+        native.Notification -= OnNotification; native.Failed -= OnFailed;
+        try
+        {
+            await lane.InvokeAsync(async () =>
+            {
+                disposed = true;
+                await native.DisposeAsync().ConfigureAwait(false);
+                Publish(snapshot with { Status = PlaybackStatus.Stopped, OperationId = 0, Output = null, Processing = null });
+            }).ConfigureAwait(false);
+        }
+        finally
+        {
+            await lane.DisposeAsync().ConfigureAwait(false);
+            Changed = null;
+            QueueChanged = null;
+        }
+    }
+}

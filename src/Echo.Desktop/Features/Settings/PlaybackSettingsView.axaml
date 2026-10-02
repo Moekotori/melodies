@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell" xmlns:player="using:Echo.Desktop.Features.Player" xmlns:playback="using:Echo.Playback"
+             x:Class="Echo.Desktop.Features.Settings.PlaybackSettingsView" x:DataType="shell:ShellViewModel">
+  <Expander Header="输出设备与音效" HorizontalAlignment="Stretch">
+    <Border Background="{DynamicResource SettingsSurface}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1" CornerRadius="9" Padding="20">
+      <StackPanel Spacing="14">
+        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="输出设备与音效" Classes="heading" FontSize="16" VerticalAlignment="Center" /><Button Grid.Column="1" Classes="settings-control" Content="刷新设备" Command="{Binding Player.AudioSettings.RefreshCommand}" /></Grid>
+        <Grid ColumnDefinitions="*,280" ColumnSpacing="20"><TextBlock Text="输出模式" FontSize="15" VerticalAlignment="Center" /><ComboBox Grid.Column="1" ItemsSource="{Binding Player.AudioSettings.Modes}" SelectedItem="{Binding Player.AudioSettings.SelectedMode}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputMode"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
+        <Grid ColumnDefinitions="*,280" ColumnSpacing="20"><TextBlock Text="输出设备" FontSize="15" VerticalAlignment="Center" /><ComboBox Grid.Column="1" ItemsSource="{Binding Player.AudioSettings.Devices}" SelectedItem="{Binding Player.AudioSettings.SelectedDevice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputDevice"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
+        <Grid ColumnDefinitions="*,280" ColumnSpacing="20"><TextBlock Text="采样率" FontSize="15" VerticalAlignment="Center" /><ComboBox Grid.Column="1" ItemsSource="{Binding Player.AudioSettings.Rates}" SelectedItem="{Binding Player.AudioSettings.SampleRate}" HorizontalAlignment="Stretch" /></Grid>
+        <Grid ColumnDefinitions="*,280" ColumnSpacing="20"><TextBlock Text="输出格式" FontSize="15" VerticalAlignment="Center" /><ComboBox Grid.Column="1" ItemsSource="{Binding Player.AudioSettings.Formats}" SelectedItem="{Binding Player.AudioSettings.SelectedFormat}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="player:OutputFormatChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
+        <Grid ColumnDefinitions="*,280" ColumnSpacing="20"><TextBlock Text="缓冲帧数" FontSize="15" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="128" Maximum="8192" Increment="128" Value="{Binding Player.AudioSettings.BufferFrames}" /></Grid>
+        <CheckBox Content="启用均衡器" IsChecked="{Binding Player.AudioSettings.EqualizerEnabled}" />
+        <CheckBox Content="耳机交叉馈送" IsChecked="{Binding Player.AudioSettings.CrossfeedEnabled}" />
+        <Grid ColumnDefinitions="*,280" ColumnSpacing="20"><TextBlock Text="播放速度" FontSize="15" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="0.5" Maximum="2" Increment="0.05" Value="{Binding Player.AudioSettings.PlaybackRate}" /></Grid>
+        <Button Classes="primary" Content="应用设置" Command="{Binding Player.AudioSettings.ApplyCommand}" HorizontalAlignment="Right" />
+        <TextBlock Text="{Binding Player.AudioSettings.Message}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+  </Expander>
+</UserControl>
