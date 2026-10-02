@@ -1,8 +1,57 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+if (args[0] == "large-library-final")
+{
+    using var finalBudget = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+    var finalRoot = Path.GetFullPath(args[1]); Directory.CreateDirectory(finalRoot);
+    var finalScale = await ScaleProbe.RunAsync(Path.Combine(finalRoot, "scale"), finalBudget.Token, false, 5_000);
+    Console.WriteLine($"FINAL_SCALE rows={finalScale.Records} insertMs={finalScale.InsertMs:F1} queryDuringWriteMaxMs={finalScale.QueryDuringWriteMaxMs:F1} pageP95Ms={finalScale.PageQueryP95Ms:F1} privateBytes={finalScale.ProcessPrivateBytes}");
+    Console.WriteLine("LEGACY_CHECKS_PASSED=" + await LegacyMigrationProbe.RunAsync(Path.Combine(finalRoot, "legacy"), finalBudget.Token));
+    return;
+}
+if (args[0] == "large-library")
+{
+    using var largeBudget = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+    var largeRoot = Path.GetFullPath(args[1]); Directory.CreateDirectory(largeRoot);
+    if (args.Length < 3 || args[2] != "--remaining")
+    {
+        await LargeLibraryFilesProbe.RunAsync(largeRoot, largeBudget.Token);
+        LargeLibraryFilesProbe.CueFolder(largeRoot, largeBudget.Token);
+    }
+    await LargeLibraryRecoveryProbe.RunAsync(largeRoot, largeBudget.Token);
+    await LargeLibraryMaintenanceProbe.RunAsync(largeRoot, largeBudget.Token);
+    var scaleResult = await ScaleProbe.RunAsync(Path.Combine(largeRoot, "database-scale"), largeBudget.Token, includeAccuracy: false);
+    Console.WriteLine($"DATABASE_SCALE rows={scaleResult.Records} insertMs={scaleResult.InsertMs:F1} queryDuringWriteMaxMs={scaleResult.QueryDuringWriteMaxMs:F1} pageP95Ms={scaleResult.PageQueryP95Ms:F1} privateBytes={scaleResult.ProcessPrivateBytes}");
+    Console.WriteLine("LARGE_LIBRARY_PASSED");
+    return;
+}
+if (args[0] == "legacy")
+{
+    using var legacyTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+    var checkedCount = await LegacyMigrationProbe.RunAsync(Path.GetFullPath(args[1]), legacyTimeout.Token);
+    Console.WriteLine("LEGACY_CHECKS_PASSED=" + checkedCount);
+    return;
+}
+
+if (args[0] == "selected-import")
+{
+    using var importBudget = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    await SelectedImportProbe.RunAsync(Path.GetFullPath(args[1]), importBudget.Token); return;
+}
 
 if (args[0] == "v5-fixture") { MigrationFixture.CreateV5(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
+if (args[0] == "history")
+{
+    using var historyTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(35));
+    await HistoryProbe.RunAsync(Path.GetFullPath(args[1]), historyTimeout.Token); return;
+}
+
+if (args[0] == "browse")
+{
+    using var browseTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+    await BrowseProbe.RunAsync(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), browseTimeout.Token); return;
+}
 
 if (args[0] == "search")
 {

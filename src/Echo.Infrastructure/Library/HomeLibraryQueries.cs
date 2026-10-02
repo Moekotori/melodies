@@ -11,7 +11,7 @@ public sealed partial class LibraryDatabase : IHomeLibrary
         (SELECT path FROM tracks WHERE album_key=a.id AND missing=0 ORDER BY disc_no,track_no,sort_key,id LIMIT 1),
         a.lossless_count,a.added,coalesce(u.favorite,0),coalesce(u.rating,0)
         """;
-    private const string HomeAlbumsFrom = " FROM albums a JOIN album_identity i ON i.group_key=a.id LEFT JOIN album_user_state u ON u.album_id=i.stable_id ";
+    private const string HomeAlbumsFrom = " FROM albums a JOIN album_identity i ON i.group_key=a.id LEFT JOIN album_user_state u ON u.album_id=a.id ";
 
     public Task<HomeDashboard> GetHomeAsync(DateOnly today, CancellationToken cancellation = default)
         => _interactiveReader.QueueAsync(connection =>
@@ -33,8 +33,8 @@ public sealed partial class LibraryDatabase : IHomeLibrary
             command.Parameters.AddWithValue("$offset", offset);
             var recommendations = ReadHomeAlbums(command, " ORDER BY i.title_key,i.stable_id LIMIT 7 OFFSET $offset", cancellation);
             command.Parameters.Clear();
-            var played = ReadHomeAlbums(command, " WHERE a.id IN(SELECT t.album_key FROM listening_events e JOIN tracks t ON t.id=e.track_id WHERE t.missing=0 GROUP BY t.album_key ORDER BY max(e.started) DESC LIMIT 8) ORDER BY (SELECT max(e.started) FROM listening_events e JOIN tracks t ON t.id=e.track_id WHERE t.album_key=a.id) DESC,a.id", cancellation);
-            command.CommandText = "SELECT " + TrackRowMapping.AliasedColumns + " FROM tracks t WHERE t.missing=0 AND t.id=(SELECT e.track_id FROM listening_events e JOIN tracks present ON present.id=e.track_id AND present.missing=0 ORDER BY e.started DESC,e.id DESC LIMIT 1)";
+            var played = ReadHomeAlbums(command, " WHERE a.id IN(SELECT t.album_key FROM (SELECT * FROM listening_events WHERE history_epoch=(SELECT epoch FROM history_state WHERE id=1)) e JOIN tracks t ON t.id=e.track_id WHERE t.missing=0 AND e.history_epoch=(SELECT epoch FROM history_state WHERE id=1) GROUP BY t.album_key ORDER BY max(e.started) DESC LIMIT 8) ORDER BY (SELECT max(e.started) FROM (SELECT * FROM listening_events WHERE history_epoch=(SELECT epoch FROM history_state WHERE id=1)) e JOIN tracks t ON t.id=e.track_id WHERE t.album_key=a.id AND e.history_epoch=(SELECT epoch FROM history_state WHERE id=1)) DESC,a.id", cancellation);
+            command.CommandText = "SELECT " + TrackRowMapping.AliasedColumns + " FROM tracks t WHERE t.missing=0 AND t.id=(SELECT e.track_id FROM (SELECT * FROM listening_events WHERE history_epoch=(SELECT epoch FROM history_state WHERE id=1)) e JOIN tracks present ON present.id=e.track_id AND present.missing=0 WHERE e.history_epoch=(SELECT epoch FROM history_state WHERE id=1) ORDER BY e.started DESC,e.id DESC LIMIT 1)";
             TrackRow? last;
             using (var reader = command.ExecuteReader()) last = reader.Read() ? TrackRowMapping.Read(reader) : null;
             var listening = ReadHomeListening(command, today, cancellation);
@@ -93,21 +93,29 @@ public sealed partial class LibraryDatabase : IHomeLibrary
     public Task RecordListeningAsync(ListeningEntry entry, CancellationToken cancellation = default)
     {
         if (entry.Id.Length is < 1 or > 64 || entry.TrackId.Length > 1100 || entry.Path.Length > 32768 ||
-            !double.IsFinite(entry.PlayedSeconds) || entry.PlayedSeconds < 0 || entry.StartedUnix < 0 || entry.UpdatedUnix < entry.StartedUnix)
+            !double.IsFinite(entry.PlayedSeconds) || entry.PlayedSeconds < 0 || entry.StartedUnix < 0 || entry.UpdatedUnix < entry.StartedUnix ||
+            entry.HistoryEpoch < 0 || entry.EndedUnix < entry.StartedUnix || entry.PlayedSeconds > TimeSpan.MaxValue.TotalSeconds ||
+            entry.UpdatedUnix > 253402300799 || entry.EndedUnix > 253402300799)
             throw new ArgumentException("Invalid listening entry.");
         return _writer.QueueAsync(connection =>
         {
             using var command = connection.CreateCommand();
             command.CommandText = """
-                INSERT INTO listening_events(id,track_id,started,updated,seconds)
-                SELECT $id,t.id,$start,$updated,$seconds FROM tracks t WHERE t.id=$track OR t.path_key=$path
+                INSERT INTO listening_events(id,track_id,started,updated,seconds,ended,title,artist,album,path,duration,codec,source,history_epoch,counted,sample_rate,bit_depth)
+                SELECT $id,t.id,$start,$updated,$seconds,$ended,t.title,t.artist,t.album,t.path,t.duration,t.codec,$source,s.epoch,
+                  $seconds>=30 OR (t.duration>0 AND $seconds>=t.duration*0.5),t.sample_rate,t.bit_depth
+                FROM tracks t CROSS JOIN history_state s WHERE (t.id=$track OR t.path_key=$path) AND ($epoch IS NULL OR $epoch=s.epoch)
                 ORDER BY t.id=$track DESC LIMIT 1
-                ON CONFLICT(id) DO UPDATE SET updated=max(updated,excluded.updated),seconds=max(seconds,excluded.seconds);
+                ON CONFLICT(id) DO UPDATE SET updated=max(updated,excluded.updated),seconds=max(seconds,excluded.seconds),
+                  ended=coalesce(ended,excluded.ended),counted=max(counted,excluded.counted);
                 """;
             command.Parameters.AddWithValue("$id", entry.Id); command.Parameters.AddWithValue("$track", entry.TrackId);
             command.Parameters.AddWithValue("$path", LibraryPath.Key(LibraryPath.Canonical(entry.Path)));
             command.Parameters.AddWithValue("$start", entry.StartedUnix); command.Parameters.AddWithValue("$updated", entry.UpdatedUnix);
             command.Parameters.AddWithValue("$seconds", entry.PlayedSeconds);
+            command.Parameters.AddWithValue("$ended", (object?)entry.EndedUnix ?? DBNull.Value);
+            command.Parameters.AddWithValue("$source", entry.Source.Length > 256 ? entry.Source[..256] : entry.Source);
+            command.Parameters.AddWithValue("$epoch", (object?)entry.HistoryEpoch ?? DBNull.Value);
             return command.ExecuteNonQuery();
         }, true, cancellation);
     }

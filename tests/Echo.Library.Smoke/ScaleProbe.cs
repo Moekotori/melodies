@@ -11,9 +11,8 @@ internal sealed record ScaleResult(int Records, double InsertMs, double QueryDur
 
 internal static class ScaleProbe
 {
-    public static async Task<ScaleResult> RunAsync(string root, CancellationToken cancellation)
+    public static async Task<ScaleResult> RunAsync(string root, CancellationToken cancellation, bool includeAccuracy = true, int records = 50_000)
     {
-        const int records = 50_000;
         var media = Path.Combine(root, "generated-database-paths");
         var path = Path.Combine(root, "scale.sqlite");
         await using var db = await LibraryDatabase.OpenAsync(path, cancellation);
@@ -84,7 +83,7 @@ internal static class ScaleProbe
             while (reader.Read()) usesIndex |= reader.GetString(3).Contains("tracks_page", StringComparison.Ordinal);
         }
         if (!usesIndex) throw new InvalidOperationException("Page index unused.");
-        var extra = await AccuracyProbe.RunAsync(Path.Combine(root, "accuracy"), cancellation);
+        var extra = includeAccuracy ? await AccuracyProbe.RunAsync(Path.Combine(root, "accuracy"), cancellation) : 0;
         using var process = Process.GetCurrentProcess();
         process.Refresh();
         return new(records, insertedMs, duringMax, latencies[(int)Math.Ceiling(latencies.Count * .95) - 1],

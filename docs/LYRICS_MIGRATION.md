@@ -6,24 +6,26 @@
 
 ## 可运行能力
 
+本地格式与来源的后续增量见 [本地歌词兼容](LYRICS_LOCAL_COMPATIBILITY.md)：QRC / KRC、独立译文 / 罗马音、扩展命名、子目录、语言后缀与旧编码已经接入，完整桌面与 UI 验证边界以该记录为准。
+
 | 样式 ID | 名称 | 原生呈现 |
 | --- | --- | --- |
 | default | 简约 | 留白、上下文滚动与局部高亮 |
 | luminous | 浮光 | 暗色舞台、柔和光束，播放时光束最多 30 fps |
-| afterglow | 余音 | 放大的当前句、当前词轻微抬升、下一句 |
+| afterglow | 余音 | 居中单句、原版字素时间与弹簧运动 |
 | afterglowCover | 余晖 | 左侧封面、暖色底与右侧阅读列 |
 | editorial | 纸笺 | 纸张底色、衬线歌词、左侧封面与歌曲信息 |
-| folded | 折光 | 青紫光场、折射几何与阅读列 |
-| roseVinyl | 留声 | 唱片、封面标签与歌词 |
-| cinemaStage | 映幕 | 银幕遮罩、居中字幕构图 |
+| folded | 折光 | 青紫光场与原版密度阅读列 |
+| roseVinyl | 留声 | 实际封面、阅读列与克制排版 |
+| cinemaStage | 映幕 | 实际封面背景、居中字幕构图 |
 | kineticPoster | 跃字 | 大字海报、已唱 / 当前 / 未唱词三栏 |
 | coverStage | 画境 | 左侧大封面、右侧歌曲信息与歌词 |
 | cutBoard | 切影 | 斜切封面、切片与底部边线；原隐藏样式也可选 |
 | jizura | Afterglow | 独立主题场景、当前句与逐词绘制 |
 
-Afterglow 保留 22 个主题 ID 及主要色板：mist、night、dusk、paper、aozora、neon、matsuri、kabuki、yuki、junkissa、hokago、mahou、neko、dotto、echoes、time、brick、psyche、code、math、icpc、block。原生绘制为每个方向提供相应的雾光、星空、鸟居、和纸、云海、雨城、灯笼、扇骨、雪景、咖啡、校园、猫、像素、回声、时钟、积木、代码或图形意象。
+Afterglow 已补齐当前原版 23 个主题：mist、night、dusk、paper、aozora、neon、matsuri、kabuki、yuki、junkissa、hokago、mahou、neko、dotto、echoes、time、brick、psyche、code、math、icpc、block、rhythm。实际接入原版脚本 / 规划器 / 场景，由 Jint 与 Skia 承接原生绘制，替换此前近似方向演示。最新证据及限制见 [JIZURA_NATIVE_ENGINE.md](JIZURA_NATIVE_ENGINE.md)。
 
-这是原生版本的呈现迁移，**不代表旧 JIZURA Canvas 引擎全部场景、随机规划器、算法演示、特效和场景包已经逐项等价移植**。没有引入浏览器或把旧 Renderer 常驻在新应用内。创意工坊自定义歌词主题、MV、桌面悬浮歌词窗口、在线匹配与歌词编辑器仍属于独立能力。
+样式数量、源码复用与原生绘制检查不等于逐像素 / 动态视觉验收。没有引入浏览器或把旧 Renderer 常驻在新应用内。创意工坊自定义歌词主题、MV、在线匹配与歌词编辑器属于独立能力。
 
 歌词来源：同名本地 LRC、增强 LRC、YRC、TTML、SRT、VTT、TXT，或文件选择器导入。相同时间戳的 LRC 次行显示为译文；TTML 读取翻译、罗马音角色与真实词时间。没有真实词时间时整句着色，不伪造逐字时间。导入选项在当前窗口、当前曲目内跨页面保留，不写音源目录，不建立全库文件映射。
 
@@ -58,3 +60,13 @@ Afterglow 保留 22 个主题 ID 及主要色板：mist、night、dusk、paper�
 截图是实际原生控件的 headless 渲染，示例歌曲与封面为夹具；不是用户真实歌曲或实际窗口/设备验收。未测真实设备长时间播放、实际呈现 fps、macOS/Linux、旧 Canvas 引擎逐项视觉等价或长期资源稳定性。构建/短测累计时间由 `misc/lyrics-migration/budget-ms.txt` 记录，预算 120 秒，单次命令不超过 60 秒。
 
 回滚：移除 Shell 的歌词路由和 Bootstrap 歌词装配，恢复占位页。旧工作区、扫描与原生音频代码未修改；新应用设置文件可单独保留。
+
+### 本轮证据状态
+
+独立窗口内容宿主及返回恢复的整应用短测曾通过（final-smoke.out.log 的此前成功轮，4.279 秒）；随后增加 768 像素封面租约及对比度收尾。工作区并行改动持续更新公共输出，后续验证转移到 verified-build 独立目录。最新整应用检查仍受到未完成的歌单数据库接口和首页 XAML 等并行改动阻塞，不能把早先通过结果视作当前整工作区全部通过。768 / 320 双分辨率断言已加入，但最新通过结果尚未取得。
+
+现有 PNG 来源为此前已经实际渲染的独立舞台版本；后续播放控制迁移正在同一工作区合入，预览不代表这部分最新并行改动已经完成验收。所有构建、短测和重跑累计约 92 秒，未执行长测试或打包。
+
+
+原版保真度修订以 [LYRIC_STYLE_FIDELITY.md](LYRIC_STYLE_FIDELITY.md) 为准；样式入口和渲染数量不构成等价证明。
+

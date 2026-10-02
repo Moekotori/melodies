@@ -1,0 +1,101 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Remote" xmlns:remote="using:Echo.Contracts.Remote"
+             xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Remote.RemoteView" x:DataType="local:RemoteViewModel">
+  <UserControl.Styles><StyleInclude Source="RemoteStyles.axaml" /></UserControl.Styles>
+  <Grid>
+    <Grid Name="Workspace" RowDefinitions="Auto,Auto,*" Margin="32,28,32,22">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="16" Margin="0,0,0,25">
+        <TextBlock Text="{DynamicResource remote.title}" Classes="page-title" VerticalAlignment="Center" />
+        <ComboBox Grid.Column="1" Name="SourcePicker" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource, Mode=TwoWay}" IsVisible="{Binding HasSavedSources}" MinHeight="36" VerticalAlignment="Center">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="remote:RemoteSourceInfo">
+            <Grid ColumnDefinitions="22,*" ColumnSpacing="7"><icon:EchoIcon Kind="remote" Width="18" Height="18" BaseBrush="{DynamicResource EchoMuted}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /></Grid>
+          </DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Grid.Column="2" Name="SourceAddressText" Text="{Binding SourceAddress}" Classes="remote-caption remote-source-address" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <Button Grid.Column="3" Name="AddSourceButton" Classes="quiet remote-tool" Command="{Binding AddCommand}" VerticalAlignment="Center" IsEnabled="{Binding !IsBusy}" IsVisible="{Binding HasSavedSources}" ToolTip.Tip="{DynamicResource remote.add}">
+          <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="plus" Width="15" Height="15" Stroke="{DynamicResource EchoAccentText}" /><TextBlock Name="AddSourceText" Text="{DynamicResource remote.add}" Classes="remote-add-label" Foreground="{DynamicResource EchoAccentText}" /></StackPanel>
+        </Button>
+        <Button Grid.Column="4" Name="SourceMenuButton" Classes="remote-icon" IsVisible="{Binding HasSource}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{DynamicResource remote.sourceOptions}">
+          <icon:GlyphIcon Kind="more" Width="18" Height="18" />
+          <Button.Flyout><MenuFlyout><MenuItem Header="{DynamicResource remote.edit}" Command="{Binding EditCommand}" /><MenuItem Header="{DynamicResource remote.remove}" Command="{Binding RequestRemoveCommand}" /></MenuFlyout></Button.Flyout>
+        </Button>
+      </Grid>
+      <Border Grid.Row="1" Background="{DynamicResource EchoPanelMuted}" CornerRadius="5" Padding="12,9" Margin="0,0,0,12" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <TextBlock Text="{Binding Message}" FontSize="12" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" />
+      </Border>
+      <Grid Grid.Row="2">
+        <Grid IsVisible="{Binding HasSource}" RowDefinitions="Auto,Auto,Auto,*,Auto">
+          <Grid Name="BrowserToolbar" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,15">
+            <Button Name="UpButton" Classes="remote-icon" Command="{Binding UpCommand}" IsEnabled="{Binding CanUp}" ToolTip.Tip="{DynamicResource remote.up}"><icon:GlyphIcon Kind="chevron-left" Width="17" Height="17" /></Button>
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
+              <ItemsControl ItemsSource="{Binding Breadcrumbs}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:RemoteBreadcrumb">
+                  <StackPanel Orientation="Horizontal" Spacing="3"><Button Content="{Binding Label}" Classes="remote-crumb" Classes.current="{Binding IsCurrent}" Command="{Binding $parent[local:RemoteView].Model.NavigateDirectoryCommand}" CommandParameter="{Binding Path}" /><icon:GlyphIcon Kind="chevron-right" Width="12" Height="12" Stroke="{DynamicResource EchoSubtle}" IsVisible="{Binding !IsCurrent}" /></StackPanel>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+            <Border Grid.Column="2" Name="SearchHost" Background="{DynamicResource EchoPanelMuted}" CornerRadius="5" Padding="10,0,6,0">
+              <Grid ColumnDefinitions="23,*,28">
+                <icon:GlyphIcon Kind="search" Width="15" Height="15" Stroke="{DynamicResource EchoMuted}" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Name="SearchField" Classes="remote-search" Text="{Binding Search, Mode=TwoWay}" PlaceholderText="{DynamicResource remote.search}" MaxLength="160" KeyDown="OnSearchKey" />
+                <Button Grid.Column="2" Classes="remote-icon" Width="26" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{DynamicResource remote.searchAction}"><icon:GlyphIcon Kind="chevron-right" Width="13" Height="13" /></Button>
+              </Grid>
+            </Border>
+            <Button Grid.Column="3" Name="RefreshButton" Classes="remote-icon" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" IsVisible="{Binding !IsBusy}" ToolTip.Tip="{DynamicResource remote.refreshOnly}"><icon:GlyphIcon Kind="refresh" Width="16" Height="16" /></Button>
+            <Button Grid.Column="3" Classes="remote-icon" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" ToolTip.Tip="{DynamicResource remote.cancelLoad}"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
+          </Grid>
+          <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+            <Border Background="{DynamicResource EchoPanelMuted}" Padding="3" CornerRadius="5">
+              <StackPanel Orientation="Horizontal" Spacing="2"><Button Name="AllFilesButton" Content="{DynamicResource remote.allFiles}" Command="{Binding ShowAllCommand}" Classes="remote-filter" Classes.active="{Binding AllFiles}" IsEnabled="{Binding !IsBusy}" /><Button Name="AudioFilesButton" Content="{DynamicResource remote.audioFiles}" Command="{Binding ShowAudioCommand}" Classes="remote-filter" Classes.active="{Binding AudioOnly}" IsEnabled="{Binding !IsBusy}" /></StackPanel>
+            </Border>
+            <TextBlock Grid.Column="2" Text="{Binding DirectoryCount}" Classes="remote-caption" VerticalAlignment="Center" />
+          </Grid>
+          <Border Grid.Row="2" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="12,8,12,11">
+            <local:RemoteFileColumns>
+              <TextBlock Grid.Column="1" Text="{DynamicResource remote.name}" Classes="remote-caption" /><TextBlock Grid.Column="2" Text="{DynamicResource remote.type}" Classes="remote-caption file-type" /><TextBlock Grid.Column="3" Text="{DynamicResource remote.size}" Classes="remote-caption" /><TextBlock Grid.Column="4" Text="{DynamicResource remote.modified}" Classes="remote-caption file-date" />
+            </local:RemoteFileColumns>
+          </Border>
+          <Grid Grid.Row="3">
+            <ListBox Name="FileList" Classes="remote-files" ItemsSource="{Binding Entries}" SelectedItem="{Binding SelectedEntry, Mode=TwoWay}" DoubleTapped="OnEntryActivated" KeyDown="OnEntryKey">
+              <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+              <ListBox.ItemTemplate><DataTemplate x:DataType="local:RemoteEntryRow">
+                <local:RemoteFileColumns Height="60" ToolTip.Tip="{Binding Name}">
+                  <Border Classes="remote-file-icon" Classes.folder="{Binding IsDirectory}" HorizontalAlignment="Left" VerticalAlignment="Center"><icon:GlyphIcon Kind="{Binding Icon}" Classes="remote-file-glyph" Classes.folder="{Binding IsDirectory}" Width="19" Height="19" StrokeWidth="1.5" /></Border>
+                  <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center" Margin="0,0,18,0">
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource EchoHeading}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Secondary}" Classes="remote-caption" FontSize="11" TextTrimming="CharacterEllipsis" IsVisible="{Binding IsAudio}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Text="{Binding Kind}" Classes="remote-caption file-type" FontSize="11" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="3" Text="{Binding SizeLabel}" Classes="remote-caption" FontSize="11" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="4" Text="{Binding Modified}" Classes="remote-caption file-date" FontSize="11" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="5" Classes="remote-row-actions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2" IsVisible="{Binding IsAudio}">
+                    <Button Classes="remote-icon" Command="{Binding $parent[local:RemoteView].Model.PlayEntryCommand}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource remote.play}" Tag="row-play"><icon:GlyphIcon Kind="play" Width="15" Height="15" Stroke="{DynamicResource EchoAccentText}" /></Button>
+                    <Button Classes="remote-icon" Command="{Binding $parent[local:RemoteView].Model.QueueEntryCommand}" CommandParameter="{Binding}" ToolTip.Tip="{DynamicResource remote.queue}" Tag="row-queue"><icon:GlyphIcon Kind="queue" Width="16" Height="16" /></Button>
+                  </StackPanel>
+                </local:RemoteFileColumns>
+              </DataTemplate></ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel IsVisible="{Binding IsEmpty}" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center"><icon:GlyphIcon Kind="folder" Width="30" Height="30" Stroke="{DynamicResource EchoSubtle}" HorizontalAlignment="Center" /><TextBlock Text="{DynamicResource remote.emptyFolder}" Classes="remote-caption" /></StackPanel>
+            <ProgressBar IsVisible="{Binding IsBusy}" Height="2" IsIndeterminate="True" VerticalAlignment="Top" />
+          </Grid>
+          <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+            <TextBlock Text="{Binding PageLabel}" Classes="remote-caption" FontSize="11" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"><Button Classes="remote-icon" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" ToolTip.Tip="{DynamicResource remote.previous}"><icon:GlyphIcon Kind="chevron-left" Width="15" Height="15" /></Button><Button Classes="remote-icon" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" ToolTip.Tip="{DynamicResource remote.next}"><icon:GlyphIcon Kind="chevron-right" Width="15" Height="15" /></Button></StackPanel>
+          </Grid>
+        </Grid>
+        <local:RemoteWelcome Name="Welcome" IsVisible="{Binding HasNoSources}" />
+        <TextBlock Text="{DynamicResource remote.selectSource}" IsVisible="{Binding NeedsSourceSelection}" Classes="remote-caption" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <ProgressBar IsVisible="{Binding IsBusy}" Height="2" IsIndeterminate="True" VerticalAlignment="Top" />
+      </Grid>
+    </Grid>
+    <local:RemoteConnectionEditor Name="ConnectionEditor" />
+    <local:RemoteProviderPicker Name="ProviderPicker" />
+    <Border Background="#50000000" IsVisible="{Binding ConfirmRemove}">
+      <Border Background="{DynamicResource EchoField}" Padding="28" MaxWidth="390" Margin="24" HorizontalAlignment="Stretch" VerticalAlignment="Center" CornerRadius="8">
+        <StackPanel Spacing="18"><TextBlock Text="{DynamicResource remote.removeTitle}" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="{DynamicResource remote.removeHint}" Classes="remote-caption" TextWrapping="Wrap" LineHeight="21" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10"><Button Content="{DynamicResource remote.cancel}" Command="{Binding CancelRemoveCommand}" Classes="remote-tool" /><Button Content="{DynamicResource remote.remove}" Command="{Binding RemoveCommand}" Classes="remote-tool" IsEnabled="{Binding !IsBusy}" /></StackPanel></StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</UserControl>

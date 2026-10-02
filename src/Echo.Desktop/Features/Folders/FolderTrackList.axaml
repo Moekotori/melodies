@@ -1,28 +1,35 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:folders="using:Echo.Desktop.Features.Folders" xmlns:albums="using:Echo.Desktop.Features.Albums"
+             xmlns:queue="using:Echo.Desktop.Features.Queue" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Folders.FolderTrackList" x:DataType="folders:FoldersViewModel">
   <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="/Features/Folders/FolderListStyles.axaml" />
   </ResourceDictionary.MergedDictionaries></ResourceDictionary></UserControl.Resources>
   <UserControl.Styles>
     <Style Selector="Border.playing TextBlock.track-title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
-    <Style Selector="Button.liked"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Border.playing"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+    <Style Selector="Button.track-like"><Setter Property="Opacity" Value="0.55" /></Style>
+    <Style Selector="Border:pointerover Button.track-like"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="Button.track-like.liked"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="Button.liked icon|GlyphIcon"><Setter Property="BaseBrush" Value="{DynamicResource EchoAccentText}" /></Style>
   </UserControl.Styles>
   <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
-    <folders:FolderColumnsGrid Name="HeaderColumns" Margin="8,0,8,8" HorizontalAlignment="Left">
-      <TextBlock Text="#" Classes="muted" FontSize="11" />
-      <TextBlock Grid.Column="1" Text="{DynamicResource folders.track}" Classes="muted" FontSize="11" />
-      <TextBlock Grid.Column="2" Text="{DynamicResource folders.album}" Classes="muted wide" FontSize="11" />
-      <TextBlock Grid.Column="3" Text="{DynamicResource folders.quality}" Classes="muted wide" FontSize="11" />
-      <TextBlock Grid.Column="4" Text="{DynamicResource folders.duration}" Classes="muted" FontSize="11" HorizontalAlignment="Right" />
-    </folders:FolderColumnsGrid>
+    <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,10" Margin="0,0,0,4">
+      <folders:FolderColumnsGrid Name="HeaderColumns" Margin="10,0,10,0" HorizontalAlignment="Left">
+        <TextBlock Text="#" Classes="muted" FontSize="11" />
+        <TextBlock Grid.Column="2" Text="{DynamicResource folders.track}" Classes="muted" FontSize="12" />
+        <TextBlock Grid.Column="3" Text="{DynamicResource folders.album}" Classes="muted wide" FontSize="12" />
+        <TextBlock Grid.Column="4" Text="{DynamicResource folders.quality}" Classes="muted wide" FontSize="12" />
+        <TextBlock Grid.Column="5" Text="{DynamicResource folders.duration}" Classes="muted" FontSize="12" HorizontalAlignment="Right" />
+      </folders:FolderColumnsGrid>
+    </Border>
     <ListBox Name="TrackList" Grid.Row="1" ItemsSource="{Binding Tracks}" Background="Transparent" BorderThickness="0" Padding="0"
              ItemContainerTheme="{StaticResource FolderListItem}" SelectionMode="Multiple" DoubleTapped="OnDoubleTap"
              SelectionChanged="OnSelection" KeyDown="OnKey" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
       <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="albums:AlbumTrackItem">
-          <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="8,9" Classes.playing="{Binding IsPlaying}">
+          <Border Padding="10,7" MinHeight="58" CornerRadius="5" Classes.playing="{Binding IsPlaying}" Margin="0,1">
             <Border.ContextMenu>
               <ContextMenu>
                 <MenuItem Header="{DynamicResource folders.play}" Click="OnMenuPlay" />
@@ -31,28 +38,38 @@
               </ContextMenu>
             </Border.ContextMenu>
             <folders:FolderColumnsGrid>
-              <Grid VerticalAlignment="Center"><TextBlock Text="{Binding Number}" Classes="muted" FontSize="11" IsVisible="{Binding !IsPlaying}" /><TextBlock Text="♫" Foreground="{DynamicResource EchoAccentText}" IsVisible="{Binding IsPlaying}" /></Grid>
-              <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Row.Title}" Classes="track-title" Foreground="{DynamicResource EchoHeading}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+              <Grid VerticalAlignment="Center">
+                <TextBlock Text="{Binding Position}" Classes="muted" FontSize="11" IsVisible="{Binding !IsPlaying}" />
+                <icon:GlyphIcon Kind="play-solid" Width="12" Height="12" Stroke="{DynamicResource EchoAccentText}" IsVisible="{Binding IsPlaying}" HorizontalAlignment="Left" />
+              </Grid>
+              <queue:QueueArtwork Grid.Column="1" Width="44" Height="44" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding Row.Path}" Cache="{Binding $parent[folders:FoldersView].Artwork}" />
+              <StackPanel Grid.Column="2" Spacing="5" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Row.Title}" Classes="track-title" Foreground="{DynamicResource EchoHeading}" FontSize="14.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
               </StackPanel>
-              <TextBlock Grid.Column="2" Text="{Binding Row.Album}" Classes="muted wide" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              <TextBlock Grid.Column="3" Text="{Binding Signal}" Classes="muted wide" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              <TextBlock Grid.Column="4" Text="{Binding Duration}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
-              <Button Grid.Column="5" Content="{Binding Heart}" FontSize="19" Classes="icon" Classes.liked="{Binding Favorite}"
-                      Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanFavorite}" Click="OnFavorite" ToolTip.Tip="{DynamicResource folders.favorite}" />
+              <TextBlock Grid.Column="3" Text="{Binding Row.Album}" Classes="muted wide" FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <StackPanel Grid.Column="4" Classes="wide" VerticalAlignment="Center" Spacing="4" ToolTip.Tip="{Binding Signal}">
+                <TextBlock Text="{Binding CodecLabel}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Resolution}" Classes="subtle" FontSize="10.5" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <TextBlock Grid.Column="5" Text="{Binding Duration}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
+              <Button Grid.Column="6" Classes="icon track-like" Classes.liked="{Binding Favorite}" Width="28"
+                      Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanFavorite}" Click="OnFavorite" ToolTip.Tip="{DynamicResource folders.favorite}">
+                <Grid><icon:GlyphIcon Kind="heart" Width="17" Height="17" IsVisible="{Binding !Favorite}" /><icon:GlyphIcon Kind="heart-filled" Width="17" Height="17" IsVisible="{Binding Favorite}" /></Grid>
+              </Button>
             </folders:FolderColumnsGrid>
           </Border>
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>
-    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="24">
-      <TextBlock Text="{DynamicResource folders.emptyTitle}" Classes="heading" FontSize="20" HorizontalAlignment="Center" />
-      <TextBlock Text="{DynamicResource folders.emptyHint}" Classes="muted" FontSize="12" MaxWidth="300" TextAlignment="Center" TextWrapping="Wrap" />
-      <Button Content="{DynamicResource folders.reset}" Command="{Binding ResetFiltersCommand}" HorizontalAlignment="Center" />
+    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="24">
+      <icon:GlyphIcon Kind="search" Width="28" Height="28" HorizontalAlignment="Center" Opacity="0.5" />
+      <TextBlock Text="{Binding EmptyTitle}" Classes="heading" FontSize="20" HorizontalAlignment="Center" />
+      <TextBlock Text="{Binding EmptyHint}" Classes="muted" FontSize="13" MaxWidth="320" TextAlignment="Center" TextWrapping="Wrap" />
+      <Button Content="{DynamicResource folders.reset}" Command="{Binding ResetFiltersCommand}" HorizontalAlignment="Center" IsVisible="{Binding HasFolder}" />
     </StackPanel>
     <TextBlock Grid.Row="1" Text="{DynamicResource folders.loading}" Classes="muted" IsVisible="{Binding IsLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-    <Grid Grid.Row="2" Name="SelectionBar" IsVisible="False" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,4" IsEnabled="{Binding CanAct}">
+    <Grid Grid.Row="2" Name="SelectionBar" IsVisible="False" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,8" IsEnabled="{Binding CanAct}">
       <TextBlock Name="SelectionText" Classes="muted" VerticalAlignment="Center" FontSize="12" />
       <Button Grid.Column="1" Content="{DynamicResource folders.playSelected}" Click="OnPlaySelected" />
       <Button Grid.Column="2" Content="{DynamicResource folders.nextUp}" Click="OnNextSelected" />

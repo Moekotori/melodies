@@ -22,7 +22,14 @@ public partial class AlbumTrackRow : UserControl
         };
     }
     private void OnPlay(object? sender, RoutedEventArgs args) => PlayRequested?.Invoke(this, EventArgs.Empty);
-    private void OnFavorite(object? sender, RoutedEventArgs args) => args.Handled = true;
+    private void OnFavorite(object? sender, RoutedEventArgs args)
+    {
+        // Handling the child click also suppresses Button's command dispatch. Execute it once
+        // here, then stop the event reaching the row's play action.
+        args.Handled = true;
+        if (sender is Button { Command: { } command } button && command.CanExecute(button.CommandParameter))
+            command.Execute(button.CommandParameter);
+    }
     private void OnMenuPlay(object? sender, RoutedEventArgs args) => PlayRequested?.Invoke(this, EventArgs.Empty);
     private void OnMenuNext(object? sender, RoutedEventArgs args) => NextRequested?.Invoke(this, EventArgs.Empty);
     private void OnMenuAdd(object? sender, RoutedEventArgs args) => AddRequested?.Invoke(this, EventArgs.Empty);

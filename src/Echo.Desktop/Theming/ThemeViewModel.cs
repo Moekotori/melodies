@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Echo.Contracts.Settings;
-using Avalonia.Media;
 
 namespace Echo.Desktop.Theming;
 
@@ -16,8 +15,8 @@ public sealed partial class ThemeViewModel : ObservableObject
     public IReadOnlyList<ThemePreset> Presets => ThemeCatalog.Presets;
     public IReadOnlyList<string> Modes { get; } = ["浅色", "深色", "跟随系统", "氛围", "亚克力"];
     public IReadOnlyList<string> Tones { get; } = ["浅色", "深色"];
-    public IReadOnlyList<string> Fonts { get; } = ["Outfit", "Segoe UI", "Microsoft YaHei", "Noto Sans SC", "PingFang SC", "DejaVu Sans"];
-    public IReadOnlyList<string> WallpaperFits { get; } = ["UniformToFill", "Uniform", "Fill"];
+    public IReadOnlyList<string> Fonts { get; } = ["Outfit", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC", "PingFang SC", "DejaVu Sans"];
+    public IReadOnlyList<string> WallpaperFits { get; } = ["UniformToFill", "Uniform", "Fill", "Tile", "Center"];
     public IReadOnlyList<CustomTheme> Library => _preferences.Library ?? [];
     [ObservableProperty] private string mode = "浅色";
     [ObservableProperty] private ThemePreset selectedPreset = ThemeCatalog.Find("classic");
@@ -26,8 +25,8 @@ public sealed partial class ThemeViewModel : ObservableObject
     [ObservableProperty] private string darkAt = "19:00";
     [ObservableProperty] private string lightAt = "07:00";
     [ObservableProperty] private bool invert;
-    [ObservableProperty] private string font = "Outfit";
-    [ObservableProperty] private string chineseFont = "Microsoft YaHei";
+    [ObservableProperty] private string font = "Segoe UI";
+    [ObservableProperty] private string chineseFont = "Microsoft YaHei UI";
     [ObservableProperty] private string fallbackFont = "Noto Sans SC";
     [ObservableProperty] private string wallpaper = "";
     [ObservableProperty] private double wallpaperOpacity = 20;
@@ -36,6 +35,10 @@ public sealed partial class ThemeViewModel : ObservableObject
     [ObservableProperty] private double wallpaperY = 50;
     [ObservableProperty] private string wallpaperFit = "UniformToFill";
     [ObservableProperty] private bool motionEnabled = true;
+    [ObservableProperty] private bool acrylicEnabled;
+    [ObservableProperty] private double acrylicTransparency = 70;
+    [ObservableProperty] private bool acrylicKeepUnfocused;
+    [ObservableProperty] private string acrylicStatus = "";
     [ObservableProperty] private string name = "我的主题";
     [ObservableProperty] private string feedback = "";
     [ObservableProperty] private IReadOnlyList<ThemeColorGroup> colorGroups = [];
@@ -53,12 +56,6 @@ public sealed partial class ThemeViewModel : ObservableObject
             return warnings.Length == 0 ? "文字与背景对比清晰" : "对比度偏低：" + string.Join("、", warnings);
         }
     }
-    public IBrush PreviewBackground => new SolidColorBrush(Color.Parse(Editing.Colors["appBg"]));
-    public IBrush PreviewText => new SolidColorBrush(Color.Parse(Editing.Colors["text"]));
-    public IBrush PreviewMuted => new SolidColorBrush(Color.Parse(Editing.Colors["muted"]));
-    public IBrush PreviewPanel => new SolidColorBrush(Color.Parse(Editing.Colors["panel"]));
-    public IBrush PreviewAccent => new SolidColorBrush(Color.Parse(Editing.Colors["accent"]));
-    public IBrush PreviewOnAccent => new SolidColorBrush(Color.Parse(Editing.Colors["onAccent"]));
     public ThemeViewModel() => RebuildEditor();
     public ThemeTone Tone(bool dark) => ThemeCatalog.Normalize(dark ? _preferences.Dark : _preferences.Light,
         dark ? SelectedPreset.Dark : SelectedPreset.Light);
@@ -78,15 +75,18 @@ public sealed partial class ThemeViewModel : ObservableObject
         DarkAt = TimeOnly.TryParseExact(_preferences.DarkAt, "HH:mm", out _) ? _preferences.DarkAt : "19:00";
         LightAt = TimeOnly.TryParseExact(_preferences.LightAt, "HH:mm", out _) ? _preferences.LightAt : "07:00";
         Invert = _preferences.Invert; Font = SafeFont(_preferences.Font); ChineseFont = SafeFont(_preferences.ChineseFont); FallbackFont = SafeFont(_preferences.FallbackFont);
-        Wallpaper = _preferences.Wallpaper?.Length <= 1024 ? _preferences.Wallpaper : "";
-        WallpaperOpacity = Finite(_preferences.WallpaperOpacity, 0, 100, 20); WallpaperBlur = Finite(_preferences.WallpaperBlur, 0, 32, 0);
+        Wallpaper = LocalPath(_preferences.Wallpaper);
+        WallpaperOpacity = Finite(_preferences.WallpaperOpacity, 0, 100, 20); WallpaperBlur = Finite(_preferences.WallpaperBlur, 0, 40, 0);
         WallpaperX = Finite(_preferences.WallpaperX, 0, 100, 50); WallpaperY = Finite(_preferences.WallpaperY, 0, 100, 50);
         WallpaperFit = WallpaperFits.Contains(_preferences.WallpaperFit) ? _preferences.WallpaperFit : WallpaperFits[0];
+        AcrylicEnabled = _preferences.AcrylicEnabled; AcrylicKeepUnfocused = _preferences.AcrylicKeepUnfocused;
+        AcrylicTransparency = Finite(_preferences.AcrylicTransparency, 0, 100, 70);
         _preferences = _preferences with { Mode = Mode switch { "深色" => "dark", "跟随系统" => "system", "氛围" => "ambient", "亚克力" => "acrylic", _ => "light" },
             DarkAt = DarkAt, LightAt = LightAt, Font = Font, ChineseFont = ChineseFont, FallbackFont = FallbackFont, Wallpaper = Wallpaper ?? "",
             WallpaperOpacity = WallpaperOpacity, WallpaperBlur = WallpaperBlur, WallpaperX = WallpaperX, WallpaperY = WallpaperY, WallpaperFit = WallpaperFit,
-            SelectedCustomId = Library.Any(t => t.Id == _preferences.SelectedCustomId) ? _preferences.SelectedCustomId : null };
-        _sync = false; RebuildEditor(); OnPropertyChanged(nameof(Library)); Changed?.Invoke();
+            SelectedCustomId = Library.Any(t => t.Id == _preferences.SelectedCustomId) ? _preferences.SelectedCustomId : null,
+            AcrylicTransparency = AcrylicTransparency };
+        RestoreAppearance(); _sync = false; RebuildEditor(); OnPropertyChanged(nameof(Library)); Changed?.Invoke();
     }
     private static double Finite(double v, double min, double max, double fallback) => double.IsFinite(v) ? Math.Clamp(v, min, max) : fallback;
     private static string SafeFont(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 120 && !value.Contains('/') && !value.Contains('\\') ? value : "Outfit";
@@ -118,10 +118,11 @@ public sealed partial class ThemeViewModel : ObservableObject
             g.Select(d => new ThemeColorField(d, tone.Colors[d.Key], fallback.Colors[d.Key], SetColor)).ToArray())).ToArray();
         NumberFields = ThemeCatalog.Numbers.Select(d => new ThemeNumberField(d, tone.Numbers[d.Key], SetNumber)).ToArray();
         _sync = true; MotionEnabled = tone.MotionEnabled; _sync = false; NotifyPreview();
+        RefreshEditorState();
     }
     private void NotifyPreview()
-    { foreach (var p in new[] { nameof(ContrastStatus), nameof(PreviewBackground), nameof(PreviewText), nameof(PreviewPanel), nameof(PreviewMuted), nameof(PreviewAccent), nameof(PreviewOnAccent) }) OnPropertyChanged(p); }
-    partial void OnEditToneChanged(string value) => RebuildEditor();
+    { foreach (var p in new[] { nameof(Editing), nameof(HasLibrary), nameof(CurrentThemeLabel), nameof(ContrastStatus), nameof(SelectedWallpaperEffect) }) OnPropertyChanged(p); }
+    partial void OnEditToneChanged(string value) { RebuildEditor(); RefreshTextOverride(); }
     partial void OnSelectedPresetChanged(ThemePreset value)
     {
         if (_sync) return;
@@ -136,18 +137,21 @@ public sealed partial class ThemeViewModel : ObservableObject
     partial void OnFontChanged(string value) => Commit(_preferences with { Font = SafeFont(value) });
     partial void OnChineseFontChanged(string value) => Commit(_preferences with { ChineseFont = SafeFont(value) });
     partial void OnFallbackFontChanged(string value) => Commit(_preferences with { FallbackFont = SafeFont(value) });
-    partial void OnWallpaperChanged(string value) => Commit(_preferences with { Wallpaper = value });
+    partial void OnWallpaperChanged(string value) { Commit(_preferences with { Wallpaper = value }); OnPropertyChanged(nameof(WallpaperFileName)); OnPropertyChanged(nameof(HasWallpaperFile)); }
     partial void OnWallpaperOpacityChanged(double value) => Commit(_preferences with { WallpaperOpacity = Math.Clamp(value, 0, 100) });
-    partial void OnWallpaperBlurChanged(double value) => Commit(_preferences with { WallpaperBlur = Math.Clamp(value, 0, 32) });
+    partial void OnWallpaperBlurChanged(double value) => Commit(_preferences with { WallpaperBlur = Math.Clamp(value, 0, 40) });
     partial void OnWallpaperXChanged(double value) => Commit(_preferences with { WallpaperX = Math.Clamp(value, 0, 100) });
     partial void OnWallpaperYChanged(double value) => Commit(_preferences with { WallpaperY = Math.Clamp(value, 0, 100) });
-    partial void OnWallpaperFitChanged(string value) => Commit(_preferences with { WallpaperFit = value });
+    partial void OnWallpaperFitChanged(string value) { Commit(_preferences with { WallpaperFit = value }); OnPropertyChanged(nameof(SelectedWallpaperChoice)); }
     partial void OnMotionEnabledChanged(bool value) { if (!_sync) ChangeTone(Editing with { MotionEnabled = value }); }
+    partial void OnAcrylicEnabledChanged(bool value) => Commit(_preferences with { AcrylicEnabled = value });
+    partial void OnAcrylicTransparencyChanged(double value) => Commit(_preferences with { AcrylicTransparency = Finite(value, 0, 100, 70) });
+    partial void OnAcrylicKeepUnfocusedChanged(bool value) => Commit(_preferences with { AcrylicKeepUnfocused = value });
     [RelayCommand] private void Undo()
     {
         if (_undo.Count == 0) return;
         var items = _undo.ToArray(); _undo.Clear(); foreach (var item in items.SkipLast(1)) _undo.Enqueue(item);
-        Restore(items[^1]); OnPropertyChanged(nameof(CanUndo));
+        Restore(items[^1]); Feedback = "已撤销上一次修改"; OnPropertyChanged(nameof(CanUndo));
     }
     [RelayCommand] private void ResetTone() { ChangeTone(EditTone == "深色" ? SelectedPreset.Dark : SelectedPreset.Light); RebuildEditor(); }
     [RelayCommand] private void ResetAll() { Commit(new ThemePreferences(), true); Restore(_preferences); Feedback = "已恢复经典外观，可撤销"; }

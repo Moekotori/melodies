@@ -14,8 +14,8 @@
       <Button Grid.Column="1" Content="{DynamicResource shortcuts.restore}" Command="{Binding RestoreRecommendedCommand}" VerticalAlignment="Center" />
     </Grid>
     <TextBlock Text="{Binding PlatformHint}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
-    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
-      <TextBox Name="FilterInput" Text="{Binding Query}" PlaceholderText="{DynamicResource shortcuts.search}" MinWidth="120" />
+    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Name="FilterToolbar">
+      <TextBox Name="FilterInput" Text="{Binding Query}" PlaceholderText="{DynamicResource shortcuts.search}" MinWidth="120" MaxLength="128" />
       <CheckBox Grid.Column="1" Content="{DynamicResource shortcuts.issues}" IsChecked="{Binding IssuesOnly}" VerticalAlignment="Center" />
       <Button Grid.Column="2" Content="{DynamicResource shortcuts.retry}" Command="{Binding RetryCommand}" IsVisible="{Binding GlobalAvailable}" />
     </Grid>

@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="Echo.Desktop.Features.Home.HomeAlbumCard">
+  <Button Name="OpenButton" Classes="quiet" Padding="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" Click="OnOpen" CornerRadius="0">
+    <Grid Name="CardLayout" RowDefinitions="Auto,Auto" ColumnDefinitions="*">
+      <Grid Name="ArtworkFrame" Height="150" ClipToBounds="True" Background="{DynamicResource EchoPanelMuted}">
+        <Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" />
+        <Image Name="Cover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+      </Grid>
+      <StackPanel Name="Copy" Grid.Row="1" Margin="0,10,0,0" Spacing="4" VerticalAlignment="Center">
+        <TextBlock Name="Title" Classes="heading" FontSize="14" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+        <TextBlock Name="Artist" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+        <TextBlock Name="Metadata" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </Grid>
+  </Button>
+</UserControl>

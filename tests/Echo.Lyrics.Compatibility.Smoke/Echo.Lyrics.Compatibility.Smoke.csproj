@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsAotCompatible>false</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Echo.Application/Echo.Application.csproj" />
+    <ProjectReference Include="../../src/Echo.Infrastructure/Echo.Infrastructure.csproj" />
+    <Compile Include="../Echo.Lyrics.Smoke/ParserSmoke.cs" Link="ParserSmoke.cs" />
+  </ItemGroup>
+</Project>

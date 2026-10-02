@@ -28,42 +28,55 @@ internal sealed class DesktopListeningRecorder : IAsyncDisposable
     {
         try
         {
-            Observe(subscription.Initial.Playback);
+            await ObserveAsync(subscription.Initial.Playback).ConfigureAwait(false);
+            await SaveAsync().ConfigureAwait(false);
             while (true)
             {
                 var update = await subscription.ReadAsync(stop.Token).ConfigureAwait(false);
                 var state = update.State.Playback;
-                var same = previous?.Current?.ItemId == state.Current?.ItemId && previous?.OperationId == state.OperationId;
+                var same = previous?.Current?.ItemId == state.Current?.ItemId
+                    && !(previous?.OperationId > 0 && state.OperationId == 0)
+                    && !(previous?.Status == PlaybackStatus.Ended && state.Status == PlaybackStatus.Loading);
                 Accumulate(state, same);
-                if (!same) { await SaveAsync().ConfigureAwait(false); entry = null; }
+                if (!same || state.Status is PlaybackStatus.Ended or PlaybackStatus.Stopped or PlaybackStatus.Faulted)
+                {
+                    if (entry is not null) { entry = entry with { EndedUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }; dirty = true; }
+                    await SaveAsync().ConfigureAwait(false); entry = null;
+                }
                 var starting = entry is null && state.Status == PlaybackStatus.Playing;
                 var leavingPlaying = previous?.Status == PlaybackStatus.Playing && state.Status != PlaybackStatus.Playing;
-                Observe(state);
+                await ObserveAsync(state).ConfigureAwait(false);
                 if (starting || leavingPlaying || Stopwatch.GetElapsedTime(savedAt).TotalSeconds >= 15)
                     await SaveAsync().ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
         catch (System.Threading.Channels.ChannelClosedException) { }
-        finally { await SaveAsync().ConfigureAwait(false); }
+        finally
+        {
+            if (entry is not null) { entry = entry with { EndedUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }; dirty = true; }
+            await SaveAsync().ConfigureAwait(false);
+        }
     }
     private void Accumulate(PlaybackSnapshot next, bool same)
     {
-        if (entry is null || previous?.Status != PlaybackStatus.Playing || !same) return;
+        if (entry is null || previous?.Status != PlaybackStatus.Playing) return;
         var elapsed = Math.Clamp(Stopwatch.GetElapsedTime(sampledAt).TotalSeconds, 0, 30);
-        var delta = next.PositionSeconds - previous.PositionSeconds;
+        var delta = same ? next.PositionSeconds - previous.PositionSeconds : elapsed;
         // A seek awards none of the skipped duration. Speed affects audio progress, not wall listening time.
         if (delta <= 0 || delta > elapsed * 4 + 1) return;
-        entry = entry with { PlayedSeconds = entry.PlayedSeconds + Math.Min(elapsed, delta), UpdatedUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds() };
+        entry = entry with { PlayedSeconds = entry.PlayedSeconds + elapsed, UpdatedUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds() };
         dirty = true;
     }
-    private void Observe(PlaybackSnapshot state)
+    private async Task ObserveAsync(PlaybackSnapshot state)
     {
         var now = Stopwatch.GetTimestamp();
         if (entry is null && state is { Status: PlaybackStatus.Playing, OperationId: > 0, Current: { } track })
         {
             var unix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            entry = new(Guid.NewGuid().ToString("N"), track.TrackId, track.FilePath, unix, unix, 0);
+            var epoch = library is IHistoryLibrary history ? await history.GetHistoryEpochAsync(stop.Token).ConfigureAwait(false) : (long?)null;
+            entry = new(Guid.NewGuid().ToString("N"), track.TrackId, track.FilePath, unix, unix, 0,
+                Source: track.Origin?.Label ?? "", HistoryEpoch: epoch);
             savedAt = now; dirty = true;
         }
         previous = state; sampledAt = now;

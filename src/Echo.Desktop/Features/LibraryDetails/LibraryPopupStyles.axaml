@@ -1,0 +1,85 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="FilterReferencePresenter" TargetType="FlyoutPresenter">
+      <Setter Property="Background" Value="{DynamicResource EchoField}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" /><Setter Property="Padding" Value="0" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
+        </Border>
+      </ControlTemplate></Setter>
+    </ControlTheme>
+
+    <SolidColorBrush x:Key="LibraryCheckInk">White</SolidColorBrush>
+    <ControlTheme x:Key="LibraryCheckBox" TargetType="CheckBox">
+      <Setter Property="MinHeight" Value="30" /><Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+      <Setter Property="Template"><ControlTemplate>
+        <Grid ColumnDefinitions="16,Auto" ColumnSpacing="7" Background="Transparent">
+          <Border Name="CheckSurface" Width="16" Height="16" CornerRadius="4" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" Background="{DynamicResource EchoField}" VerticalAlignment="Center">
+            <Path Name="CheckMark" Data="M3 7.5L6 10.5L11 4.5" Stroke="{StaticResource LibraryCheckInk}" StrokeThickness="1.6" StrokeLineCap="Round" Opacity="0" />
+          </Border>
+          <ContentPresenter Grid.Column="1" Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" />
+        </Grid>
+      </ControlTemplate></Setter>
+      <Style Selector="^:checked /template/ Border#CheckSurface"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+      <Style Selector="^:checked /template/ Path#CheckMark"><Setter Property="Opacity" Value="1" /></Style>
+      <Style Selector="^:pointerover /template/ Border#CheckSurface"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#CheckSurface"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="2" /></Style>
+      <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+    </ControlTheme>
+    <ControlTheme x:Key="LibraryChoiceItem" TargetType="ComboBoxItem" BasedOn="{StaticResource EchoSelectItem}">
+      <Setter Property="MinHeight" Value="30" /><Setter Property="Padding" Value="9,6" /><Setter Property="FontSize" Value="12" />
+      <Style Selector="^:selected /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="{DynamicResource LibraryPopupSelected}" /></Style>
+    </ControlTheme>
+    <ControlTheme x:Key="LibraryChoice" TargetType="ComboBox" BasedOn="{StaticResource EchoSelect}">
+      <Setter Property="ItemContainerTheme" Value="{StaticResource LibraryChoiceItem}" />
+      <Setter Property="Background" Value="{DynamicResource LibraryInputSurface}" /><Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="6" /><Setter Property="MinHeight" Value="30" /><Setter Property="Padding" Value="9,4" /><Setter Property="FontSize" Value="12" />
+      <Style Selector="^:focus-visible /template/ Border#Background"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+    <ControlTheme x:Key="LibraryMultiSwitch" TargetType="ToggleButton">
+      <Setter Property="MinWidth" Value="36" /><Setter Property="Width" Value="36" /><Setter Property="MinHeight" Value="20" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Name="Track" Width="36" Height="20" CornerRadius="10" Background="{DynamicResource EchoDivider}" BorderThickness="0">
+          <Border Name="Knob" Width="16" Height="16" CornerRadius="8" Background="{StaticResource LibraryCheckInk}" Margin="2" HorizontalAlignment="Left" BoxShadow="0 1 2 0 #20000000" />
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:checked /template/ Border#Track"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /></Style>
+      <Style Selector="^:checked /template/ Border#Knob"><Setter Property="HorizontalAlignment" Value="Right" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#Track"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+    </ControlTheme>
+    <ControlTheme x:Key="LibraryPopupPresenter" TargetType="FlyoutPresenter">
+      <Setter Property="Background" Value="{DynamicResource EchoField}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+      <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="8" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}" BoxShadow="0 4 18 0 #18000000">
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
+        </Border>
+      </ControlTemplate></Setter>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="FlyoutPresenter.libraryPopup"><Setter Property="Theme" Value="{StaticResource LibraryPopupPresenter}" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="8" /></Style>
+  <Style Selector="Button.libraryTool, Button.songTool">
+    <Setter Property="Height" Value="36" /><Setter Property="MinHeight" Value="36" /><Setter Property="Padding" Value="10,0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="7" /><Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Button.libraryTool icon|GlyphIcon, Button.songTool icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccent}" /></Style>
+  <Style Selector="Button.libraryTool TextBlock, Button.songTool TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="Button.libraryOption">
+    <Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Height" Value="34" /><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="5" /><Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.libraryOption TextBlock"><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="FontSize" Value="14" /></Style>
+  <Style Selector="Button.libraryOption.selected"><Setter Property="Background" Value="{DynamicResource LibraryPopupSelected}" /></Style>
+  <Style Selector="Button.libraryOption.selected TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="Button.libraryDirection">
+    <Setter Property="Width" Value="28" /><Setter Property="Height" Value="34" /><Setter Property="MinHeight" Value="34" />
+    <Setter Property="Padding" Value="0" /><Setter Property="FontSize" Value="18" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+  </Style>
+  <Style Selector="TextBlock.libraryGroup"><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="Margin" Value="10,8,0,4" /></Style>
+</Styles>

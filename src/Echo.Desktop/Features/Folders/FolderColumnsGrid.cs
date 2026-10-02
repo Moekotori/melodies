@@ -7,14 +7,14 @@ public sealed class FolderColumnsGrid : Grid
 {
     public FolderColumnsGrid()
     {
-        ColumnDefinitions = new("32,*,160,144,58,32"); ColumnSpacing = 14;
+        ColumnDefinitions = new("28,44,*,150,108,54,28"); ColumnSpacing = 12;
         SizeChanged += (_, _) =>
         {
-            var narrow = Bounds.Width < 650;
-            ColumnDefinitions[0].Width = new(narrow ? 24 : 32);
-            ColumnDefinitions[2].Width = new(narrow ? 0 : 160);
-            ColumnDefinitions[3].Width = new(narrow ? 0 : 144);
-            ColumnSpacing = narrow ? 8 : 14;
+            var narrow = Bounds.Width < 760;
+            ColumnDefinitions[0].Width = new(narrow ? 22 : 28);
+            ColumnDefinitions[3].Width = new(narrow ? 0 : 150);
+            ColumnDefinitions[4].Width = new(narrow ? 0 : 108);
+            ColumnSpacing = narrow ? 8 : 12;
             foreach (var child in Children)
                 if (child.Classes.Contains("wide")) child.IsVisible = !narrow;
         };

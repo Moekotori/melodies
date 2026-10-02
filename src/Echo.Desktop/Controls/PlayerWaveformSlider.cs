@@ -7,6 +7,12 @@ namespace Echo.Desktop.Controls;
 // Native Slider keeps keyboard/automation semantics; the whole waveform is its pointer hit area.
 public sealed class PlayerWaveformSlider : Slider
 {
+    public static readonly StyledProperty<Echo.Contracts.Media.TrackEnvelope?> EnergyEnvelopeProperty = AvaloniaProperty.Register<PlayerWaveformSlider, Echo.Contracts.Media.TrackEnvelope?>(nameof(EnergyEnvelope));
+    public static readonly StyledProperty<bool> IsWaveformVisibleProperty = AvaloniaProperty.Register<PlayerWaveformSlider, bool>(nameof(IsWaveformVisible), true);
+    public Echo.Contracts.Media.TrackEnvelope? EnergyEnvelope { get => GetValue(EnergyEnvelopeProperty); set => SetValue(EnergyEnvelopeProperty, value); }
+    public bool IsWaveformVisible { get => GetValue(IsWaveformVisibleProperty); private set => SetValue(IsWaveformVisibleProperty, value); }
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    { base.OnPropertyChanged(change); if (change.Property == EnergyEnvelopeProperty) IsWaveformVisible = EnergyEnvelope is null; }
     public static readonly StyledProperty<string> SeedProperty = AvaloniaProperty.Register<PlayerWaveformSlider, string>(nameof(Seed), "idle");
     public string Seed { get => GetValue(SeedProperty); set => SetValue(SeedProperty, value); }
     private IPointer? dragging;

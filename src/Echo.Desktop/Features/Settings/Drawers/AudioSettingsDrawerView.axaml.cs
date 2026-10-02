@@ -15,10 +15,11 @@ public partial class AudioSettingsDrawerView : UserControl, IDisposable, IDrawer
     public AudioSettingsDrawerView(ShellViewModel shell)
     {
         _shell = shell; InitializeComponent(); DataContext = shell;
-        _search = new(this, AudioTabs, [new(0, "设备 输出 模式 共享 独占 ASIO KS", "OutputDeviceInput"),
-            new(1, "采样率 sample rate Hz", "SampleRateInput"), new(1, "缓冲 延迟 buffer", "BufferInput"),
-            new(1, "格式 PCM DSD DoP Native", "OutputFormatInput"), new(1, "均衡器 EQ", "EqualizerInput"),
-            new(1, "耳机 交叉馈送 crossfeed", "CrossfeedInput"), new(1, "速度 倍速 speed", "PlaybackRateInput")]);
+        _search = new(this, AudioTabs, [new(0, "输出设备 输出模式 共享 独占 ASIO KS", "OutputDeviceInput"),
+            new(1, "采样率 sample rate Hz", "SampleRateInput"), new(1, "缓冲帧数 延迟 buffer", "BufferInput"),
+            new(1, "输出格式 PCM DSD DoP Native", "OutputFormatInput"), new(1, "启用均衡器 EQ", "EqualizerInput"),
+            new(1, "耳机交叉馈送 crossfeed", "CrossfeedInput"), new(1, "播放速度 倍速 speed", "PlaybackRateInput"),
+            new(2, "复制诊断信息 diagnostic 信号路径", "CopyDiagnosticsButton"), new(2, "恢复默认 reset", "ResetOutputButton")]);
         _ = shell.Player.AudioSettings.RefreshCommand.ExecuteAsync(null);
     }
     private void OnCategoryChanged(object? sender, SelectionChangedEventArgs e)

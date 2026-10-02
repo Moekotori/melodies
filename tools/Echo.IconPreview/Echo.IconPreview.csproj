@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Echo.Desktop/Controls/EchoIcon.cs" Link="Controls/EchoIcon.cs" />
+    <AvaloniaResource Include="../../src/Echo.Desktop/Resources/Icons/sidebar/*.svg">
+      <Link>Resources/Icons/sidebar/%(Filename)%(Extension)</Link>
+    </AvaloniaResource>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Desktop" />
+  </ItemGroup>
+</Project>

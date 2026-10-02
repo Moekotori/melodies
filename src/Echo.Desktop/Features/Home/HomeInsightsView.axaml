@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:home="using:Echo.Desktop.Features.Home" xmlns:library="using:Echo.Contracts.Library" xmlns:icon="using:Echo.Desktop.Controls"
+ x:Class="Echo.Desktop.Features.Home.HomeInsightsView" x:DataType="home:HomeViewModel">
+ <StackPanel Spacing="32">
+  <StackPanel Spacing="16">
+   <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource home.topTracks}" Classes="heading" FontSize="18" /><Button Grid.Column="1" Content="{DynamicResource ui.ListeningOverview.b0385cfe4b42}" Command="{Binding Shell.NavigateCommand}" CommandParameter="history" FontSize="12" /></Grid>
+   <ItemsControl Name="TopTracksList" ItemsSource="{Binding TopTracks}" IsVisible="{Binding HasListening}">
+    <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ListeningTrack"><home:HomeTrackRow Margin="0,0,24,0" /></DataTemplate></ItemsControl.ItemTemplate>
+   </ItemsControl>
+   <StackPanel Spacing="8" Margin="0,12" IsVisible="{Binding !HasListening}"><TextBlock Text="{DynamicResource home.noTopTracks}" Classes="heading" FontSize="14" /><TextBlock Text="{DynamicResource home.noTopTracksHint}" Classes="muted" FontSize="12" /></StackPanel>
+  </StackPanel>
+  <Grid Name="InsightsLayout" ColumnDefinitions="*,1.4*" ColumnSpacing="40">
+   <StackPanel Name="ProfilePanel" Spacing="16">
+    <TextBlock Text="{DynamicResource home.profile}" Classes="heading" FontSize="18" />
+    <StackPanel IsVisible="{Binding HasListening}" Spacing="18">
+     <StackPanel Spacing="10"><TextBlock Text="{DynamicResource home.qualityMix}" Classes="muted" FontSize="12" /><Grid Name="QualityMix" Height="6" /><ItemsControl ItemsSource="{Binding Quality}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ListeningQuality"><TextBlock Text="{Binding Codec}" Classes="muted" FontSize="12" Margin="0,3" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
+     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="20" RowSpacing="20">
+      <StackPanel Spacing="6"><TextBlock Text="{DynamicResource home.currentStreak}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding CurrentStreak}" Classes="heading" FontSize="18" /></StackPanel>
+      <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="{DynamicResource home.longestStreak}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding LongestStreak}" Classes="heading" FontSize="18" /></StackPanel>
+      <StackPanel Grid.Row="1" Spacing="6"><TextBlock Text="{DynamicResource home.averageLabel}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding AverageDuration}" Classes="heading" FontSize="18" /></StackPanel>
+      <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6"><TextBlock Text="{DynamicResource home.repeatLabel}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding RepeatRate}" Classes="heading" FontSize="18" /></StackPanel>
+     </Grid>
+    </StackPanel>
+    <StackPanel IsVisible="{Binding !HasListening}" Spacing="8" Margin="0,12"><TextBlock Text="{DynamicResource home.noProfile}" Classes="heading" FontSize="14" /><TextBlock Text="{DynamicResource home.noProfileHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" /></StackPanel>
+   </StackPanel>
+   <StackPanel Name="FavoritePanel" Grid.Column="1" Spacing="16">
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource home.favoriteAlbums}" Classes="heading" FontSize="18" /><Button Grid.Column="1" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="15" Height="15" /><TextBlock Text="{DynamicResource ui.HomeView.aee887434131}" Classes="muted" FontSize="13" /></StackPanel></Button></Grid>
+    <ContentControl Name="FavoritesHost" HorizontalContentAlignment="Stretch" IsVisible="{Binding HasListening}" />
+    <StackPanel IsVisible="{Binding !HasListening}" Spacing="8" Margin="0,12"><TextBlock Text="{DynamicResource home.noFavoriteAlbums}" Classes="heading" FontSize="14" /><TextBlock Text="{DynamicResource home.noFavoriteAlbumsHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" /></StackPanel>
+   </StackPanel>
+  </Grid>
+ </StackPanel>
+</UserControl>

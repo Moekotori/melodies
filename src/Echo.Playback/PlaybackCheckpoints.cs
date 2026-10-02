@@ -49,7 +49,7 @@ public sealed partial class PlaybackSessionCoordinator
         }
         var current = queue.FirstOrDefault(x => x.ItemId == state.CurrentItemId)
             ?? (state.DetachedCurrent is { Source.Headers.Count: > 0 } ? null : state.DetachedCurrent);
-        Publish(snapshot with { Current = current, PositionSeconds = current is null ? 0 : state.PositionSeconds, Volume = state.Volume,
+        Publish(snapshot with { Current = current, PositionSeconds = current is null ? 0 : state.PositionSeconds, Volume = state.Volume, PlaybackRate = RestoredPlaybackRate(),
             Status = current is null ? PlaybackStatus.Stopped : PlaybackStatus.Paused });
         PublishQueue();
         return Task.CompletedTask;

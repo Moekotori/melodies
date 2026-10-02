@@ -47,7 +47,7 @@ internal static class SettingsSmoke
             if (shell.Settings.Query.Length != 0 || !shell.Settings.Sections.SelectMany(section => section.Rows).Any(row => row.IsHighlighted))
                 throw new InvalidOperationException("Settings search jump failed.");
             shell.Settings.SelectCategoryCommand.Execute("appearance"); Pump();
-            shell.Settings.Sections.SelectMany(section => section.Rows).First(row => row.Id == "theme").SelectCommand.Execute("深色"); Pump();
+            shell.Theme.Mode = "深色"; Pump();
             if (!shell.IsDark) throw new InvalidOperationException("Theme choice did not change the window theme.");
             Save(window, output, "settings-appearance-dark.png");
             shell.IsDark = false; shell.Settings.SelectCategoryCommand.Execute("appearance"); Pump();

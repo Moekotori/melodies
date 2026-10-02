@@ -17,6 +17,7 @@ public partial class QuickSettingsDrawer : UserControl
     private IInputElement? _returnFocus;
     private int _generation;
     private string _shownKind = "";
+    private bool _lastInputWasPointer;
     public bool IsTransitioning => _motion.IsRunning;
     public QuickSettingsDrawer()
     {
@@ -33,6 +34,7 @@ public partial class QuickSettingsDrawer : UserControl
         if (_model is null) return;
         _model.PropertyChanged += OnChanged; _model.Motion.PropertyChanged += OnPolicyChanged;
         _window?.AddHandler(KeyDownEvent, OnWindowKey, RoutingStrategies.Tunnel);
+        _window?.AddHandler(PointerPressedEvent, OnWindowPointer, RoutingStrategies.Tunnel);
         Settle();
     }
     private void Detach()
@@ -40,6 +42,7 @@ public partial class QuickSettingsDrawer : UserControl
         ++_generation; _motion.Cancel(); ReleaseContent();
         if (_model is not null) { _model.PropertyChanged -= OnChanged; _model.Motion.PropertyChanged -= OnPolicyChanged; }
         _window?.RemoveHandler(KeyDownEvent, OnWindowKey);
+        _window?.RemoveHandler(PointerPressedEvent, OnWindowPointer);
         _model = null; _window = null; _returnFocus = null; IsVisible = false;
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs e)
@@ -74,7 +77,7 @@ public partial class QuickSettingsDrawer : UserControl
         }
         IsVisible = true; IsHitTestVisible = opening; DrawerPanel.IsEnabled = true;
         KeyboardNavigation.SetTabNavigation(DrawerPanel, opening ? KeyboardNavigationMode.Cycle : KeyboardNavigationMode.None);
-        if (opening) CloseDrawerButton.Focus(NavigationMethod.Tab);
+        if (opening) CloseDrawerButton.Focus(_lastInputWasPointer ? NavigationMethod.Pointer : NavigationMethod.Tab);
         else RestoreFocus();
         var policy = _model.Motion;
         await _motion.PlayAsync(DrawerPanel, opacity, opening ? 1 : 0,
@@ -101,6 +104,7 @@ public partial class QuickSettingsDrawer : UserControl
     private void OnCloseClicked(object? sender, RoutedEventArgs e) => _model?.CloseQuickSettingsCommand.Execute(null);
     private void OnWindowKey(object? sender, KeyEventArgs e)
     {
+        _lastInputWasPointer = false;
         if (_model?.IsQuickSettingsOpen != true) return;
         if (e.Key == Key.Escape)
         {
@@ -110,6 +114,7 @@ public partial class QuickSettingsDrawer : UserControl
         }
         if (e.Key == Key.F && e.KeyModifiers.HasFlag(KeyModifiers.Control)) { DrawerSearchInput.Focus(); e.Handled = true; }
     }
+    private void OnWindowPointer(object? sender, PointerPressedEventArgs e) => _lastInputWasPointer = true;
     private void UpdateWidth()
     {
         var wanted = _shownKind == "lyrics" ? 460 : 440;

@@ -12,7 +12,7 @@ public static partial class SettingsCatalog
             Action("first-run-wizard", "新手教程", "打开新手教程") with { Help = "重新了解曲库导入和播放器的基本操作。" }),
         Section("窗口与启动",
             Toggle("close-to-tray", "关闭时隐藏到托盘"), Toggle("launch-at-login", "开机自启动"),
-            Toggle("ultra-light-mode", "ECHO Ultralight", help: "降低后台资源占用，按需恢复界面。", badge: "推荐开启"),
+            Toggle("ultra-light-mode", "ECHO Ultralight", help: "开启后，最小化或隐藏到托盘时卸载主界面和闲置图片；播放、媒体键与浮动窗口继续运行。点击任务栏或托盘恢复界面。关闭后保留主界面。", badge: "推荐开启"),
             Toggle("remember-window-size", "记住窗口尺寸", true, "下次启动使用本次关闭时的窗口大小。"),
             Toggle("memory-protection", "内存智能调度", true, "在内存压力下调整非关键后台工作。"),
             Toggle("sidebar-auto-hide", "隐藏侧栏", help: "鼠标移到左边缘展开侧栏抽屉，也可按 Ctrl+B 打开。"), Toggle("settings-hide-sidebar", "进入设置时隐藏侧栏"),
@@ -26,7 +26,7 @@ public static partial class SettingsCatalog
 
     private static IReadOnlyList<SettingsSectionDefinition> Appearance() => [
         Section("主题", Choices("theme", "主题", ["浅色", "深色", "跟随系统", "氛围", "亚克力"], "浅色"),
-            Toggle("theme-schedule", "定时切换深色模式"), Toggle("invert-mode", "反色模式")),
+            Toggle("theme-schedule", "定时切换深色模式"), Toggle("invert-mode", "反色模式"), Toggle("rainbow-mode", "彩虹模式", help: "极光、丝带、色轮、星云、棱镜、潮汐、呼吸与强调色；速度和强度可调。")),
         Section("主题预设", Action("theme-preset", "主题预设", "经典", "展开主题预设")),
         Section("自定义主题", Action("theme-custom", "自定义当前主题", "经典", "进入编辑")),
         Section("布局", Action("sidebar-layout", "左侧栏", "全部显示", "展开左侧栏布局", "恢复默认")),

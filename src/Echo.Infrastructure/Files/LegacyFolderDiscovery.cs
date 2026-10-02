@@ -5,7 +5,7 @@ using Echo.Contracts.Scanning;
 namespace Echo.Infrastructure.Files;
 
 // Legacy CUE/osu discovery rules, with bounded per-folder facts rather than a whole-library list.
-public sealed class LegacyFolderDiscovery(ILibraryStore? store = null) : IFileDiscovery
+public sealed class LegacyFolderDiscovery(ILibraryStore? store = null, bool recursive = true, Func<string, bool>? ignored = null) : IFileDiscovery
 {
     public IEnumerable<FileSnapshot> Enumerate(string root, bool requireFullCoverage,
         CancellationToken cancellation, bool force = false)
@@ -19,11 +19,14 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null) : IFileDi
         int depth, CancellationToken cancellation)
     {
         if (depth > 64) throw new MetadataReadException("scan_directory_depth_limit");
-        foreach (var file in FolderFiles(directory, root, full, force, cancellation)) yield return file;
+        foreach (var file in FolderFiles(directory, root, full, force, cancellation))
+            if (ignored?.Invoke(file.Path) != true && (file.Source is null || ignored?.Invoke(file.Source.AudioPath) != true)) yield return file;
+        if (!recursive) yield break;
         // Do not retain a list of tens of thousands of child directories.
         foreach (var child in Directory.EnumerateDirectories(directory))
         {
             cancellation.ThrowIfCancellationRequested();
+            if (ignored?.Invoke(child) == true) continue;
             if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) != 0)
             { if (full) throw new IOException("Missing detection cannot exclude linked directories."); continue; }
             foreach (var file in Walk(child, root, full, force, depth + 1, cancellation)) yield return file;
@@ -33,20 +36,18 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null) : IFileDi
     private IEnumerable<FileSnapshot> FolderFiles(string directory, string root, bool full, bool force,
         CancellationToken cancellation)
     {
-        var cues = new List<FileSnapshot>(); var beatmaps = new List<FileSnapshot>();
-        foreach (var file in TopFiles(directory, full, cancellation))
-        {
-            var extension = Path.GetExtension(file.Path);
-            if (!extension.Equals(".cue", StringComparison.OrdinalIgnoreCase) &&
-                !extension.Equals(".osu", StringComparison.OrdinalIgnoreCase)) continue;
-            if (cues.Count + beatmaps.Count >= 4096) throw new MetadataReadException("folder_definition_limit");
-            (extension.Equals(".cue", StringComparison.OrdinalIgnoreCase) ? cues : beatmaps).Add(file);
-        }
-        beatmaps.Sort((left, right) => StringComparer.Ordinal.Compare(left.Path, right.Path));
-        var facts = new FolderFileFacts(); var suppressed = new HashSet<string>(StringComparer.Ordinal);
+        var beatmaps = new List<FileSnapshot>();
+        var facts = new FolderFileFacts();
+        using var suppressed = new FolderSourceSet();
         var deferred = false;
-        foreach (var cue in cues)
+        foreach (var cue in TopFiles(directory, full, cancellation, definitions: true))
         {
+            if (ignored?.Invoke(cue.Path) == true) continue;
+            if (Path.GetExtension(cue.Path).Equals(".osu", StringComparison.OrdinalIgnoreCase))
+            {
+                if (beatmaps.Count >= 4096) throw new MetadataReadException("osu_folder_definition_limit");
+                beatmaps.Add(cue); continue;
+            }
             FileSnapshot[] tracks;
             try
             {
@@ -57,15 +58,13 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null) : IFileDi
             { tracks = [cue with { Issue = Code(error) }]; deferred = true; }
             foreach (var track in tracks) yield return track;
         }
+        beatmaps.Sort((left, right) => StringComparer.Ordinal.Compare(left.Path, right.Path));
         var issues = new List<FileSnapshot>();
         var overlays = beatmaps.Count == 0 ? new Dictionary<string, FileSnapshot>(StringComparer.Ordinal) :
-            OsuFolderExpansion.Collect(directory, beatmaps, store, facts, force, cancellation, issues);
+            OsuFolderExpansion.Collect(directory, beatmaps, store, facts, force, cancellation, issues, suppressed);
         foreach (var issue in issues) yield return issue;
         if (deferred) yield break;
-        foreach (var block in TopFiles(directory, full, cancellation)
-            .Where(file => DirectoryDiscovery.Supports(Path.GetExtension(file.Path)) &&
-                !Path.GetExtension(file.Path).Equals(".cue", StringComparison.OrdinalIgnoreCase) &&
-                !Path.GetExtension(file.Path).Equals(".osu", StringComparison.OrdinalIgnoreCase)).Chunk(128))
+        foreach (var block in TopFiles(directory, full, cancellation, definitions: false).Chunk(128))
         {
             var flac = block.Where(file => Path.GetExtension(file.Path).Equals(".flac", StringComparison.OrdinalIgnoreCase) ||
                 Path.GetExtension(file.Path).Equals(".fla", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -93,9 +92,9 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null) : IFileDi
         }
     }
 
-    private static IEnumerable<FileSnapshot> TopFiles(string directory, bool full, CancellationToken cancellation)
+    private static IEnumerable<FileSnapshot> TopFiles(string directory, bool full, CancellationToken cancellation, bool definitions)
     {
-        var options = new EnumerationOptions { IgnoreInaccessible = false, AttributesToSkip = 0 };
+        var options = new EnumerationOptions { IgnoreInaccessible = false, AttributesToSkip = 0, BufferSize = 16 * 1024 };
         var files = new FileSystemEnumerable<FileSnapshot>(directory, (ref FileSystemEntry entry) =>
         {
             var path = LibraryPath.Canonical(entry.ToFullPath());
@@ -107,6 +106,9 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null) : IFileDi
             {
                 cancellation.ThrowIfCancellationRequested();
                 if (entry.IsDirectory) return false;
+                var extension = Path.GetExtension(entry.FileName);
+                var definition = extension.Equals(".cue", StringComparison.OrdinalIgnoreCase) || extension.Equals(".osu", StringComparison.OrdinalIgnoreCase);
+                if (definitions ? !definition : definition || !ScanFormats.Supports(extension)) return false;
                 if ((entry.Attributes & FileAttributes.ReparsePoint) == 0) return true;
                 if (full) throw new IOException("Missing detection cannot exclude linked files.");
                 return false;

@@ -5,8 +5,9 @@
       <Setter Property="Template"><ControlTemplate>
         <Border Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
           <Grid>
-            <icon:PlayerWaveform Seed="{TemplateBinding Seed}" Value="{TemplateBinding Value}" Maximum="{TemplateBinding Maximum}"
+            <icon:PlayerWaveform IsVisible="{TemplateBinding IsWaveformVisible}" Seed="{TemplateBinding Seed}" Value="{TemplateBinding Value}" Maximum="{TemplateBinding Maximum}"
                                  PlayedBrush="{DynamicResource EchoAccent}" BarBrush="{DynamicResource EchoMuted}" IsHitTestVisible="False" />
+            <icon:MeasuredWaveform Envelope="{TemplateBinding EnergyEnvelope}" Position="{TemplateBinding Value}" Heatmap="True" IsHitTestVisible="False" />
             <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}" Orientation="Horizontal" IsHitTestVisible="False">
               <Thumb Width="0" Height="24" Opacity="0" />
             </Track>

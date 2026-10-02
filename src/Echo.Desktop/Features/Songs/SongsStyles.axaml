@@ -1,0 +1,53 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="EchoSongListItemTheme" TargetType="ListBoxItem">
+      <Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Name="RowChrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+          <Grid>
+            <Border Name="SelectionTint" Background="{DynamicResource EchoAccent}" CornerRadius="4" IsHitTestVisible="False" />
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+          </Grid>
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      <Style Selector="^ /template/ Border#SelectionTint"><Setter Property="Opacity" Value="0" /></Style>
+      <Style Selector="^:selected"><Setter Property="Background" Value="Transparent" /></Style>
+      <Style Selector="^:selected /template/ Border#RowChrome"><Setter Property="Background" Value="Transparent" /></Style>
+      <Style Selector="^:selected /template/ Border#SelectionTint"><Setter Property="Opacity" Value="0.10" /></Style>
+      <Style Selector="^:selected:pointerover /template/ Border#SelectionTint"><Setter Property="Opacity" Value="0.10" /></Style>
+      <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="Button.songTool">
+    <Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="32" /><Setter Property="Padding" Value="8,0" />
+    <Setter Property="BorderThickness" Value="0" /><Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="3" /><Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="Button.songTool.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="Button.songTool.active TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="Button.songTool.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="FlyoutPresenter.libraryPopup">
+    <Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="4" /><Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.songList"><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="ListBox.songList ListBoxItem">
+    <Setter Property="Theme" Value="{StaticResource EchoSongListItemTheme}" />
+    <Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" /><Setter Property="MinHeight" Value="72" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ListBox.songList ListBoxItem /template/ Border#PART_LayoutRoot"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></Style>
+  <Style Selector="ListBox.songList ListBoxItem:pointerover /template/ Border#PART_LayoutRoot"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="ListBox.songList ListBoxItem:selected /template/ Border#PART_LayoutRoot"><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="ListBox.songList ListBoxItem:focus-visible /template/ Border#PART_LayoutRoot"><Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="Button.songSortChoice">
+    <Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="10,0" /><Setter Property="Height" Value="32" /><Setter Property="CornerRadius" Value="3" />
+  </Style>
+  <Style Selector="Button.songSortChoice.selected TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="Button.sortDirection"><Setter Property="Width" Value="28" /><Setter Property="Height" Value="30" /><Setter Property="MinHeight" Value="30" /><Setter Property="Padding" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.sortDirection.selected"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+</Styles>

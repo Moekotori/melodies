@@ -2,8 +2,11 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Echo.Playback;
+using Echo.Contracts.Tasks;
 using Echo.Desktop.Features.Queue;
 using Echo.Desktop.Localization;
+using Echo.Infrastructure.Playback;
+using Echo.Contracts.Media;
 
 namespace Echo.Desktop.Features.Player;
 
@@ -18,6 +21,10 @@ public sealed partial class PlayerViewModel : ObservableObject
     private long latestVersion = -1;
     private int updateQueued;
     private int detached;
+    private int clockPresentationActive = 1;
+    private readonly IBackgroundWorkAdmission? workAdmission;
+    private long performancePresentationTime;
+    [ObservableProperty] private string performanceText = "";
     [ObservableProperty] private string title = "暂无播放";
     [ObservableProperty] private string subtitle = "打开音频文件开始播放";
     [ObservableProperty] private string positionText = "0:00";
@@ -32,6 +39,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     [ObservableProperty] private double position;
     [ObservableProperty] private double duration = 1;
     [ObservableProperty] private double volume = 1;
+    [ObservableProperty] private double playbackRate = 1;
     [ObservableProperty] private bool hasTrack;
     [ObservableProperty] private bool canPlay;
     [ObservableProperty] private bool isConnected = true;
@@ -45,20 +53,24 @@ public sealed partial class PlayerViewModel : ObservableObject
     public QueueViewModel Queue { get; }
     public PlayerTrackDetails Details { get; }
     public string VolumeText => $"{Volume * 100:0}%";
+    public string PlaybackRateText => PlaybackRate.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "x";
     private QueuePlaybackMode displayedMode;
     public bool IsSpecialMode => displayedMode != QueuePlaybackMode.Sequential;
     public PlayerAudioSettingsViewModel AudioSettings { get; }
     public bool IsSeeking { get; set; }
     public bool IsChangingVolume { get; set; }
+    public bool IsChangingPlaybackRate { get; set; }
 
-    public PlayerViewModel(PlaybackZone zone, LocalizationService? text = null)
+    public PlayerViewModel(PlaybackZone zone, LocalizationService? text = null, IBackgroundWorkAdmission? workAdmission = null)
     {
+        this.workAdmission = workAdmission;
         Text = text ?? new(); Text.Changed += RefreshLanguage;
         Details = new(Text); Zone = zone; session = zone.Session; AudioSettings = new(session);
+        VolumeLocked = session.VolumeLocked; session.VolumeLockChanged += ObserveVolumeLock;
         PlaybackStateSubscription? acquired = null;
         try
         {
-            subscription = acquired = zone.Subscribe();
+            subscription = acquired = zone.Subscribe(PlaybackStateChanges.All & ~PlaybackStateChanges.Meter);
             Queue = new(session, Text);
         }
         catch
@@ -85,6 +97,8 @@ public sealed partial class PlayerViewModel : ObservableObject
     private void OnState(PlaybackStateUpdate update)
     {
         if (Volatile.Read(ref detached) != 0) return;
+        if ((update.Changes & ~(PlaybackStateChanges.Clock | PlaybackStateChanges.Performance)) == 0
+            && Volatile.Read(ref clockPresentationActive) == 0) return;
         lock (snapshotGate)
         {
             if (update.State.Version < latestVersion || Volatile.Read(ref detached) != 0) return;
@@ -100,6 +114,8 @@ public sealed partial class PlayerViewModel : ObservableObject
             if (latest is null || Volatile.Read(ref detached) != 0) return;
             var state = latest.State.Playback;
             var changes = latest.Changes;
+            if ((changes & (PlaybackStateChanges.Performance | PlaybackStateChanges.Playback)) != 0)
+                PresentPerformance(latest.State);
             if ((changes & (PlaybackStateChanges.Playback | PlaybackStateChanges.Output)) != 0)
                 SignalIconState = ResolveSignalIcon(state, latest.State.Output);
             if ((changes & PlaybackStateChanges.Playback) != 0)
@@ -107,18 +123,21 @@ public sealed partial class PlayerViewModel : ObservableObject
                 Title = state.Current?.Metadata?.GetValueOrDefault("title") ?? (state.Current is null ? Text.Translate("暂无播放") : Path.GetFileNameWithoutExtension(state.Current.FilePath));
                 Subtitle = state.Status switch { PlaybackStatus.Loading => Text.Translate("正在准备输出…"), PlaybackStatus.Playing => Text.Translate("播放中"), PlaybackStatus.Paused => Text.Translate("已暂停"), PlaybackStatus.Ended => Text.Translate("播放结束"), PlaybackStatus.Faulted => Text.Translate("播放失败，可重试或选择输出设备"), _ => Text.Translate("打开音频文件开始播放") };
                 HasTrack = state.Current is not null;
+                UpdateLiveStream(state);
                 IsConnected = latest.State.IsAvailable;
                 Details.Update(state.Current);
                 CurrentFilePath = state.Current?.FilePath ?? "";
                 ArtistAlbum = state.Current is null ? Text.Translate("选择歌曲开始播放") : string.Join(" · ", new[] { state.Current.Metadata?.GetValueOrDefault("artist"), state.Current.Metadata?.GetValueOrDefault("album") }.Where(x => !string.IsNullOrWhiteSpace(x)));
                 if (!IsChangingVolume) Volume = state.Volume;
+                if (!IsChangingPlaybackRate) PlaybackRate = state.PlaybackRate;
+                if (!AudioSettings.IsApplying) AudioSettings.PlaybackRate = state.PlaybackRate;
                 PlayIcon = state.Status is PlaybackStatus.Playing or PlaybackStatus.Loading ? "pause" : "play";
             }
             if ((changes & (PlaybackStateChanges.Clock | PlaybackStateChanges.Playback)) != 0)
             {
                 if (!IsSeeking) Position = state.PositionSeconds;
                 Duration = Math.Max(1, state.DurationSeconds);
-                PositionText = Time(state.PositionSeconds); DurationText = Time(state.DurationSeconds);
+                PositionText = Time(state.PositionSeconds); DurationText = IsLiveStream ? Text.Translate("直播") : Time(state.DurationSeconds);
             }
             if ((changes & PlaybackStateChanges.Queue) != 0)
             {
@@ -141,20 +160,25 @@ public sealed partial class PlayerViewModel : ObservableObject
     }
 
     partial void OnVolumeChanged(double value) => OnPropertyChanged(nameof(VolumeText));
-    partial void OnHasTrackChanged(bool value) => OnPropertyChanged(nameof(CanControl));
-    partial void OnIsConnectedChanged(bool value) { OnPropertyChanged(nameof(CanControl)); OnPropertyChanged(nameof(CanStartPlayback)); }
+    partial void OnPlaybackRateChanged(double value) => OnPropertyChanged(nameof(PlaybackRateText));
+    partial void OnHasTrackChanged(bool value) { OnPropertyChanged(nameof(CanControl)); OnPropertyChanged(nameof(CanSeek)); }
+    partial void OnIsConnectedChanged(bool value) { OnPropertyChanged(nameof(CanControl)); OnPropertyChanged(nameof(CanStartPlayback)); OnPropertyChanged(nameof(CanSeek)); }
     partial void OnCanPlayChanged(bool value) => OnPropertyChanged(nameof(CanStartPlayback));
 
     public async Task OpenPathsAsync(IEnumerable<string> paths)
     {
-        var tracks = paths.Take(1001).Select(path => new QueueTrack(Guid.NewGuid().ToString("N"), Path.GetFullPath(path), Path.GetFullPath(path))).ToArray();
-        if (tracks.Length == 0) return;
-        await RunAsync(() => session.SetQueueAsync(tracks, tracks[0].ItemId));
+        await RunAsync(async () =>
+        {
+            var tracks = await PlaybackFileResolver.ResolveAsync(paths);
+            if (tracks.Count > 0) await session.SetQueueAsync(tracks, tracks[0].ItemId);
+        });
     }
     public async Task SeekToAsync(double seconds)
     { await RunAsync(() => session.SeekAsync(seconds)); Position = session.Snapshot.PositionSeconds; PositionText = Time(Position); }
     public async Task ChangeVolumeAsync(double value)
     { await RunAsync(() => session.SetVolumeAsync(value)); Volume = session.Snapshot.Volume; }
+    public async Task ChangePlaybackRateAsync(double value)
+    { await RunAsync(() => session.SetPlaybackRateAsync(value)); PlaybackRate = session.Snapshot.PlaybackRate; AudioSettings.PlaybackRate = PlaybackRate; }
     public Task SelectTrackAsync(QueueTrack track) => RunAsync(() => session.SelectQueueItemAsync(track.ItemId));
     [RelayCommand] private Task ToggleAsync() => RunAsync(() => session.Snapshot.Status is PlaybackStatus.Playing or PlaybackStatus.Loading ? session.PauseAsync() : session.ResumeAsync());
     [RelayCommand] private Task NextAsync() => RunAsync(() => session.NextAsync());
@@ -170,6 +194,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     {
         IsBusy = true; Error = "";
         try { await action(); }
+        catch (AudioFormatException error) { Error = error.Message; }
         catch (Exception) { Error = Text.Translate("操作失败。请检查音源或输出设备，再点击重试。"); }
         finally { IsBusy = false; }
     }
@@ -179,11 +204,18 @@ public sealed partial class PlayerViewModel : ObservableObject
     {
         if (Interlocked.Exchange(ref detached, 1) != 0) return;
         Text.Changed -= RefreshLanguage; subscription.Dispose();
+        session.VolumeLockChanged -= ObserveVolumeLock;
         try { stateLifetime.Cancel(); } catch (ObjectDisposedException) { }
         AudioSettings.CancelPendingRead();
+        Tools?.Dispose();
         lock (snapshotGate) pending = null;
         Queue.Dispose();
         Details.Dispose();
+    }
+    public void SetClockPresentationActive(bool active)
+    {
+        if (Interlocked.Exchange(ref clockPresentationActive, active ? 1 : 0) == (active ? 1 : 0)) return;
+        if (active) OnState(new(session.State, PlaybackStateChanges.All));
     }
     private static string Time(double seconds) => TimeSpan.FromSeconds(Math.Max(0, seconds)).ToString(seconds >= 3600 ? @"h\:mm\:ss" : @"m\:ss");
     private static string Read(System.Text.Json.JsonElement value, string name) => value.TryGetProperty(name, out var property) && property.ValueKind == System.Text.Json.JsonValueKind.String ? property.GetString() ?? "" : "";

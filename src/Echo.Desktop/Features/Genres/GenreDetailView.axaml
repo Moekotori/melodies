@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:genres="using:Echo.Desktop.Features.Genres" xmlns:albums="using:Echo.Desktop.Features.Albums" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Genres.GenreDetailView" x:DataType="genres:GenreDetailViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.genre-tab"><Setter Property="CornerRadius" Value="0" /><Setter Property="Padding" Value="0,8,0,12" /><Setter Property="FontSize" Value="15" /></Style>
+    <Style Selector="Button.genre-tab.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+    <Style Selector="ListBoxItem"><Setter Property="Padding" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="16">
+    <Button Content="{DynamicResource genres.back}" Click="OnBack" Padding="0" HorizontalAlignment="Left" />
+    <Grid Grid.Row="1" Name="Hero" ColumnDefinitions="244,*,150" ColumnSpacing="28" Margin="0,8,0,12">
+      <Border Name="CoverFrame" Height="244" Width="244" CornerRadius="{DynamicResource EchoCoverRadius}" ClipToBounds="True" Background="{DynamicResource EchoHover}">
+        <Grid><icon:GlyphIcon Kind="disc" Width="56" Height="56" HorizontalAlignment="Center" VerticalAlignment="Center" /><Grid Name="Mosaic" ColumnDefinitions="*,*" RowDefinitions="*,*" IsVisible="False" /></Grid>
+      </Border>
+      <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="16">
+        <TextBlock Text="{DynamicResource navigation.genres}" Classes="muted" FontSize="12" />
+        <TextBlock Text="{Binding Name}" Classes="heading" FontSize="40" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding Meta}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+        <WrapPanel IsEnabled="{Binding !IsBusy}">
+          <Button Classes="primary" Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}" Margin="0,0,8,8"><StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="play" Width="17" Height="17" /><TextBlock Text="{DynamicResource settings.category.playback}" /></StackPanel></Button>
+          <Button Command="{Binding ShuffleCommand}" IsEnabled="{Binding CanPlay}" Margin="0,0,8,8" ToolTip.Tip="{DynamicResource genres.shuffle}"><icon:GlyphIcon Kind="shuffle" Width="18" Height="18" /></Button>
+          <Button Content="{DynamicResource genres.addQueue}" Command="{Binding AddToQueueCommand}" IsEnabled="{Binding CanPlay}" Margin="0,0,0,8" />
+        </WrapPanel>
+      </StackPanel>
+      <StackPanel Name="Facts" Grid.Column="2" VerticalAlignment="Center" Spacing="18"><StackPanel Spacing="6"><TextBlock Text="{DynamicResource genres.source}" Classes="muted" FontSize="12" /><TextBlock Text="{DynamicResource genres.local}" FontSize="15" /></StackPanel><StackPanel Spacing="6"><TextBlock Text="{DynamicResource navigation.songs}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding Genre.TrackCount}" FontSize="20" /></StackPanel><StackPanel Spacing="6"><TextBlock Text="{DynamicResource navigation.albums}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding Genre.AlbumCount}" FontSize="20" /></StackPanel></StackPanel>
+    </Grid>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto"><StackPanel Orientation="Horizontal" Spacing="28"><Button Classes="genre-tab" Classes.active="{Binding IsAlbums}" Content="{DynamicResource navigation.albums}" Tag="1" Click="OnTab" /><Button Classes="genre-tab" Classes.active="{Binding IsOverview}" Content="{DynamicResource navigation.songs}" Tag="0" Click="OnTab" /></StackPanel><Button Grid.Column="1" Classes="icon" Click="OnRefresh" ToolTip.Tip="{DynamicResource genres.refresh}"><icon:GlyphIcon Kind="refresh" Width="17" Height="17" /></Button></Grid>
+    <StackPanel Grid.Row="3" Spacing="6"><TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /><TextBlock Text="{Binding Status}" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /></StackPanel>
+    <ContentControl Grid.Row="4" Name="AlbumsHost" IsVisible="{Binding IsAlbums}" />
+    <Grid Grid.Row="4" RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsOverview}" RowSpacing="12">
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right"><ComboBox SelectedIndex="{Binding SortIndex, Mode=TwoWay}"><ComboBoxItem Content="{DynamicResource genres.trackOrder}" /><ComboBoxItem Content="{DynamicResource genres.sortName}" /><ComboBoxItem Content="{DynamicResource genres.duration}" /><ComboBoxItem Content="{DynamicResource genres.quality}" /></ComboBox><ToggleButton Content="↓" IsChecked="{Binding Descending, Mode=TwoWay}" /></StackPanel>
+      <ListBox Grid.Row="1" Name="TrackList" ItemsSource="{Binding Tracks}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"><ListBox.ItemTemplate><DataTemplate x:DataType="albums:AlbumTrackItem"><albums:AlbumTrackRow PlayRequested="OnPlay" NextRequested="OnNext" AddRequested="OnAdd" /></DataTemplate></ListBox.ItemTemplate></ListBox>
+      <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" IsVisible="{Binding HasMultiplePages}" Margin="0,0,0,16"><Button Content="{DynamicResource ui.AlbumDetailView.c9b9ae7a6144}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" /><TextBlock Text="{Binding PageText}" Classes="muted" VerticalAlignment="Center" /><Button Content="{DynamicResource ui.AlbumDetailView.8a8542f69648}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" /></StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

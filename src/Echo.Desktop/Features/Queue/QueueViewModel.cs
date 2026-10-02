@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Echo.Desktop.Features.Albums;
 using Echo.Playback;
 using Echo.Desktop.Localization;
+using Echo.Infrastructure.Playback;
 
 namespace Echo.Desktop.Features.Queue;
 
@@ -19,6 +20,7 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     private int updateQueued;
     private string[] selection = [];
     private bool disposed;
+    private bool presentationActive = true;
     [ObservableProperty] private IReadOnlyList<QueueRowViewModel> rows = [];
     [ObservableProperty] private string search = "";
     [ObservableProperty] private bool showHistory;
@@ -52,6 +54,7 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     public string UpcomingArtist => Upcoming?.Metadata?.GetValueOrDefault("artist") ?? "";
     public string UpcomingPath => Upcoming?.Metadata?.GetValueOrDefault("coverPath") ?? Upcoming?.FilePath ?? "";
     public bool HasUpcoming => Upcoming is not null;
+    public bool CanPlay => session.Snapshot.Current is not null || state.Items.Count > 0;
     public long Version => state.Version;
     public QueueViewModel(PlaybackSessionCoordinator session, LocalizationService? text = null)
     {
@@ -69,8 +72,9 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     }
     private void RefreshLanguage()
     {
+        RefreshDrawerRows();
         foreach (var name in new[] { nameof(Heading), nameof(SectionTitle), nameof(CountText), nameof(ResultText),
-            nameof(EmptyTitle), nameof(EmptyHint), nameof(UpcomingTitle) }) OnPropertyChanged(name);
+            nameof(EmptyTitle), nameof(EmptyHint), nameof(UpcomingTitle), nameof(Summary), nameof(ManageLabel), nameof(PlayLabel), nameof(SourceHeading) }) OnPropertyChanged(name);
     }
     private async Task ReadStatesAsync()
     {
@@ -107,6 +111,7 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     }
     private void RefreshRows()
     {
+        if (!presentationActive) { Rows = []; RefreshDrawerRows(); return; }
         var album = BaseAlbum();
         var index = state.Items.ToList().FindIndex(x => x.ItemId == state.CurrentItemId);
         var source = ShowHistory ? state.History.Reverse().ToArray() : state.Items;
@@ -114,9 +119,17 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
             .Where(row => ShowHistory || index < 0 || row.Index >= index || (!row.Track.QueuedNext && row.Track.Origin?.Id == album?.Id && album is not null))
             .Where(row => Search.Length == 0 || new[] { row.Title, row.Artist, row.Album, row.Source }.Any(value => value.Contains(Search.Trim(), StringComparison.OrdinalIgnoreCase)))
             .ToArray();
+        RefreshDrawerRows();
         foreach (var name in new[] { nameof(Heading), nameof(SectionTitle), nameof(ResultText), nameof(IsEmpty), nameof(EmptyTitle), nameof(EmptyHint), nameof(HasSelection) }) OnPropertyChanged(name);
     }
     partial void OnSearchChanged(string value) => RefreshRows();
+    public void SetPresentationActive(bool active)
+    {
+        if (disposed || presentationActive == active) return;
+        presentationActive = active;
+        if (!active) selection = [];
+        RefreshRows();
+    }
     partial void OnShowHistoryChanged(bool value) { selection = []; RefreshRows(); }
     public void SetSelection(IEnumerable<QueueRowViewModel> rows)
     { selection = rows.Select(x => x.ItemId).Distinct().Take(1000).ToArray(); OnPropertyChanged(nameof(HasSelection)); OnPropertyChanged(nameof(SelectionText)); }
@@ -132,12 +145,14 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     [RelayCommand] private Task KeepAfterPlayAsync() => RunAsync(() => session.SetRemoveAfterPlayAsync(selection, false, lifetime.Token));
     [RelayCommand] private Task UndoAsync() => RunAsync(() => session.UndoQueueEditAsync(lifetime.Token), Text.Translate("已撤销队列编辑。"));
     [RelayCommand] private Task PlayUpcomingAsync() => Upcoming is null ? Task.CompletedTask : RunAsync(() => session.SelectQueueItemAsync(Upcoming.ItemId, lifetime.Token));
-    private static string DurationSummary(IReadOnlyList<QueueTrack> tracks)
+    private string DurationSummary(IReadOnlyList<QueueTrack> tracks)
     {
         var seconds = tracks.Sum(track => double.TryParse(track.Metadata?.GetValueOrDefault("duration"),
             System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) ? Math.Clamp(value, 0, 864000) : 0);
         if (seconds <= 0) return "";
         var time = TimeSpan.FromSeconds(seconds);
+        if (Text.Current.Culture.TwoLetterISOLanguageName == "zh")
+            return time.TotalHours >= 1 ? $" · {(int)time.TotalHours} 小时 {time.Minutes} 分钟" : $" · {(int)time.TotalMinutes} 分钟";
         return time.TotalHours >= 1 ? $" · {(int)time.TotalHours} h {time.Minutes} min" : $" · {(int)time.TotalMinutes} min";
     }
     public Task PlayAsync(QueueRowViewModel row) => RunAsync(async () =>
@@ -152,7 +167,7 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     });
     public Task MoveAsync(IEnumerable<string> ids, int targetIndex) => RunAsync(() => session.MoveQueueItemsAsync(ids, targetIndex, lifetime.Token));
     public Task EnqueuePathsAsync(IEnumerable<string> paths, bool nextUp = false)
-        => RunAsync(() => session.EnqueueAsync(paths.Select(path => new QueueTrack(Guid.NewGuid().ToString("N"), Path.GetFullPath(path), Path.GetFullPath(path))), nextUp, lifetime.Token), Text.Translate("已添加到队列。"));
+        => RunAsync(async () => await session.EnqueueAsync(await PlaybackFileResolver.ResolveAsync(paths, lifetime.Token), nextUp, lifetime.Token), Text.Translate("已添加到队列。"));
     private async Task RunAsync(Func<Task> action, string success = "")
     {
         if (disposed || IsBusy) return;
@@ -166,6 +181,6 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     {
         if (disposed) return;
         disposed = true; Text.Changed -= RefreshLanguage; lifetime.Cancel(); subscription.Dispose();
-        pending = null; Rows = []; selection = [];
+        pending = null; Rows = []; drawerRows = []; selection = [];
     }
 }

@@ -56,7 +56,7 @@ public sealed partial class LibraryDatabase : IFolderLibrary
                 var path = Path.TrimEndingDirectorySeparator(reader.GetString(0));
                 var name = Path.GetFileName(path);
                 rows.Add(new(path, string.IsNullOrEmpty(name) ? path : name, reader.GetInt64(1),
-                    reader.GetDouble(2), reader.GetInt64(3), reader.IsDBNull(4) ? null : reader.GetString(4)));
+                    reader.GetDouble(2), reader.GetInt64(3), reader.IsDBNull(4) ? null : reader.GetString(4), LibraryPath.Key(path), prefix is null));
             }
             var more = rows.Count > query.Limit;
             if (more) rows.RemoveAt(rows.Count - 1);
@@ -78,29 +78,22 @@ public sealed partial class LibraryDatabase : IFolderLibrary
             command.CommandText = "SELECT revision FROM library_state WHERE id=1";
             var revision = (long)command.ExecuteScalar()!;
             if (query.Revision is { } expected && expected != revision) throw new LibraryChangedException();
-            AddFolderRange(command, prefix);
-            command.Parameters.AddWithValue("$separator", Path.DirectorySeparatorChar.ToString());
-            var where = " FROM tracks t WHERE t.missing=0 AND t.path_key>=$lo AND t.path_key<$hi" +
-                (query.Recursive ? "" : " AND instr(substr(t.path_key,$start),$separator)=0") +
-                (query.LosslessOnly ? " AND " + FolderLossless : "") +
+            var where = " FROM tracks t WHERE t.missing=0 AND " + FolderTrackSql.Scope(command, query) +
+                (query.LosslessOnly ? " AND " + FolderTrackSql.Lossless : "") +
+                " AND " + FolderTrackSql.Insight(command, query) +
+                (query.HideDuplicates ? " AND NOT " + FolderTrackSql.Peer(command, query, true) : "") +
                 Echo.Infrastructure.Search.LibrarySearchSql.Tracks(command, query.Search);
             command.CommandText = "SELECT count(*),coalesce(sum(t.duration),0),coalesce(sum(t.size_bytes),0),coalesce(sum(" + FolderLossless + "),0)" + where;
             long total, bytes, lossless; double duration;
             using (var reader = command.ExecuteReader())
             { reader.Read(); total = reader.GetInt64(0); duration = reader.GetDouble(1); bytes = reader.GetInt64(2); lossless = reader.GetInt64(3); }
             cancellation.ThrowIfCancellationRequested();
-            var sort = query.Sort switch
-            {
-                FolderTrackSort.Title => "t.sort_key", FolderTrackSort.Artist => "t.artist COLLATE NOCASE",
-                FolderTrackSort.Album => "t.album COLLATE NOCASE", FolderTrackSort.Duration => "t.duration", _ => "t.path_key"
-            };
-            command.CommandText = "SELECT " + TrackRowMapping.AliasedColumns + where + " ORDER BY " + sort +
-                (query.Descending ? " DESC,t.id DESC" : ",t.id") + " LIMIT $limit OFFSET $offset";
+            command.CommandText = "SELECT " + TrackRowMapping.AliasedColumns + ",t.genre" + where + FolderTrackSql.Order(command, query) + " LIMIT $limit OFFSET $offset";
             command.Parameters.AddWithValue("$limit", query.Limit);
             command.Parameters.AddWithValue("$offset", query.Offset);
             var rows = new List<TrackRow>(query.Limit);
             using (var reader = command.ExecuteReader())
-                while (reader.Read()) { cancellation.ThrowIfCancellationRequested(); rows.Add(TrackRowMapping.Read(reader)); }
+                while (reader.Read()) { cancellation.ThrowIfCancellationRequested(); rows.Add(TrackRowMapping.Read(reader, withGenre: true)); }
             transaction.Commit();
             return new FolderTrackPage(rows, total, revision, duration, bytes, lossless);
         }, true, cancellation);

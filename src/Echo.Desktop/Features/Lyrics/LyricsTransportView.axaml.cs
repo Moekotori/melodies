@@ -1,6 +1,6 @@
 using Avalonia;
-using Avalonia.Animation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Echo.Desktop.Features.Player;
@@ -14,84 +14,88 @@ public partial class LyricsTransportView : UserControl
     private LyricsViewModel? Model => DataContext as LyricsViewModel;
     private readonly PlayerSliderInteraction seek;
     private readonly PlayerPopoverBinding popover = new();
-    private double availableWidth = 900;
-    private bool compact;
-    public bool IsCompact => compact;
-    public bool IsInteracting => IsPointerOver || IsKeyboardFocusWithin || VolumeButton.Flyout?.IsOpen == true || Model?.Player.IsSeeking == true;
+    private readonly Echo.Desktop.Motion.MotionFlyout signalFlyout;
     public event Action? InteractionChanged;
 
     public LyricsTransportView()
     {
         InitializeComponent();
-        seek = new(SeekSlider, () => Model?.Player, true, () => ElapsedText.SetCurrentValue(TextBlock.TextProperty, Model?.Player.PositionText ?? "0:00"));
+        ExpandedLayout.Clip = contentClip;
+        CapsuleSurface.PropertyChanged += (_, e) =>
+        { if (e.Property == Controls.Lyrics.LyricsPlayerSurface.ExpansionProperty || e.Property == BoundsProperty) UpdateContentClip(); };
+        ExpandedLayout.SizeChanged += (_, _) => UpdateContentClip();
+        signalFlyout = SignalPathPanel.Create(MoreButton, () => Model?.Player,
+            () => shell?.OpenQuickSettingsCommand.Execute("audio"));
+        popover.Wrap(signalFlyout);
+        signalFlyout.Opened += (_, _) => InteractionChanged?.Invoke();
+        signalFlyout.Closed += (_, _) => InteractionChanged?.Invoke();
+        seek = new(SeekSlider, () => Model?.Player, true, () =>
+        { ElapsedText.SetCurrentValue(TextBlock.TextProperty, Model?.Player.PositionText ?? "0:00"); InteractionChanged?.Invoke(); });
         SeekSlider.PropertyChanged += (_, e) =>
         {
             if (e.Property == Slider.ValueProperty && Model?.Player.IsSeeking == true)
                 ElapsedText.SetCurrentValue(TextBlock.TextProperty, TimeSpan.FromSeconds(SeekSlider.Value).ToString(SeekSlider.Value >= 3600 ? @"h\:mm\:ss" : @"m\:ss"));
         };
         var volume = new Flyout { Placement = PlacementMode.Top, Content = new PlayerVolumePanel() };
-        popover.Wrap(volume); VolumeButton.Flyout = volume;
-        volume.Opened += (_, _) => InteractionChanged?.Invoke();
-        volume.Closed += (_, _) => InteractionChanged?.Invoke();
-        PointerEntered += (_, _) => { SetCompact(false); InteractionChanged?.Invoke(); };
+        VolumeButton.Flyout = volume;
+        foreach (var flyout in new[] { volume, (Flyout)MoreButton.Flyout! })
+        {
+            popover.Wrap(flyout);
+            flyout.Opened += (_, _) => InteractionChanged?.Invoke();
+            flyout.Closed += (_, _) => InteractionChanged?.Invoke();
+        }
+        PointerEntered += (_, _) => InteractionChanged?.Invoke();
         PointerExited += (_, _) => InteractionChanged?.Invoke();
-        GotFocus += (_, _) => { SetCompact(false); InteractionChanged?.Invoke(); };
+        GotFocus += (_, e) => { keyboardInteraction = e.NavigationMethod is NavigationMethod.Tab or NavigationMethod.Directional; InteractionChanged?.Invoke(); };
         LostFocus += (_, _) => InteractionChanged?.Invoke();
+        KeyDown += (_, _) => { keyboardInteraction = true; InteractionChanged?.Invoke(); };
         DataContextChanged += (_, _) => seek.Cancel();
     }
     public void Bind(ShellViewModel value) { shell = value; popover.Attach(value); ApplyMotion(); }
-    public void ApplyMotion()
+    public void ApplyPalette()
     {
-        var duration = shell?.Motion.CanAnimate == true ? TimeSpan.FromMilliseconds(160) : TimeSpan.Zero;
-        BarSurface.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = duration }];
-        IdleSurface.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = duration }];
-    }
-    public void ApplyPalette(bool dark)
-    {
-        Resources["LyricsInk"] = new SolidColorBrush(Color.Parse(dark ? "#F4F5F8" : "#272B36"));
-        Resources["LyricsSurface"] = new SolidColorBrush(Color.Parse(dark ? "#EE242630" : "#F2FAFAFC"));
-        Resources["LyricsEdge"] = new SolidColorBrush(Color.Parse(dark ? "#28FFFFFF" : "#20272B36"));
-        Resources["LyricsRail"] = new SolidColorBrush(Color.Parse(dark ? "#38FFFFFF" : "#30272B36"));
-        Resources["LyricsHover"] = new SolidColorBrush(Color.Parse(dark ? "#20FFFFFF" : "#14272B36"));
+        Resources["LyricsInk"] = new SolidColorBrush(Color.Parse("#FAFAFA"));
+        Resources["LyricsControlInk"] = new SolidColorBrush(Color.Parse("#C4C3C2"));
+        Resources["LyricsSurface"] = new SolidColorBrush(Color.Parse("#232120"));
+        Resources["LyricsRail"] = new SolidColorBrush(Color.Parse("#585655"));
+        Resources["LyricsProgress"] = new SolidColorBrush(Color.Parse("#7770DF"));
+        Resources["LyricsHover"] = new SolidColorBrush(Color.Parse("#16FFFFFF"));
     }
     public void Fit(double width)
     {
-        availableWidth = width;
         var mini = Model?.Appearance.MiniPlayer != false;
-        var barWidth = Math.Max(280, Math.Min(width - 48, mini ? 880 : 1440));
+        var barWidth = Math.Max(280, Math.Min(width - (width >= 1050 ? 108 : 48), mini ? 760 : 1440));
         TransportLayout.Width = barWidth;
-        TransportLayout.Height = mini ? 96 : 116;
+        var narrow = barWidth < 1050;
+        TransportLayout.Height = BarSurface.Height = mini ? 56 : narrow ? 64 : 88;
         IdleSurface.Width = Math.Min(340, barWidth);
-        var narrow = barWidth < 680;
         var tiny = barWidth < 500;
-        TrackInfo.IsVisible = !tiny;
-        ArtistText.IsVisible = !narrow;
-        CoverFrame.Width = CoverFrame.Height = mini ? 44 : 60;
-        TrackInfo.ColumnDefinitions[0].Width = new GridLength(mini ? 44 : 60);
-        ControlRow.ColumnDefinitions[0].Width = tiny ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        ControlRow.ColumnDefinitions[2].Width = narrow ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
-        ControlRow.ColumnSpacing = narrow ? 8 : 18;
-        ModeButton.IsVisible = FavoriteButton.IsVisible = !narrow;
-        BarSurface.Padding = new Thickness(narrow ? 14 : 20, mini ? 10 : 12);
+        ModeButton.IsVisible = QueueButton.IsVisible = LyricsButton.IsVisible = barWidth >= 640;
+        FavoriteButton.IsVisible = !tiny;
+        foreach (var button in PlaybackControls.Children.OfType<Button>().Concat(AuxiliaryControls.Children.OfType<Button>()))
+            button.Width = button.Height = narrow ? tiny ? 32 : 36 : 44;
+        PlaybackControls.Spacing = tiny ? 6 : mini ? 10 : narrow ? 12 : 28;
+        AuxiliaryControls.Spacing = narrow ? 8 : 12;
+        BarSurface.Padding = new Thickness(tiny ? 12 : mini ? 16 : narrow ? 20 : 28, 0);
+        ProgressRow.Margin = new Thickness(tiny ? 8 : mini ? 12 : narrow ? 16 : 32, 0, tiny ? 8 : mini ? 18 : narrow ? 20 : 60, 0);
+        ProgressRow.ColumnSpacing = tiny ? 6 : narrow ? 8 : 16;
+        ProgressRow.ColumnDefinitions[0].Width = new GridLength(tiny ? 32 : narrow ? 40 : 52);
+        ProgressRow.ColumnDefinitions[2].Width = new GridLength(tiny ? 0 : narrow ? 40 : 52);
+        DurationLabel.IsVisible = !tiny;
+        ElapsedText.FontSize = DurationLabel.FontSize = narrow ? 13 : 18;
     }
-    public void SetCompact(bool value)
+    private void OnQueue(object? sender, RoutedEventArgs e)
+    { MoreButton.Flyout?.Hide(); shell?.ToggleQueueDrawerCommand.Execute(null); }
+    private void OnLyricsSettings(object? sender, RoutedEventArgs e)
     {
-        value &= Model?.Appearance is { MiniPlayer: true, PlayerCompact: true } && !IsInteracting;
-        if (value) seek.Cancel();
-        compact = value;
-        BarSurface.IsHitTestVisible = BarSurface.IsEnabled = !value;
-        BarSurface.Opacity = value ? 0 : 1;
-        IdleSurface.IsHitTestVisible = value; IdleSurface.Opacity = value ? 1 : 0;
+        MoreButton.Flyout?.Hide(); shell?.OpenQuickSettingsCommand.Execute("lyrics");
     }
-    private void OnQueue(object? sender, RoutedEventArgs e) => shell?.ToggleQueueDrawerCommand.Execute(null);
-    private void OnBarMode(object? sender, RoutedEventArgs e)
-    {
-        if (Model is not { } model) return;
-        model.Appearance.MiniPlayer = !model.Appearance.MiniPlayer;
-        SetCompact(false); Fit(availableWidth);
-    }
+    private void OnAudioSettings(object? sender, RoutedEventArgs e)
+    { MoreButton.Flyout?.Hide(); shell?.OpenQuickSettingsCommand.Execute("audio"); }
+    private void OnSignalPath(object? sender, RoutedEventArgs e)
+    { MoreButton.Flyout?.Hide(); signalFlyout.ShowAt(MoreButton); }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { seek.Cancel(); VolumeButton.Flyout?.Hide(); popover.Detach(); base.OnDetachedFromVisualTree(e); }
+    { seek.Cancel(); StopMotion(); signalFlyout.Hide(); VolumeButton.Flyout?.Hide(); MoreButton.Flyout?.Hide(); popover.Detach(); base.OnDetachedFromVisualTree(e); }
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     { base.OnAttachedToVisualTree(e); popover.Attach(shell); }
 }

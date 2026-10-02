@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:Echo.Desktop.Features.Settings" xmlns:models="using:Echo.Desktop.Features.Settings.Models"
+             xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Settings.SettingsNavigationView" x:DataType="settings:SettingsViewModel">
+  <UserControl.Styles><StyleInclude Source="SettingsNavigationStyles.axaml" /></UserControl.Styles>
+  <Grid RowDefinitions="54,*">
+    <Grid ColumnDefinitions="26,*" ColumnSpacing="9" Margin="5,0,12,14">
+      <Button Command="{Binding BackCommand}" Width="26" Height="32" MinHeight="32" Padding="0"
+              ToolTip.Tip="{DynamicResource ui.SettingsView.8ab0fbc4d5d9}">
+        <icon:GlyphIcon Kind="chevron-left" Width="16" Height="16" />
+      </Button>
+      <TextBlock Grid.Column="1" Classes="settings-rail-heading heading" Text="{DynamicResource ui.Sidebar.df3d58c7d84b}"
+                 FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+    </Grid>
+    <ScrollViewer Grid.Row="1" Name="NavigationScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                  Classes="settings-rail-scroll" Padding="0,4,8,8">
+      <ItemsControl ItemsSource="{Binding NavigationGroups}">
+        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="12" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingsNavigationGroup">
+          <StackPanel>
+            <ItemsControl ItemsSource="{Binding Items}">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="1" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingsCategoryItem">
+                <Button Classes="settings-nav-item" Classes.active="{Binding IsActive}"
+                        Command="{Binding $parent[settings:SettingsNavigationView].((settings:SettingsViewModel)DataContext).SelectCategoryCommand}"
+                        CommandParameter="{Binding Id}" AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}">
+                  <ToolTip.Tip>
+                    <StackPanel Spacing="5" MaxWidth="280"><TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Description}" TextWrapping="Wrap" /></StackPanel>
+                  </ToolTip.Tip>
+                  <Grid ColumnDefinitions="18,*" ColumnSpacing="11">
+                    <icon:GlyphIcon Kind="{Binding Icon}" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" Classes="settings-nav-title" FontSize="13.5"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+              </DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

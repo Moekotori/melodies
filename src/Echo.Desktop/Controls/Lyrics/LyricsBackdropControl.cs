@@ -30,12 +30,12 @@ public sealed class LyricsBackdropControl : Control, IDisposable
         model.Appearance.PropertyChanged += PropertyChangedAppearance; Configure();
     }
     private void PropertyChangedModel(object? sender, PropertyChangedEventArgs e)
-    { if (e.PropertyName == nameof(LyricsViewModel.Cover)) InvalidateVisual(); }
+    { if (e.PropertyName is nameof(LyricsViewModel.Cover) or nameof(LyricsViewModel.CoverColors)) Configure(); }
     private void PropertyChangedAppearance(object? sender, PropertyChangedEventArgs e) => Configure();
     private void Configure()
     {
         if (model is null || closed) return;
-        painter.Configure(model.Appearance.SelectedStyle, model.Appearance.SelectedLook, ActualThemeVariant == ThemeVariant.Dark);
+        painter.Configure(model.Appearance.SelectedStyle, model.Appearance.SelectedLook, ActualThemeVariant == ThemeVariant.Dark, model.CoverColors);
         InvalidateVisual();
     }
     private void Changed()

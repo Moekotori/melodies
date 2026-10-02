@@ -96,7 +96,7 @@ public sealed partial class PlaybackSessionCoordinator
                 await native.StartAsync().ConfigureAwait(false);
             }
             finally { suppressNativeEvents = false; }
-            foreach (var entry in dspCommands) await native.CallAsync(entry.Key[..entry.Key.IndexOf(':')], entry.Value).ConfigureAwait(false);
+            await ReplayRetainedDspAsync().ConfigureAwait(false);
             initialized = true;
         }
         else if (channels != 2 && native is not INativeOutputControl) throw new NotSupportedException("宿主不支持多声道初始化");

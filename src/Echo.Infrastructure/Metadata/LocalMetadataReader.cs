@@ -1,5 +1,6 @@
 using Echo.Contracts.Library;
 using Echo.Contracts.Scanning;
+using Echo.Contracts.Media;
 
 namespace Echo.Infrastructure.Metadata;
 
@@ -17,9 +18,16 @@ public sealed class LocalMetadataReader(string? nativeScanner = null) : IMetadat
     {
         cancellation.ThrowIfCancellationRequested();
         var extension = Path.GetExtension(file.Path);
+        if (AudioFormatCatalog.Route(extension) == AudioFormatRoute.PluginContainer)
+            throw new MetadataReadException("audio_format_provider_required");
         if (extension.Equals(".cue", StringComparison.OrdinalIgnoreCase) || extension.Equals(".osu", StringComparison.OrdinalIgnoreCase))
             throw new MetadataReadException("virtual_tracks_not_migrated");
-        if (extension.Equals(".wav", StringComparison.OrdinalIgnoreCase)) return WaveMetadataReader.Read(file, cancellation);
+        if (extension.Equals(".wav", StringComparison.OrdinalIgnoreCase))
+        {
+            try { return WaveMetadataReader.Read(file, cancellation); }
+            catch (MetadataReadException e) when (e.Code is "unsupported_wave_container" or "unsupported_wave_codec" or "wave_extended_tags" or "wave_tag_encoding")
+            { /* RF64, compressed WAV and non-basic tags use the native reader. */ }
+        }
         if (extension.Equals(".flac", StringComparison.OrdinalIgnoreCase) || extension.Equals(".fla", StringComparison.OrdinalIgnoreCase))
             return FlacMetadataReader.Read(file, cancellation);
         var scanner = nativeScanner ?? NativeScannerLocator.Find();

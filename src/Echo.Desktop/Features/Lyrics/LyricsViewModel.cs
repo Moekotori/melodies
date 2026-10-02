@@ -37,6 +37,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool hasLyrics;
     [ObservableProperty] private bool hasTrack;
     [ObservableProperty] private Bitmap? cover;
+    [ObservableProperty] private ArtworkColorSample? coverColors;
     public string MessageDisplay => player.Text.Translate(Message);
     partial void OnMessageChanged(string value) => OnPropertyChanged(nameof(MessageDisplay));
     private void RefreshLanguage()
@@ -107,7 +108,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
         using var cancellation = new CancellationTokenSource(); load = cancellation;
         Document = LyricsDocument.Empty; HasLyrics = false; Origin = ""; IsLoading = true;
         Message = "正在读取歌词…"; Changed?.Invoke();
-        coverLease?.Dispose(); coverLease = null; Cover = null;
+        coverLease?.Dispose(); coverLease = null; Cover = null; CoverColors = null;
         var track = snapshot?.Current;
         var selectionKey = track?.FilePath ?? "";
         var effectivePath = explicitPath ?? selection.ForTrack(selectionKey);
@@ -115,7 +116,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
         {
             if (track is null && effectivePath is null) { Message = "播放一首歌曲，或导入歌词预览所有样式。"; return; }
             var text = await source.ReadAsync(track?.FilePath ?? effectivePath!, effectivePath, cancellation.Token);
-            var parsed = text is null ? LyricsDocument.Empty : await Task.Run(() => LyricsParser.Parse(text.Text, text.Format, cancellation.Token), cancellation.Token);
+            var parsed = text is null ? LyricsDocument.Empty : await Task.Run(() => LyricsParser.Parse(text, cancellation.Token), cancellation.Token);
             if (closed || request != generation) return;
             Document = parsed; HasLyrics = parsed.Lines.Count > 0; Origin = text?.Origin ?? "";
             if (explicitPath is not null && HasLyrics) selection.Select(selectionKey, explicitPath);
@@ -125,11 +126,11 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
             {
                 var lease = await artwork.AcquireAsync(track.FilePath, cancellation.Token, 768);
                 if (closed || request != generation) { lease?.Dispose(); return; }
-                coverLease = lease; Cover = lease?.Image;
+                coverLease = lease; Cover = lease?.Image; CoverColors = lease?.Colors;
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or System.Xml.XmlException)
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or System.Xml.XmlException)
         { if (!closed && request == generation) Message = "歌词读取失败。请检查文件格式或重新导入。"; }
         finally
         {

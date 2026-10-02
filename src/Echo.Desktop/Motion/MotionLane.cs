@@ -114,9 +114,15 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
         {
             if (ReferenceEquals(_pending, pending))
             {
-                StopVisual();
-                _pending = null;
-                _target = null;
+                // Batch notifications can run inline inside a render-loop commit.
+                // Queue UI cleanup outside that commit, and reject superseded cleanup.
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (!ReferenceEquals(_pending, pending)) return;
+                    StopVisual();
+                    _pending = null;
+                    _target = null;
+                }, DispatcherPriority.Normal);
             }
             pending.Dispose();
         }

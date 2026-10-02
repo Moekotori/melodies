@@ -3,23 +3,24 @@ using CommunityToolkit.Mvvm.Input;
 using Echo.Desktop.Motion;
 using Echo.Desktop.Features.Settings;
 using Echo.Desktop.Localization;
+using System.Collections.ObjectModel;
 
 namespace Echo.Desktop.Shell;
 
 // Only local UI state. No library, playback facts, timers or background services.
 public sealed partial class ShellViewModel : ObservableObject
 {
-    public IReadOnlyList<NavigationItem> LibraryItems { get; } = [
+    public Echo.Desktop.Features.Player.AppearanceVisualsViewModel AppearanceVisuals { get; } = new();
+    public ObservableCollection<NavigationItem> LibraryItems { get; } = [
         new("home", "主页", "library"), new("songs", "曲目", "library"),
-        new("albums", "专辑", "library"), new("artists", "艺术家", "library"),
-        new("folders", "文件夹", "library")];
-    public IReadOnlyList<NavigationItem> SourceItems { get; } = [
+        new("artists", "艺术家", "library"), new("folders", "文件夹", "library"),
+        new("albums", "专辑", "library"), new("genres", "流派", "library")];
+    public ObservableCollection<NavigationItem> SourceItems { get; } = [
         new("remote", "网盘 / 远程", "sources"), new("radio", "电台", "sources"),
-        new("workshop", "创意工坊", "sources"), new("dsp", "音效处理", "sources")];
-    public IReadOnlyList<NavigationItem> PlaybackItems { get; } = [
-        new("listening", "一起听歌", "playback"),
+        new("dsp", "音效处理", "sources"), new("workshop", "创意工坊", "sources")];
+    public ObservableCollection<NavigationItem> PlaybackItems { get; } = [
         new("queue", "队列", "playback"), new("history", "历史", "playback"),
-        new("playlists", "收藏与歌单", "playback")];
+        new("playlists", "收藏与歌单", "playback"), new("listening", "一起听歌", "playback")];
     public IReadOnlyList<NavigationItem> PluginItems { get; } = [];
 
     [ObservableProperty] private string activeRouteId = "home";
@@ -48,6 +49,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public ShellViewModel(LocalizationService? text = null)
     {
         Text = text ?? new(); Motion = new(Text); LibraryItems[0].IsActive = true;
+        FeaturePreferences.Changed += OnResidencyPreferencesChanged;
         Floating = new(Text);
         LyricsAppearance = new(text: Text);
         Text.Changed += RefreshLanguage; RefreshLanguage(); Shortcuts = new(Text); Settings = new(this);
@@ -65,7 +67,7 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(RecentEmptyTitle)); OnPropertyChanged(nameof(RecentEmptyDescription));
         OnPropertyChanged(nameof(QuickSettingsTitle));
     }
-    public void ReleaseLocalization() { Shortcuts.Dispose(); Text.Changed -= RefreshLanguage; Motion.ReleaseLocalization(); LyricsAppearance.ReleaseLocalization(); }
+    public void ReleaseLocalization() { FeaturePreferences.Changed -= OnResidencyPreferencesChanged; Shortcuts.Dispose(); Text.Changed -= RefreshLanguage; Motion.ReleaseLocalization(); LyricsAppearance.ReleaseLocalization(); }
 
     [RelayCommand]
     private void Navigate(string? id)
@@ -86,7 +88,12 @@ public sealed partial class ShellViewModel : ObservableObject
 
     [RelayCommand] private void ToggleSidebar() { SidebarAutoHideEnabled = false; IsSidebarExpanded = !IsSidebarExpanded; }
     [RelayCommand] private void LeaveSettings() => Navigate(_settingsReturnRoute);
-    [RelayCommand] private void ToggleTheme() => IsDark = !IsDark;
+    [RelayCommand] private void ToggleTheme()
+    {
+        var desiredDark = !IsDark;
+        Theme.ScheduleEnabled = false;
+        Theme.Mode = (Theme.Invert ? !desiredDark : desiredDark) ? "深色" : "浅色";
+    }
     [RelayCommand] private void SetRecentTab(string tab) => RecentTab = tab;
     [RelayCommand] private void DismissNotice() => Notice = "";
     [RelayCommand] private void ShowPending(string? feature) => Notice = Text.Format("shell.pending", Text.Translate(feature ?? ""));

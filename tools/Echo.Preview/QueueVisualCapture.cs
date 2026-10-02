@@ -27,7 +27,8 @@ internal static class QueueVisualCapture
                     ["codec"] = Value("codec"), ["duration"] = Value("duration"), ["bitDepth"] = Value("bitDepth"), ["sampleRate"] = Value("sampleRate") },
                 Origin: new("manual", "手动添加"));
         }).ToArray();
-        var session = new PlaybackSessionCoordinator(new QueueUiSmoke.PreviewNative());
+        var duration = double.Parse(tracks[0].Metadata!["duration"]!, System.Globalization.CultureInfo.InvariantCulture);
+        var session = new PlaybackSessionCoordinator(new QueueUiSmoke.PreviewNative(duration));
         var shell = new ShellViewModel();
         var player = new PlayerViewModel(new PlaybackZone("local", "本机", session), shell.Text);
         var artwork = new AlbumArtworkCache(new LocalAlbumArtwork());

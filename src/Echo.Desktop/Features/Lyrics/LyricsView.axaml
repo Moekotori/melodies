@@ -2,30 +2,33 @@
              xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:controls="using:Echo.Desktop.Controls.Lyrics"
              xmlns:icon="using:Echo.Desktop.Controls" xmlns:motion="using:Echo.Desktop.Motion"
              xmlns:queue="using:Echo.Desktop.Features.Queue" xmlns:shell="using:Echo.Desktop.Shell"
+             xmlns:chrome="using:Avalonia.Controls.Chrome"
              x:Class="Echo.Desktop.Features.Lyrics.LyricsView" x:DataType="lyrics:LyricsViewModel">
+  <UserControl.Styles><StyleInclude Source="LyricsChromeStyles.axaml" /></UserControl.Styles>
   <ThemeVariantScope Name="ChromeTheme">
   <Grid RowDefinitions="Auto,*,Auto" Background="Transparent">
     <controls:LyricsBackdropControl Name="Backdrop" Grid.RowSpan="3" />
-    <controls:LyricsViewportControl Name="Viewport" Grid.RowSpan="3" />
+    <controls:LyricsViewportControl Name="Viewport" Grid.RowSpan="3" IsVisible="{Binding Appearance.Enabled}" />
+    <controls:JizuraSceneControl Name="JizuraScene" Grid.RowSpan="3" IsVisible="{Binding Appearance.Enabled}" />
     <Border Name="ChromeHeader" Margin="22,14" Background="Transparent">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
-        <Button Click="OnBack" ToolTip.Tip="{DynamicResource ui.LyricsView.eaaa1d0f0aab}" Padding="12,6"><icon:GlyphIcon Kind="chevron-left" Width="20" Height="20" /></Button>
-        <Border Grid.Column="1" Background="Transparent" PointerPressed="OnDragWindow" />
+        <Button Classes="lyrics-chrome" Click="OnBack" ToolTip.Tip="{DynamicResource ui.LyricsView.eaaa1d0f0aab}" Padding="12,6"><icon:GlyphIcon Kind="chevron-left" Width="20" Height="20" /></Button>
+        <Border Grid.Column="1" Background="Transparent" chrome:WindowDecorationProperties.ElementRole="TitleBar" />
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
-          <Button Content="{DynamicResource ui.LyricsView.df7392cc96be}" Command="{Binding ReloadCommand}" IsEnabled="{Binding !IsLoading}" Padding="10,6" />
-          <Button Content="{DynamicResource ui.LyricsView.7ea981c88d81}" Click="OnImport" IsEnabled="{Binding !IsLoading}" Padding="12,6" />
+          <Button Classes="lyrics-chrome" Content="{DynamicResource ui.LyricsView.df7392cc96be}" Command="{Binding ReloadCommand}" IsEnabled="{Binding !IsLoading}" Padding="10,6" />
+          <Button Classes="lyrics-chrome" Content="{DynamicResource ui.LyricsView.7ea981c88d81}" Click="OnImport" IsEnabled="{Binding !IsLoading}" Padding="12,6" />
         </StackPanel>
         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
-        <Button Name="LyricsAudioDrawerButton" Click="OnOpenAudioDrawer" ToolTip.Tip="{DynamicResource ui.TitleBar.24c267e226db}" Padding="10,6"><icon:GlyphIcon Kind="headphones" Width="18" Height="18" /></Button>
-        <Button Name="SettingsButton" Click="OnOpenSettingsDrawer" ToolTip.Tip="{DynamicResource ui.LyricsView.8eef1c88e182}" Padding="10,6">
+        <Button Classes="lyrics-chrome" Name="LyricsAudioDrawerButton" Click="OnOpenAudioDrawer" ToolTip.Tip="{DynamicResource ui.TitleBar.24c267e226db}" Padding="10,6"><icon:GlyphIcon Kind="headphones" Width="18" Height="18" /></Button>
+        <Button Classes="lyrics-chrome" Name="SettingsButton" Click="OnOpenSettingsDrawer" ToolTip.Tip="{DynamicResource ui.LyricsView.8eef1c88e182}" Padding="10,6">
           <icon:GlyphIcon Kind="settings" Width="18" Height="18" />
         </Button>
         </StackPanel>
-        <Button Grid.Column="4" Click="OnToggleFullscreen" ToolTip.Tip="{DynamicResource ui.LyricsView.b9a75bc5fa65}" Padding="10,6"><icon:GlyphIcon Kind="fullscreen" Width="18" Height="18" /></Button>
+        <Button Classes="lyrics-chrome" Grid.Column="4" Click="OnToggleFullscreen" ToolTip.Tip="{DynamicResource ui.LyricsView.b9a75bc5fa65}" Padding="10,6"><icon:GlyphIcon Kind="fullscreen" Width="18" Height="18" /></Button>
         <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4" Margin="8,0,0,0">
-          <Button Click="OnMinimize" ToolTip.Tip="{DynamicResource ui.TitleBar.ac29e57a46f4}" Padding="10,6"><icon:GlyphIcon Kind="minus" Width="16" Height="16" /></Button>
-          <Button Click="OnMaximize" ToolTip.Tip="{DynamicResource ui.TitleBar.9949b1fb5f67}" Padding="10,6"><icon:GlyphIcon Kind="maximize" Width="16" Height="16" /></Button>
-          <Button Click="OnClose" ToolTip.Tip="{DynamicResource ui.TitleBar.3fd47edce45b}" Padding="10,6"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
+          <Button Classes="lyrics-chrome" Click="OnMinimize" chrome:WindowDecorationProperties.ElementRole="MinimizeButton" ToolTip.Tip="{DynamicResource ui.TitleBar.ac29e57a46f4}" Padding="10,6"><icon:GlyphIcon Kind="minus" Width="16" Height="16" /></Button>
+          <Button Classes="lyrics-chrome" Click="OnMaximize" chrome:WindowDecorationProperties.ElementRole="MaximizeButton" ToolTip.Tip="{DynamicResource ui.TitleBar.9949b1fb5f67}" Padding="10,6"><icon:GlyphIcon Kind="maximize" Width="16" Height="16" /></Button>
+          <Button Classes="lyrics-chrome" Click="OnClose" chrome:WindowDecorationProperties.ElementRole="CloseButton" ToolTip.Tip="{DynamicResource ui.TitleBar.3fd47edce45b}" Padding="10,6"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
         </StackPanel>
       </Grid>
     </Border>
@@ -41,7 +44,7 @@
       <lyrics:LyricsTransportView Name="Transport" HorizontalAlignment="Center" />
     </StackPanel>
     <Grid Name="LyricsQueueOverlay" Grid.RowSpan="3" x:DataType="shell:ShellViewModel" IsVisible="{Binding IsQueueDrawerOpen}">
-      <Button Background="#40000000" Padding="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding CloseQueueDrawerCommand}" AutomationProperties.Name="{DynamicResource ui.MainWindow.40f65663b09a}" />
+      <Button Classes="dismiss-scrim" Background="#40000000" Padding="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding CloseQueueDrawerCommand}" AutomationProperties.Name="{DynamicResource ui.MainWindow.40f65663b09a}" />
       <queue:QueueDrawer HorizontalAlignment="Right" Width="420" />
     </Grid>
   </Grid>

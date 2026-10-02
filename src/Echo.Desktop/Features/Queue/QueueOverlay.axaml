@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell" xmlns:motion="using:Echo.Desktop.Motion"
+             x:Class="Echo.Desktop.Features.Queue.QueueOverlay" x:DataType="shell:ShellViewModel">
+  <Grid ClipToBounds="False">
+    <motion:MotionSurface Name="OutsideSurface" Travel="0">
+      <Border Background="Transparent" PointerPressed="OnOutsidePressed" />
+    </motion:MotionSurface>
+    <motion:MotionSurface Name="DrawerSurface" HorizontalAlignment="Right" Margin="24,36,28,4" Axis="Horizontal" Travel="32" />
+  </Grid>
+</UserControl>

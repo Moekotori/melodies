@@ -55,7 +55,7 @@ public sealed partial class PlaybackSessionCoordinator
     {
         if (items.Length > QueueCapacity) throw new ArgumentException("播放窗口最多 1000 项，请分页提供后续队列");
         if (items.Any(x => string.IsNullOrWhiteSpace(x.ItemId) || string.IsNullOrWhiteSpace(x.TrackId)
-            || string.IsNullOrWhiteSpace(x.FilePath) || x.Metadata is { Count: > 24 })
+            || string.IsNullOrWhiteSpace(x.FilePath) || x.Metadata is { Count: > 24 } || x.SampleRate is <= 0 or > 24576000)
             || items.Select(x => x.ItemId).Distinct(StringComparer.Ordinal).Count() != items.Length)
             throw new ArgumentException("队列项必须有唯一 itemId 和有效音源");
         if (items.Sum(TrackTextLength) > 256 * 1024)
@@ -87,9 +87,12 @@ public sealed partial class PlaybackSessionCoordinator
     private async Task SendQueueAsync(QueueTrack[] items, string? current, RepeatMode mode)
     {
         var projected = ProjectNativeQueue(items, current);
+        if (segmentLoop is { } loop && loop.ItemId == current && snapshot.Current is { } active)
+        { projected = [active]; mode = RepeatMode.Off; }
+        var prepared = await PrepareNativeQueueAsync(projected, current, mode).ConfigureAwait(false);
         var next = revision + 1;
         var payload = JsonSerializer.SerializeToElement(new NativeQueue(next, current,
-            (current is not null && !items.Any(x => x.ItemId == current) ? RepeatMode.Off : mode).ToString().ToLowerInvariant(), projected), PlaybackJsonContext.Default.NativeQueue);
+            current is not null && !items.Any(x => x.ItemId == current) ? "off" : prepared.Repeat, prepared.Items), PlaybackJsonContext.Default.NativeQueue);
         var result = await native.CallAsync("queue.set", payload).ConfigureAwait(false);
         if (result.Long("queueRevision") != next) throw new IOException("Native 队列版本未确认");
         revision = next;
@@ -124,7 +127,7 @@ public sealed partial class PlaybackSessionCoordinator
 
     private QueueTrack? ResolveNext(bool automatic = false)
     {
-        if (automatic && repeat == RepeatMode.One) return snapshot.Current;
+        if (automatic && repeat == RepeatMode.One && queue.Any(x => x.ItemId == snapshot.Current?.ItemId)) return snapshot.Current;
         if (queue.Length == 0) return null;
         var projected = ProjectNativeQueue(queue, snapshot.Current?.ItemId);
         var index = Array.FindIndex(projected, x => x.ItemId == snapshot.Current?.ItemId);

@@ -1,53 +1,16 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:shell="using:Echo.Desktop.Shell" xmlns:home="using:Echo.Desktop.Features.Home"
-        xmlns:player="using:Echo.Desktop.Features.Player" xmlns:icon="using:Echo.Desktop.Controls"
-        xmlns:motion="using:Echo.Desktop.Motion"
-        xmlns:queue="using:Echo.Desktop.Features.Queue"
-        xmlns:drawers="using:Echo.Desktop.Features.Settings.Drawers"
-        xmlns:theme="using:Echo.Desktop.Theming"
-        x:Class="Echo.Desktop.Shell.MainWindow" x:DataType="shell:ShellViewModel"
-        Title="ECHO" Width="1440" Height="900" MinWidth="800" MinHeight="600"
-        WindowDecorations="None" WindowStartupLocation="CenterScreen" Background="{DynamicResource EchoPage}">
-  <Grid>
-  <LayoutTransformControl Name="UiScaleHost">
-  <Grid RowDefinitions="40,*,108" ColumnDefinitions="220,*" Name="ShellGrid">
-    <shell:TitleBar Grid.ColumnSpan="2" />
-    <Grid Grid.Row="1" Grid.Column="1" Name="PageArea" Background="{DynamicResource EchoPageBase}" ClipToBounds="True">
-      <theme:WallpaperViewport Name="ThemeWallpaperLayer" IsHitTestVisible="False" />
-      <Border Background="{DynamicResource EchoPageGlow}" IsHitTestVisible="False" />
-      <motion:MotionPresenter Name="PageHost" SurfaceBrush="{DynamicResource EchoPageContent}" />
-      <motion:MotionSurface VerticalAlignment="Top" Margin="24" IsOpen="{Binding HasMediaTransportError}">
-      <Border Background="{DynamicResource EchoField}" Padding="16,10">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="{Binding MediaTransportErrorDisplay}" TextWrapping="Wrap" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Content="{DynamicResource ui.MainWindow.adbeeb98002d}" Command="{Binding RetryMediaTransportCommand}" Margin="12,0,0,0" />
-        </Grid>
-      </Border>
-      </motion:MotionSurface>
-      <motion:MotionSurface Name="NoticeSurface" VerticalAlignment="Bottom" Margin="24" IsOpen="{Binding Notice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-      <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}"
-              BorderThickness="1" CornerRadius="6" Padding="16,10">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="{Binding NoticeDisplay}" TextWrapping="Wrap" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Classes="icon" Content="×" Command="{Binding DismissNoticeCommand}" ToolTip.Tip="{DynamicResource ui.MainWindow.d301bc125833}" />
-        </Grid>
-      </Border>
-      </motion:MotionSurface>
-      <motion:MotionSurface IsOpen="{Binding IsQueueDrawerOpen}" Travel="0">
-      <Button Background="#40000000" Padding="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-              Command="{Binding CloseQueueDrawerCommand}" ToolTip.Tip="{DynamicResource ui.MainWindow.40f65663b09a}" />
-      </motion:MotionSurface>
-      <motion:MotionSurface HorizontalAlignment="Right" Width="420" Axis="Horizontal" Travel="420" IsOpen="{Binding IsQueueDrawerOpen}">
-        <queue:QueueDrawer />
-      </motion:MotionSurface>
-    </Grid>
-    <shell:SidebarHost Name="NavigationSidebar" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" />
-    <player:PlayerBar Grid.Row="2" Grid.ColumnSpan="2" />
-  </Grid>
-  </LayoutTransformControl>
-  <ContentControl Name="LyricsStageHost" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-  <LayoutTransformControl Name="QuickSettingsScaleHost">
-    <drawers:QuickSettingsDrawer Name="QuickSettingsOverlay" />
-  </LayoutTransformControl>
-  </Grid>
+        xmlns:chrome="using:Avalonia.Controls.Chrome"
+        x:Class="Echo.Desktop.Shell.MainWindow"
+        Title="Melodies" Width="1440" Height="900" MinWidth="800" MinHeight="600"
+        Icon="/Resources/Icons/echo-app.ico"
+        Win32Properties.WindowCornerPreference="Round"
+        WindowDecorations="BorderOnly" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="40"
+        WindowStartupLocation="CenterScreen" Background="{DynamicResource EchoPage}">
+  <Window.WindowDecorationsTheme>
+    <ControlTheme TargetType="chrome:WindowDrawnDecorations">
+      <Setter Property="Template">
+        <WindowDrawnDecorationsTemplate><chrome:WindowDrawnDecorationsContent /></WindowDrawnDecorationsTemplate>
+      </Setter>
+    </ControlTheme>
+  </Window.WindowDecorationsTheme>
 </Window>

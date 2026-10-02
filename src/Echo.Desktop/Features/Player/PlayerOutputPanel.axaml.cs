@@ -14,7 +14,7 @@ public partial class PlayerOutputPanel : UserControl
         try
         {
             var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-            { Title = "打开音频文件", AllowMultiple = true, FileTypeFilter = [FilePickerFileTypes.All] });
+            { Title = "打开音频文件", AllowMultiple = true, FileTypeFilter = AudioFilePickerTypes.All });
             await shell.Player.OpenPathsAsync(files.Select(x => x.TryGetLocalPath()).OfType<string>());
         }
         catch (Exception) { shell.Player.Error = "无法打开文件，请重新选择。"; }

@@ -9,6 +9,7 @@ public sealed partial class ShellViewModel
     public IAlbumLibrary? AlbumLibrary { get; private set; }
     public ITrackLibrary? TrackLibrary => AlbumLibrary as ITrackLibrary;
     public IArtistLibrary? ArtistLibrary => AlbumLibrary as IArtistLibrary;
+    public IGenreLibrary? GenreLibrary => AlbumLibrary as IGenreLibrary;
     public AlbumArtworkCache? AlbumArtwork { get; private set; }
     public IDetailResources? DetailResources { get; private set; }
     public Func<string, IProgress<ScanProgress>, CancellationToken, Task<ScanReport>>? ImportLibrary { get; private set; }

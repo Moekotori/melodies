@@ -10,7 +10,8 @@ namespace Echo.Infrastructure.Files;
 internal static class OsuFolderExpansion
 {
     public static Dictionary<string, FileSnapshot> Collect(string directory, IReadOnlyList<FileSnapshot> definitions,
-        ILibraryStore? store, FolderFileFacts facts, bool force, CancellationToken cancellation, List<FileSnapshot> issues)
+        ILibraryStore? store, FolderFileFacts facts, bool force, CancellationToken cancellation,
+        List<FileSnapshot> issues, FolderSourceSet? suppressed = null)
     {
         var groups = new Dictionary<string, (FileSnapshot Definition, FileSnapshot Audio, OsuScanFacts Facts)>(StringComparer.Ordinal);
         using var fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -35,6 +36,8 @@ internal static class OsuFolderExpansion
                 else
                 {
                     metadata = OsuScanParser.Parse(LegacyTextEncoding.Read(definition.Path, 8 * 1024 * 1024, cancellation), cancellation);
+                    if (JsonSerializer.Serialize(metadata, SourceJsonContext.Default.OsuScanFacts).Length > 16384)
+                        throw new MetadataReadException("osu_metadata_limit");
                     changed.Add(new(definition.PathKey, definition.SizeBytes, definition.ModifiedTicks,
                         JsonSerializer.Serialize(metadata, SourceJsonContext.Default.OsuScanFacts)));
                 }
@@ -60,6 +63,8 @@ internal static class OsuFolderExpansion
         var result = new Dictionary<string, FileSnapshot>(StringComparer.Ordinal);
         var selected = OsuSpeedSelection.Select(groups.Values.Select(item => new OsuSongCandidate(item.Audio.Path, item.Facts)).ToArray());
         var tags = OsuPackTagRules.Build(selected, directory);
+        var selectedKeys = selected.Select(item => LibraryPath.Key(item.AudioPath)).ToHashSet(StringComparer.Ordinal);
+        foreach (var key in groups.Keys) if (!selectedKeys.Contains(key)) suppressed?.Add(key);
         var selectedIndex = 0;
         foreach (var candidate in selected)
         {

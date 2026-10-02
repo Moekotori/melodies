@@ -1,0 +1,14 @@
+using Echo.Application.Remote;
+using Echo.Contracts.Remote;
+
+namespace Echo.Desktop.Shell;
+
+public sealed partial class ShellViewModel
+{
+    public RemoteSourceCatalog? RemoteSources { get; private set; }
+    public IRemoteFileClient? RemoteFiles { get; private set; }
+    public IOneDriveAuthorization? RemoteAuthorization { get; private set; }
+    public string OneDriveClientId { get; private set; } = "";
+    public void AttachRemote(RemoteSourceCatalog sources, IRemoteFileClient files, IOneDriveAuthorization? authorization = null, string clientId = "")
+    { RemoteSources = sources; RemoteFiles = files; RemoteAuthorization = authorization; OneDriveClientId = clientId; }
+}

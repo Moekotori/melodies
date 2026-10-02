@@ -22,11 +22,14 @@ public sealed partial class PlayerTrackDetails : ObservableObject, IDisposable
     private TrackRow? row;
     private CancellationTokenSource? request;
     private bool disposed;
+    public string? CurrentItemId => current?.ItemId;
     [ObservableProperty] private string title = "ECHO";
     [ObservableProperty] private string artist = "就绪";
     [ObservableProperty] private string album = "";
     [ObservableProperty] private string format = "";
     [ObservableProperty] private string specifications = "";
+    [ObservableProperty] private int sampleRate;
+    [ObservableProperty] private int bitDepth;
     [ObservableProperty] private bool canFavorite;
     [ObservableProperty] private bool isFavorite;
     [ObservableProperty] private string message = "";
@@ -50,11 +53,13 @@ public sealed partial class PlayerTrackDetails : ObservableObject, IDisposable
         if (disposed || ReferenceEquals(current, track)) return;
         request?.Cancel(); request?.Dispose(); request = null;
         current = track; row = null; CanFavorite = false; IsFavorite = false; Message = "";
+        OnPropertyChanged(nameof(CurrentItemId));
         Title = track?.Metadata?.GetValueOrDefault("title") ?? (track is null ? "ECHO" : Path.GetFileNameWithoutExtension(track.FilePath));
         Artist = track?.Metadata?.GetValueOrDefault("artist") is { Length: > 0 } artist ? artist : track is null ? Text.Translate("就绪") : Text.Translate("未知艺术家");
         Album = track?.Metadata?.GetValueOrDefault("album") ?? "";
         Format = track?.Metadata?.GetValueOrDefault("codec")?.ToUpperInvariant() ?? "";
         Specifications = "";
+        SampleRate = 0; BitDepth = 0;
         if (track is null || library is null || string.IsNullOrWhiteSpace(track.FilePath)) return;
         request = new(); _ = LoadAsync(track, library, request.Token);
     }
@@ -67,6 +72,7 @@ public sealed partial class PlayerTrackDetails : ObservableObject, IDisposable
             if (token.IsCancellationRequested || disposed || current != track || found is null) return;
             row = found; Title = found.Title; Artist = found.Artist.Length == 0 ? Text.Translate("未知艺术家") : found.Artist;
             Album = found.Album; Format = found.Codec.ToUpperInvariant();
+            SampleRate = found.SampleRate; BitDepth = found.BitDepth;
             Specifications = string.Join(" · ", new[] { found.BitDepth > 0 ? $"{found.BitDepth} bit" : "",
                 found.SampleRate > 0 ? $"{found.SampleRate / 1000d:0.##} kHz" : "" }.Where(x => x.Length > 0));
             IsFavorite = found.Favorite; CanFavorite = true;

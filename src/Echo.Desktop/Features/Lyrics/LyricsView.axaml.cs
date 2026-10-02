@@ -20,7 +20,9 @@ public partial class LyricsView : UserControl, IDisposable
         Transport.Bind(shell); LyricsQueueOverlay.DataContext = shell;
         Viewport.Bind(Model, shell.Motion);
         Backdrop.Bind(Model);
+        JizuraScene.Bind(Model, shell.Motion);
         Viewport.FrameRequested += Backdrop.UpdateClock;
+        Viewport.FrameRequested += JizuraScene.UpdateClock;
         Viewport.BrowseChanged += UpdateScroll;
         Model.Changed += OnChanged;
         InitializeChrome();
@@ -50,7 +52,7 @@ public partial class LyricsView : UserControl, IDisposable
             var files = await top.StorageProvider.OpenFilePickerAsync(new()
             {
                 Title = shell.Text.Translate("导入歌词"), AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType(shell.Text.Translate("歌词文件")) { Patterns = ["*.lrc", "*.yrc", "*.ttml", "*.srt", "*.vtt", "*.txt"] }]
+                FileTypeFilter = [new FilePickerFileType(shell.Text.Translate("歌词文件")) { Patterns = ["*.lrc", "*.yrc", "*.qrc", "*.krc", "*.ttml", "*.srt", "*.vtt", "*.txt"] }]
             });
             if (!closed && files.Count > 0 && files[0].TryGetLocalPath() is { } path) await Model.ImportAsync(path);
         }
@@ -62,6 +64,7 @@ public partial class LyricsView : UserControl, IDisposable
         if (closed) return; closed = true;
         DisposeChrome();
         Viewport.FrameRequested -= Backdrop.UpdateClock;
+        Viewport.FrameRequested -= JizuraScene.UpdateClock; JizuraScene.Dispose();
         Viewport.BrowseChanged -= UpdateScroll; Model.Changed -= OnChanged; Viewport.Dispose(); Backdrop.Dispose(); Model.Dispose();
     }
 }

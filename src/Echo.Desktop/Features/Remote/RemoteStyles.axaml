@@ -1,0 +1,37 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="RemoteFileItem" TargetType="ListBoxItem">
+      <Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="12,0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Name="RowSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      <Style Selector="^:selected"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+      <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="TextBlock.remote-caption"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="TextBlock.remote-label"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="Medium" /></Style>
+  <Style Selector="Button.remote-tool"><Setter Property="Height" Value="34" /><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="13,0" /><Setter Property="CornerRadius" Value="5" /><Setter Property="FontSize" Value="12" /></Style>
+  <Style Selector="Button.remote-icon"><Setter Property="Width" Value="32" /><Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="32" /><Setter Property="Padding" Value="0" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Background" Value="Transparent" /><Setter Property="CornerRadius" Value="4" /></Style>
+  <Style Selector="Button.remote-icon icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="ComboBox#SourcePicker"><Setter Property="Width" Value="220" /></Style>
+  <Style Selector="Border#SearchHost"><Setter Property="Width" Value="260" /></Style>
+  <Style Selector="Button.remote-crumb"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="6,0" /><Setter Property="Height" Value="30" /><Setter Property="MinHeight" Value="30" /><Setter Property="FontSize" Value="13" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.remote-crumb.current"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="Medium" /></Style>
+  <Style Selector="Button.remote-filter"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="11,0" /><Setter Property="Height" Value="30" /><Setter Property="MinHeight" Value="30" /><Setter Property="CornerRadius" Value="4" /><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.remote-filter.active"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="Medium" /></Style>
+  <Style Selector="ListBox.remote-files"><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="ItemContainerTheme" Value="{StaticResource RemoteFileItem}" /></Style>
+  <Style Selector="StackPanel.remote-row-actions"><Setter Property="Opacity" Value="0" /><Setter Property="IsHitTestVisible" Value="False" /></Style>
+  <Style Selector="ListBoxItem:pointerover StackPanel.remote-row-actions"><Setter Property="Opacity" Value="1" /><Setter Property="IsHitTestVisible" Value="True" /></Style>
+  <Style Selector="ListBoxItem:selected StackPanel.remote-row-actions"><Setter Property="Opacity" Value="1" /><Setter Property="IsHitTestVisible" Value="True" /></Style>
+  <Style Selector="ListBoxItem:focus-within StackPanel.remote-row-actions"><Setter Property="Opacity" Value="1" /><Setter Property="IsHitTestVisible" Value="True" /></Style>
+  <Style Selector="Border.remote-file-icon"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="Width" Value="36" /><Setter Property="Height" Value="36" /><Setter Property="CornerRadius" Value="5" /></Style>
+  <Style Selector="Border.remote-file-icon.folder"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+  <Style Selector="icon|GlyphIcon.remote-file-glyph"><Setter Property="Stroke" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="icon|GlyphIcon.remote-file-glyph.folder"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="TextBox.remote-search"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="MinHeight" Value="32" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="0,4" /></Style>
+</Styles>

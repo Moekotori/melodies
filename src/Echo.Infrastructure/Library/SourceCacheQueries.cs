@@ -5,6 +5,10 @@ namespace Echo.Infrastructure.Library;
 
 public sealed partial class LibraryDatabase
 {
+    // Only touched on the writer lane. At most 4096 new rows can accumulate between maintenance passes.
+    private int _sourceCacheWritesSinceMaintenance;
+    private bool _sourceCacheMaintained;
+    private const int SourceCacheRows = 262144;
     public Task<IReadOnlyDictionary<string, SourceCacheItem>> ReadSourceCacheAsync(
         IReadOnlyList<FileSnapshot> files, CancellationToken cancellation)
     {
@@ -33,6 +37,7 @@ public sealed partial class LibraryDatabase
     {
         if (items.Count > 128 || items.Any(item => item.Json.Length > 16384))
             throw new ArgumentException("Source cache payload exceeds its limit.");
+        if (items.Count == 0) return Task.CompletedTask;
         return _writer.QueueAsync(connection =>
         {
             using var transaction = connection.BeginTransaction();
@@ -54,13 +59,26 @@ public sealed partial class LibraryDatabase
                 command.Parameters[2].Value = item.ModifiedTicks; command.Parameters[3].Value = item.Json;
                 command.ExecuteNonQuery();
             }
-            // Disk cache is bounded independently of all in-memory folder facts.
-            using var prune = connection.CreateCommand();
-            prune.Transaction = transaction;
-            prune.CommandText = "DELETE FROM scan_source_cache WHERE rowid IN (SELECT rowid FROM scan_source_cache ORDER BY updated_at DESC LIMIT -1 OFFSET 262144)";
-            prune.ExecuteNonQuery();
+            var pending = _sourceCacheWritesSinceMaintenance + items.Count;
+            var maintain = !_sourceCacheMaintained || pending >= 4096;
+            if (maintain)
+            {
+                using var prune = connection.CreateCommand();
+                prune.Transaction = transaction;
+                prune.CommandText = "SELECT count(*) FROM scan_source_cache";
+                var excess = (long)prune.ExecuteScalar()! - SourceCacheRows;
+                if (excess > 0)
+                {
+                    // Walk only the oldest excess via source_cache_recent, never OFFSET through the retained cache.
+                    prune.CommandText = "DELETE FROM scan_source_cache WHERE rowid IN (SELECT rowid FROM scan_source_cache ORDER BY updated_at LIMIT $excess)";
+                    prune.Parameters.AddWithValue("$excess", excess);
+                    prune.ExecuteNonQuery();
+                }
+            }
             cancellation.ThrowIfCancellationRequested();
             transaction.Commit();
+            _sourceCacheWritesSinceMaintenance = maintain ? 0 : pending;
+            _sourceCacheMaintained = true;
             return true;
         }, false, cancellation);
     }

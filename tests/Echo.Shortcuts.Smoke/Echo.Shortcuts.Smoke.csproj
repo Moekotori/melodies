@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
+    <PackageReference Include="Avalonia.Headless" />
+    <Compile Include="../../tools/Echo.Preview/ShortcutSmoke.cs" Link="ShortcutSmoke.cs" />
+  </ItemGroup>
+</Project>

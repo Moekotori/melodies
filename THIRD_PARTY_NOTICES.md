@@ -4,4 +4,4 @@ HotAvalonia 3.1.5：仅 Debug 开发热更新使用，MIT，来源 https://githu
 
 Microsoft.Data.Sqlite 10.0.11：Microsoft 官方 .NET SQLite provider，MIT，来源 https://github.com/dotnet/efcore 。其 SQLitePCLRaw 与 e_sqlite3 依赖及 native runtime 在发布前逐项生成实际包清单和 notices；本轮不制作发行包。
 
-本轮没有复制既有 C++ scanner 源码或二进制到新仓库。可选原生 adapter 通过用户指定的既有 ECHO scanner 执行受限 metadata 请求。正式随应用打包该组件前需要纳入其源版本、许可证和构建清单。
+旧 ECHO scanner 与 CUE 源码：按用户要求直接复用 Git 3dbf28993cddf9f10ea355b88b0105abe85e5174 的实现，AGPL-3.0；原 C++ snapshot 和 LICENSE 在 native/vendor/echo-library-scanner，CUE 来源见 Infrastructure/Legacy/Cue/ORIGIN.md。派生 osu C# 实现保留对应源文件指引。构建产物在 artifacts 并按需复制到输出目录，正式分发仍需实际源清单与 notices。

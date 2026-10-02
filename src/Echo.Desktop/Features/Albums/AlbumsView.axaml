@@ -5,7 +5,7 @@
     <Grid Name="Wall" RowDefinitions="Auto,Auto,Auto,*">
       <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
         <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-          <TextBlock Text="{DynamicResource ui.AlbumsView.9e070772b185}" Classes="heading" FontSize="30" FontStyle="Normal" />
+          <TextBlock Text="{DynamicResource ui.AlbumsView.9e070772b185}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontStyle="Normal" />
           <TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
@@ -19,30 +19,24 @@
           <TextBox Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource ui.AlbumsView.a46fec777e53}" Padding="40,10,60,10" CornerRadius="6" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
           <Button Grid.Column="2" Content="×" Click="OnClearSearch" Classes="icon" ToolTip.Tip="{DynamicResource ui.AlbumsView.b6f00afa6537}" Margin="8,0" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </Grid>
-        <Button Grid.Column="1" ToolTip.Tip="{DynamicResource ui.AlbumsView.f06571a3d112}">
-          <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="settings" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.AlbumsView.b5f15473fdc0}" FontSize="13" /><TextBlock Text="⌄" /></StackPanel>
+        <Button Name="FilterButton" Grid.Column="1" Classes="libraryTool" VerticalAlignment="Center" ToolTip.Tip="{DynamicResource query.filters}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="filter" Width="17" Height="17" /><TextBlock Text="{DynamicResource query.filters}" /><TextBlock Text="{Binding Filters.ActiveCount}" Classes="muted" IsVisible="{Binding Filters.HasActive}" /><icon:GlyphIcon Kind="chevron-down" Width="12" Height="12" Stroke="{DynamicResource EchoMuted}" /></StackPanel>
           <Button.Flyout>
-            <Flyout Placement="BottomEdgeAlignedRight">
-              <StackPanel Spacing="14" Width="300">
-                <TextBlock Text="{DynamicResource ui.AlbumDetailView.eb11dd93ee99}" FontWeight="SemiBold" />
+            <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterTheme="{StaticResource FilterReferencePresenter}">
+              <ScrollViewer MaxHeight="438" HorizontalScrollBarVisibility="Disabled" IsScrollChainingEnabled="False"><StackPanel Spacing="8" Width="268">
                 <filters:LibraryFilterView DataContext="{Binding Filters}" />
                 <Border Height="1" Background="{DynamicResource EchoDivider}" />
-                <TextBlock Text="{DynamicResource ui.AlbumsView.088ca20b4938}" FontWeight="SemiBold" />
-                <ComboBox Name="Density" SelectedIndex="0" SelectionChanged="OnDensityChanged" HorizontalAlignment="Stretch">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="10,2,10,4">
+                  <TextBlock Text="{DynamicResource ui.AlbumsView.088ca20b4938}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+                  <ComboBox Grid.Column="1" Name="Density" SelectedIndex="0" SelectionChanged="OnDensityChanged" HorizontalAlignment="Stretch" MinHeight="32" Height="32" Padding="9,4" FontSize="12" BorderThickness="0" Background="Transparent">
                   <ComboBoxItem Content="{DynamicResource ui.AlbumsView.7eb336e42cb5}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.0fc19c9a6ba6}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.995672c27fde}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.b4184384945a}" />
-                </ComboBox>
-                <Button Content="{DynamicResource ui.AlbumsView.13a431e59b65}" Click="OnResetFilter" />
-              </StackPanel>
+                  </ComboBox>
+                </Grid>
+              </StackPanel></ScrollViewer>
             </Flyout>
           </Button.Flyout>
         </Button>
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-          <ComboBox SelectedIndex="{Binding SortIndex, Mode=TwoWay}" MinWidth="120" VerticalAlignment="Center">
-            <ComboBoxItem Content="{DynamicResource ui.AlbumsView.4cea59dbe1d6}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.8104520f6e69}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.703d2fb0baef}" />
-            <ComboBoxItem Content="{DynamicResource ui.AlbumsView.3411b4e3fafc}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.ecad6a2d30ef}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.cfc309de0941}" />
-          </ComboBox>
-          <ToggleButton IsChecked="{Binding Descending, Mode=TwoWay}" Content="↓" ToolTip.Tip="{DynamicResource ui.AlbumsView.b40514e8597f}" Width="32" />
-        </StackPanel>
+        <albums:AlbumSortControl Grid.Column="2" />
       </Grid>
       <StackPanel Grid.Row="2" Spacing="8" Margin="0,0,0,8">
         <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -53,6 +47,7 @@
       </StackPanel>
       <Grid Grid.Row="3">
         <ContentControl Name="ViewportHost" />
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" Height="2" VerticalAlignment="Top" />
         <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
           <icon:GlyphIcon Kind="album" Width="32" Height="32" HorizontalAlignment="Center" />
           <TextBlock Text="{DynamicResource ui.AlbumsView.3e53bf20bf17}" Classes="heading" FontSize="18" HorizontalAlignment="Center" />

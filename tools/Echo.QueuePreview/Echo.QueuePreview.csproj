@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><IsAotCompatible>false</IsAotCompatible><NoWarn>$(NoWarn);CS0436</NoWarn></PropertyGroup>
+  <ItemGroup>
+    <!-- UI verification uses the last built shell while queue sources compile fresh. -->
+    <Reference Include="Echo.Desktop"><HintPath>../../src/Echo.Desktop/bin/Debug/net10.0/Echo.Desktop.dll</HintPath></Reference>
+    <Reference Include="Echo.Infrastructure"><HintPath>../../src/Echo.Desktop/bin/Debug/net10.0/Echo.Infrastructure.dll</HintPath></Reference>
+    <Reference Include="Echo.Contracts"><HintPath>../../src/Echo.Desktop/bin/Debug/net10.0/Echo.Contracts.dll</HintPath></Reference>
+    <Reference Include="Echo.Application"><HintPath>../../src/Echo.Desktop/bin/Debug/net10.0/Echo.Application.dll</HintPath></Reference>
+    <Reference Include="Echo.Platform"><HintPath>../../src/Echo.Desktop/bin/Debug/net10.0/Echo.Platform.dll</HintPath></Reference>
+    <ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" />
+    <PackageReference Include="Avalonia" /><PackageReference Include="Avalonia.Desktop" /><PackageReference Include="Avalonia.Headless" /><PackageReference Include="Avalonia.Themes.Fluent" /><PackageReference Include="CommunityToolkit.Mvvm" />
+    <Compile Include="../../src/Echo.Desktop/Features/Queue/*.cs" Exclude="../../src/Echo.Desktop/Features/Queue/QueueDrawer.axaml.cs;../../src/Echo.Desktop/Features/Queue/QueueOverlay.axaml.cs" Link="Queue/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Echo.Desktop/Features/Player/AudioFilePickerTypes.cs" Link="AudioFilePickerTypes.cs" />
+    <Compile Include="../../src/Echo.Desktop/Controls/EchoIcon.cs;../../src/Echo.Desktop/Controls/GlyphIcon.cs" Link="Controls/%(Filename)%(Extension)" />
+    <AvaloniaResource Include="../../src/Echo.Desktop/Resources/Icons/**" Link="Resources/Icons/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

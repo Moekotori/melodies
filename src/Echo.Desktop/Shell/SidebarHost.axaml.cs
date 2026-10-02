@@ -24,7 +24,7 @@ public partial class SidebarHost : UserControl
         AttachedToVisualTree += (_, _) => Attach();
         DetachedFromVisualTree += (_, _) => Detach();
         DataContextChanged += (_, _) => { if (this.IsAttachedToVisualTree()) { Detach(); Attach(); } };
-        PointerExited += (_, _) => { if (_model?.IsSidebarDrawerMode == true && !NavigationPanel.IsKeyboardFocusWithin) _model.CloseSidebarDrawerCommand.Execute(null); };
+        PointerExited += (_, _) => { if (_model is { IsSidebarDrawerMode: true, IsSidebarEditing: false } && !NavigationPanel.IsKeyboardFocusWithin) _model.CloseSidebarDrawerCommand.Execute(null); };
     }
     private void Attach()
     {
@@ -55,7 +55,7 @@ public partial class SidebarHost : UserControl
     {
         if (e.PropertyName == nameof(ShellViewModel.IsSidebarDrawerOpen)) Transition();
         else if (e.PropertyName is nameof(ShellViewModel.IsSidebarDrawerMode) or nameof(ShellViewModel.IsSidebarSuppressed)
-                 or nameof(ShellViewModel.IsSidebarExpanded)) Settle();
+                 or nameof(ShellViewModel.IsSidebarExpanded) or nameof(ShellViewModel.IsSidebarEditing)) Settle();
     }
     private async void Transition()
     {
@@ -116,6 +116,8 @@ public partial class SidebarHost : UserControl
     private void OnWindowKey(object? sender, KeyEventArgs e)
     {
         if (e.Handled || _model?.Shortcuts.IsRecording == true) return;
+        if (e.Key == Key.Escape && _model?.IsSidebarEditing == true)
+        { _model.ExitSidebarEditingCommand.Execute(null); e.Handled = true; return; }
         if (_model?.IsSidebarDrawerMode != true) return;
         if (e.Key == Key.Escape && _model.IsSidebarDrawerOpen) { CloseAndRestoreFocus(); e.Handled = true; }
         if (e.Key == Key.B && e.KeyModifiers.HasFlag(KeyModifiers.Control)) { ToggleFromKeyboard(); e.Handled = true; }

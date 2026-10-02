@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" />
+    <PackageReference Include="Jint" />
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Runtime/*.js;Resources/Jizura/*" /></ItemGroup>
+</Project>

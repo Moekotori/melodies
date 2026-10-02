@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:theme="using:Echo.Desktop.Theming" xmlns:settings="using:Echo.Desktop.Features.Settings"
+             x:Class="Echo.Desktop.Features.Settings.ThemeBackgroundSettings" x:DataType="theme:ThemeViewModel">
+  <UserControl.Styles>
+    <StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" />
+    <StyleInclude Source="/Features/Settings/ThemeWallpaperStyles.axaml" />
+  </UserControl.Styles>
+  <Border Background="{DynamicResource EchoPage}" Padding="24" CornerRadius="6">
+    <StackPanel Spacing="26">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18">
+        <StackPanel Spacing="7">
+          <TextBlock Text="背景" FontSize="23" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" />
+          <TextBlock Text="选择喜欢的画面，调整窗口的氛围。" Classes="wallpaper-label" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
+          <TextBlock Text="启用背景" Classes="wallpaper-label" VerticalAlignment="Center" />
+          <ToggleButton Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding WallpaperEnabled, Mode=TwoWay}" AutomationProperties.Name="启用自定义背景" />
+        </StackPanel>
+      </Grid>
+      <Grid Name="WallpaperWorkspace" ColumnDefinitions="*,270" RowDefinitions="Auto,Auto" ColumnSpacing="28" RowSpacing="22">
+        <StackPanel Name="PreviewColumn" Spacing="12">
+          <settings:ThemeWallpaperPreview Name="WindowPreview" />
+          <TextBlock Text="{Binding WallpaperStatus}" Classes="wallpaper-label" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Name="AdjustmentColumn" Grid.Column="1" Spacing="20">
+          <StackPanel Spacing="10">
+            <TextBlock Text="背景文件" Classes="wallpaper-label" />
+            <TextBlock Text="{Binding WallpaperFileName}" FontSize="14" FontWeight="Medium" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource EchoText}" ToolTip.Tip="{Binding Wallpaper}" />
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <Button Content="选择图片或视频" Classes="theme-action" Click="ChooseImage" AutomationProperties.Name="选择主背景" />
+              <Button Content="移除" Classes="theme-quiet" Command="{Binding ClearWallpaperCommand}" IsEnabled="{Binding HasWallpaperFile}" />
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Spacing="9">
+            <TextBlock Text="画面适配" Classes="wallpaper-label" />
+            <theme:ThemeChoiceList Name="WallpaperSelect" Classes="theme-choices wallpaper-options" ItemsSource="{Binding WallpaperChoices}" SelectedItem="{Binding SelectedWallpaperChoice, Mode=TwoWay}" AutomationProperties.Name="图片适配">
+              <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+            </theme:ThemeChoiceList>
+          </StackPanel>
+          <StackPanel Spacing="13">
+            <StackPanel Spacing="3">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="缩放" Classes="wallpaper-label" /><TextBlock Grid.Column="1" Text="{Binding WallpaperZoom, StringFormat='{}{0:0}%'}" Classes="wallpaper-value" /></Grid>
+              <Slider Classes="wallpaper-slider" Minimum="25" Maximum="400" Value="{Binding WallpaperZoom, Mode=TwoWay}" AutomationProperties.Name="背景缩放" />
+            </StackPanel>
+            <StackPanel Spacing="3">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="亮度" Classes="wallpaper-label" /><TextBlock Grid.Column="1" Text="{Binding WallpaperBrightness, StringFormat='{}{0:0}%'}" Classes="wallpaper-value" /></Grid>
+              <Slider Classes="wallpaper-slider" Minimum="0" Maximum="200" Value="{Binding WallpaperBrightness, Mode=TwoWay}" AutomationProperties.Name="背景亮度" />
+            </StackPanel>
+            <StackPanel Spacing="3">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="模糊" Classes="wallpaper-label" /><TextBlock Grid.Column="1" Text="{Binding WallpaperBlur, StringFormat='{}{0:0} px'}" Classes="wallpaper-value" /></Grid>
+              <Slider Classes="wallpaper-slider" Minimum="0" Maximum="40" Value="{Binding WallpaperBlur, Mode=TwoWay}" AutomationProperties.Name="背景模糊" />
+            </StackPanel>
+            <StackPanel Spacing="3">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="界面不透明度" Classes="wallpaper-label" /><TextBlock Grid.Column="1" Text="{Binding WallpaperUiOpacity, StringFormat='{}{0:0}%'}" Classes="wallpaper-value" /></Grid>
+              <Slider Classes="wallpaper-slider" Minimum="0" Maximum="100" Value="{Binding WallpaperUiOpacity, Mode=TwoWay}" AutomationProperties.Name="背景界面不透明度" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+      <StackPanel Spacing="12">
+        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="效果预设" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource EchoText}" /><Button Grid.Column="1" Content="恢复均衡" Classes="theme-quiet" Command="{Binding ResetWallpaperEffectsCommand}" /></Grid>
+        <theme:ThemeChoiceList Classes="theme-choices wallpaper-options" ItemsSource="{Binding WallpaperEffects}" SelectedItem="{Binding SelectedWallpaperEffect, Mode=TwoWay}" AutomationProperties.Name="背景效果预设">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+        </theme:ThemeChoiceList>
+      </StackPanel>
+      <Border Height="1" Background="{DynamicResource EchoDivider}" />
+      <StackPanel Spacing="9">
+        <Expander Header="位置与更多效果" Classes="wallpaper-more" HorizontalAlignment="Stretch">
+          <settings:ThemeWallpaperFineSettings Margin="0,14,0,10" />
+        </Expander>
+        <Expander Header="竖屏背景" Classes="wallpaper-more" HorizontalAlignment="Stretch">
+          <StackPanel Spacing="15" Margin="0,14,0,10">
+            <TextBlock Text="窗口高于宽时自动切换，未设置时沿用主背景。" Classes="wallpaper-label" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18">
+              <TextBlock Text="{Binding PortraitFileName}" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding PortraitWallpaper}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"><Button Content="选择" Classes="theme-action" Click="ChoosePortrait" AutomationProperties.Name="选择竖屏背景" /><Button Content="移除" Classes="theme-quiet" Command="{Binding ClearPortraitWallpaperCommand}" /></StackPanel>
+            </Grid>
+            <ComboBox ItemsSource="{Binding WallpaperChoices}" SelectedItem="{Binding SelectedPortraitFit, Mode=TwoWay}" HorizontalAlignment="Left" Width="200" AutomationProperties.Name="竖屏图片适配" />
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="24" RowSpacing="10">
+              <StackPanel Spacing="5"><TextBlock Text="水平位置" Classes="wallpaper-label" /><Slider Classes="wallpaper-slider" Minimum="0" Maximum="100" Value="{Binding PortraitX, Mode=TwoWay}" AutomationProperties.Name="竖屏水平位置" /></StackPanel>
+              <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="垂直位置" Classes="wallpaper-label" /><Slider Classes="wallpaper-slider" Minimum="0" Maximum="100" Value="{Binding PortraitY, Mode=TwoWay}" AutomationProperties.Name="竖屏垂直位置" /></StackPanel>
+              <StackPanel Grid.Row="1" Spacing="5"><TextBlock Text="{Binding PortraitZoom, StringFormat='缩放 {0:0}%'}" Classes="wallpaper-label" /><Slider Classes="wallpaper-slider" Minimum="25" Maximum="400" Value="{Binding PortraitZoom, Mode=TwoWay}" AutomationProperties.Name="竖屏背景缩放" /></StackPanel>
+            </Grid>
+          </StackPanel>
+        </Expander>
+        <Expander Header="字体与文字" Classes="wallpaper-more" HorizontalAlignment="Stretch"><settings:ThemeTypographySettings Margin="0,14,0,10" /></Expander>
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:semi="https://irihi.tech/semi"
              x:Class="Echo.Desktop.App" RequestedThemeVariant="Light">
   <Application.Resources>
     <ResourceDictionary>
@@ -10,9 +11,17 @@
     </ResourceDictionary>
   </Application.Resources>
   <Application.Styles>
-    <FluentTheme />
+    <semi:SemiTheme Locale="zh-CN" />
     <StyleInclude Source="/Resources/Themes/EchoControls.axaml" />
+    <StyleInclude Source="/Resources/Themes/EchoLayout.axaml" />
+    <StyleInclude Source="/Resources/Themes/EchoSelectors.axaml" />
+    <StyleInclude Source="/Resources/Themes/AccessibilityStyles.axaml" />
     <StyleInclude Source="/Features/Queue/QueueStyles.axaml" />
+    <StyleInclude Source="/Features/Songs/SongsStyles.axaml" />
+    <StyleInclude Source="/Features/Songs/SongMenuStyles.axaml" />
+    <StyleInclude Source="/Features/LibraryDetails/LibraryPopupStyles.axaml" />
+    <StyleInclude Source="/Features/Player/SignalPathStyles.axaml" />
+    <StyleInclude Source="/Features/Player/PlayerVolumeStyles.axaml" />
     <StyleInclude Source="/Features/Settings/SettingsStyles.axaml" />
     <StyleInclude Source="/Resources/Motion/EchoMotion.axaml" />
   </Application.Styles>

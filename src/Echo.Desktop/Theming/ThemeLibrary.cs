@@ -6,6 +6,26 @@ namespace Echo.Desktop.Theming;
 
 public sealed partial class ThemeViewModel
 {
+    [RelayCommand] private void Randomize()
+    {
+        var accent = Avalonia.Media.Color.FromRgb((byte)Random.Shared.Next(40, 210), (byte)Random.Shared.Next(40, 210), (byte)Random.Shared.Next(40, 210));
+        ThemeTone Make(bool dark)
+        {
+            var tone = Tone(dark); var colors = new Dictionary<string, string>(tone.Colors);
+            foreach (var key in new[] { "appBg", "appBg2", "appBg3", "panel", "panelSoft", "titlebar", "sidebar", "player", "field", "row", "chip" })
+                colors[key] = ThemeColorMath.Mix(Avalonia.Media.Color.Parse(colors[key]), accent, .08).ToString();
+            var active = dark ? ThemeColorMath.Mix(accent, Avalonia.Media.Colors.White, .25) : accent;
+            colors["accent"] = active.ToString(); colors["focus"] = active.ToString();
+            colors["accentStrong"] = ThemeColorMath.Mix(active, dark ? Avalonia.Media.Colors.White : Avalonia.Media.Colors.Black, .3).ToString();
+            colors["onAccent"] = ThemeColorMath.Contrast("#ffffff", colors["accent"]) >= 4.5 ? "#ffffff" : "#14151a";
+            colors["rowActive"] = ThemeColorMath.Mix(Avalonia.Media.Color.Parse(colors["row"]), active, .2).ToString();
+            return tone with { Colors = colors };
+        }
+        var pair = new ThemePair(Make(false), Make(true));
+        var overrides = new Dictionary<string, ThemePair>(_preferences.Overrides ?? new Dictionary<string, ThemePair>()) { [SelectedPreset.Id] = pair };
+        Commit(_preferences with { Light = pair.Light, Dark = pair.Dark, Overrides = overrides, SelectedCustomId = null }, true);
+        Name = "随机主题"; Feedback = "已生成配色，可撤销或另存为新主题";
+    }
     [RelayCommand] private void SaveCopy()
     {
         if (Library.Count >= 16) { Feedback = "最多保存 16 个自定义主题，请先删除一个"; return; }
@@ -47,7 +67,19 @@ public sealed partial class ThemeViewModel
     }
     private static void WriteTone(Utf8JsonWriter writer, string name, ThemeTone tone)
     {
-        writer.WriteStartObject(name); foreach (var (key, value) in tone.Colors) writer.WriteString(key, value);
+        writer.WriteStartObject(name);
+        foreach (var (key, value) in tone.Colors)
+        {
+            var color = Avalonia.Media.Color.Parse(value);
+            var flat = ThemeColorMath.Mix(Avalonia.Media.Color.Parse(tone.Colors["appBg"]), color, color.A / 255d);
+            writer.WriteString(key, $"#{flat.R:x2}{flat.G:x2}{flat.B:x2}");
+        }
+        if (tone.Colors.Any(p => Avalonia.Media.Color.Parse(p.Value).A != 255))
+        {
+            writer.WriteStartObject("avaloniaColors");
+            foreach (var (key, value) in tone.Colors) if (Avalonia.Media.Color.Parse(value).A != 255) writer.WriteString(key, value);
+            writer.WriteEndObject();
+        }
         foreach (var (key, value) in tone.Numbers) writer.WriteNumber(key, value); writer.WriteBoolean("motionEnabled", tone.MotionEnabled); writer.WriteEndObject();
     }
     public void ImportJson(string json)
@@ -78,8 +110,12 @@ public sealed partial class ThemeViewModel
         if (!parent.TryGetProperty(key, out var tone)) return fallback;
         var colors = new Dictionary<string, string>(); var numbers = new Dictionary<string, double>();
         foreach (var definition in ThemeCatalog.Colors)
-            if (tone.TryGetProperty(definition.Key, out var value))
+        {
+            var found = tone.TryGetProperty(definition.Key, out var value);
+            if (tone.TryGetProperty("avaloniaColors", out var extra) && extra.TryGetProperty(definition.Key, out var alphaValue)) { found = true; value = alphaValue; }
+            if (found)
             { if (!ThemeColorMath.TryHex(value.GetString(), out var hex)) throw new InvalidDataException("无效颜色：" + definition.Label); colors[definition.Key] = hex; }
+        }
         foreach (var definition in ThemeCatalog.Numbers)
             if (tone.TryGetProperty(definition.Key, out var value))
             { var number = value.GetDouble(); if (!double.IsFinite(number)) throw new InvalidDataException("无效数值：" + definition.Label); numbers[definition.Key] = number; }

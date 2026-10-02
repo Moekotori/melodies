@@ -36,7 +36,9 @@ internal static class ShortcutSmoke
             window.Show(); Pump(binding.RestoreAsync()); shell.NavigateCommand.Execute("settings");
             shell.Settings.SelectCategoryCommand.Execute("shortcuts"); Settle();
             var model = shell.Shortcuts;
-            Require(model.Rows.Count == 33 && model.Rows.Count(x => x.Local.Enabled) == 2 && model.Rows.All(x => !x.Global.Enabled), "legacy defaults");
+            Require(model.Rows.Count <= ShortcutLimits.MaxActions && model.Rows.Count(x => x.Local.Enabled) == 2 && model.Rows.All(x => !x.Global.Enabled)
+                && model.ResolveLocal("Space") == "playPause" && model.ResolveLocal("Ctrl+Q") == "openPlaybackQueue",
+                $"legacy defaults: rows={model.Rows.Count}, local={model.Rows.Count(x => x.Local.Enabled)}, global={model.Rows.Count(x => x.Global.Enabled)}");
             var next = model.Rows.First(x => x.Action.Id == "nextTrack").Local;
             model.BeginRecording(next); Wait(() => model.RecordingReady && !model.IsApplying);
             Press(window, Key.Q, KeyModifiers.Control);

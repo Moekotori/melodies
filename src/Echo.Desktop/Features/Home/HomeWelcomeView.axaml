@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:home="using:Echo.Desktop.Features.Home" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Home.HomeWelcomeView" x:DataType="home:HomeViewModel">
+  <StackPanel Spacing="32">
+    <Grid Name="WelcomeLayout" ColumnDefinitions="*,200" ColumnSpacing="32" MinHeight="240">
+      <StackPanel Spacing="18" VerticalAlignment="Center">
+        <TextBlock Text="{DynamicResource ui.Sidebar.433bdcb25776}" Classes="muted" FontSize="12" />
+        <TextBlock Text="{DynamicResource home.welcomeTitle}" Classes="heading" FontSize="32" LineHeight="42" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource home.welcomeHint}" Classes="muted" FontSize="14" LineHeight="24" MaxWidth="560" HorizontalAlignment="Left" TextWrapping="Wrap" />
+        <WrapPanel>
+          <Button Name="ManageFoldersButton" Classes="primary" Command="{Binding Shell.NavigateCommand}" CommandParameter="folders" Margin="0,4,12,0">
+            <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="plus" Width="16" Height="16" Stroke="{DynamicResource EchoOnAccent}" /><TextBlock Text="{DynamicResource home.manageFolders}" /></StackPanel>
+          </Button>
+          <Button Classes="quiet" Command="{Binding Shell.NavigateCommand}" CommandParameter="remote" Margin="0,4,0,0" Padding="12,0"><TextBlock Text="{DynamicResource navigation.remote}" /></Button>
+        </WrapPanel>
+      </StackPanel>
+      <!-- Static native geometry: a record sleeve motif without an image, timer or blur layer. -->
+      <Grid Name="RecordMotif" Grid.Column="1" Width="180" Height="180" VerticalAlignment="Center">
+        <Ellipse Fill="{DynamicResource EchoPanelMuted}" Stroke="{DynamicResource EchoBorder}" StrokeThickness="1" />
+        <Ellipse Width="148" Height="148" Stroke="{DynamicResource EchoDivider}" StrokeThickness="1" />
+        <Ellipse Width="128" Height="128" Stroke="{DynamicResource EchoDivider}" StrokeThickness="1" />
+        <Ellipse Width="108" Height="108" Stroke="{DynamicResource EchoDivider}" StrokeThickness="1" />
+        <Ellipse Width="58" Height="58" Fill="{DynamicResource EchoAccent}" Opacity="0.12" />
+        <icon:GlyphIcon Kind="music" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{DynamicResource EchoAccentText}" />
+      </Grid>
+    </Grid>
+    <Border Height="1" Background="{DynamicResource EchoDivider}" />
+    <StackPanel Spacing="12">
+      <TextBlock Text="{DynamicResource home.explore}" Classes="heading" FontSize="18" Margin="0,0,0,6" />
+      <Button Classes="quiet" Command="{Binding Shell.NavigateCommand}" CommandParameter="folders" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,12">
+        <Grid ColumnDefinitions="32,*,20" ColumnSpacing="16">
+          <icon:GlyphIcon Kind="folder" Width="24" Height="24" VerticalAlignment="Center" Stroke="{DynamicResource EchoMuted}" />
+          <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{DynamicResource navigation.folders}" FontWeight="Medium" /><TextBlock Text="{DynamicResource home.folderHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" /></StackPanel>
+          <icon:GlyphIcon Grid.Column="2" Kind="chevron-right" Width="14" Height="14" VerticalAlignment="Center" />
+        </Grid>
+      </Button>
+      <Button Classes="quiet" Command="{Binding Shell.NavigateCommand}" CommandParameter="radio" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,12">
+        <Grid ColumnDefinitions="32,*,20" ColumnSpacing="16">
+          <icon:EchoIcon Kind="radio" Width="24" Height="24" VerticalAlignment="Center" BaseBrush="{DynamicResource EchoMuted}" AccentBrush="{DynamicResource EchoMuted}" />
+          <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{DynamicResource navigation.radio}" FontWeight="Medium" /><TextBlock Text="{DynamicResource home.radioHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" /></StackPanel>
+          <icon:GlyphIcon Grid.Column="2" Kind="chevron-right" Width="14" Height="14" VerticalAlignment="Center" />
+        </Grid>
+      </Button>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

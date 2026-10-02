@@ -21,6 +21,7 @@ internal sealed class WindowPreferencesBinding : IAsyncDisposable
     {
         _window = window; _shell = shell; _store = store;
         shell.PropertyChanged += OnChanged; shell.Motion.PropertyChanged += OnMotionChanged; shell.Text.Changed += Save; shell.Theme.Changed += Save; shell.Floating.PreferencesChanged += Save; store.Error += OnSaveError;
+        shell.FeaturePreferences.Changed += OnFeaturesChanged;
     }
     public async Task RestoreAsync()
     {
@@ -39,7 +40,9 @@ internal sealed class WindowPreferencesBinding : IAsyncDisposable
                 _shell.RememberWindowSize = saved.RememberWindowSize;
                 _shell.Text.SetLanguage(saved.Language);
                 _shell.Floating.Restore(saved.Floating);
+                _shell.FeaturePreferences.Restore(saved.Features);
                 _shell.RestoreQueries(saved.LibraryQueries);
+                _shell.RestoreSidebarLayout(saved.SidebarLayout);
                 _shell.Motion.SelectedChoice = _shell.Motion.Choices.FirstOrDefault(choice => choice.Mode.ToString() == saved.MotionMode) ?? _shell.Motion.Choices[0];
                 if (saved.RememberWindowSize && double.IsFinite(saved.WindowWidth) && double.IsFinite(saved.WindowHeight))
                 { _window.Width = Math.Clamp(saved.WindowWidth, 800, 3840); _window.Height = Math.Clamp(saved.WindowHeight, 600, 2160); }
@@ -54,14 +57,33 @@ internal sealed class WindowPreferencesBinding : IAsyncDisposable
         SidebarIconOnly: !_shell.IsSidebarExpanded, HideSidebarInSettings: _shell.HideSidebarInSettings,
         RememberWindowSize: _shell.RememberWindowSize, WindowWidth: _window.Width, WindowHeight: _window.Height,
         MotionMode: _shell.Motion.SelectedChoice.Mode.ToString(), SidebarAutoHideEnabled: _shell.SidebarAutoHideEnabled,
-        Language: _shell.Text.Preference, Theme: _shell.Theme.Snapshot, LibraryQueries: _shell.LibraryQueries, Floating: _shell.Floating.Snapshot());
+        Language: _shell.Text.Preference, Theme: _shell.Theme.Snapshot, LibraryQueries: _shell.LibraryQueries, Floating: _shell.Floating.Snapshot(), Features: _shell.FeaturePreferences.Snapshot(), SidebarLayout: _shell.SidebarLayout);
+    public DesktopPreferences Capture() => Snapshot();
+    public void Import(DesktopPreferences saved)
+    {
+        if (_disposed || saved.Version != 1) throw new InvalidDataException("设置版本不受支持。");
+        ++_revision; _restoring = true;
+        try
+        {
+            _shell.UiScalePercent = Math.Clamp(saved.UiScalePercent, 75, 150); _shell.IsDark = saved.IsDark;
+            _shell.Theme.Restore(saved.Theme, saved.IsDark); _shell.Text.SetLanguage(saved.Language);
+            _shell.IsSidebarExpanded = !saved.SidebarIconOnly; _shell.HideSidebarInSettings = saved.HideSidebarInSettings;
+            _shell.SidebarAutoHideEnabled = saved.SidebarAutoHideEnabled; _shell.RememberWindowSize = saved.RememberWindowSize;
+            _shell.Floating.Restore(saved.Floating); _shell.FeaturePreferences.Restore(saved.Features); _shell.RestoreQueries(saved.LibraryQueries);
+            _shell.RestoreSidebarLayout(saved.SidebarLayout);
+            _shell.Motion.SelectedChoice = _shell.Motion.Choices.FirstOrDefault(choice => choice.Mode.ToString() == saved.MotionMode) ?? _shell.Motion.Choices[0];
+        }
+        finally { _restoring = false; }
+        Save();
+    }
     private void OnChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(ShellViewModel.UiScalePercent) or nameof(ShellViewModel.IsDark) or nameof(ShellViewModel.IsSidebarExpanded)
-            or nameof(ShellViewModel.LibraryQueries) or nameof(ShellViewModel.HideSidebarInSettings) or nameof(ShellViewModel.SidebarAutoHideEnabled) or nameof(ShellViewModel.RememberWindowSize)) Save();
+            or nameof(ShellViewModel.SidebarLayout) or nameof(ShellViewModel.LibraryQueries) or nameof(ShellViewModel.HideSidebarInSettings) or nameof(ShellViewModel.SidebarAutoHideEnabled) or nameof(ShellViewModel.RememberWindowSize)) Save();
     }
     private void OnMotionChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(MotionPolicy.SelectedChoice)) Save(); }
     private void Save() { if (_restoring || _disposed) return; _revision++; _store.Save(Snapshot()); }
+    private void OnFeaturesChanged(string id) => Save();
     private void OnSaveError(string message) => Dispatcher.UIThread.Post(() =>
     {
         if (_disposed) return;
@@ -73,6 +95,7 @@ internal sealed class WindowPreferencesBinding : IAsyncDisposable
         if (_disposed) return;
         _store.Save(Snapshot()); _disposed = true; _lifetime.Cancel();
         _shell.PropertyChanged -= OnChanged; _shell.Motion.PropertyChanged -= OnMotionChanged; _shell.Text.Changed -= Save; _shell.Theme.Changed -= Save; _shell.Floating.PreferencesChanged -= Save; _store.Error -= OnSaveError;
+        _shell.FeaturePreferences.Changed -= OnFeaturesChanged;
         await _store.DisposeAsync().ConfigureAwait(false); _lifetime.Dispose();
     }
 }

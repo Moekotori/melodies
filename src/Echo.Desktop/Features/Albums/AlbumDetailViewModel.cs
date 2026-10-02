@@ -160,6 +160,6 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
         Source: Echo.Infrastructure.Library.TrackPlaybackSource.Audio(track), Metadata:
         new Dictionary<string, string?> { ["title"] = track.Title, ["artist"] = track.Artist, ["album"] = track.Album,
             ["duration"] = track.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture), ["codec"] = track.Codec },
-        Origin: new("album", album.Title, album.Id));
+        Origin: new("album", album.Title, album.Id), SampleRate: track.SampleRate > 0 ? track.SampleRate : null);
     public void Dispose() { if (_closed) return; _closed = true; player.Session.Changed -= OnPlayback; _request?.Cancel(); _lifetime.Cancel(); ++_generation; Tracks = []; PersonalStateChanged = null; }
 }

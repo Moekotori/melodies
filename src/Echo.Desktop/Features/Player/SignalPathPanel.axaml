@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:player="using:Echo.Desktop.Features.Player" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Player.SignalPathPanel" x:DataType="player:SignalPathViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+    <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="12" /></Style>
+    <Style Selector="TextBlock.value"><Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+    <Style Selector="TextBlock.value.highlight"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="TextBlock.detail"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="11" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+    <Style Selector="Border.divider"><Setter Property="Height" Value="1" /><Setter Property="Background" Value="{DynamicResource SettingsDivider}" /></Style>
+    <Style Selector="Button.close"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="5" /><Setter Property="MinHeight" Value="0" /></Style>
+    <Style Selector="Expander"><Setter Property="FontSize" Value="12" />
+      <Style.Resources>
+        <SolidColorBrush x:Key="ExpanderHeaderBackground">Transparent</SolidColorBrush>
+        <SolidColorBrush x:Key="ExpanderHeaderBorderBrush">Transparent</SolidColorBrush>
+        <SolidColorBrush x:Key="ExpanderContentBackground">Transparent</SolidColorBrush>
+        <SolidColorBrush x:Key="ExpanderContentBorderBrush">Transparent</SolidColorBrush>
+      </Style.Resources>
+    </Style>
+  </UserControl.Styles>
+  <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1" CornerRadius="10" BoxShadow="{DynamicResource EchoPanelShadow}" ClipToBounds="True">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="18,14,18,12">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+        <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Button Name="CloseButton" Grid.Column="1" Classes="close" Click="Close" ToolTip.Tip="{Binding CloseLabel}" AutomationProperties.Name="{Binding CloseLabel}"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
+      </Grid>
+      <ScrollViewer Name="ContentScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0">
+        <StackPanel Spacing="12">
+          <StackPanel Spacing="4">
+            <TextBlock Text="{Binding Headline}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Description}" Classes="detail" />
+          </StackPanel>
+          <Border Classes="divider" />
+          <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding LevelLabel}" Classes="label" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding LevelText}" FontSize="12" FontWeight="SemiBold" /></Grid>
+            <player:SignalLevelRail Height="6" Percent="{Binding LevelPercent}" ToolTip.Tip="{Binding LevelDetail}" />
+            <Grid ColumnDefinitions="2*,*,*,*">
+              <TextBlock Text="−60" Classes="label" FontSize="10" /><TextBlock Text="−24" Classes="label" FontSize="10" HorizontalAlignment="Right" />
+              <TextBlock Grid.Column="1" Text="−12" Classes="label" FontSize="10" HorizontalAlignment="Right" /><TextBlock Grid.Column="2" Text="−6" Classes="label" FontSize="10" HorizontalAlignment="Right" />
+              <TextBlock Grid.Column="3" Text="0 dBFS" Classes="label" FontSize="10" HorizontalAlignment="Right" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock Text="{Binding LevelSummary}" Classes="detail" /><icon:GlyphIcon Grid.Column="1" Kind="info" Width="13" Height="13" ToolTip.Tip="{Binding LevelNote}" VerticalAlignment="Top" /></Grid>
+          </StackPanel>
+          <Border Classes="divider" />
+          <ItemsControl ItemsSource="{Binding Metrics}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate><DataTemplate x:DataType="player:SignalPathFact">
+              <StackPanel Spacing="5" Margin="0,2,16,18">
+                <TextBlock Text="{Binding Label}" Classes="label" />
+                <TextBlock Text="{Binding Value}" Classes="value" Classes.highlight="{Binding Highlight}" />
+                <TextBlock Text="{Binding Detail}" Classes="detail" />
+              </StackPanel>
+            </DataTemplate></ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Expander Name="DiagnosticsExpander" Header="{Binding DiagnosticsLabel}" HorizontalAlignment="Stretch" Margin="-8,-6,-8,0">
+            <StackPanel Spacing="12" Margin="8,8,8,0">
+              <ItemsControl ItemsSource="{Binding OutputFacts}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="player:SignalPathFact"><StackPanel Spacing="3" Margin="0,0,12,12"><TextBlock Text="{Binding Label}" Classes="label" /><TextBlock Text="{Binding Value}" Classes="value" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Border Classes="divider" />
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding ChainLabel}" Classes="label" /><TextBlock Grid.Column="1" Text="{Binding Layers}" Classes="label" /></Grid>
+              <ItemsControl ItemsSource="{Binding Nodes}">
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="player:SignalPathNode">
+                  <Grid ColumnDefinitions="24,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+                    <icon:GlyphIcon Kind="{Binding Icon}" Width="18" Height="18" VerticalAlignment="Top" Margin="0,2,0,0" />
+                    <Border Grid.Row="1" Width="1" MinHeight="12" Background="{DynamicResource SettingsDivider}" Margin="0,4,0,0" />
+                    <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" /><TextBlock Text="{Binding Value}" Classes="value" FontSize="12" /></StackPanel>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Detail}" Classes="detail" Margin="0,3,0,0" />
+                  </Grid>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Border Classes="divider" />
+              <TextBlock Text="{Binding Diagnosis}" Classes="detail" />
+              <TextBlock Text="{Binding PerformanceText}" Classes="detail" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding Diagnostics}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="player:SignalPathFact"><Grid ColumnDefinitions="*,*" Margin="0,0,0,8"><TextBlock Text="{Binding Label}" Classes="label" /><TextBlock Grid.Column="1" Text="{Binding Value}" Classes="value" FontSize="12" /></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            </StackPanel>
+          </Expander>
+        </StackPanel>
+      </ScrollViewer>
+      <StackPanel Grid.Row="2" Spacing="8" Margin="0,10,0,0">
+        <Border Classes="divider" />
+        <Button Name="SettingsButton" Content="{Binding OutputSettingsLabel}" Click="OpenSettings" HorizontalAlignment="Right" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource EchoAccentText}" FontSize="12" Padding="4,3" MinHeight="0" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

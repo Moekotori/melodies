@@ -1,16 +1,19 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Shell.SidebarHost" x:DataType="shell:ShellViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.navigationSurface"><Setter Property="Background" Value="{DynamicResource EchoSidebar}" /></Style>
+    <Style Selector="Border.navigationSurface.drawer"><Setter Property="Background" Value="{DynamicResource EchoSidebar}" /></Style>
+  </UserControl.Styles>
   <Grid ClipToBounds="True">
-    <Border Name="NavigationPanel" Background="{DynamicResource EchoSidebar}"
-            BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,1,0">
+    <Border Name="NavigationPanel" Classes="navigationSurface" Classes.drawer="{Binding IsSidebarDrawerMode}">
       <shell:Sidebar />
     </Border>
     <Grid Name="EdgeReveal" Background="Transparent" PointerEntered="OnEdgeEntered">
       <Button Name="RevealButton" Width="22" Height="64" MinHeight="64" Padding="0" VerticalAlignment="Center"
               Background="{DynamicResource EchoSidebar}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,1,1"
               CornerRadius="0,6,6,0" Click="OnRevealClicked" ToolTip.Tip="{DynamicResource ui.SidebarHost.f5a2e8aeefd1}" AutomationProperties.Name="{DynamicResource ui.SidebarHost.658ff1eade42}">
-        <icon:GlyphIcon Kind="chevron-right" Width="14" Height="14" />
+        <icon:GlyphIcon Kind="chevron-right" Scope="sidebar" StrokeWidth="1.25" Width="14" Height="14" />
       </Button>
     </Grid>
   </Grid>

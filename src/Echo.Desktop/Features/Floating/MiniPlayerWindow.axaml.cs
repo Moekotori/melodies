@@ -13,33 +13,46 @@ public partial class MiniPlayerWindow : Window
     private readonly ShellViewModel shell;
     private readonly LyricsViewModel lyrics;
     private readonly PlayerSliderInteraction seek, volume;
+    private readonly QueueViewModel queueModel;
+    public PlayerViewModel Player { get; }
+    public FloatingWindowsViewModel Floating => shell.Floating;
     private bool expanded, queue;
     public MiniPlayerWindow(ShellViewModel shell, LyricsViewModel lyrics)
     {
         this.shell = shell; this.lyrics = lyrics;
-        InitializeComponent(); DataContext = shell;
-        seek = new(SeekSlider, () => shell.Player, true); volume = new(VolumeSlider, () => shell.Player, false);
+        Player = new(shell.Player!.Zone, shell.Text);
+        InitializeComponent(); DataContext = this;
+        queueModel = Player.Queue;
+        queueModel.PropertyChanged += QueueChanged; RefreshQueue();
+        seek = new(SeekSlider, () => Player, true); volume = new(VolumeSlider, () => Player, false);
         lyrics.Changed += RefreshLyrics; lyrics.PropertyChanged += LyricsChanged;
-        shell.Player!.PropertyChanged += PlayerChanged;
+        Player.PropertyChanged += PlayerChanged;
         Closed += (_, _) =>
         {
             seek.Cancel(); volume.Cancel();
             lyrics.Changed -= RefreshLyrics; lyrics.PropertyChanged -= LyricsChanged;
-            shell.Player.PropertyChanged -= PlayerChanged; CoverImage.Source = null;
+            Player.PropertyChanged -= PlayerChanged; CoverImage.Source = null;
+            queueModel.PropertyChanged -= QueueChanged; Player.Detach(); QueueList.ItemsSource = null;
         };
-        RefreshLyrics(); CoverImage.Source = lyrics.Cover;
+        RefreshLyrics(); UpdateCover();
+        ActualThemeVariantChanged += (_, _) => UpdateCover();
     }
+    private void QueueChanged(object? sender, PropertyChangedEventArgs e)
+    { if (e.PropertyName is nameof(QueueViewModel.Rows) or nameof(QueueViewModel.EmptyHint)) RefreshQueue(); }
+    private void RefreshQueue()
+    { QueueList.ItemsSource = queueModel.Rows; QueueEmpty.IsVisible = queueModel.IsEmpty; QueueEmpty.Text = queueModel.EmptyHint; }
+    private void UpdateCover() => CoverImage.Source = lyrics.Cover ?? this.FindResource("EchoPlaceholderImage") as Avalonia.Media.IImage;
     private void LyricsChanged(object? sender, PropertyChangedEventArgs e)
-    { if (e.PropertyName == nameof(LyricsViewModel.Cover)) CoverImage.Source = lyrics.Cover; }
+    { if (e.PropertyName == nameof(LyricsViewModel.Cover)) UpdateCover(); }
     private void PlayerChanged(object? sender, PropertyChangedEventArgs e)
-    { if (e.PropertyName == nameof(PlayerViewModel.Error)) LyricLine.Text = shell.Player!.Error.Length > 0 ? shell.Player.Error : CurrentLine(); }
+    { if (e.PropertyName is nameof(PlayerViewModel.Error) or nameof(PlayerViewModel.ArtistAlbum)) RefreshLyrics(); }
     private string CurrentLine()
     {
         var index = lyrics.Document.FindLine(lyrics.PositionMs(false));
         return index >= 0 && !string.IsNullOrWhiteSpace(lyrics.Document.Lines[index].Text)
-            ? lyrics.Document.Lines[index].Text : shell.Player!.ArtistAlbum;
+            ? lyrics.Document.Lines[index].Text : Player.ArtistAlbum;
     }
-    private void RefreshLyrics() => LyricLine.Text = shell.Player!.Error.Length > 0 ? shell.Player.Error : CurrentLine();
+    private void RefreshLyrics() => LyricLine.Text = Player.Error.Length > 0 ? Player.Error : CurrentLine();
     private void Drag(object? sender, PointerPressedEventArgs e)
     {
         if (!shell.Floating.MiniLocked && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
@@ -60,6 +73,6 @@ public partial class MiniPlayerWindow : Window
     {
         if (QueueList.SelectedItem is not QueueRowViewModel row) return;
         QueueList.SelectedItem = null;
-        await shell.Player!.SelectTrackAsync(row.Track);
+        await Player.SelectTrackAsync(row.Track);
     }
 }

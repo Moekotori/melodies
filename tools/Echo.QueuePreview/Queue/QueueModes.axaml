@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:queue="clr-namespace:Echo.Desktop.Features.Queue;assembly=Echo.QueuePreview" xmlns:icon="clr-namespace:Echo.Desktop.Controls;assembly=Echo.QueuePreview"
+             x:Class="Echo.Desktop.Features.Queue.QueueModes" x:DataType="queue:QueueViewModel">
+  <WrapPanel Orientation="Horizontal" IsEnabled="{Binding !IsBusy}">
+    <Button Classes="queue-mode" Command="{Binding SequentialCommand}" Classes.active="{Binding IsSequential}" AutomationProperties.Name="{DynamicResource ui.QueueModes.5bbcac595bc6}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Classes="mode-icon" Kind="queue" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.QueueModes.5bbcac595bc6}" /></StackPanel></Button>
+    <Button Classes="queue-mode" Command="{Binding ShuffleCommand}" Classes.active="{Binding IsShuffle}" AutomationProperties.Name="{DynamicResource ui.QueueModes.f34b7ce61098}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Classes="mode-icon" Kind="shuffle" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.QueueModes.f34b7ce61098}" /></StackPanel></Button>
+    <Button Classes="queue-mode" Command="{Binding RepeatOneCommand}" Classes.active="{Binding IsRepeatOne}" AutomationProperties.Name="{DynamicResource ui.QueueModes.8cde791504d2}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Classes="mode-icon" Kind="repeat-one" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.QueueModes.8cde791504d2}" /></StackPanel></Button>
+    <Button Classes="queue-mode" Command="{Binding RepeatAllCommand}" Classes.active="{Binding IsRepeatAll}" AutomationProperties.Name="{DynamicResource ui.QueueModes.2fe0943eacb3}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Classes="mode-icon" Kind="repeat" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.QueueModes.2fe0943eacb3}" /></StackPanel></Button>
+  </WrapPanel>
+</UserControl>

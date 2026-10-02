@@ -7,6 +7,8 @@
       </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>
   </Styles.Resources>
+  <Style Selector="icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="icon|EchoIcon"><Setter Property="BaseBrush" Value="{DynamicResource EchoHeading}" /><Setter Property="AccentBrush" Value="{DynamicResource EchoIconAccent}" /></Style>
   <Style Selector="Button.queue-tool"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="12,0" /><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="34" /></Style>
   <Style Selector="Button.queue-mode"><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="10,0" /><Setter Property="MinHeight" Value="38" /><Setter Property="CornerRadius" Value="0" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="0,0,0,1" /></Style>
   <Style Selector="Button.queue-mode.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>

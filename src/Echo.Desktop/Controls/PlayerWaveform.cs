@@ -25,7 +25,15 @@ public sealed class PlayerWaveform : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        var count = Bounds.Width >= 384 ? 96 : Bounds.Width >= 256 ? 64 : 48;
+        if (Bounds.Width <= 0 || Bounds.Height <= 0) return;
+        if (string.IsNullOrEmpty(Seed) || Seed == "idle" || Maximum <= 0)
+        {
+            using (context.PushOpacity(.18))
+                context.DrawRectangle(BarBrush ?? Brushes.Gray, null, new Rect(0, (Bounds.Height - 2) / 2, Bounds.Width, 2), 1, 1);
+            return;
+        }
+        var tier = Bounds.Width >= 384 ? 96 : Bounds.Width >= 256 ? 64 : 48;
+        var count = Math.Min(tier, Math.Max(1, (int)((Bounds.Width + 2) / 3)));
         var duration = Math.Round(Maximum);
         if (_bars.Length != count || _renderSeed != Seed || _renderDuration != duration)
         { _bars = CreateBars($"{Seed}:{duration}", count); _renderSeed = Seed; _renderDuration = duration; }
@@ -52,7 +60,7 @@ public sealed class PlayerWaveform : Control
             state ^= state >> 16;
             var random = state / 4294967295d;
             var phrase = Math.Sin(index * 0.23 + state % 17) * 0.18;
-            var swell = Math.Sin(index / (double)(count - 1) * Math.PI) * 0.28;
+            var swell = Math.Sin(index / (double)Math.Max(1, count - 1) * Math.PI) * 0.28;
             bars[index] = Math.Clamp(0.28 + random * 0.52 + phrase + swell, 0.18, 1);
         }
         return bars;

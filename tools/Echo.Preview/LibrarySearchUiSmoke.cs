@@ -1,4 +1,8 @@
 using System.Diagnostics;
+using System.Text.Json;
+using Echo.Playback;
+using Echo.Playback.NativeAudio;
+using Echo.Desktop.Features.Player;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -24,6 +28,8 @@ internal static class LibrarySearchUiSmoke
         var db = opening.GetAwaiter().GetResult();
         var artwork = new AlbumArtworkCache(new LocalAlbumArtwork());
         var shell = new ShellViewModel(); shell.AttachLibrary(db, artwork);
+        var session = new PlaybackSessionCoordinator(new SearchNative());
+        var player = new PlayerViewModel(new PlaybackZone(PlaybackZone.LocalId, "本机", session), shell.Text); shell.AttachPlayback(player);
         shell.Text.SetLanguage("zh-CN");
         shell.Motion.SelectedChoice = shell.Motion.Choices.First(choice => choice.Mode == MotionMode.Off);
         var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
@@ -33,6 +39,11 @@ internal static class LibrarySearchUiSmoke
             var view = window.GetVisualDescendants().OfType<SongsView>().Single(); var model = view.Model!;
             Wait(() => !model.IsLoading && model.Items.Count > 0);
             Require(model.Items.Count == 200, "bounded first page");
+            model.Selected = model.Items[4];
+            var play = model.PlayCommand.ExecuteAsync(null); Wait(() => play.IsCompleted); play.GetAwaiter().GetResult();
+            Require(session.Queue.Count == 200 && session.Snapshot.Current?.TrackId == model.Selected.Id, "bounded page play and selected start");
+            model.Selected = model.Items[5]; play = model.PlayNextCommand.ExecuteAsync(null); Wait(() => play.IsCompleted); play.GetAwaiter().GetResult();
+            Require(session.Queue.Any(track => track.QueuedNext && track.TrackId == model.Selected.Id), "next-up action");
             var next = model.NextCommand.ExecuteAsync(null); Wait(() => next.IsCompleted); next.GetAwaiter().GetResult();
             Require(model.Items.Count == 200 && model.CanPrevious, "next page");
             model.Search = "/artist 周杰伦"; Wait(() => !model.IsLoading);
@@ -57,7 +68,14 @@ internal static class LibrarySearchUiSmoke
             Require(model.SortIndex == 1 && model.SecondaryIndex == 3 && model.Filters.RateIndex == 4, "query preference navigation restore");
             model.Search = "thiswillnotmatch"; model.Search = "旅行";
             Wait(() => !model.IsLoading); Require(model.Items.Count == 1, "late query suppression");
-            shell.OpenSearchCommand.Execute(null);
+            Click(window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "GlobalSearchButton"));
+            Require(shell.IsGlobalSearchOpen, "titlebar global search entry");
+            var overlay = window.GetVisualDescendants().OfType<GlobalSearchOverlay>().Single();
+            overlay.Model!.Search = "Aurora"; Wait(() => !overlay.Model.IsLoading);
+            Require(overlay.Model.Hits.Count <= 24 && overlay.Model.Hits.Select(hit => hit.Target.GetType()).Distinct().Count() == 3, "bounded global overlay categories");
+            shell.IsDark = false; Capture("global-search-overlay-light.png");
+            shell.CloseGlobalSearchCommand.Execute(null);
+            shell.NavigateCommand.Execute("search");
             var search = window.GetVisualDescendants().OfType<LibrarySearchView>().Single();
             search.Model!.Search = "Aurora"; Wait(() => !search.Model.IsLoading);
             Require(search.Model.Hits.Select(hit => hit.Target.GetType()).Distinct().Count() == 3 && search.Model.Hits.Count <= 90, "global three categories");
@@ -69,7 +87,9 @@ internal static class LibrarySearchUiSmoke
         }
         finally
         {
-            window.ReleaseLibraryPage(); window.Close(); shell.Settings.Dispose(); shell.ReleaseLocalization();
+            window.ReleaseLibraryPage(); window.Close(); player.Detach();
+            var stopping = session.DisposeAsync().AsTask(); Wait(() => stopping.IsCompleted); stopping.GetAwaiter().GetResult();
+            shell.Settings.Dispose(); shell.ReleaseLocalization();
             var close = artwork.DisposeAsync().AsTask(); Wait(() => close.IsCompleted); close.GetAwaiter().GetResult();
             close = db.DisposeAsync().AsTask(); Wait(() => close.IsCompleted); close.GetAwaiter().GetResult();
         }
@@ -84,6 +104,25 @@ internal static class LibrarySearchUiSmoke
             window.UpdateLayout(); var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
             window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Dispatcher.UIThread.RunJobs();
         }
+    }
+    private sealed class SearchNative : INativeAudio
+    {
+        private int operation;
+        public event Action<string, JsonElement>? Notification { add { } remove { } }
+        public event Action<Exception>? Failed { add { } remove { } }
+        public Task StartAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<JsonElement> CallAsync(string method, JsonElement? parameters = null, CancellationToken cancellationToken = default)
+        {
+            var value = method switch
+            {
+                "queue.set" => $"{{\"queueRevision\":{parameters!.Value.GetProperty("revision").GetInt64()}}}",
+                "audio.sessionBegin" => "{\"accepted\":true,\"sessionId\":1,\"ready\":{\"sampleRate\":48000,\"channels\":2}}",
+                "audio.openFile" or "audio.seek" => $"{{\"operationId\":{++operation},\"sampleRate\":48000,\"durationSeconds\":600}}",
+                _ => "true"
+            };
+            using var document = JsonDocument.Parse(value); return Task.FromResult(document.RootElement.Clone());
+        }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
     private static void Require(bool condition, string label) { if (!condition) throw new InvalidOperationException(label); }
     private static void Wait(Func<bool> condition)

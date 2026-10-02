@@ -27,6 +27,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     public bool HasNoSearchResults => HasSearchResults && SearchResults.Count == 0;
     public bool IsAppearance => ActiveCategory.Id == "appearance";
     public bool IsPlayback => ActiveCategory.Id == "playback";
+    public UserLanguagesViewModel? UserLanguages { get; private set; }
+    public void AttachUserLanguages(UserLanguagesViewModel languages)
+    { UserLanguages?.Dispose(); UserLanguages = languages; OnPropertyChanged(nameof(UserLanguages)); SectionVersion++; }
 
     public SettingsViewModel(ShellViewModel shell)
     {
@@ -55,6 +58,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         if (result.CategoryId == "shortcuts" && result.RowId.StartsWith("shortcut-", StringComparison.Ordinal))
             Shell.Shortcuts.Query = result.RowId["shortcut-".Length..];
         foreach (var row in Sections.SelectMany(section => section.Rows)) row.IsHighlighted = row.Id == result.RowId;
+        if (result.CategoryId == "appearance") Shell.Theme.EditorSection = result.RowId switch
+        {
+            "rainbow-mode" => "材质与动效",
+            "wallpaper" or "appearance-typography" or "font-chinese" or "font-fallback" or "page-text-color" or "album-cover-shape" or "artist-wall-artwork" => "背景与字体",
+            _ => "配色"
+        };
         SectionVersion++;
     }
     partial void OnQueryChanged(string value)
@@ -76,15 +85,22 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged;
             _lyrics = Shell.LyricsAppearance; _lyrics.PropertyChanged += OnLyricsChanged;
         }
-        var migrated = new[] { "theme", "theme-schedule", "invert-mode", "theme-preset", "theme-custom", "wallpaper", "appearance-typography", "font-chinese", "font-fallback", "appearance-reset", "page-text-color" };
+        var migrated = new[] { "theme", "theme-schedule", "invert-mode", "theme-preset", "theme-custom", "wallpaper", "appearance-typography", "font-chinese", "font-fallback", "appearance-reset", "page-text-color", "album-cover-shape", "artist-wall-artwork", "rainbow-mode" };
         Sections = ActiveCategory.Definition.Sections.Select(section => new SettingsSectionViewModel(Shell.Text.Translate(section.Title),
             section.Rows.Where(row => !IsAppearance || !migrated.Contains(row.Id)).Select(CreateRow).ToArray())).Where(section => section.Rows.Count > 0).ToArray();
     }
 
     private SettingRowViewModel CreateRow(SettingDefinition definition)
     {
-        var supported = _runtime?.CanHandle(definition.Id) == true || definition.Id is "language" or "ui-scale" or "sidebar-auto-hide" or "sidebar-icon-only" or "settings-hide-sidebar" or "remember-window-size"
-            or "theme" or "disable-all-animations" or "appearance-reset" or "smtc" or "about-community"
+        if (definition.Id == "sleep-timer-minutes")
+        {
+            var saved = Shell.FeaturePreferences.Read(definition.Id, new(false, "30", 30)).Selection;
+            if (double.TryParse(saved, System.Globalization.CultureInfo.InvariantCulture, out var minutes)
+                && minutes is >= 1 and <= 720 && definition.Options?.Contains(saved) == false)
+                definition = definition with { Options = [.. definition.Options ?? [], saved] };
+        }
+        var supported = _runtime?.CanHandle(definition.Id) == true || definition.Id is "ultra-light-mode" or "close-to-tray" or "language" or "ui-scale" or "sidebar-auto-hide" or "sidebar-icon-only" or "settings-hide-sidebar" or "remember-window-size"
+            or "audio-visual-spectrum" or "sidebar-layout" or "player-top-waveform" or "player-energy-progress" or "songs-waveform-scrollbar" or "home-waveform-visualizer" or "theme" or "disable-all-animations" or "appearance-reset" or "smtc" or "about-community"
             or "lyrics-font-size" or "lyrics-secondary-size" or "lyrics-translation" or "lyrics-romanization"
             or "lyrics-context" or "lyrics-word-highlight" or "lyrics-font" or "lyrics-page-style";
         if (definition.Id == "language") definition = definition with { Options = Shell.Text.Languages.Select(language => language.Code).ToArray(), Value = Shell.Text.Preference };
@@ -98,8 +114,11 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private void Changed(SettingRowViewModel row)
     {
         if (_runtime?.CanHandle(row.Id) == true) { _ = _runtime.ChangeAsync(row); return; }
+        if (IsVisualSetting(row.Id)) { if (row.Id == "home-waveform-visualizer" && row.BoolValue) Shell.FeaturePreferences.Confirm("audio-visual-spectrum", new(true)); Shell.FeaturePreferences.Confirm(row.Id, new(row.BoolValue)); return; }
         switch (row.Id)
         {
+            case "ultra-light-mode": Shell.UltraLightEnabled = row.BoolValue; break;
+            case "close-to-tray": Shell.CloseToTray = row.BoolValue; break;
             case "language": Shell.Text.SetLanguage(row.SelectedValue); break;
             case "sidebar-auto-hide": Shell.SidebarAutoHideEnabled = row.BoolValue; break;
             case "ui-scale": Shell.UiScalePercent = Math.Clamp((int)row.NumberValue, 75, 150); break;
@@ -124,8 +143,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         switch (id)
         {
             case "sidebar-layout":
-                if (action == "恢复默认" || action == "全部显示") { Shell.SidebarAutoHideEnabled = false; Shell.IsSidebarExpanded = true; Shell.HideSidebarInSettings = false; }
-                else { Shell.IsSidebarExpanded = !Shell.IsSidebarExpanded; }
+                if (action == "恢复默认" || action == "全部显示") { Shell.ResetSidebarLayoutCommand.Execute(null); Shell.SidebarAutoHideEnabled = false; Shell.IsSidebarExpanded = true; Shell.HideSidebarInSettings = false; }
+                else { Shell.HideSidebarInSettings = false; Shell.EditSidebarCommand.Execute(null); }
                 break;
             case "appearance-reset": Shell.IsDark = false; Shell.UiScalePercent = 100; Shell.SidebarAutoHideEnabled = false; Shell.IsSidebarExpanded = true; break;
             case "smtc": Shell.RetryMediaTransportCommand.Execute(null); break;
@@ -134,11 +153,15 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
     public event Action<string>? ExternalLinkRequested;
+    private static bool IsVisualSetting(string id) => id is "audio-visual-spectrum" or "player-top-waveform" or "player-energy-progress" or "songs-waveform-scrollbar" or "home-waveform-visualizer";
     private void Synchronize(SettingRowViewModel row)
     {
         if (_runtime?.CanHandle(row.Id) == true) { SynchronizeFeature(row); return; }
+        if (IsVisualSetting(row.Id)) { row.Synchronize(toggle: Shell.FeaturePreferences.Read(row.Id, new()).Enabled); return; }
         switch (row.Id)
         {
+            case "ultra-light-mode": row.Synchronize(toggle: Shell.UltraLightEnabled); break;
+            case "close-to-tray": row.Synchronize(toggle: Shell.CloseToTray); break;
             case "language": row.Synchronize(selection: Shell.Text.Preference); break;
             case "sidebar-auto-hide": row.Synchronize(toggle: Shell.SidebarAutoHideEnabled); break;
             case "ui-scale": row.Synchronize(number: Shell.UiScalePercent); break;
@@ -159,7 +182,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     }
     private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(ShellViewModel.IsDark) or nameof(ShellViewModel.IsSidebarExpanded) or nameof(ShellViewModel.UiScalePercent)
+        if (e.PropertyName is nameof(ShellViewModel.UltraLightEnabled) or nameof(ShellViewModel.CloseToTray) or nameof(ShellViewModel.IsDark) or nameof(ShellViewModel.IsSidebarExpanded) or nameof(ShellViewModel.UiScalePercent)
             or nameof(ShellViewModel.HideSidebarInSettings) or nameof(ShellViewModel.SidebarAutoHideEnabled) or nameof(ShellViewModel.RememberWindowSize))
             foreach (var row in Sections.SelectMany(section => section.Rows)) Synchronize(row);
     }
@@ -170,5 +193,5 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     }
     private void OnLyricsChanged(object? sender, PropertyChangedEventArgs e)
     { foreach (var row in Sections.SelectMany(section => section.Rows).Where(row => row.Id.StartsWith("lyrics-", StringComparison.Ordinal))) Synchronize(row); }
-    public void Dispose() { DetachRuntime(); Shell.Text.Changed -= RefreshLanguage; Shell.PropertyChanged -= OnShellChanged; Shell.Motion.PropertyChanged -= OnMotionChanged; if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged; ExternalLinkRequested = null; }
+    public void Dispose() { UserLanguages?.Dispose(); DetachRuntime(); Shell.Text.Changed -= RefreshLanguage; Shell.PropertyChanged -= OnShellChanged; Shell.Motion.PropertyChanged -= OnMotionChanged; if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged; ExternalLinkRequested = null; }
 }

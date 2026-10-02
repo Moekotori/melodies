@@ -18,7 +18,8 @@ public sealed record ScanEntry(FileSnapshot File, ScanEntryKind Kind,
 public sealed record BatchReceipt(int Inserted, int Updated, int Unchanged, int Failed, long Revision);
 public sealed record TrackRow(string Id, string Path, string Title, string Artist,
     string Album, double DurationSeconds, string Codec, int SampleRate, int BitDepth, string SortKey,
-    int? TrackNumber = null, int? DiscNumber = null, bool Favorite = false, TrackSource? Source = null);
+    int? TrackNumber = null, int? DiscNumber = null, bool Favorite = false, TrackSource? Source = null,
+    string Genre = "");
 public sealed record TrackCursor(string SortKey, string Id, long Revision, int Offset = 0, string? QueryKey = null);
 public sealed record TrackQuery(int Limit = 100, string? Search = null, TrackCursor? After = null,
     IReadOnlyList<TrackOrder>? Order = null, LibraryFilter? Filter = null, int Offset = 0, long? Revision = null);

@@ -49,7 +49,6 @@ public partial class FoldersView
             if (!_closed)
             {
                 Model.SelectBreadcrumb(new(path, System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(path)), 0, 0, 0));
-                await Model.LoadAsync();
             }
         }
         catch (OperationCanceledException) { if (!_closed) ScanText.Text = Model.Text["folders.cancelled"]; }

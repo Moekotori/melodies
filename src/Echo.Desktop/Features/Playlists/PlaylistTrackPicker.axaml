@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:songs="using:Echo.Desktop.Features.Songs" xmlns:lib="using:Echo.Contracts.Library"
+             x:Class="Echo.Desktop.Features.Playlists.PlaylistTrackPicker" x:DataType="songs:SongsViewModel">
+  <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="/Features/Playlists/PlaylistStyles.axaml" />
+  </ResourceDictionary.MergedDictionaries></ResourceDictionary></UserControl.Resources>
+  <Border Background="{DynamicResource EchoOverlay}" Padding="24" KeyDown="OnKey">
+    <Border MaxWidth="640" MaxHeight="600" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource EchoField}"
+            BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="8" Padding="24">
+      <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="14">
+        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource playlists.addTracks}" Classes="heading" FontSize="22" VerticalAlignment="Center" />
+          <Button Name="CloseButton" Grid.Column="1" Content="×" Classes="icon" Click="OnClose" ToolTip.Tip="{DynamicResource playlists.cancel}" /></Grid>
+        <TextBox Name="SearchField" Grid.Row="1" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource playlists.searchLibrary}" KeyDown="OnSearchKey" />
+        <Grid Grid.Row="2">
+          <ListBox Name="TrackList" ItemsSource="{Binding Items}" SelectionMode="Multiple" ItemContainerTheme="{StaticResource PlaylistListItem}" BorderThickness="0" Background="Transparent" Padding="0"
+                   SelectionChanged="OnSelection" IsEnabled="{Binding !IsLoading}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+            <ListBox.ItemTemplate><DataTemplate x:DataType="lib:TrackRow">
+              <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="8,10">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                  <StackPanel Spacing="4"><TextBlock Text="{Binding Title}" Classes="heading" FontSize="13" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="11.5" TextTrimming="CharacterEllipsis" /></StackPanel>
+                  <TextBlock Grid.Column="1" Text="{Binding Album}" Classes="muted" MaxWidth="180" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </Grid>
+              </Border>
+            </DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+          <TextBlock Text="{DynamicResource playlists.noResults}" Classes="muted" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
+        <TextBlock Grid.Row="3" Text="{Binding Error}" FontSize="12" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" />
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+          <TextBlock Name="SelectionText" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="{DynamicResource playlists.previous}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" />
+          <Button Grid.Column="2" Content="{DynamicResource playlists.next}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" />
+          <Button Name="AddButton" Grid.Column="3" Content="{DynamicResource playlists.add}" Classes="primary" Click="OnAdd" IsEnabled="False" />
+        </Grid>
+      </Grid>
+    </Border>
+  </Border>
+</UserControl>

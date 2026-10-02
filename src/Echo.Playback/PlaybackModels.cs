@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Echo.Contracts.Media;
 
 namespace Echo.Playback;
 
@@ -18,6 +19,7 @@ public sealed record AudioSource(string Kind, string Uri, SourceRange? Range = n
         if (Kind == "local")
         {
             if (!Path.IsPathFullyQualified(Uri) || !File.Exists(Uri)) throw new FileNotFoundException("音源不存在", Uri);
+            AudioFormatCatalog.RequireDirectAudio(Uri);
             if (Headers is { Count: > 0 }) throw new ArgumentException("本地音源不接受 HTTP headers");
         }
         else if (Kind != "http" || !System.Uri.TryCreate(Uri, UriKind.Absolute, out var url)
@@ -36,14 +38,17 @@ public sealed record AudioSource(string Kind, string Uri, SourceRange? Range = n
 public sealed record SourceRange(double StartSeconds, double? EndSeconds);
 public sealed record QueueTrack(string ItemId, string TrackId, string FilePath, AudioSource? Source = null,
     IReadOnlyDictionary<string, string?>? Metadata = null, bool QueuedNext = false, bool RemoveAfterPlay = false,
-    QueueOrigin? Origin = null);
+    QueueOrigin? Origin = null, int? SampleRate = null);
 public sealed record QueueOrigin(string Kind, string Label, string? Id = null);
 public sealed record QueueSnapshot(long Version, IReadOnlyList<QueueTrack> Items, IReadOnlyList<QueueTrack> History,
     string? CurrentItemId, QueueTrack? Upcoming, QueuePlaybackMode Mode);
 public sealed record NativeQueue(long Revision, string? CurrentItemId, string RepeatMode, IReadOnlyList<QueueTrack> Items);
 public sealed record PlaybackSnapshot(long Version, PlaybackStatus Status, QueueTrack? Current,
     double PositionSeconds, double DurationSeconds, double Volume, long OperationId,
-    int SampleRate, int Channels, string? Error, JsonElement? Output, JsonElement? Processing);
+    int SampleRate, int Channels, string? Error, JsonElement? Output, JsonElement? Processing)
+{
+    public double PlaybackRate { get; init; } = 1;
+}
 public sealed record PlaybackCheckpoint(int SchemaVersion, IReadOnlyList<QueueTrack> Items, string? CurrentItemId,
     string RepeatMode, double PositionSeconds, double Volume, JsonElement? Device,
     IReadOnlyDictionary<string, JsonElement> Dsp, bool Shuffle = false,

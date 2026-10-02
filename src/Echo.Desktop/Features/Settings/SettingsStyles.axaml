@@ -3,7 +3,6 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="SettingsNavBackground">#70fafafd</SolidColorBrush>
           <SolidColorBrush x:Key="SettingsSurface">#a3fafafd</SolidColorBrush>
           <SolidColorBrush x:Key="SettingsHeaderSurface">#b5fafafd</SolidColorBrush>
           <SolidColorBrush x:Key="SettingsBorder">#85e0e1e9</SolidColorBrush>
@@ -15,7 +14,6 @@
           <SolidColorBrush x:Key="SettingsBadgeText">#80652b</SolidColorBrush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
-          <SolidColorBrush x:Key="SettingsNavBackground">#70202127</SolidColorBrush>
           <SolidColorBrush x:Key="SettingsSurface">#a3202127</SolidColorBrush>
           <SolidColorBrush x:Key="SettingsHeaderSurface">#b5202127</SolidColorBrush>
           <SolidColorBrush x:Key="SettingsBorder">#8534363f</SolidColorBrush>
@@ -27,38 +25,8 @@
           <SolidColorBrush x:Key="SettingsBadgeText">#e1c788</SolidColorBrush>
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
-      <ControlTheme x:Key="SettingsToggleTheme" TargetType="ToggleButton">
-        <Setter Property="Width" Value="113" /><Setter Property="Height" Value="34" />
-        <Setter Property="Cursor" Value="Hand" /><Setter Property="Background" Value="{DynamicResource SettingsToggleBackground}" />
-        <Setter Property="Template">
-          <ControlTemplate>
-            <Border Background="{TemplateBinding Background}" CornerRadius="6" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1" Padding="11,3">
-              <Grid ColumnDefinitions="*,42" ColumnSpacing="8">
-                <TextBlock Name="StateLabel" FontSize="12" VerticalAlignment="Center" />
-                <Border Name="Track" Grid.Column="1" Height="24" CornerRadius="12">
-                  <Border Name="Knob" Width="20" Height="20" Margin="2" CornerRadius="10" Background="White" />
-                </Border>
-              </Grid>
-            </Border>
-          </ControlTemplate>
-        </Setter>
-        <Style Selector="^ /template/ TextBlock#StateLabel"><Setter Property="Text" Value="{DynamicResource ui.SettingsStyles.f95ea7f4c063}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
-        <Style Selector="^ /template/ Border#Track"><Setter Property="Background" Value="{DynamicResource SettingsToggleTrack}" /></Style>
-        <Style Selector="^ /template/ Border#Knob"><Setter Property="HorizontalAlignment" Value="Left" /></Style>
-        <Style Selector="^:checked"><Setter Property="Background" Value="{DynamicResource SettingsSelected}" /></Style>
-        <Style Selector="^:checked /template/ TextBlock#StateLabel"><Setter Property="Text" Value="{DynamicResource ui.SettingsStyles.dfb802238b38}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
-        <Style Selector="^:checked /template/ Border#Track"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /></Style>
-        <Style Selector="^:checked /template/ Border#Knob"><Setter Property="HorizontalAlignment" Value="Right" /></Style>
-        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5" /><Setter Property="Cursor" Value="Arrow" /></Style>
-        <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
-      </ControlTheme>
     </ResourceDictionary>
   </Styles.Resources>
-  <Style Selector="Button.settings-category"><Setter Property="Padding" Value="9,6" /><Setter Property="CornerRadius" Value="9" /><Setter Property="MinHeight" Value="46" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
-  <Style Selector="Button.settings-category.active"><Setter Property="Background" Value="{DynamicResource SettingsSelected}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
-  <Style Selector="Button.settings-category.active TextBlock.category-title"><Setter Property="FontWeight" Value="SemiBold" /></Style>
-  <Style Selector="Button.settings-category.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
-  <Style Selector="TextBlock.settings-group-label.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
   <Style Selector="Button.settings-search-result.active"><Setter Property="Background" Value="{DynamicResource SettingsSelected}" /></Style>
   <Style Selector="Button.settings-control"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource SettingsBorder}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="6" /><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="12,0" /><Setter Property="FontSize" Value="13" /></Style>
   <Style Selector="Button.settings-choice"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource SettingsBorder}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="6" /><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="12,0" /><Setter Property="FontSize" Value="13" /></Style>

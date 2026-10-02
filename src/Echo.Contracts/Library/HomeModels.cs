@@ -2,7 +2,8 @@ namespace Echo.Contracts.Library;
 
 public sealed record HomeLibrarySummary(long Artists, long Albums, long Tracks, long Folders);
 public sealed record ListeningEntry(string Id, string TrackId, string Path, long StartedUnix,
-    long UpdatedUnix, double PlayedSeconds);
+    long UpdatedUnix, double PlayedSeconds, long? EndedUnix = null, string Source = "",
+    long? HistoryEpoch = null);
 public sealed record ListeningDay(string Date, long Plays, double Seconds);
 public sealed record ListeningArtist(string Name, long Plays, double Seconds);
 public sealed record ListeningTrack(TrackRow Track, long Plays, double Seconds, long LastPlayedUnix);
@@ -11,7 +12,8 @@ public sealed record ListeningQuality(string Codec, double Seconds);
 public sealed record HomeListeningSummary(long WeekPlays, double WeekSeconds, int ActiveDays,
     double AverageSeconds, double RepeatRate, IReadOnlyList<ListeningDay> Days,
     IReadOnlyList<ListeningArtist> Artists, IReadOnlyList<ListeningTrack> Tracks,
-    IReadOnlyList<ListeningAlbum> Albums, IReadOnlyList<ListeningQuality> Quality);
+    IReadOnlyList<ListeningAlbum> Albums, IReadOnlyList<ListeningQuality> Quality,
+    long SessionCount = 0, double AverageSessionSeconds = 0);
 public sealed record HomeDashboard(HomeLibrarySummary Library, IReadOnlyList<AlbumRow> RecentAdded,
     IReadOnlyList<AlbumRow> RecentPlayed, IReadOnlyList<AlbumRow> Recommended,
     TrackRow? LastTrack, HomeListeningSummary Listening);

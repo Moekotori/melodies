@@ -44,6 +44,4 @@ public static class ThemeCatalog
 }
 
 [JsonSerializable(typeof(ThemePreset[]))]
-[JsonSerializable(typeof(ThemePreferences))]
-[JsonSerializable(typeof(CustomTheme))]
 internal partial class ThemeJsonContext : JsonSerializerContext;

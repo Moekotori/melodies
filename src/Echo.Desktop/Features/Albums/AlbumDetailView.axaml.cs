@@ -67,23 +67,21 @@ public partial class AlbumDetailView : UserControl, IDisposable
         if (_model is null || Bounds.Width <= 0) return;
         var narrow = Bounds.Width < 900;
         var small = Bounds.Width < 650;
-        var window = TopLevel.GetTopLevel(this)?.Bounds.Size ?? Bounds.Size;
-        var size = narrow ? Math.Clamp(Bounds.Width * .29, 112, 248) : Math.Clamp(window.Width * .24, 248, 352);
-        Hero.ColumnDefinitions[0].Width = new(size); Hero.ColumnDefinitions[2].Width = new(narrow ? 0 : 210);
-        Hero.ColumnSpacing = small ? 20 : narrow ? 28 : Math.Clamp(Bounds.Width * .048, 32, 64);
+        var size = Math.Clamp(Bounds.Width * (narrow ? .27 : .23), 112, 264);
+        Hero.ColumnDefinitions[0].Width = new(size); Hero.ColumnDefinitions[2].Width = new(narrow ? 0 : 180);
+        Hero.ColumnSpacing = small ? 20 : 32;
         Grid.SetColumn(Facts, narrow ? 0 : 2); Grid.SetRow(Facts, narrow ? 1 : 0); Grid.SetColumnSpan(Facts, narrow ? 3 : 1);
         Facts.BorderThickness = narrow ? new(0, 1, 0, 0) : new(1, 0, 0, 0);
         Facts.Padding = narrow ? new(0, 14, 0, 0) : new(24, 4, 0, 4);
         FactsPanel.Orientation = narrow ? Avalonia.Layout.Orientation.Horizontal : Avalonia.Layout.Orientation.Vertical;
-        FactsPanel.Spacing = narrow ? 24 : 13;
+        FactsPanel.ItemSpacing = narrow ? 24 : 13;
         CoverFrame.Width = size; CoverFrame.Height = size;
         var units = _model.Album.Title.Trim().EnumerateRunes().Sum(rune => System.Text.Rune.IsWhiteSpace(rune) ? .32 : rune.Value <= 0x24f ? .58 : 1);
         var density = units >= 48 ? 2 : units >= 30 ? 1 : 0;
-        var titleSize = window.Height <= 900 ? density switch
-        { 2 => Math.Clamp(window.Width * .026, 28, 42), 1 => Math.Clamp(window.Width * .031, 32, 50), _ => Math.Clamp(window.Width * .038, 38, 60) }
-            : density switch { 2 => Math.Clamp(window.Width * .029, 32, 48), 1 => Math.Clamp(window.Width * .036, 38, 60), _ => Math.Clamp(window.Width * .045, 46, 76) };
-        AlbumTitle.FontSize = small ? Math.Min(30, titleSize) : narrow ? Math.Min(38, titleSize) : titleSize;
-        AlbumTitle.LineHeight = AlbumTitle.FontSize * 1.1;
+        var textWidth = Math.Max(160, Bounds.Width - size - (narrow ? 0 : 180) - Hero.ColumnSpacing * (narrow ? 1 : 2));
+        var titleSize = Math.Clamp(textWidth * .085, 30, 44) * (density == 2 ? .8 : density == 1 ? .9 : 1);
+        AlbumTitle.FontSize = small ? Math.Min(30, titleSize) : narrow ? Math.Min(36, titleSize) : titleSize;
+        AlbumTitle.LineHeight = AlbumTitle.FontSize * 1.18;
         TrackHeader.Margin = new(0, 0, 12, 0);
         var compactRows = Bounds.Width < 650;
         TrackHeader.ColumnDefinitions[0].Width = new(compactRows ? 28 : 46);

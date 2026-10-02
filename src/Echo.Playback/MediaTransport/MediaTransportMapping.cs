@@ -14,7 +14,7 @@ public static class MediaTransportMapping
         for (var i = 0; i < queue.Count; i++) if (queue[i].ItemId == track?.ItemId) { index = i; break; }
         var playable = track is not null && (index >= 0 || queueState is not null) && state.Status != PlaybackStatus.Faulted;
         var active = playable && state.OperationId > 0;
-        var duration = Safe(state.DurationSeconds);
+        var duration = Text("isLiveStream") == "true" ? 0 : Safe(state.DurationSeconds);
         var position = Safe(state.PositionSeconds);
         if (state.Status == PlaybackStatus.Loading && state.OperationId == 0) { duration = 0; position = 0; }
         if (duration > 0) position = Math.Min(position, duration);

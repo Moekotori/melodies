@@ -18,7 +18,10 @@ public sealed class FloatingWindowController : IDisposable
     private readonly Func<nint, bool, bool>? passthrough;
     private readonly DispatcherTimer geometry = new() { Interval = TimeSpan.FromMilliseconds(300) };
     private LyricsViewModel? lyrics;
+    private Echo.Contracts.Lyrics.LyricsDocument? visibilityDocument;
+    private bool trackHasText;
     private bool disposed, applying;
+    private int screenUpdateQueued;
     public MiniPlayerWindow? MiniWindow { get; private set; }
     public DesktopLyricsWindow? LyricsWindow { get; private set; }
     public FloatingWindowController(Window main, ShellViewModel shell, Func<nint, bool, bool>? passthrough = null)
@@ -27,7 +30,9 @@ public sealed class FloatingWindowController : IDisposable
         shell.Floating.SupportsPassthrough = passthrough is not null;
         shell.Floating.PreferencesChanged += Apply; shell.Floating.ResetRequested += Reset;
         shell.Floating.RestoreRequested += RestoreMain;
+        shell.Floating.MinimizeRequested += MinimizeMain;
         geometry.Tick += SaveGeometry;
+        main.Screens.Changed += ScreensChanged;
     }
     private void Apply()
     {
@@ -87,7 +92,12 @@ public sealed class FloatingWindowController : IDisposable
     {
         if (LyricsWindow is not { } window || lyrics is null) return;
         // Whole document, not the currently empty intro/interlude row.
-        var show = !shell.Floating.HideWithoutLyrics || lyrics.IsLoading || lyrics.HasLyrics;
+        if (!ReferenceEquals(visibilityDocument, lyrics.Document))
+        {
+            visibilityDocument = lyrics.Document;
+            trackHasText = lyrics.Document.Lines.Any(line => !string.IsNullOrWhiteSpace(line.Text));
+        }
+        var show = !shell.Floating.HideWithoutLyrics || lyrics.IsLoading || trackHasText;
         if (show && !window.IsVisible) window.Show();
         else if (!show && window.IsVisible) window.Hide();
     }
@@ -135,13 +145,31 @@ public sealed class FloatingWindowController : IDisposable
         if (MiniWindow is { } mini) FloatingWindowPlacement.Place(mini, main, null, true);
         if (LyricsWindow is { } desktop) FloatingWindowPlacement.Place(desktop, main, null, false);
     }
+    private void ScreensChanged(object? sender, EventArgs e)
+    {
+        if (Interlocked.Exchange(ref screenUpdateQueued, 1) != 0) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            Interlocked.Exchange(ref screenUpdateQueued, 0);
+            if (disposed) return;
+            if (MiniWindow is { } mini) FloatingWindowPlacement.Place(mini, main, FloatingWindowPlacement.Capture(mini), true);
+            if (LyricsWindow is { } desktop) FloatingWindowPlacement.Place(desktop, main, FloatingWindowPlacement.Capture(desktop), false);
+        });
+    }
     private void RestoreMain()
-    { main.Show(); if (main.WindowState == WindowState.Minimized) main.WindowState = WindowState.Normal; main.Activate(); }
+    {
+        if (main is MainWindow shellWindow) { shellWindow.RestoreMainWindow(); return; }
+        main.Show(); if (main.WindowState == WindowState.Minimized) main.WindowState = WindowState.Normal; main.Activate();
+    }
+    private void MinimizeMain()
+    { if (MiniWindow is { IsVisible: true }) main.WindowState = WindowState.Minimized; }
     public void Dispose()
     {
         if (disposed) return;
         SaveGeometry(null, EventArgs.Empty); disposed = true; geometry.Stop(); geometry.Tick -= SaveGeometry;
+        main.Screens.Changed -= ScreensChanged;
         shell.Floating.PreferencesChanged -= Apply; shell.Floating.ResetRequested -= Reset; shell.Floating.RestoreRequested -= RestoreMain;
+        shell.Floating.MinimizeRequested -= MinimizeMain;
         var mini = MiniWindow; var desktop = LyricsWindow; MiniWindow = null; LyricsWindow = null;
         mini?.Close(); desktop?.Close();
         if (lyrics is not null) { lyrics.Changed -= LyricsChanged; lyrics.Dispose(); lyrics = null; }

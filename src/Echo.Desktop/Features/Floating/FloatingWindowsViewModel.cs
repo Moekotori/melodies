@@ -9,7 +9,7 @@ namespace Echo.Desktop.Features.Floating;
 public sealed partial class FloatingWindowsViewModel : ObservableObject
 {
     public LocalizationService Text { get; }
-    public bool SupportsPassthrough { get; internal set; }
+    [ObservableProperty] private bool supportsPassthrough;
     [ObservableProperty] private bool miniEnabled;
     [ObservableProperty] private bool lyricsEnabled;
     [ObservableProperty] private bool miniLocked;
@@ -32,6 +32,7 @@ public sealed partial class FloatingWindowsViewModel : ObservableObject
     public event Action? PreferencesChanged;
     public event Action? ResetRequested;
     public event Action? RestoreRequested;
+    public event Action? MinimizeRequested;
     internal bool Restoring { get; private set; }
     public FloatingWindowsViewModel(LocalizationService text)
     {
@@ -42,6 +43,8 @@ public sealed partial class FloatingWindowsViewModel : ObservableObject
     [RelayCommand] private void ToggleLyrics() => LyricsEnabled = !LyricsEnabled;
     [RelayCommand] private void ToggleLock() => LyricsLocked = !LyricsLocked;
     [RelayCommand] private void RestoreMain() => RestoreRequested?.Invoke();
+    [RelayCommand] private void UseMini()
+    { MiniEnabled = true; MinimizeRequested?.Invoke(); }
     [RelayCommand] private void ResetPosition()
     {
         MiniBounds = null; LyricsBounds = null; LyricsLocked = false;

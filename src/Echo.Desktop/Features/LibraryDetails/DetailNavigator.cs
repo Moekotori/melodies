@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Echo.Contracts.Library;
 using Echo.Desktop.Features.Albums;
 using Echo.Desktop.Features.Artists;
+using Echo.Desktop.Features.Genres;
 using Echo.Desktop.Shell;
 using Echo.Desktop.Motion;
 
@@ -24,6 +25,7 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
     public event Action<string, bool, int>? PersonalStateChanged;
     public void OpenAlbum(AlbumRow album) => Open(album);
     public void OpenArtist(ArtistRow artist) => Open(artist);
+    public void OpenGenre(GenreRow genre) => Open(genre);
     private void Open(object target)
     {
         if (_closed) return;
@@ -45,6 +47,11 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
                 PersonalStateChanged?.Invoke(id, favorite, rating);
             };
             Content = view;
+        }
+        else if (target is GenreRow genre)
+        {
+            var view = new GenreDetailView(genre, shell); view.Back += GoBack; view.OpenAlbum += OpenAlbum;
+            Content = view; view.SetWindowVisible(_visible);
         }
         else if (target is ArtistRow artist)
         {
@@ -83,6 +90,7 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
     public void SetWindowVisible(bool visible)
     {
         _visible = visible;
+        if (Content is GenreDetailView genre) genre.SetWindowVisible(visible);
         if (Content is ArtistDetailView artist) artist.SetWindowVisible(visible);
         if (Content is AlbumDetailView album) album.SetWindowVisible(visible);
     }

@@ -8,7 +8,7 @@ public static class DesktopFonts
     {
         FontFallbacks = [new FontFallback
         {
-            FontFamily = new FontFamily(OperatingSystem.IsWindows() ? "Microsoft YaHei" : "Noto Sans CJK SC, PingFang SC")
+            FontFamily = new FontFamily(OperatingSystem.IsWindows() ? "Microsoft YaHei UI" : "Noto Sans CJK SC, PingFang SC")
         }]
     };
 }

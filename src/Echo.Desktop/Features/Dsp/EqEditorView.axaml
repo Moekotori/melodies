@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.EqEditorView" x:DataType="local:DspViewModel">
+  <StackPanel Spacing="12">
+    <Grid Name="EqToolbar" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+      <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+        <TextBlock Text="声音预设" FontSize="13" Classes="muted" VerticalAlignment="Center" />
+        <ComboBox Name="PresetPicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}" Width="238" MinHeight="36" IsEnabled="{Binding CanEdit}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="local:EqPresetChoice">
+              <TextBlock Text="{Binding Label}" FontSize="13" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+      <StackPanel Name="EqTools" Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <Button Content="重置曲线" Classes="dsp-quiet" Command="{Binding FlattenCommand}" IsEnabled="{Binding CanEdit}" />
+        <Button Content="自动补偿" Classes="dsp-quiet" Command="{Binding AutoPreampCommand}" IsEnabled="{Binding CanEdit}" ToolTip.Tip="按曲线估算前级峰值余量" />
+      </StackPanel>
+    </Grid>
+    <Grid Name="EqLayout" ColumnDefinitions="*" RowDefinitions="Auto,Auto" RowSpacing="12" IsEnabled="{Binding CanEdit}">
+      <Border Name="CurveSurface" Padding="0,6,0,0">
+        <local:EqCurveControl Name="EqCurve" />
+      </Border>
+      <local:EqBandInspectorView Name="BandInspector" Grid.Row="1" DataContext="{Binding SelectedBand}" />
+    </Grid>
+    <Grid Name="TrimControls" ColumnDefinitions="*,*,*" ColumnSpacing="30" IsEnabled="{Binding CanEdit}" Margin="0,6,0,0">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="前级增益" Classes="muted" FontSize="12" />
+          <TextBlock Grid.Column="1" Text="{Binding PreampDb, StringFormat={}{0:0.0} dB}" FontSize="15" FontWeight="SemiBold" />
+        </Grid>
+        <Slider Minimum="-12" Maximum="6" Value="{Binding PreampDb, Mode=TwoWay}" TickFrequency="0.1" IsSnapToTickEnabled="True" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Spacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="效果强度" Classes="muted" FontSize="12" />
+          <TextBlock Grid.Column="1" Text="{Binding StrengthPercent, StringFormat={}{0:0}%}" FontSize="15" FontWeight="SemiBold" />
+        </Grid>
+        <Slider Minimum="0" Maximum="100" Value="{Binding StrengthPercent, Mode=TwoWay}" TickFrequency="1" IsSnapToTickEnabled="True" />
+      </StackPanel>
+      <StackPanel Grid.Column="2" Spacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="音色倾斜" Classes="muted" FontSize="12" />
+          <TextBlock Grid.Column="1" Text="{Binding TiltDb, StringFormat={}{0:0.0} dB}" FontSize="15" FontWeight="SemiBold" />
+        </Grid>
+        <Slider Minimum="-6" Maximum="6" Value="{Binding TiltDb, Mode=TwoWay}" TickFrequency="0.1" IsSnapToTickEnabled="True" />
+      </StackPanel>
+    </Grid>
+    <Border BorderBrush="{DynamicResource EchoBorder}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
+      <StackPanel Spacing="5">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="所有频段" FontSize="12" FontWeight="SemiBold" />
+          <TextBlock Grid.Column="1" Text="参数响应 · 非实时频谱" FontSize="11" Classes="muted" />
+        </Grid>
+        <ListBox Name="EqBands" Classes="dsp-bands" ItemsSource="{Binding Bands}" SelectedItem="{Binding SelectedBand, Mode=TwoWay}" Height="79" IsEnabled="{Binding CanEdit}" AutoScrollToSelectedItem="False" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="local:EqBandViewModel">
+              <StackPanel Width="52" Spacing="5">
+                <TextBlock Text="{Binding FrequencyLabel}" FontSize="14" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding GainLabel}" FontSize="11" Classes="muted" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

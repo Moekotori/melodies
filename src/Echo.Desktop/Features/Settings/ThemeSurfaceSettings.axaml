@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:theme="using:Echo.Desktop.Theming" xmlns:settings="using:Echo.Desktop.Features.Settings" x:Class="Echo.Desktop.Features.Settings.ThemeSurfaceSettings" x:DataType="theme:ThemeViewModel">
+  <UserControl.Styles>
+    <StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" />
+  </UserControl.Styles>
+  <StackPanel Spacing="20" IsVisible="{Binding IsMaterialsSection}">
+    <settings:ThemeRainbowSettings />
+    <Border Height="1" Background="{DynamicResource EchoDivider}" />
+    <ItemsControl ItemsSource="{Binding NumberFields}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="theme:ThemeNumberField">
+          <StackPanel Width="{DynamicResource ThemeColorFieldWidth}" Spacing="8" Margin="0,0,16,20">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding Definition.Label}" FontSize="12" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3">
+                <TextBlock Text="{Binding Value, StringFormat={}{0:0.##}}" Classes="theme-caption" />
+                <TextBlock Text="{Binding Definition.Unit}" Classes="theme-caption" />
+              </StackPanel>
+            </Grid>
+            <Slider Minimum="{Binding Definition.Min}" Maximum="{Binding Definition.Max}" SmallChange="{Binding Definition.Step}" Value="{Binding Value, Mode=TwoWay}" AutomationProperties.Name="{Binding Definition.Label}" />
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="3">
+        <TextBlock Text="主题动效" FontSize="13" />
+        <TextBlock Text="遵循系统和应用的动态效果偏好" Classes="theme-caption" />
+      </StackPanel>
+      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding MotionEnabled, Mode=TwoWay}" AutomationProperties.Name="主题动效" />
+    </Grid>
+    <Border Height="1" Background="{DynamicResource EchoDivider}" />
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="3">
+        <TextBlock Text="窗口亚克力" FontSize="13" />
+        <TextBlock Text="让桌面背景透过窗口" Classes="theme-caption" />
+      </StackPanel>
+      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding AcrylicEnabled, Mode=TwoWay}" AutomationProperties.Name="窗口亚克力" />
+    </Grid>
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBlock Text="失焦时保持亚克力" FontSize="12" VerticalAlignment="Center" />
+      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding AcrylicKeepUnfocused, Mode=TwoWay}" AutomationProperties.Name="失焦时保持亚克力" />
+    </Grid>
+    <StackPanel Spacing="8">
+      <TextBlock Text="窗口透明度" FontSize="12" />
+      <Slider Minimum="0" Maximum="100" Value="{Binding AcrylicTransparency, Mode=TwoWay}" AutomationProperties.Name="窗口透明度" />
+      <TextBlock Text="{Binding AcrylicStatus}" Classes="theme-caption" TextWrapping="Wrap" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

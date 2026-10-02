@@ -12,7 +12,8 @@ public static partial class WindowsFloatingWindow
         var style = GetWindowLongW(handle, ExtendedStyle);
         Marshal.SetLastPInvokeError(0);
         var next = enabled ? style | Transparent | Layered | NoActivate : style & ~Transparent;
-        return SetWindowLongW(handle, ExtendedStyle, next) != 0 || Marshal.GetLastPInvokeError() == 0;
+        var accepted = SetWindowLongW(handle, ExtendedStyle, next) != 0 || Marshal.GetLastPInvokeError() == 0;
+        return accepted && ((GetWindowLongW(handle, ExtendedStyle) & Transparent) != 0) == enabled;
     }
     [DllImport("user32.dll", SetLastError = true)] private static extern int GetWindowLongW(nint handle, int index);
     [DllImport("user32.dll", SetLastError = true)] private static extern int SetWindowLongW(nint handle, int index, int value);

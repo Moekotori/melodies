@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.History" xmlns:queue="using:Echo.Desktop.Features.Queue" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.History.HistoryRecordRow" x:DataType="local:HistoryRow">
+  <UserControl.Styles>
+    <Style Selector="Border.history-body"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" /></Style>
+    <Style Selector="Border.history-body:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+    <Style Selector="Border.history-body.selected"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+  </UserControl.Styles>
+  <StackPanel>
+    <Grid IsVisible="{Binding IsDayStart}" ColumnDefinitions="48,*,Auto" ColumnSpacing="12" Margin="14,16,14,10">
+      <TextBlock Text="{Binding DayNumber}" FontSize="28" FontWeight="Medium" Classes="heading" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center"><TextBlock Text="{Binding DayCaption}" FontSize="12" FontWeight="Medium" /><Border Height="2" Width="22" HorizontalAlignment="Left" Background="{DynamicResource EchoAccent}" Opacity="0.65" CornerRadius="1" /></StackPanel>
+      <TextBlock Grid.Column="2" Text="{Binding DaySummary}" Classes="subtle" VerticalAlignment="Center" FontSize="11" />
+    </Grid>
+    <Border Classes="history-body" Classes.selected="{Binding IsSelected}" CornerRadius="8" BorderThickness="2,0,0,0" Padding="12,0" Margin="0,2">
+  <StackPanel>
+        <Grid Name="TrackColumns" ColumnDefinitions="64,3*,2*,150,28" ColumnSpacing="16" MinHeight="68" Opacity="{Binding Record.Available, Converter={x:Static local:HistoryAvailabilityConverter.Instance}}">
+          <TextBlock Text="{Binding Time}" FontSize="12" FontFamily="Segoe UI" Classes="subtle" VerticalAlignment="Center" />
+          <Grid Grid.Column="1" ColumnDefinitions="42,*" ColumnSpacing="12" VerticalAlignment="Center">
+            <Border Width="42" Height="42" CornerRadius="6" Background="{DynamicResource EchoPanelMuted}" ClipToBounds="True">
+              <Grid><icon:GlyphIcon Kind="music" Width="18" Height="18" Stroke="{DynamicResource EchoSubtle}" Opacity="0.7" /><queue:QueueArtwork FilePath="{Binding ArtworkPath}" Cache="{Binding $parent[local:HistoryView].Artwork}" ShowPlaceholder="False" /></Grid>
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="5"><TextBlock Text="{Binding Record.Track.Title}" FontWeight="Medium" FontSize="15" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding ArtistLine}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" /></StackPanel>
+          </Grid>
+          <TextBlock Name="AlbumName" Grid.Column="2" Text="{Binding Record.Track.Album}" Classes="muted" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="5" Margin="0,0,12,0">
+            <TextBlock Text="{Binding Progress}" FontSize="11" FontFamily="Segoe UI" />
+            <ProgressBar Value="{Binding ProgressPercent}" MinWidth="0" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" Height="2" MinHeight="2" Background="{DynamicResource EchoDivider}" Foreground="{DynamicResource EchoAccent}" Opacity="0.65" />
+            <TextBlock Text="{Binding State}" Classes="subtle" FontSize="10" />
+          </StackPanel>
+          <Button Name="RecordDetails" Grid.Column="4" Tag="history-details" Classes="icon" Width="28" Height="28" MinHeight="28" Click="OnDetails" ToolTip.Tip="{DynamicResource history.details}" VerticalAlignment="Center"><icon:GlyphIcon Kind="chevron-down" Width="14" Height="14" Stroke="{DynamicResource EchoSubtle}" /></Button>
+        </Grid>
+        <Border IsVisible="{Binding Expanded}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,14" Margin="80,0,0,4">
+          <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="24"><StackPanel Spacing="5"><TextBlock Text="{DynamicResource history.started}" Classes="subtle" FontSize="10" /><TextBlock Text="{Binding StartedText}" FontSize="12" /></StackPanel><StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{DynamicResource history.ended}" Classes="subtle" FontSize="10" /><TextBlock Text="{Binding EndedText}" FontSize="12" /></StackPanel></Grid>
+            <TextBlock Text="{Binding Record.Track.Path}" FontSize="10" Classes="subtle" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Record.Track.Path}" />
+            <TextBlock Text="{DynamicResource history.countedHint}" FontSize="10" Classes="muted" TextWrapping="Wrap" MaxWidth="620" HorizontalAlignment="Left" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

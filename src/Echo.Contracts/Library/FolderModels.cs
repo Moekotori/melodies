@@ -1,13 +1,15 @@
 namespace Echo.Contracts.Library;
 
 public sealed record FolderRow(string Path, string Name, long TrackCount, double DurationSeconds,
-    long SizeBytes, string? SamplePath = null);
+    long SizeBytes, string? SamplePath = null, string Key = "", bool Root = false);
 public sealed record FolderQuery(string? ParentPath = null, int Offset = 0, int Limit = 100);
 public sealed record FolderPage(IReadOnlyList<FolderRow> Items, bool HasMore);
-public enum FolderTrackSort { Path, Title, Artist, Album, Duration }
+public enum FolderTrackSort { Path, Title, Artist, Album, Duration, ArtistAlbum, TrackNumber, Year,
+    LastPlayed, PlayCount, Bpm, Random, AudioSpec, Quality, Codec, Bitrate, Created, Recent, Modified }
 public sealed record FolderTrackQuery(string Path, int Offset = 0, int Limit = 200, string? Search = null,
     bool Recursive = true, bool LosslessOnly = false, FolderTrackSort Sort = FolderTrackSort.Path,
-    bool Descending = false, long? Revision = null);
+    bool Descending = false, long? Revision = null, IReadOnlyList<string>? Paths = null,
+    bool HideDuplicates = false, FolderInsight Insight = FolderInsight.All, int RandomSeed = 1);
 public sealed record FolderTrackPage(IReadOnlyList<TrackRow> Items, long Total, long Revision,
     double DurationSeconds, long SizeBytes, long LosslessCount);
 

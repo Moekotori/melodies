@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:theme="using:Echo.Desktop.Theming" x:Class="Echo.Desktop.Features.Settings.ThemePresetGallery" x:DataType="theme:ThemeViewModel">
+  <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /></UserControl.Styles>
+  <StackPanel Spacing="12" Width="380">
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="主题" FontSize="16" FontWeight="SemiBold" /><TextBlock Grid.Column="1" Text="49 种配色" Classes="theme-caption" /></Grid>
+    <TextBox Name="PresetSearch" Classes="theme-input" Text="{Binding PresetQuery, Mode=TwoWay}" PlaceholderText="搜索主题" AutomationProperties.Name="搜索主题" />
+    <ScrollViewer MaxHeight="340" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding GalleryPresets}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate><DataTemplate x:DataType="theme:ThemePresetCard">
+          <Button Classes="theme-preset" Width="180" Margin="0,0,10,4" Padding="8,10" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).PickPresetCommand}" CommandParameter="{Binding}" AutomationProperties.Name="{Binding Name}">
+            <Grid ColumnDefinitions="24,*,12" ColumnSpacing="10">
+              <Border Width="22" Height="22" Background="{Binding Accent}" CornerRadius="4" />
+              <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="2" Text="✓" Foreground="{DynamicResource EchoAccentText}" IsVisible="{Binding IsSelected}" VerticalAlignment="Center" />
+            </Grid>
+          </Button>
+        </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </StackPanel>
+</UserControl>

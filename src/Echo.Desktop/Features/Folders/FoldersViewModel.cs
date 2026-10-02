@@ -20,6 +20,7 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     private bool _closed;
     private string? _playingId;
     public FolderTreeState Tree { get; }
+    public IReadOnlyList<FolderSortChoice> SortOptions { get; }
     public Echo.Desktop.Localization.LocalizationService Text => _shell.Text;
     [ObservableProperty] private FolderNode? selectedNode;
     [ObservableProperty] private FolderRow? currentFolder;
@@ -39,10 +40,14 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     public string Title => CurrentFolder?.Name ?? Text["folders.selectTitle"];
     public string PathLabel => CurrentFolder?.Path ?? Text["folders.selectHint"];
     public string Summary => Text.Format("folders.summary", Total, FormatDuration(Duration), FormatBytes(SizeBytes));
+    public string HeaderSummary => CurrentFolder is { TrackCount: > 0 } folder
+        ? Text.Format("folders.summary", folder.TrackCount, FormatDuration(folder.DurationSeconds), FormatBytes(folder.SizeBytes)) : Summary;
     public string Quality => Text.Format("folders.losslessCount", LosslessCount);
     public string PageText => Total == 0 ? Text["folders.zeroTracks"] : Text.Format("folders.page", _offset + 1, _offset + Tracks.Count, Total);
     public bool HasFolder => CurrentFolder is not null;
     public bool IsEmpty => !IsLoading && Tracks.Count == 0;
+    public string EmptyTitle => HasFolder ? Text["folders.emptyTitle"] : Text["folders.startTitle"];
+    public string EmptyHint => HasFolder ? Text["folders.emptyHint"] : Text["folders.selectHint"];
     public bool IsTreeEmpty => Tree.Nodes.Count == 0;
     public bool CanPrevious => !IsLoading && _offset > 0;
     public bool CanNext => !IsLoading && _offset + 200 < Total;
@@ -62,6 +67,8 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     public FoldersViewModel(ShellViewModel shell)
     {
         _shell = shell; _library = shell.FolderLibrary!;
+        SortOptions = new[] { "folders.sortPath", "folders.sortTitle", "folders.sortArtist", "folders.sortAlbum", "folders.sortDuration" }
+            .Select(key => new FolderSortChoice(key, Text[key])).ToArray();
         Tree = new(_library, Text, message => Error = message);
         Tree.Nodes.CollectionChanged += OnTreeChanged;
         Text.Changed += OnLanguageChanged;
@@ -70,7 +77,10 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     }
     public async Task InitializeAsync()
     {
+        await RestoreWorkbenchAsync();
+        if (_closed) return;
         await Tree.RefreshAsync();
+        await RestoreTreeExpansionAsync();
         if (_closed) return;
         var saved = _shell.LastFolderPath;
         SelectedNode = Tree.Nodes.FirstOrDefault(node => node.Row.Path == saved) ?? Tree.Nodes.FirstOrDefault();
@@ -88,27 +98,31 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
         if (value.IsMore) { _ = Tree.ExpandAsync(value); return; }
         CurrentFolder = value.Row;
         _shell.LastFolderPath = value.Row.Path;
-        OnPropertyChanged(nameof(Breadcrumbs)); _ = LoadAsync();
+        ApplyFolderRule(value.Row); OnPropertyChanged(nameof(Breadcrumbs)); _ = LoadAsync();
     }
     partial void OnCurrentFolderChanged(FolderRow? value)
-    { OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(PathLabel)); OnPropertyChanged(nameof(HasFolder)); OnPropertyChanged(nameof(Breadcrumbs)); }
+    { OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(PathLabel)); OnPropertyChanged(nameof(HeaderSummary)); OnPropertyChanged(nameof(HasFolder)); OnPropertyChanged(nameof(Breadcrumbs)); OnPropertyChanged(nameof(EmptyTitle)); OnPropertyChanged(nameof(EmptyHint)); }
     partial void OnSearchChanged(string value) => _ = LoadAsync(debounce: true);
-    partial void OnRecursiveChanged(bool value) => _ = LoadAsync();
+    partial void OnRecursiveChanged(bool value) { _ = LoadAsync(); ScheduleRuleSave(); }
     partial void OnLosslessOnlyChanged(bool value) => _ = LoadAsync();
-    partial void OnSortIndexChanged(int value) => _ = LoadAsync();
-    partial void OnDescendingChanged(bool value) => _ = LoadAsync();
+    partial void OnSortIndexChanged(int value) { _ = LoadAsync(); ScheduleRuleSave(); }
+    partial void OnDescendingChanged(bool value) { _ = LoadAsync(); ScheduleRuleSave(); }
     partial void OnIsLoadingChanged(bool value) => NotifyPage();
     partial void OnIsActingChanged(bool value) => OnPropertyChanged(nameof(CanAct));
     private void OnTreeChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs args) => OnPropertyChanged(nameof(IsTreeEmpty));
     private void OnLanguageChanged()
-    { OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(PathLabel)); NotifyPage(); }
+    {
+        foreach (var option in SortOptions) option.Label = Text[option.Key];
+        OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(PathLabel)); OnPropertyChanged(nameof(EmptyTitle)); OnPropertyChanged(nameof(EmptyHint)); NotifyPage();
+    }
     private void NotifyPage()
     {
-        foreach (var name in new[] { nameof(Summary), nameof(Quality), nameof(PageText), nameof(IsEmpty), nameof(CanPrevious), nameof(CanNext), nameof(CanAct) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(Summary), nameof(HeaderSummary), nameof(Quality), nameof(PageText), nameof(IsEmpty), nameof(CanPrevious), nameof(CanNext), nameof(CanAct) }) OnPropertyChanged(name);
     }
     private FolderTrackQuery Query(int offset = 0, long? revision = null) => new(CurrentFolder!.Path, offset,
-        Search: Search, Recursive: Recursive, LosslessOnly: LosslessOnly, Sort: (FolderTrackSort)Math.Clamp(SortIndex, 0, 4),
-        Descending: Descending, Revision: revision);
+        Search: Search, Recursive: Recursive, LosslessOnly: LosslessOnly, Sort: (FolderTrackSort)Math.Clamp(SortIndex, 0, 18),
+        Descending: Descending, Revision: revision, Paths: CombinedFolders.Count > 0 ? CombinedFolders.Select(folder => folder.Path).ToArray() : null,
+        HideDuplicates: HideDuplicates, Insight: ActiveInsight, RandomSeed: RandomSeed);
 
     public async Task LoadAsync(int offset = 0, bool debounce = false)
     {
@@ -125,6 +139,8 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
             if (generation != _generation) return;
             _offset = offset; _revision = page.Revision; Total = page.Total; Duration = page.DurationSeconds;
             SizeBytes = page.SizeBytes; LosslessCount = page.LosslessCount;
+            if (offset == 0 && query.Recursive && !query.LosslessOnly && string.IsNullOrWhiteSpace(query.Search) && CurrentFolder!.TrackCount == 0)
+                CurrentFolder = CurrentFolder with { TrackCount = page.Total, DurationSeconds = page.DurationSeconds, SizeBytes = page.SizeBytes };
             Tracks = page.Items.Select((row, index) => new AlbumTrackItem(row, offset + index + 1,
                 _library as IAlbumPersonalState, _lifetime.Token, message => Error = message) { IsPlaying = row.Id == _playingId }).ToArray();
         }
@@ -160,7 +176,8 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         if (_closed) return;
-        _closed = true; ++_generation; _request?.Cancel(); _lifetime.Cancel(); Tree.Dispose(); Tracks = [];
+        ReleaseWorkbench();
+        _closed = true; ++_generation; _request?.Cancel(); _lifetime.Cancel(); _lifetime.Dispose(); Tree.Dispose(); Tracks = [];
         Tree.Nodes.CollectionChanged -= OnTreeChanged; Text.Changed -= OnLanguageChanged;
         if (_shell.Player is { } player) player.Session.Changed -= OnPlayback;
     }

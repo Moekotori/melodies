@@ -9,12 +9,28 @@ public sealed partial class PlaybackSessionCoordinator
     private volatile bool suppressNativeEvents;
     private PositionEvent? latestPosition;
     private int positionQueued;
+    private PositionEvent? latestPerformance;
+    private int performanceQueued;
 
     private void OnNotification(string method, JsonElement value)
     {
         if (disposed || suppressNativeEvents) return;
         var epoch = Volatile.Read(ref transportEpoch);
         ObserveOutputConfirmation(method, value, epoch);
+        if (method == "audio.levelMeter") { QueueLevel(value, epoch); return; }
+        if (method == "host.performance")
+        {
+            Interlocked.Exchange(ref latestPerformance, new(value, epoch));
+            if (Interlocked.Exchange(ref performanceQueued, 1) != 0) return;
+            if (!lane.Post(() =>
+            {
+                Interlocked.Exchange(ref performanceQueued, 0);
+                var metric = Interlocked.Exchange(ref latestPerformance, null);
+                if (!disposed && metric is not null && metric.Epoch == transportEpoch) ObservePerformance(metric.Value, host: true);
+                return Task.CompletedTask;
+            })) Interlocked.Exchange(ref performanceQueued, 0);
+            return;
+        }
         if (method == "audio.position")
         {
             Interlocked.Exchange(ref latestPosition, new(value, epoch));
@@ -52,6 +68,7 @@ public sealed partial class PlaybackSessionCoordinator
     private async Task ApplyNotificationAsync(string method, JsonElement value)
     {
         if (disposed) return;
+        if (method == "host.performance") { ObservePerformance(value, host: true); return; }
         if (method is "audio.deviceEvent" or "device.event")
         {
             if (value.Flag("recoveryRequired"))
@@ -70,7 +87,7 @@ public sealed partial class PlaybackSessionCoordinator
             Publish(snapshot with { Current = next, OperationId = value.Long("operationId"), Status = PlaybackStatus.Playing,
                 PositionSeconds = positionBase, DurationSeconds = value.Number("nextDurationSeconds"),
                 SampleRate = (int)value.Number("nextSampleRate", snapshot.SampleRate),
-                Channels = (int)(snapshot.Output?.Long("channels", snapshot.Channels) ?? snapshot.Channels) });
+                Channels = (int)(snapshot.Output?.Long("channels", snapshot.Channels) ?? snapshot.Channels), Output = OutputFactsAfterAdvance(value) });
             if (previous is not null && (previous.QueuedNext || previous.RemoveAfterPlay) && previous.ItemId != next.ItemId)
                 await SendQueueAsync(queue, next.ItemId, repeat).ConfigureAwait(false);
             return;
@@ -79,28 +96,23 @@ public sealed partial class PlaybackSessionCoordinator
         switch (method)
         {
             case "audio.started":
-                if (snapshot.Status is not (PlaybackStatus.Paused or PlaybackStatus.Stopped or PlaybackStatus.Faulted))
+                if (HasConfirmedRendering() && snapshot.Status is not (PlaybackStatus.Paused or PlaybackStatus.Stopped or PlaybackStatus.Faulted))
                     Publish(snapshot with { Status = PlaybackStatus.Playing });
                 break;
             case "audio.position":
                 if (snapshot.OperationId <= 0 || snapshot.Status is PlaybackStatus.Stopped or PlaybackStatus.Ended or PlaybackStatus.Faulted) return;
+                ObservePerformance(value);
                 var seconds = positionBase + value.Number("framesPlayed") / Math.Max(1, snapshot.SampleRate);
                 Publish(snapshot with { PositionSeconds = snapshot.DurationSeconds > 0 ? Math.Min(seconds, snapshot.DurationSeconds) : seconds,
-                    Status = snapshot.Status == PlaybackStatus.Loading && value.Number("framesPlayed") > 0 ? PlaybackStatus.Playing : snapshot.Status,
+                    Status = snapshot.Status == PlaybackStatus.Loading && HasConfirmedRendering() ? PlaybackStatus.Playing : snapshot.Status,
                     Processing = value.Child("processing") ?? snapshot.Processing });
+                await ApplySegmentBoundaryAsync().ConfigureAwait(false);
                 break;
             case "audio.ended":
-                if (snapshot.Status == PlaybackStatus.Ended) return;
-                if (snapshot.Current is { RemoveAfterPlay: true } completed)
-                {
-                    SetQueueItems(queue.Where(x => x.ItemId != completed.ItemId).ToArray());
-                    history = history.Where(x => x.ItemId != completed.ItemId).ToArray(); undo = null;
-                    await SendQueueAsync(queue, completed.ItemId, repeat).ConfigureAwait(false);
-                    PublishQueue();
-                }
-                Publish(snapshot with { Status = PlaybackStatus.Ended, PositionSeconds = snapshot.DurationSeconds });
+                await HandleNativeEofAsync(value.Long("operationId")).ConfigureAwait(false);
                 break;
             case "audio.error":
+                if (IsNativeAdvanceFailure(value.Text("message"))) nativeAdvanceFallbackOperation = snapshot.OperationId;
                 Publish(snapshot with { Status = PlaybackStatus.Faulted, Error = value.Text("message") ?? "原生播放失败" });
                 break;
             case "device.event":

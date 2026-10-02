@@ -10,9 +10,10 @@
     <ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" />
     <ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" />
     <ProjectReference Include="../Echo.Platform/Echo.Platform.csproj" />
+    <ProjectReference Include="../Echo.Visuals/Echo.Visuals.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
-    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Semi.Avalonia" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <AvaloniaResource Include="Resources/Icons/**" />
     <AvaloniaResource Include="Resources/Fonts/**" />
@@ -25,6 +26,7 @@
     <PackageReference Include="HotAvalonia" PrivateAssets="All" Publish="True" />
   </ItemGroup>
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Content Include="../../native/media/win-x64/*"><Link>media/%(Filename)%(Extension)</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory></Content>
     <Content Include="../../native/runtime/win-x64/echo-audio-host.exe;../../native/runtime/win-x64/echo-smtc-host.exe;../../native/runtime/win-x64/*.dll">
       <Link>native/%(Filename)%(Extension)</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

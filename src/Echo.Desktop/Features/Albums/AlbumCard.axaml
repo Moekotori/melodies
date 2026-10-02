@@ -7,7 +7,7 @@
   </UserControl.Styles>
   <Button Name="OpenButton" Classes="album-card" Click="OnOpen">
     <StackPanel Spacing="14">
-      <Border Name="CoverFrame" Background="{DynamicResource EchoPanelMuted}" CornerRadius="6" ClipToBounds="True">
+      <Border Name="CoverFrame" Background="{DynamicResource EchoPanelMuted}" CornerRadius="{DynamicResource EchoCoverRadius}" ClipToBounds="True">
         <Grid>
           <Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" />
           <Image Name="Cover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />

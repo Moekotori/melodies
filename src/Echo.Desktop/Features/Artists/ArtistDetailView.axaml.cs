@@ -36,15 +36,15 @@ public partial class ArtistDetailView : UserControl, IDisposable
         SizeChanged += (_, _) =>
         {
             var narrow = Bounds.Width < 760;
-            Hero.Height = Math.Clamp((TopLevel.GetTopLevel(this)?.Bounds.Height ?? 900) * .62, 460, 720);
-            HeroMark.FontSize = Math.Clamp(Bounds.Width * .18, 84, 220);
+            Hero.Height = Math.Clamp((TopLevel.GetTopLevel(this)?.Bounds.Height ?? 900) * .43, narrow ? 280 : 340, narrow ? 360 : 420);
+            HeroMark.FontSize = Math.Clamp(Bounds.Width * .13, 72, 156);
             var pageWidth = TopLevel.GetTopLevel(this)?.Bounds.Width ?? Bounds.Width;
             var titleLength = artist.Name.EnumerateRunes().Count();
-            ArtistTitle.FontSize = titleLength > 72 ? Math.Clamp(pageWidth * .03, 28, 42)
-                : titleLength > 36 ? Math.Clamp(pageWidth * .036, 32, 52) : Math.Clamp(pageWidth * .042, 38, 64);
-            if (narrow) ArtistTitle.FontSize = Math.Min(38, ArtistTitle.FontSize);
-            ArtistTitle.LineHeight = ArtistTitle.FontSize * 1.1;
-            HeroCopy.Margin = new(Math.Clamp(pageWidth * .034, 28, 44));
+            ArtistTitle.FontSize = titleLength > 72 ? Math.Clamp(pageWidth * .024, 28, 34)
+                : titleLength > 36 ? Math.Clamp(pageWidth * .028, 30, 40) : Math.Clamp(pageWidth * .032, 32, 46);
+            if (narrow) ArtistTitle.FontSize = Math.Min(34, ArtistTitle.FontSize);
+            ArtistTitle.LineHeight = ArtistTitle.FontSize * 1.18;
+            HeroCopy.Margin = new(narrow ? 24 : 32);
         };
         _ = _model.LoadAsync(); if (artist.PortraitPath is { } portraitPath) _ = LoadPortraitAsync(shell.AlbumArtwork!, portraitPath);
     }

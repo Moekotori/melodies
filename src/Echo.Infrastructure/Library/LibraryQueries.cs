@@ -68,12 +68,12 @@ public sealed partial class LibraryDatabase
                 command.Parameters.AddWithValue("$sort", legacy.SortKey); command.Parameters.AddWithValue("$id", legacy.Id);
             }
             command.CommandText = """
-                SELECT t.id,t.path,t.title,t.artist,coalesce((SELECT display_title FROM album_identity WHERE group_key=t.album_key),t.album),t.duration,t.codec,t.sample_rate,t.bit_depth,t.sort_key,t.track_no,t.disc_no,t.favorite,t.source_json
+                SELECT t.id,t.path,t.title,t.artist,coalesce((SELECT display_title FROM album_identity WHERE group_key=t.album_key),t.album),t.duration,t.codec,t.sample_rate,t.bit_depth,t.sort_key,t.track_no,t.disc_no,t.favorite,t.source_json,t.genre
                 """ + from + orderSql + " LIMIT $limit OFFSET $offset";
             command.Parameters.AddWithValue("$limit", query.Limit + 1); command.Parameters.AddWithValue("$offset", offset);
             var rows = new List<TrackRow>(query.Limit + 1);
             using (var reader = command.ExecuteReader())
-                while (reader.Read()) { cancellation.ThrowIfCancellationRequested(); rows.Add(TrackRowMapping.Read(reader)); }
+                while (reader.Read()) { cancellation.ThrowIfCancellationRequested(); rows.Add(TrackRowMapping.Read(reader, withGenre: true)); }
             var more = rows.Count > query.Limit;
             if (more) rows.RemoveAt(rows.Count - 1);
             TrackCursor? next = more ? new(rows[^1].SortKey, rows[^1].Id, revision, checked((query.After?.Offset ?? query.Offset) + query.Limit), key) : null;

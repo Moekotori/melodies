@@ -4,104 +4,112 @@
   <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="/Features/Folders/FolderListStyles.axaml" />
   </ResourceDictionary.MergedDictionaries></ResourceDictionary></UserControl.Resources>
-  <Grid Name="FolderLayout" ColumnDefinitions="220,5,*">
-    <Grid Name="TreePane" RowDefinitions="Auto,Auto,*,Auto" Margin="0,0,14,0">
-      <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,14">
-        <TextBlock Text="{DynamicResource folders.title}" Classes="heading" FontSize="26" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="{DynamicResource folders.refresh}"><icon:GlyphIcon Kind="refresh" Width="16" Height="16" /></Button>
-      </Grid>
-      <TextBlock Grid.Row="1" Text="{DynamicResource folders.localLibrary}" Classes="muted" FontSize="11" LetterSpacing="1.2" Margin="8,0,0,10" />
-      <Grid Grid.Row="2">
-        <ListBox Name="FolderTree" ItemsSource="{Binding Tree.Nodes}" SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
-                 ItemContainerTheme="{StaticResource FolderListItem}" Background="Transparent" BorderThickness="0" Padding="0"
-                 KeyDown="OnTreeKey" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-          <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="folders:FolderNode">
-              <Grid ColumnDefinitions="22,20,*,Auto" ColumnSpacing="4" Margin="{Binding Indent}" MinHeight="38" ToolTip.Tip="{Binding Row.Path}">
-                <Button Classes="icon" Content="{Binding Expander}" Width="22" Height="32" FontSize="18" Click="OnExpand" IsEnabled="{Binding !IsLoading}" ToolTip.Tip="{DynamicResource folders.expand}" />
-                <icon:EchoIcon Grid.Column="1" Kind="folders" Width="18" Height="18" VerticalAlignment="Center" IsVisible="{Binding !IsMore}" />
-                <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Column="3" Text="{Binding Count}" FontSize="10.5" Classes="muted" VerticalAlignment="Center" Margin="2,0,8,0" />
-              </Grid>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-        <TextBlock Text="{DynamicResource folders.noRoots}" IsVisible="{Binding IsTreeEmpty}" Classes="muted" TextWrapping="Wrap" Margin="8,20" FontSize="12" />
-      </Grid>
-      <StackPanel Grid.Row="3" Spacing="6" Margin="0,12,0,16">
-        <Border Height="1" Background="{DynamicResource EchoDivider}" />
-        <Button Name="ImportButton" Click="OnImport" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6">
-          <StackPanel Orientation="Horizontal" Spacing="9"><icon:EchoIcon Kind="import-folder" Width="20" Height="20" /><TextBlock Text="{DynamicResource folders.import}" FontSize="12" VerticalAlignment="Center" /></StackPanel>
+  <UserControl.Styles><StyleInclude Source="/Features/Folders/FolderPageStyles.axaml" /></UserControl.Styles>
+  <Grid RowDefinitions="Auto,*" RowSpacing="14">
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBlock Text="{DynamicResource folders.title}" Classes="heading" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+        <Button Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="{DynamicResource folders.refresh}"><icon:GlyphIcon Kind="refresh" Width="17" Height="17" /></Button>
+        <Button Name="ImportButton" Classes="folder-secondary" Click="OnImport" Padding="12,0">
+          <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="plus" Width="15" Height="15" /><TextBlock Text="{DynamicResource folders.import}" FontSize="12" /></StackPanel>
         </Button>
       </StackPanel>
     </Grid>
-    <GridSplitter Name="TreeSplitter" Grid.Column="1" Width="5" Background="Transparent" ResizeDirection="Columns" />
-    <Border Grid.Column="1" Width="1" HorizontalAlignment="Left" Background="{DynamicResource EchoDivider}" IsHitTestVisible="False" />
-    <Grid Grid.Column="2" Name="MainPane" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="24,0,0,0">
-      <Grid Name="Hero" ColumnDefinitions="104,*" ColumnSpacing="18" Margin="0,4,0,22">
-        <Grid Name="CoverStack" Width="100" Height="100">
-          <Border Margin="16,0,0,16" Background="{DynamicResource EchoPanelMuted}" CornerRadius="4"><Image Name="CoverBack" Stretch="UniformToFill" /></Border>
-          <Border Margin="8,8,8,8" Background="{DynamicResource EchoSelected}" CornerRadius="4"><Image Name="CoverMiddle" Stretch="UniformToFill" /></Border>
-          <Border Margin="0,16,16,0" Background="{DynamicResource EchoPanelMuted}" CornerRadius="4" ClipToBounds="True">
-            <Grid><icon:EchoIcon Kind="folders" Width="36" Height="36" HorizontalAlignment="Center" VerticalAlignment="Center" /><Image Name="CoverFront" Stretch="UniformToFill" /></Grid>
-          </Border>
+    <Grid Name="FolderLayout" Grid.Row="1" ColumnDefinitions="208,5,*">
+      <Grid Name="TreePane" RowDefinitions="Auto,*" Margin="0,0,18,0">
+        <TextBlock Text="{DynamicResource folders.directoryHeading}" Classes="muted" FontSize="12" Margin="10,2,0,16" />
+        <Grid Grid.Row="1">
+          <ListBox Name="FolderTree" ItemsSource="{Binding Tree.Nodes}" SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
+                   ItemContainerTheme="{StaticResource FolderListItem}" Background="Transparent" BorderThickness="0" Padding="0"
+                   KeyDown="OnTreeKey" PointerReleased="OnTreePointerReleased" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="folders:FolderNode">
+                <Grid ColumnDefinitions="24,18,*,Auto" ColumnSpacing="6" Margin="{Binding Indent}" MinHeight="42" ToolTip.Tip="{Binding Row.Path}">
+                  <Button Name="ExpandFolder" Classes="icon" Width="24" Height="32" Click="OnExpand" IsEnabled="{Binding !IsLoading}" IsVisible="{Binding HasChildren}" ToolTip.Tip="{DynamicResource folders.expand}">
+                    <icon:GlyphIcon Kind="chevron-right" Width="12" Height="12" RenderTransformOrigin="50%,50%"><icon:GlyphIcon.RenderTransform><RotateTransform Angle="{Binding ArrowAngle}" /></icon:GlyphIcon.RenderTransform></icon:GlyphIcon>
+                  </Button>
+                  <icon:GlyphIcon Grid.Column="1" Kind="folder" Width="17" Height="17" VerticalAlignment="Center" IsVisible="{Binding !IsMore}" />
+                  <TextBlock Grid.Column="2" Text="{Binding Name}" Classes="folder-name" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="3" Text="{Binding Count}" FontSize="11" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <TextBlock Text="{DynamicResource folders.noRoots}" IsVisible="{Binding IsTreeEmpty}" Classes="muted" TextWrapping="Wrap" Margin="10,16" FontSize="13" />
         </Grid>
-        <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
-          <ItemsControl ItemsSource="{Binding Breadcrumbs}">
-            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate><DataTemplate x:DataType="library:FolderRow"><Button Content="{Binding Name}" Tag="{Binding}" Click="OnBreadcrumb" FontSize="11" MinHeight="20" Padding="0,0,12,0" MaxWidth="180" /></DataTemplate></ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <TextBlock Text="{Binding Title}" Classes="heading" FontSize="28" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-          <Button Content="{Binding PathLabel}" Click="OnOpenFolder" IsEnabled="{Binding HasFolder}" ToolTip.Tip="{Binding PathLabel}" FontSize="11" Padding="0" MinHeight="22" HorizontalAlignment="Left" MaxWidth="580" />
-          <TextBlock Text="{Binding Summary}" Classes="muted" FontSize="12" />
-        </StackPanel>
       </Grid>
-      <Grid Grid.Row="1" RowDefinitions="Auto,Auto" RowSpacing="16" Margin="0,0,0,18">
-        <WrapPanel Name="ActionBar">
-          <Button Classes="primary" Command="{Binding PlayCommand}" IsEnabled="{Binding CanAct}" Margin="0,0,8,4"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="play" Stroke="White" Width="14" Height="14" /><TextBlock Text="{DynamicResource folders.play}" FontSize="12" /></StackPanel></Button>
-          <Button Command="{Binding ShuffleCommand}" IsEnabled="{Binding CanAct}" Content="{DynamicResource folders.shuffle}" Margin="0,0,8,4" />
-          <Button Command="{Binding AppendCommand}" IsEnabled="{Binding CanAct}" Content="{DynamicResource folders.append}" Margin="0,0,8,4" />
-          <Button Name="RescanButton" Click="OnRescan" IsEnabled="{Binding HasFolder}" Content="{DynamicResource folders.rescan}" Margin="0,0,8,4" />
-          <Button Content="{DynamicResource folders.manage}" Margin="0,0,0,4">
-            <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight"><StackPanel Spacing="10">
-              <Button Content="{DynamicResource folders.open}" Click="OnOpenFolder" IsEnabled="{Binding HasFolder}" />
-              <Button Content="{DynamicResource folders.copyPath}" Click="OnCopyPath" IsEnabled="{Binding HasFolder}" />
-              <Border Height="1" Background="{DynamicResource EchoDivider}" />
-              <CheckBox Content="{DynamicResource folders.recursive}" IsChecked="{Binding Recursive, Mode=TwoWay}" />
-              <TextBlock Text="{DynamicResource folders.selectionHint}" Classes="muted" FontSize="11" MaxWidth="220" TextWrapping="Wrap" />
-            </StackPanel></Flyout></Button.Flyout>
-          </Button>
-        </WrapPanel>
-        <Grid Grid.Row="1" Name="FilterBar" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
-          <Grid>
-            <TextBox Name="SearchField" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource folders.search}" Padding="34,8,32,8" Background="{DynamicResource EchoField}" CornerRadius="4" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
-            <icon:GlyphIcon Kind="search" Width="14" Height="14" HorizontalAlignment="Left" Margin="12,0" IsHitTestVisible="False" />
-            <Button Content="×" Click="OnClearSearch" Classes="icon" HorizontalAlignment="Right" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" ToolTip.Tip="{DynamicResource folders.clearSearch}" />
+      <GridSplitter Name="TreeSplitter" Grid.Column="1" Width="5" Background="Transparent" ResizeDirection="Columns" />
+      <Border Name="TreeDivider" Grid.Column="1" Width="1" HorizontalAlignment="Left" Background="{DynamicResource EchoDivider}" Opacity="0.65" IsHitTestVisible="False" />
+      <Border Name="TreeDismissLayer" Grid.Column="2" Background="Transparent" IsVisible="False" ZIndex="2" PointerPressed="OnDismissTree" />
+      <Grid Grid.Column="2" Name="MainPane" RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="30,0,0,0">
+        <Grid Name="Hero" ColumnDefinitions="100,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="18" RowSpacing="8" Margin="0,0,0,16">
+          <Grid Name="CoverStack" Grid.RowSpan="2" Width="96" Height="96" VerticalAlignment="Center">
+            <Border Name="CoverBackFrame" Margin="12,6,0,8" Background="{DynamicResource EchoPanelMuted}" CornerRadius="5" ClipToBounds="True" RenderTransformOrigin="50%,50%"><Border.RenderTransform><RotateTransform Angle="7" /></Border.RenderTransform><Image Name="CoverBack" Stretch="UniformToFill" /></Border>
+            <Border Name="CoverMiddleFrame" Margin="6,4,6,10" Background="{DynamicResource EchoSelected}" CornerRadius="5" ClipToBounds="True" RenderTransformOrigin="50%,50%"><Border.RenderTransform><RotateTransform Angle="-4" /></Border.RenderTransform><Image Name="CoverMiddle" Stretch="UniformToFill" /></Border>
+            <Border Margin="0,8,12,0" Background="{DynamicResource EchoPanelMuted}" CornerRadius="5" ClipToBounds="True">
+              <Grid><icon:GlyphIcon Kind="folder" Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5" /><Image Name="CoverFront" Stretch="UniformToFill" /></Grid>
+            </Border>
           </Grid>
-          <ToggleButton Name="LosslessToggle" Grid.Column="1" Content="{DynamicResource folders.lossless}" IsChecked="{Binding LosslessOnly, Mode=TwoWay}" FontSize="12" ToolTip.Tip="{Binding Quality}" />
-          <ComboBox Grid.Column="2" Name="SortBox" SelectedIndex="{Binding SortIndex, Mode=TwoWay}" MinWidth="104" FontSize="12">
-            <ComboBoxItem Content="{DynamicResource folders.sortPath}" /><ComboBoxItem Content="{DynamicResource folders.sortTitle}" />
-            <ComboBoxItem Content="{DynamicResource folders.sortArtist}" /><ComboBoxItem Content="{DynamicResource folders.sortAlbum}" /><ComboBoxItem Content="{DynamicResource folders.sortDuration}" />
-          </ComboBox>
-          <ToggleButton Grid.Column="3" Content="↓" Width="30" IsChecked="{Binding Descending, Mode=TwoWay}" ToolTip.Tip="{DynamicResource folders.reverse}" />
+          <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+            <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" MaxHeight="24">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{DynamicResource folders.localLibrary}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+                <ItemsControl ItemsSource="{Binding Breadcrumbs}">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate><DataTemplate x:DataType="library:FolderRow"><StackPanel Orientation="Horizontal"><icon:GlyphIcon Kind="chevron-right" Width="10" Height="10" Margin="0,0,8,0" Opacity="0.55" /><Button Tag="{Binding}" Click="OnBreadcrumb" FontSize="11" MinHeight="22" Padding="0" MaxWidth="120"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></Button></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </ScrollViewer>
+            <TextBlock Name="FolderTitle" Text="{Binding Title}" Classes="heading" FontSize="28" FontWeight="Medium" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding PathLabel}" />
+            <TextBlock Text="{Binding HeaderSummary}" Classes="muted" FontSize="13" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+            <WrapPanel Name="ActionBar" Grid.Column="2" VerticalAlignment="Center" Margin="0">
+              <Button Name="DirectoryToggle" Classes="folder-secondary" Content="{DynamicResource folders.directory}" Click="OnToggleTree" IsVisible="False" Margin="0,0,8,4" />
+              <Button Classes="primary folder-play" Command="{Binding PlayCommand}" IsEnabled="{Binding CanAct}" Margin="0,0,8,4"><StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="play-solid" Stroke="White" Width="14" Height="14" /><TextBlock Text="{DynamicResource folders.playAll}" FontSize="13" /></StackPanel></Button>
+              <Button Classes="folder-secondary" Command="{Binding AppendCommand}" IsEnabled="{Binding CanAct}" Margin="0,0,8,4" Padding="12,0"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="queue" Width="16" Height="16" /><TextBlock Text="{DynamicResource folders.append}" FontSize="12" /></StackPanel></Button>
+              <Button Classes="folder-secondary" Command="{Binding ShuffleCommand}" IsEnabled="{Binding CanAct}" Width="36" Padding="0" Margin="0,0,0,4" ToolTip.Tip="{DynamicResource folders.shuffle}"><icon:GlyphIcon Kind="shuffle" Width="16" Height="16" /></Button>
+            </WrapPanel>
         </Grid>
-      </Grid>
-      <StackPanel Grid.Row="2" Spacing="8" Margin="0,0,0,8">
-        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-          <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Content="{DynamicResource folders.retry}" Command="{Binding RetryCommand}" />
+          <Grid Grid.Row="1" Name="FilterBar" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+            <Grid HorizontalAlignment="Stretch">
+              <TextBox Name="SearchField" Classes="folder-search" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource folders.searchShort}" Padding="36,8,34,8" CornerRadius="5" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
+              <icon:GlyphIcon Kind="search" Width="15" Height="15" HorizontalAlignment="Left" Margin="12,0" IsHitTestVisible="False" />
+              <Button Content="×" Click="OnClearSearch" Classes="icon" HorizontalAlignment="Right" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" ToolTip.Tip="{DynamicResource folders.clearSearch}" />
+            </Grid>
+            <ToggleButton Name="LosslessToggle" Classes="folder-filter" Grid.Column="1" Content="{DynamicResource folders.lossless}" IsChecked="{Binding LosslessOnly, Mode=TwoWay}" FontSize="12" Foreground="{DynamicResource EchoText}" ToolTip.Tip="{Binding Quality}" />
+            <ComboBox Grid.Column="2" Name="SortBox" ItemsSource="{Binding SortOptions}" SelectedIndex="{Binding SortIndex, Mode=TwoWay}" MinWidth="110" FontSize="12" Foreground="{DynamicResource EchoText}" Background="Transparent" BorderBrush="{DynamicResource EchoBorder}" CornerRadius="5" Padding="10,0" MinHeight="36">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="folders:FolderSortChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <ToggleButton Grid.Column="3" Classes="folder-filter" Content="↓" Width="32" Padding="0" IsChecked="{Binding Descending, Mode=TwoWay}" ToolTip.Tip="{DynamicResource folders.reverse}" />
+            <Button Name="FolderPathButton" Grid.Column="4" Classes="icon" Click="OnOpenFolder" IsEnabled="{Binding HasFolder}" ToolTip.Tip="{Binding PathLabel}" AutomationProperties.Name="{DynamicResource folders.open}">
+              <icon:GlyphIcon Kind="folder" Width="16" Height="16" />
+            </Button>
+            <Button Name="RescanButton" Grid.Column="5" Classes="icon" Click="OnRescan" IsEnabled="{Binding HasFolder}" ToolTip.Tip="{DynamicResource folders.rescan}"><icon:GlyphIcon Kind="refresh" Width="15" Height="15" /></Button>
+            <Button Grid.Column="6" Classes="icon" ToolTip.Tip="{DynamicResource folders.manage}">
+              <icon:GlyphIcon Kind="more" Width="18" Height="18" />
+              <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight"><StackPanel Spacing="12">
+                <Button Content="{DynamicResource folders.open}" Click="OnOpenFolder" IsEnabled="{Binding HasFolder}" />
+                <Button Content="{DynamicResource folders.copyPath}" Click="OnCopyPath" IsEnabled="{Binding HasFolder}" />
+                <Border Height="1" Background="{DynamicResource EchoDivider}" />
+                <CheckBox Content="{DynamicResource folders.recursive}" IsChecked="{Binding Recursive, Mode=TwoWay}" />
+                <TextBlock Text="{DynamicResource folders.selectionHint}" Classes="muted" FontSize="12" MaxWidth="240" TextWrapping="Wrap" />
+              </StackPanel></Flyout></Button.Flyout>
+            </Button>
+          </Grid>
+        <StackPanel Grid.Row="2" Spacing="8">
+          <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="{DynamicResource folders.retry}" Command="{Binding RetryCommand}" />
+          </Grid>
+          <Grid Name="ScanRow" ColumnDefinitions="*,Auto" Margin="0,0,0,8" IsVisible="False"><TextBlock Name="ScanText" Classes="muted" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" /><Button Grid.Column="1" Name="CancelScanButton" Content="{DynamicResource folders.cancel}" Click="OnCancelScan" /></Grid>
+        </StackPanel>
+        <folders:FolderTrackList Name="TrackPanel" Grid.Row="3" />
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto" Margin="0,10,0,16">
+          <TextBlock Text="{Binding PageText}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="icon" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" ToolTip.Tip="{DynamicResource folders.previous}"><icon:GlyphIcon Kind="chevron-left" Width="15" Height="15" /></Button>
+          <Button Grid.Column="2" Classes="icon" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" ToolTip.Tip="{DynamicResource folders.next}"><icon:GlyphIcon Kind="chevron-right" Width="15" Height="15" /></Button>
         </Grid>
-        <Grid Name="ScanRow" ColumnDefinitions="*,Auto" IsVisible="False">
-          <TextBlock Name="ScanText" Classes="muted" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Name="CancelScanButton" Content="{DynamicResource folders.cancel}" Click="OnCancelScan" />
-        </Grid>
-      </StackPanel>
-      <folders:FolderTrackList Name="TrackPanel" Grid.Row="3" />
-      <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto" Margin="0,10,0,16">
-        <TextBlock Text="{Binding PageText}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Content="{DynamicResource folders.previous}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" />
-        <Button Grid.Column="2" Content="{DynamicResource folders.next}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" />
       </Grid>
     </Grid>
   </Grid>

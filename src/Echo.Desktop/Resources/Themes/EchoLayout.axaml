@@ -1,0 +1,31 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <x:Double x:Key="EchoPageTitleSize">28</x:Double>
+    <Thickness x:Key="EchoPageInset">32,28,32,28</Thickness>
+  </Styles.Resources>
+  <Style Selector="TextBlock.page-title"><Setter Property="FontSize" Value="{StaticResource EchoPageTitleSize}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+  <Style Selector="Button.quiet, Button.content-link">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Button.quiet:pointerover, Button.content-link:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Button.content-link"><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="24" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>
+  <Style Selector="Button.dismiss-scrim">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Cursor" Value="Arrow" />
+  </Style>
+  <Style Selector="Button.dismiss-scrim:pressed"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="Button.detail-tab, Button.artist-tab, Button.radio-tab, Button.history-tab, Button.queue-mode">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+  </Style>
+  <Style Selector="Button.rate, Button.drawer-action, Button.control-step, Button.control-tab">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ToolTip"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="10,7" /></Style>
+  <Style Selector="MenuItem"><Setter Property="MinHeight" Value="34" /></Style>
+  <Style Selector="FlyoutPresenter"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="8" /></Style>
+</Styles>

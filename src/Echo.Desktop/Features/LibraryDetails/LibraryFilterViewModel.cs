@@ -18,6 +18,24 @@ public sealed partial class LibraryFilterViewModel : ObservableObject
     [ObservableProperty] private string folder = "";
     [ObservableProperty] private bool favoriteOnly;
     [ObservableProperty] private bool losslessOnly;
+    public IGenreLibrary? Genres { get; private set; }
+    public IFolderLibrary? Folders { get; private set; }
+    public void AttachLibrary(IAlbumLibrary? library) { Genres = library as IGenreLibrary; Folders = library as IFolderLibrary; }
+    public int ConditionIndex
+    {
+        get => FavoriteOnly ? (LosslessOnly ? 3 : 1) : (LosslessOnly ? 2 : 0);
+        set
+        {
+            if (value is < 0 or > 3 || value == ConditionIndex) return;
+            var wasResetting = _resetting; _resetting = true;
+            try { FavoriteOnly = value is 1 or 3; LosslessOnly = value is 2 or 3; }
+            finally { _resetting = wasResetting; }
+            Notify();
+        }
+    }
+    public bool HasActive => ActiveCount > 0;
+    public bool IsYearValid => string.IsNullOrWhiteSpace(Year) || (int.TryParse(Year, out var value) && value is >= 1000 and <= 2100);
+    public bool HasInvalidYear => !IsYearValid;
     public LibraryFilter Snapshot()
     {
         int? parsedYear = null;
@@ -44,7 +62,7 @@ public sealed partial class LibraryFilterViewModel : ObservableObject
     public int ActiveCount => new[] { FormatIndex != 0, RateIndex != 0, DepthIndex != 0, SourceIndex != 0,
         Year.Length > 0, Genre.Length > 0, Folder.Length > 0, FavoriteOnly, LosslessOnly }.Count(active => active);
     private void Notify()
-    { OnPropertyChanged(nameof(ActiveCount)); if (!_resetting) Changed?.Invoke(); }
+    { OnPropertyChanged(nameof(ConditionIndex)); OnPropertyChanged(nameof(ActiveCount)); OnPropertyChanged(nameof(HasActive)); OnPropertyChanged(nameof(HasInvalidYear)); if (!_resetting) Changed?.Invoke(); }
     partial void OnFormatIndexChanged(int value) => Notify();
     partial void OnRateIndexChanged(int value) => Notify();
     partial void OnDepthIndexChanged(int value) => Notify();

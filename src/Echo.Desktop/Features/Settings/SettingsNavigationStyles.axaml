@@ -1,0 +1,35 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="SettingsNavigationItemTheme" TargetType="Button">
+      <Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+      <Setter Property="BorderThickness" Value="0" /><Setter Property="MinHeight" Value="36" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusAdorner" Value="{x:Null}" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Name="RowSurface" Background="{TemplateBinding Background}" CornerRadius="4" BorderThickness="1" BorderBrush="Transparent">
+          <Grid>
+            <Border Name="ActiveMarker" Width="2" Height="18" CornerRadius="1" HorizontalAlignment="Left" VerticalAlignment="Center"
+                    Background="{DynamicResource EchoAccent}" IsVisible="False" IsHitTestVisible="False" />
+            <ContentPresenter Margin="12,0,9,0" Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" />
+          </Grid>
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      <Style Selector="^:pressed"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      <Style Selector="^.active"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+      <Style Selector="^.active /template/ Border#ActiveMarker"><Setter Property="IsVisible" Value="True" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#RowSurface"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="Button.settings-nav-item"><Setter Property="Theme" Value="{StaticResource SettingsNavigationItemTheme}" /></Style>
+  <Style Selector="Button.settings-nav-item icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.settings-nav-item.active TextBlock.settings-nav-title"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Button.settings-nav-item.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="UserControl.compact TextBlock.settings-nav-title"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="UserControl.compact TextBlock.settings-rail-heading"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="UserControl.compact ScrollViewer.settings-rail-scroll"><Setter Property="Padding" Value="0,4,4,8" /></Style>
+  <Style Selector="UserControl.compact Button.settings-nav-item /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Margin" Value="10,0,7,0" /></Style>
+</Styles>

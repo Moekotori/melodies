@@ -34,6 +34,7 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
     private int refreshVersion;
     private CancellationTokenSource? deviceQuery;
     private bool updatingModes;
+    public bool ShowKernelStreaming { get; set; }
     public IReadOnlyList<OutputFormatChoice> Formats { get; } = [new("pcm", "PCM（含 DSD 解码）"), new("dop24le", "DoP / SDM 输出"), new("dsd-native-raw", "Native DSD / SDM 输出")];
     public IReadOnlyList<OutputFormatChoice> AvailableFormats => Formats.Where(format => format.Key == "pcm" || CanUseDsd
         && (format.Key == "dop24le" && SelectedMode?.Key is "exclusive" or "asio" || format.Key == "dsd-native-raw" && IsAsio)).ToArray();
@@ -68,7 +69,7 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
             var current = session.RequestedOutput;
             var mode = current is { } settings && settings.TryGetProperty("outputMode", out var outputMode) ? outputMode.GetString() : SelectedMode?.Key ?? "shared";
             updatingModes = true;
-            try { Modes = modes; CanUseDsd = session.GeneratedDsdAllowed; SelectedMode = Modes.FirstOrDefault(x => x.Key == mode) ?? Modes[0]; }
+            try { Modes = ShowKernelStreaming ? modes : modes.Where(item => item.Key != "ks").ToArray(); CanUseDsd = session.GeneratedDsdAllowed; SelectedMode = Modes.FirstOrDefault(x => x.Key == mode) ?? Modes[0]; }
             finally { updatingModes = false; }
             if (current is { } config)
             {
@@ -161,7 +162,7 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
                 SampleRate, BufferFrames, AsioChannelStart - 1, SelectedFormat.Key, DsdTransportRate));
             await session.DspAsync("eq.setEnabled", Json(new JsonArray(JsonValue.Create(equalizer))), true);
             await session.DspAsync("crossfeed.setState", Json(new JsonArray(new JsonObject { ["enabled"] = crossfeed })), true);
-            await session.DspAsync("playbackRate.configure", Json(new JsonArray(new JsonObject { ["rate"] = rate, ["mode"] = "speed" })), true);
+            await session.SetPlaybackRateAsync(rate);
             Message = session.Snapshot.OperationId > 0 ? "输出已打开，请在信号路径查看实际格式。" : "配置已保存，播放时打开并验证设备。";
         }
         catch (Exception e) { Message = e is ArgumentException or IOException or NotSupportedException ? e.Message : "输出设置失败，请检查设备后重试。"; }

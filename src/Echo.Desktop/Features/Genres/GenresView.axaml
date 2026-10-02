@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:genres="using:Echo.Desktop.Features.Genres" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Genres.GenresView" x:DataType="genres:GenresViewModel">
+  <UserControl.Resources>
+    <ControlTheme x:Key="GenreFilterFlyoutTheme" TargetType="FlyoutPresenter" BasedOn="{StaticResource {x:Type FlyoutPresenter}}">
+      <Setter Property="Background" Value="{DynamicResource EchoField}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="8" />
+    </ControlTheme>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Button.genre-filter"><Setter Property="Height" Value="38" /><Setter Property="CornerRadius" Value="0" /><Setter Property="Padding" Value="12,0" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+    <Style Selector="Button.genre-direction"><Setter Property="Width" Value="38" /><Setter Property="Height" Value="38" /><Setter Property="CornerRadius" Value="0" /><Setter Property="Padding" Value="0" /></Style>
+    <Style Selector="Button.genre-option"><Setter Property="Height" Value="36" /><Setter Property="Padding" Value="10,0" /><Setter Property="CornerRadius" Value="5" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+    <Style Selector="Button.genre-option.selected"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+    <Style Selector="Button.genre-option.selected TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  </UserControl.Styles>
+  <Grid>
+    <Grid Name="Wall" RowDefinitions="Auto,Auto,Auto,*">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
+        <StackPanel Orientation="Horizontal" Spacing="16"><TextBlock Text="{DynamicResource navigation.genres}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontStyle="Normal" /><TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" /></StackPanel>
+        <Button Grid.Column="1" Classes="icon" Click="OnRefresh" ToolTip.Tip="{DynamicResource genres.refresh}"><icon:GlyphIcon Kind="refresh" Width="18" Height="18" /></Button>
+      </Grid>
+      <Grid Grid.Row="1" Name="Toolbar" ColumnDefinitions="*,Auto" ColumnSpacing="24" Margin="0,0,0,20">
+        <Grid Name="SearchArea" ColumnDefinitions="Auto,*,Auto" MinWidth="120" MaxWidth="520" Width="520" HorizontalAlignment="Left">
+          <icon:GlyphIcon Kind="search" Width="18" Height="18" Margin="12,0" ZIndex="1" />
+          <TextBox Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource genres.search}" Padding="40,10,52,10" CornerRadius="6" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
+          <Button Grid.Column="2" Classes="icon" Content="×" Click="OnClearSearch" ToolTip.Tip="{DynamicResource genres.clear}" Margin="8,0" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </Grid>
+        <Border Grid.Column="1" Name="FilterFrame" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="8" ClipToBounds="True" Height="40">
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <Button Name="FilterButton" Classes="genre-filter" MinWidth="166" AutomationProperties.Name="{DynamicResource query.filters}">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="9">
+                <icon:GlyphIcon Kind="filter" Width="16" Height="16" Stroke="{DynamicResource EchoAccentText}" />
+                <TextBlock Grid.Column="1" Text="{Binding SortLabel}" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" />
+                <icon:GlyphIcon Grid.Column="2" Kind="chevron-right" Width="13" Height="13" RenderTransformOrigin="50%,50%"><icon:GlyphIcon.RenderTransform><RotateTransform Angle="90" /></icon:GlyphIcon.RenderTransform></icon:GlyphIcon>
+              </Grid>
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterTheme="{StaticResource GenreFilterFlyoutTheme}">
+                  <StackPanel Width="244" Spacing="6">
+                    <TextBlock Text="{DynamicResource genres.source}" Classes="muted" FontSize="11" Margin="10,4,0,2" />
+                    <Button Name="LocalSourceOption" Classes="genre-option selected" Click="OnLocalSource">
+                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="9"><icon:GlyphIcon Kind="folder" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource genres.local}" FontSize="13" /><icon:GlyphIcon Grid.Column="2" Kind="check" Width="15" Height="15" Stroke="{DynamicResource EchoAccentText}" /></Grid>
+                    </Button>
+                    <Button Name="RemoteSourceOption" Classes="genre-option" IsEnabled="False" ToolTip.Tip="{DynamicResource genres.remoteUnavailable}">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9"><icon:GlyphIcon Kind="remote" Scope="sidebar" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource genres.remote}" FontSize="13" /></Grid>
+                    </Button>
+                    <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="10,5" />
+                    <TextBlock Text="{DynamicResource query.sort}" Classes="muted" FontSize="11" Margin="10,0,0,2" />
+                    <Button Name="NameSortOption" Classes="genre-option" Classes.selected="{Binding IsNameSort}" Tag="0" Click="OnSelectSort"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource genres.sortName}" FontSize="13" /><icon:GlyphIcon Grid.Column="1" Kind="check" Width="15" Height="15" IsVisible="{Binding IsNameSort}" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
+                    <Button Name="TrackSortOption" Classes="genre-option" Classes.selected="{Binding IsTrackSort}" Tag="1" Click="OnSelectSort"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource genres.sortTracks}" FontSize="13" /><icon:GlyphIcon Grid.Column="1" Kind="check" Width="15" Height="15" IsVisible="{Binding IsTrackSort}" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
+                    <Button Name="AlbumSortOption" Classes="genre-option" Classes.selected="{Binding IsAlbumSort}" Tag="2" Click="OnSelectSort"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource genres.sortAlbums}" FontSize="13" /><icon:GlyphIcon Grid.Column="1" Kind="check" Width="15" Height="15" IsVisible="{Binding IsAlbumSort}" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+            <Border Grid.Column="1" Width="1" Height="17" Background="{DynamicResource EchoDivider}" VerticalAlignment="Center" />
+            <Button Grid.Column="2" Name="DirectionButton" Classes="genre-direction" Click="OnToggleDirection" ToolTip.Tip="{Binding DirectionLabel}" AutomationProperties.Name="{Binding DirectionLabel}">
+              <icon:GlyphIcon Kind="arrow-right" Width="16" Height="16" RenderTransformOrigin="50%,50%" Stroke="{DynamicResource EchoAccentText}"><icon:GlyphIcon.RenderTransform><RotateTransform Angle="{Binding DirectionAngle}" /></icon:GlyphIcon.RenderTransform></icon:GlyphIcon>
+            </Button>
+          </Grid>
+        </Border>
+      </Grid>
+      <TextBlock Grid.Row="2" Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <Grid Grid.Row="3">
+        <ContentControl Name="ViewportHost" />
+        <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12"><TextBlock Text="{DynamicResource genres.empty}" Classes="heading" FontSize="18" HorizontalAlignment="Center" /><TextBlock Text="{DynamicResource genres.emptyHint}" Classes="muted" FontSize="13" TextWrapping="Wrap" /><Button Content="{DynamicResource genres.clear}" Click="OnClearSearch" HorizontalAlignment="Center" /></StackPanel>
+      </Grid>
+    </Grid>
+    <ContentControl Name="DetailHost" IsVisible="False" />
+  </Grid>
+</UserControl>

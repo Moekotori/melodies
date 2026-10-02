@@ -11,11 +11,17 @@ public sealed partial class FolderNode(FolderRow row, FolderNode? parent = null,
     public int PageOffset { get; } = pageOffset;
     public bool IsMore { get; } = more;
     public string Name => Row.Name;
+    public string Key => Row.Key.Length == 0 ? Row.Path : Row.Key;
+    public bool IsRoot => Row.Root;
     public string Count => IsMore ? "" : Row.TrackCount.ToString("N0");
     public Avalonia.Thickness Indent => new(Depth * 16, 0, 0, 0);
     public string Expander => IsLoading ? "·" : IsExpanded ? "⌄" : "›";
+    public double ArrowAngle => IsExpanded ? 90 : 0;
     [ObservableProperty] private bool isExpanded;
     [ObservableProperty] private bool isLoading;
-    partial void OnIsExpandedChanged(bool value) => OnPropertyChanged(nameof(Expander));
+    [ObservableProperty] private bool hasChildren = true;
+    [ObservableProperty] private bool pinned;
+    [ObservableProperty] private bool checkedForCombined;
+    partial void OnIsExpandedChanged(bool value) { OnPropertyChanged(nameof(Expander)); OnPropertyChanged(nameof(ArrowAngle)); }
     partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(Expander));
 }

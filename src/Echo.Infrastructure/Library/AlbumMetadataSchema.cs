@@ -4,10 +4,10 @@ namespace Echo.Infrastructure.Library;
 
 internal static class AlbumMetadataSchema
 {
-    public static void Backup(SqliteConnection connection)
+    public static void Backup(SqliteConnection connection, int version = 6)
     {
         // SQLite's backup API captures WAL consistently. Never copy only the main database file.
-        var path = Path.GetFullPath(connection.DataSource) + ".before-v6-" + Guid.NewGuid().ToString("N") + ".sqlite";
+        var path = Path.GetFullPath(connection.DataSource) + $".before-v{version}-" + Guid.NewGuid().ToString("N") + ".sqlite";
         using var backup = new SqliteConnection(new SqliteConnectionStringBuilder
             { DataSource = path, Mode = SqliteOpenMode.ReadWriteCreate, Pooling = false }.ToString());
         backup.Open();

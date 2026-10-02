@@ -8,6 +8,7 @@ public sealed class OutputDevicePresentation : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
+        if (value is AudioOutputMode outputMode) return outputMode.Key switch { "shared" => "共享", "exclusive" => "独占", "asio" => "ASIO", "ks" => "WDM-KS", _ => outputMode.Label };
         if (value is not AudioOutputDevice device) return "";
         var mode = device.Mode switch { "shared" => "共享", "exclusive" => "独占", "asio" => "ASIO", "ks" => "WDM-KS", _ => device.Mode };
         return parameter?.ToString() switch

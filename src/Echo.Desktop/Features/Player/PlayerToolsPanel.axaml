@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:player="using:Echo.Desktop.Features.Player"
+             x:Class="Echo.Desktop.Features.Player.PlayerToolsPanel" x:DataType="player:PlayerToolsViewModel">
+  <StackPanel Spacing="12" MaxWidth="320">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{DynamicResource playerTools.timer}" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock Name="TimerStatus" Text="{Binding TimerStatus}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <TextBlock Text="{DynamicResource playerTools.minutes}" VerticalAlignment="Center" />
+      <NumericUpDown Name="TimerMinutes" Grid.Column="1" Width="112" Minimum="1" Maximum="720" Increment="5" Value="{Binding Minutes}" FormatString="0" />
+    </Grid>
+    <ComboBox Name="TimerAction" ItemsSource="{Binding ActionLabels}" SelectedIndex="{Binding ActionIndex}" HorizontalAlignment="Stretch" />
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsEnabled="{Binding !IsBusy}">
+      <Button Name="StartTimer" Content="{DynamicResource playerTools.startTimer}" Command="{Binding StartTimerCommand}" HorizontalAlignment="Stretch" />
+      <Button Name="CancelTimer" Grid.Column="1" Content="{DynamicResource playerTools.cancel}" Command="{Binding CancelTimerCommand}" IsEnabled="{Binding TimerActive}" HorizontalAlignment="Stretch" />
+    </Grid>
+    <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,4" />
+    <StackPanel Spacing="4">
+      <TextBlock Text="{DynamicResource playerTools.loop}" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding LoopStatus}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{DynamicResource playerTools.loopHelp}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+    </StackPanel>
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsEnabled="{Binding CanLoop}">
+      <StackPanel Spacing="6">
+        <Button Content="{DynamicResource playerTools.markA}" Command="{Binding MarkStartCommand}" HorizontalAlignment="Stretch" />
+        <NumericUpDown Name="LoopStart" Minimum="0" Maximum="{Binding TrackDuration}" Value="{Binding StartSeconds}" Increment="0.5" FormatString="0.00" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Spacing="6">
+        <Button Content="{DynamicResource playerTools.markB}" Command="{Binding MarkEndCommand}" HorizontalAlignment="Stretch" />
+        <NumericUpDown Name="LoopEnd" Minimum="0" Maximum="{Binding TrackDuration}" Value="{Binding EndSeconds}" Increment="0.5" FormatString="0.00" />
+      </StackPanel>
+    </Grid>
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsEnabled="{Binding !IsBusy}">
+      <Button Name="StartLoop" Content="{DynamicResource playerTools.startLoop}" Command="{Binding StartLoopCommand}" IsEnabled="{Binding CanLoop}" HorizontalAlignment="Stretch" />
+      <Button Name="ClearLoop" Grid.Column="1" Content="{DynamicResource playerTools.clearLoop}" Command="{Binding ClearLoopCommand}" IsEnabled="{Binding LoopActive}" HorizontalAlignment="Stretch" />
+    </Grid>
+    <TextBlock Name="ToolFeedback" Text="{Binding Feedback}" Foreground="{DynamicResource EchoAccent}" TextWrapping="Wrap" FontSize="12" />
+  </StackPanel>
+</UserControl>

@@ -14,6 +14,8 @@ internal sealed class PlayerPopoverBinding
     public void Wrap(Flyout flyout)
     {
         if (flyout.Content is not Control content) return;
+        if (content is PlayerVolumePanel volume)
+        { volume.CloseRequested += flyout.Hide; flyout.FlyoutPresenterClasses.Add("player-controls-presenter"); }
         var scope = new ThemeVariantScope { Child = content };
         scopes.Add(scope); flyout.Content = scope;
     }
@@ -38,6 +40,7 @@ internal sealed class PlayerPopoverBinding
             foreach (var key in shell.Text.Catalog.Fallback.Strings.Keys)
                 if (key.StartsWith("floating.", StringComparison.Ordinal) || key.StartsWith("ui.PlayerBar.", StringComparison.Ordinal) ||
                     key.StartsWith("ui.PlayerOutputPanel.", StringComparison.Ordinal) ||
+                    key.StartsWith("ui.LyricsSettingsDrawerView.", StringComparison.Ordinal) ||
                     key.StartsWith("ui.PlayerVolumePanel.", StringComparison.Ordinal)) strings.Add(key, shell.Text[key]);
             scope.Resources = strings;
         }

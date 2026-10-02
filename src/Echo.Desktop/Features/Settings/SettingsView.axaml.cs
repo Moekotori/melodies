@@ -26,12 +26,16 @@ public partial class SettingsView : UserControl
         KeyDown += OnSettingsKeyDown;
         SizeChanged += (_, _) =>
         {
-            var navigationWidth = Bounds.Width < 1020 ? 190 : 230;
-            SettingsBody.ColumnDefinitions[0].Width = new GridLength(navigationWidth);
-            SettingsHeader.ColumnDefinitions[0].Width = new GridLength(navigationWidth);
-            SettingsHeader.ColumnDefinitions[1].Width = new GridLength(Math.Min(500, Math.Max(280, Bounds.Width - navigationWidth - 108)));
-            SearchResultsPopup.Width = SettingsHeader.ColumnDefinitions[1].Width.Value;
-            SearchResultsPopup.Margin = new Avalonia.Thickness(navigationWidth + 26, -8, 0, 0);
+            var available = Math.Max(0, Bounds.Width - 64);
+            var compact = available < 760;
+            var navigationWidth = compact ? 52 : 184;
+            var spacing = compact ? 20 : 24;
+            CategoryNavigation.IsCompact = compact;
+            SettingsLayout.ColumnDefinitions[0].Width = new GridLength(navigationWidth);
+            SettingsLayout.ColumnSpacing = spacing;
+            var contentWidth = Math.Max(0, available - navigationWidth - spacing);
+            SettingsHeader.ColumnDefinitions[1].Width = new GridLength(Math.Min(340, Math.Max(120, contentWidth * .4)));
+            SearchResultsPopup.Width = Math.Min(480, contentWidth);
         };
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(SettingsViewModel.SectionVersion)) ShowSection(); }
@@ -39,11 +43,15 @@ public partial class SettingsView : UserControl
     {
         if (_model is null) return;
         _model.Shell.Shortcuts.CancelRecording();
+        Control content;
+        if (_model.ActiveCategory.Id == "shortcuts") content = new Echo.Desktop.Features.Shortcuts.ShortcutSettingsView { DataContext = _model.Shell.Shortcuts };
+        else
+        {
+            content = new SettingsSectionView(_model, showHeading: false);
+        }
         SectionHost.Content = new ScrollViewer
         {
-            Content = _model.ActiveCategory.Id == "shortcuts"
-                ? new Echo.Desktop.Features.Shortcuts.ShortcutSettingsView { DataContext = _model.Shell.Shortcuts }
-                : new SettingsSectionView(_model), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
         };
     }

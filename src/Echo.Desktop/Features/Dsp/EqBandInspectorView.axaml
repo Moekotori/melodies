@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.EqBandInspectorView" x:DataType="local:EqBandViewModel">
+  <Border BorderBrush="{DynamicResource EchoBorder}" BorderThickness="0,1,0,1" Padding="0,14">
+    <Grid Name="InspectorLayout" ColumnDefinitions="122,*,*,*,*" ColumnSpacing="20" RowSpacing="12">
+      <StackPanel Name="BandIdentity" Spacing="5" VerticalAlignment="Center">
+        <TextBlock Text="{Binding Number, StringFormat=频段 {0}}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource EchoAccentText}" />
+        <CheckBox Content="启用" IsChecked="{Binding Enabled, Mode=TwoWay}" FontSize="12" />
+      </StackPanel>
+      <StackPanel Name="FrequencyField" Grid.Column="1" Spacing="5">
+        <TextBlock Text="频率 / Hz" FontSize="12" Classes="muted" />
+        <NumericUpDown Name="BandFrequency" Classes="dsp-value" Minimum="20" Maximum="20000" Increment="1" Value="{Binding FrequencyHz, Mode=TwoWay}" FormatString="0.#" ShowButtonSpinner="False" />
+      </StackPanel>
+      <StackPanel Name="GainField" Grid.Column="2" Spacing="5">
+        <TextBlock Text="增益 / dB" FontSize="12" Classes="muted" />
+        <NumericUpDown Name="BandGain" Classes="dsp-value" Minimum="-24" Maximum="12" Increment="0.1" Value="{Binding GainDb, Mode=TwoWay}" IsEnabled="{Binding IsGainEditable}" FormatString="0.0" ShowButtonSpinner="False" />
+      </StackPanel>
+      <StackPanel Name="QField" Grid.Column="3" Spacing="5">
+        <TextBlock Text="Q 值" FontSize="12" Classes="muted" />
+        <NumericUpDown Name="BandQ" Classes="dsp-value" Minimum="0.1" Maximum="{Binding QMaximum}" Increment="0.1" Value="{Binding Q, Mode=TwoWay}" FormatString="0.###" ShowButtonSpinner="False" />
+      </StackPanel>
+      <StackPanel Name="FilterField" Grid.Column="4" Spacing="5">
+        <TextBlock Text="滤波类型" FontSize="12" Classes="muted" />
+        <ComboBox ItemsSource="{x:Static local:EqFilters.All}" SelectedItem="{Binding Filter, Mode=TwoWay}" HorizontalAlignment="Stretch" MinHeight="38">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="local:DspChoice">
+              <TextBlock Text="{Binding Label}" FontSize="14" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

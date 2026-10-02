@@ -7,6 +7,7 @@ namespace Echo.Playback;
 public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
 {
     private readonly INativeAudio native;
+    private readonly IPlaybackSourceProbe? sourceProbe;
     private readonly PlaybackCommandLane lane = new();
     private QueueTrack[] queue = [];
     private IReadOnlyList<QueueTrack> queueView = Array.Empty<QueueTrack>();
@@ -22,9 +23,10 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
     public RepeatMode Repeat => repeat;
     public event Action<PlaybackSnapshot>? Changed;
 
-    public PlaybackSessionCoordinator(INativeAudio native)
+    public PlaybackSessionCoordinator(INativeAudio native, IPlaybackSourceProbe? sourceProbe = null)
     {
         this.native = native;
+        this.sourceProbe = sourceProbe;
         InitializeState();
         native.Notification += OnNotification;
         native.Failed += OnFailed;
@@ -61,13 +63,20 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
             Publish(snapshot with { Output = output, SampleRate = (int)output.Number("sampleRate", snapshot.SampleRate),
                 Channels = (int)output.Number("channels", snapshot.Channels), Processing = output.Child("processing") });
         }
-        foreach (var entry in dspCommands)
-            await native.CallAsync(entry.Key[..entry.Key.IndexOf(':')], entry.Value).ConfigureAwait(false);
+        await ReplayRetainedDspAsync().ConfigureAwait(false);
         initialized = true;
     }
 
     private async Task OpenAsync(QueueTrack track, double start = 0, bool paused = false)
     {
+        // Reopening even the same item creates a new native operation, so its old loop cannot survive.
+        if (segmentLoop is not null)
+        {
+            SetSegmentLoop(null);
+            await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
+        }
+        var live = track.Metadata?.GetValueOrDefault("isLiveStream") == "true";
+        if (live) start = 0;
         Publish(snapshot with { Current = track, Status = PlaybackStatus.Loading, Error = null, OperationId = 0 });
         var ready = await native.CallAsync("audio.sessionBegin", Params(new JsonObject
         {
@@ -91,11 +100,14 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
         var opened = await native.CallAsync(method, Params(new JsonArray(request))).ConfigureAwait(false);
         var op = opened.Long("operationId");
         if (op <= 0) throw new IOException("Native 未返回 operationId");
+        RememberSourceRate(track, (int)opened.Long("sourceSampleRate", track.SampleRate ?? 0));
         var confirmation = ArmOutputConfirmation(op);
         positionBase = opened.Number("startSeconds");
-        Publish(snapshot with { OperationId = op, PositionSeconds = positionBase, DurationSeconds = opened.Number("durationSeconds"),
+        Publish(snapshot with { OperationId = op, PositionSeconds = positionBase, DurationSeconds = live ? 0 : opened.Number("durationSeconds"),
             SampleRate = (int)opened.Number("sampleRate", rate), Channels = (int)(output?.Long("channels", requestedChannels) ?? requestedChannels),
             Output = output, Status = paused ? PlaybackStatus.Paused : PlaybackStatus.Loading });
+        if (deviceConfiguration?.Text("outputMode") == "asio")
+            await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
         if (!paused)
         {
             await AcceptedAsync("audio.play").ConfigureAwait(false);
@@ -113,6 +125,13 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
 
     public Task ResumeAsync(CancellationToken token = default) => Command(async () =>
     {
+        if (snapshot.Current is { } live && live.Metadata?.GetValueOrDefault("isLiveStream") == "true"
+            && snapshot.Status is PlaybackStatus.Paused or PlaybackStatus.Faulted)
+        {
+            await EnsureStartedAsync().ConfigureAwait(false);
+            await SendQueueAsync(queue, live.ItemId, repeat).ConfigureAwait(false);
+            await OpenAsync(live).ConfigureAwait(false); return;
+        }
         if ((snapshot.Status == PlaybackStatus.Ended || snapshot.OperationId == 0) && (snapshot.Current ?? ResolveNext()) is { } track)
         {
             await EnsureStartedAsync().ConfigureAwait(false);
@@ -121,6 +140,14 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
             return;
         }
         if (snapshot.OperationId == 0 || snapshot.Status == PlaybackStatus.Faulted) return;
+        if (pausedEofOperation == snapshot.OperationId)
+        {
+            Publish(snapshot with { Status = PlaybackStatus.Loading });
+            await HandleNativeEofAsync(snapshot.OperationId).ConfigureAwait(false);
+            return;
+        }
+        if (snapshot.Status == PlaybackStatus.Playing) return;
+        ArmResumeConfirmation();
         await AcceptedAsync("audio.resume").ConfigureAwait(false);
         Publish(snapshot with { Status = PlaybackStatus.Loading });
     }, token);
@@ -128,13 +155,15 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
     public Task SeekAsync(double seconds, CancellationToken token = default)
     {
         if (!double.IsFinite(seconds) || seconds < 0) throw new ArgumentOutOfRangeException(nameof(seconds));
+        if (Snapshot.Current?.Metadata?.GetValueOrDefault("isLiveStream") == "true")
+            return Task.FromException(new InvalidOperationException("直播电台不支持拖动进度，请重新连接以回到直播。"));
         return Command(async () =>
         {
             if (snapshot.OperationId == 0) return;
             var position = snapshot.DurationSeconds > 0 ? Math.Min(seconds, Math.Max(0, snapshot.DurationSeconds - 0.25)) : seconds;
-            var result = await native.CallAsync("audio.seek", OperationParams(new JsonObject { ["positionSeconds"] = position })).ConfigureAwait(false);
-            positionBase = position;
-            Publish(snapshot with { OperationId = result.Long("operationId", snapshot.OperationId), PositionSeconds = position });
+            if (segmentLoop is { } loop && (position < loop.StartSeconds || position >= loop.EndSeconds))
+                await ClearSegmentLoopNowAsync().ConfigureAwait(false);
+            await SeekNowAsync(position).ConfigureAwait(false);
         }, token);
     }
 
@@ -142,6 +171,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
     private async Task StopNowAsync()
     {
         if (initialized) await native.CallAsync("audio.stop", OperationParams()).ConfigureAwait(false);
+        if (segmentLoop is not null) SetSegmentLoop(null);
         positionBase = 0;
         Publish(snapshot with { Status = PlaybackStatus.Stopped, OperationId = 0, PositionSeconds = 0, Error = null });
     }
@@ -167,6 +197,9 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
     private void Publish(PlaybackSnapshot state)
     {
         var previousItem = snapshot.Current?.ItemId;
+        if (segmentLoop is { } loop && (loop.ItemId != state.Current?.ItemId
+            || state.Status is PlaybackStatus.Stopped or PlaybackStatus.Ended or PlaybackStatus.Faulted))
+            SetSegmentLoop(null);
         Volatile.Write(ref snapshot, state with { Version = snapshot.Version + 1 });
         if (previousItem != state.Current?.ItemId || !ReferenceEquals(queueSnapshot.Items, queueView)
             || queueSnapshot.Mode != QueueMode) PublishQueue();
@@ -187,7 +220,8 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
                 PublishState();
                 try
                 {
-                    await native.DisposeAsync().ConfigureAwait(false);
+                    try { await native.DisposeAsync().ConfigureAwait(false); }
+                    finally { if (sourceProbe is not null) await sourceProbe.DisposeAsync().ConfigureAwait(false); }
                     Publish(snapshot with { Status = PlaybackStatus.Stopped, OperationId = 0, Output = null, Processing = null });
                 }
                 catch
@@ -203,6 +237,8 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
             await lane.DisposeAsync().ConfigureAwait(false);
             Changed = null;
             QueueChanged = null;
+            SegmentLoopChanged = null;
+            VolumeLockChanged = null;
             CloseStateSubscriptions();
         }
     }

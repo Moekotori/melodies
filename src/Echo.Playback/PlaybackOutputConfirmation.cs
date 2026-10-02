@@ -4,14 +4,28 @@ namespace Echo.Playback;
 
 public sealed partial class PlaybackSessionCoordinator
 {
-    private sealed record OutputConfirmation(long Epoch, long Operation)
+    private sealed record OutputConfirmation(long Epoch, long Operation, bool Resume = false)
     {
         public TaskCompletionSource PcmReady { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Rendered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public long ResumeAnchor = -1;
     }
     private sealed record PcmReadyIdentity(long Epoch, long Operation);
     private OutputConfirmation? outputConfirmation;
     private PcmReadyIdentity? lastPcmReady;
+
+    private void ArmResumeConfirmation()
+    {
+        var confirmation = new OutputConfirmation(transportEpoch, snapshot.OperationId, Resume: true);
+        confirmation.PcmReady.TrySetResult();
+        Volatile.Write(ref outputConfirmation, confirmation);
+    }
+    private bool HasConfirmedRendering()
+    {
+        var confirmation = Volatile.Read(ref outputConfirmation);
+        return confirmation is not null && confirmation.Epoch == transportEpoch
+            && confirmation.Operation == snapshot.OperationId && confirmation.Rendered.Task.IsCompletedSuccessfully;
+    }
 
     private OutputConfirmation ArmOutputConfirmation(long operation)
     {
@@ -28,6 +42,15 @@ public sealed partial class PlaybackSessionCoordinator
         if (method == "audio.firstPcm") Volatile.Write(ref lastPcmReady, new(epoch, operation));
         var confirmation = Volatile.Read(ref outputConfirmation);
         if (confirmation?.Epoch != epoch || confirmation.Operation != operation) return;
+        if (confirmation.Resume)
+        {
+            if (method != "audio.position") return;
+            var frames = value.Long("framesPlayed", -1);
+            if (frames < 0) return;
+            if (confirmation.ResumeAnchor < 0) { confirmation.ResumeAnchor = frames; return; }
+            if (frames > confirmation.ResumeAnchor) confirmation.Rendered.TrySetResult();
+            return;
+        }
         if (method == "audio.firstPcm") confirmation.PcmReady.TrySetResult();
         if (method == "audio.started" || method == "audio.position" && value.Number("framesPlayed") > 0)
         { confirmation.PcmReady.TrySetResult(); confirmation.Rendered.TrySetResult(); }

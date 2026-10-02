@@ -11,13 +11,14 @@ internal sealed class PlayerSliderInteraction
     private readonly Slider slider;
     private readonly Func<PlayerViewModel?> resolvePlayer;
     private readonly bool seek;
+    private readonly bool playbackRate;
     private readonly Action? previewEnded;
     private PlayerViewModel? active;
     private string path = "";
     private long operationId;
-    public PlayerSliderInteraction(Slider slider, Func<PlayerViewModel?> player, bool seek, Action? previewEnded = null)
+    public PlayerSliderInteraction(Slider slider, Func<PlayerViewModel?> player, bool seek, Action? previewEnded = null, bool playbackRate = false)
     {
-        this.slider = slider; resolvePlayer = player; this.seek = seek; this.previewEnded = previewEnded;
+        this.slider = slider; resolvePlayer = player; this.seek = seek; this.previewEnded = previewEnded; this.playbackRate = playbackRate;
         slider.AddHandler(InputElement.PointerPressedEvent, (_, e) =>
         { if (e.GetCurrentPoint(slider).Properties.IsLeftButtonPressed) Begin(); }, RoutingStrategies.Tunnel, true);
         slider.AddHandler(InputElement.PointerReleasedEvent, async (_, _) => await CommitAsync(), RoutingStrategies.Bubble, true);
@@ -31,7 +32,7 @@ internal sealed class PlayerSliderInteraction
     {
         if (active is not null || !slider.IsEnabled || resolvePlayer() is not { } player) return;
         active = player; path = player.CurrentFilePath; operationId = player.Session.Snapshot.OperationId;
-        if (seek) player.IsSeeking = true; else player.IsChangingVolume = true;
+        SetPreview(player, true);
     }
     private async Task CommitAsync()
     {
@@ -41,12 +42,12 @@ internal sealed class PlayerSliderInteraction
         try
         {
             if (resolvePlayer() == player && (!seek || (player.CurrentFilePath == path && player.Session.Snapshot.OperationId == operationId)))
-            { if (seek) await player.SeekToAsync(value); else await player.ChangeVolumeAsync(value); }
+            { if (seek) await player.SeekToAsync(value); else if (playbackRate) await player.ChangePlaybackRateAsync(value); else await player.ChangeVolumeAsync(value); }
         }
         finally
         {
-            if (seek) { player.IsSeeking = false; slider.SetCurrentValue(Slider.ValueProperty, player.Position); }
-            else { player.IsChangingVolume = false; slider.SetCurrentValue(Slider.ValueProperty, player.Volume); }
+            SetPreview(player, false);
+            slider.SetCurrentValue(Slider.ValueProperty, ConfirmedValue(player));
             previewEnded?.Invoke();
         }
     }
@@ -54,8 +55,11 @@ internal sealed class PlayerSliderInteraction
     {
         if (active is not { } player) return;
         active = null;
-        if (seek) { player.IsSeeking = false; slider.SetCurrentValue(Slider.ValueProperty, player.Position); }
-        else { player.IsChangingVolume = false; slider.SetCurrentValue(Slider.ValueProperty, player.Volume); }
+        SetPreview(player, false);
+        slider.SetCurrentValue(Slider.ValueProperty, ConfirmedValue(player));
         previewEnded?.Invoke();
     }
+    private double ConfirmedValue(PlayerViewModel player) => seek ? player.Position : playbackRate ? player.PlaybackRate : player.Volume;
+    private void SetPreview(PlayerViewModel player, bool value)
+    { if (seek) player.IsSeeking = value; else if (playbackRate) player.IsChangingPlaybackRate = value; else player.IsChangingVolume = value; }
 }

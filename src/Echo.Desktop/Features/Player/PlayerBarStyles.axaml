@@ -29,9 +29,12 @@
 
 
   <Style Selector="Slider.player-rail"><Setter Property="Theme" Value="{StaticResource PlayerRail}" /></Style>
-  <Style Selector="Button.player-cover"><Setter Property="CornerRadius" Value="11" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+  <Style Selector="Button.player-cover"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" /><Setter Property="CornerRadius" Value="6" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
   <Style Selector="Button.player-cover:pointerover"><Setter Property="Background" Value="Transparent" /></Style>
-  <Style Selector="Button.play:pointerover"><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="Button.play"><Setter Property="Width" Value="44" /><Setter Property="Height" Value="44" /><Setter Property="CornerRadius" Value="22" /><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Foreground" Value="{DynamicResource EchoOnAccent}" /></Style>
+  <Style Selector="Button.play:pointerover"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /></Style>
+  <Style Selector="Button.play:disabled"><Setter Property="Opacity" Value="0.6" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.play:disabled /template/ Border#PART_ButtonBorder"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /></Style>
   <Style Selector="Button.transport.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
   <Style Selector="Border.player-chip"><Setter Property="Background" Value="{DynamicResource EchoChip}" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="8,0" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
   <Style Selector="Border.player-chip TextBlock"><Setter Property="FontSize" Value="10" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>

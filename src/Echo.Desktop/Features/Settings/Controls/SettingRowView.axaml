@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:models="using:Echo.Desktop.Features.Settings.Models" xmlns:settings="using:Echo.Desktop.Features.Settings.Controls" xmlns:icon="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Settings.Controls.SettingRowView" x:DataType="models:SettingRowViewModel">
   <UserControl.Resources>
     <DataTemplate x:Key="ToggleEditor" x:DataType="models:SettingRowViewModel">
-      <ToggleButton Theme="{StaticResource SettingsToggleTheme}" IsChecked="{Binding BoolValue, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Title}" />
+      <ToggleSwitch IsChecked="{Binding BoolValue, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" OnContent="" OffContent="" HorizontalAlignment="Right" AutomationProperties.Name="{Binding Title}" />
     </DataTemplate>
     <DataTemplate x:Key="SelectEditor" x:DataType="models:SettingRowViewModel">
       <ComboBox Classes="settings-select" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedOption, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Title}">

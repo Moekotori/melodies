@@ -140,6 +140,8 @@ internal static class QueueUiSmoke
     }
     internal sealed class PreviewNative : INativeAudio
     {
+        private readonly double duration;
+        internal PreviewNative(double duration = 223) { this.duration = duration; }
         private int operation;
         public event Action<string, JsonElement>? Notification;
         public event Action<Exception>? Failed { add { } remove { } }
@@ -151,7 +153,7 @@ internal static class QueueUiSmoke
             {
                 "queue.set" => $"{{\"queueRevision\":{parameters!.Value.GetProperty("revision").GetInt64()}}}",
                 "audio.sessionBegin" => "{\"accepted\":true,\"sessionId\":1,\"ready\":{\"sampleRate\":48000,\"channels\":2}}",
-                "audio.openFile" or "audio.openSource" or "audio.seek" => $"{{\"operationId\":{++operation},\"sampleRate\":48000,\"durationSeconds\":223}}",
+                "audio.openFile" or "audio.openSource" or "audio.seek" => $"{{\"operationId\":{++operation},\"sampleRate\":48000,\"durationSeconds\":{duration.ToString(System.Globalization.CultureInfo.InvariantCulture)}}}",
                 _ => "true"
             };
             using var doc = JsonDocument.Parse(json); return Task.FromResult(doc.RootElement.Clone());

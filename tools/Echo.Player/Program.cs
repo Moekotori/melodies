@@ -1,16 +1,18 @@
 using Echo.Playback;
 using Echo.Playback.NativeAudio;
 using Echo.Application.Playback;
+using Echo.Infrastructure.Playback;
 
 if (args.Length < 2)
 {
-    Console.WriteLine("Echo.Player <native-host-path> <audio-file> [audio-file ...]\n命令: pause, play, next, prev, seek <秒>, volume <0..1>, repeat off|one|all, devices, zone, recover, quit");
+    Console.WriteLine("Echo.Player <native-host-path> <audio-file> [audio-file ...]\n命令: pause, play, next, prev, seek <秒>, volume <0..1>, repeat off|one|all, devices, zone, perf, recover, quit");
     return;
 }
 await using var runtime = new PlaybackRuntime(new NativeAudioHost(args[0]));
 await runtime.StartAsync();
 var player = runtime.LocalZone.Session;
-var items = args.Skip(1).Select((path, i) => new QueueTrack(i.ToString(), i.ToString(), Path.GetFullPath(path))).ToArray();
+var items = await PlaybackFileResolver.ResolveAsync(args.Skip(1));
+if (items.Count == 0) return;
 PlaybackStatus? previous = null;
 string? previousItem = null;
 player.Changed += state =>
@@ -40,6 +42,10 @@ try
                 case "repeat" when command.Length == 2: await player.SetRepeatAsync(Enum.Parse<RepeatMode>(command[1], true)); break;
                 case "devices": Console.WriteLine((await player.GetDevicesAsync()).GetRawText()); break;
                 case "zone": Console.WriteLine($"{runtime.LocalZone.Id} · {runtime.LocalZone.Name} · {runtime.LocalZone.Output.DeviceName}"); break;
+                case "perf":
+                    var diagnostics = player.State.Performance;
+                    Console.WriteLine($"PCM buffer={diagnostics.BufferedMilliseconds?.ToString("F1") ?? "unknown"} ms; host underruns={diagnostics.HostUnderrunCallbacks?.ToString() ?? "unknown"}; SRC stage={diagnostics.Src?.Speed?.ToString("F1") ?? "unknown"}x; admission={runtime.BackgroundWork.Snapshot.Pressure}");
+                    break;
                 case "recover": await player.RecoverAsync(); break;
                 default: Console.WriteLine("无法识别的命令"); break;
             }

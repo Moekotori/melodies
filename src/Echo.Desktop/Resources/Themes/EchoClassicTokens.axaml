@@ -11,19 +11,22 @@
       <SolidColorBrush x:Key="EchoMuted">#656978</SolidColorBrush>
       <SolidColorBrush x:Key="EchoSubtle">#737787</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccent">#6069df</SolidColorBrush>
+      <SolidColorBrush x:Key="LibraryPopupSelected">#ededfa</SolidColorBrush>
+      <SolidColorBrush x:Key="LibraryInputSurface">#f6f6fa</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccentText">#4b52bc</SolidColorBrush>
       <SolidColorBrush x:Key="EchoIconAccent">#6069df</SolidColorBrush>
       <SolidColorBrush x:Key="EchoBorder">#66e0e1e9</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoDivider">#e0e1e9</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoHover">#eeeef3</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDivider">#e5e7eb</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHover">#f4f5f7</SolidColorBrush>
       <SolidColorBrush x:Key="EchoSelected">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoPanelMuted">#eeeef3</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSidebarSelected" Opacity="0.5" Color="#ededfa" />
+      <SolidColorBrush x:Key="EchoPanelMuted">#f4f5f7</SolidColorBrush>
       <SolidColorBrush x:Key="EchoTitlebar">#ffffff</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoPage">#f5f5f8</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoPageBase">#f5f5f8</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPage">#ffffff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPageBase">#ffffff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPageGlow">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoSidebar">#f5f5f8</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoPlayer">#fafafd</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSidebar">#f7f8fa</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPlayer">#ffffff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoField">#ffffff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPlaceholder">#f2f4fa</SolidColorBrush>
       <Bitmap x:Key="EchoPlaceholderImage">avares://Echo.Desktop/Resources/Artwork/placeholder-light.png</Bitmap>
@@ -38,23 +41,26 @@
       <SolidColorBrush x:Key="EchoMuted">#a7abba</SolidColorBrush>
       <SolidColorBrush x:Key="EchoSubtle">#9197a8</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccent">#969bf1</SolidColorBrush>
+      <SolidColorBrush x:Key="LibraryPopupSelected">#303247</SolidColorBrush>
+      <SolidColorBrush x:Key="LibraryInputSurface">#292b34</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccentText">#c6c9ff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoIconAccent">#969bf1</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoBorder">#34363f</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoDivider">#34363f</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoHover">#191a20</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoBorder">#383a40</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDivider">#383a40</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoHover">#1e1f23</SolidColorBrush>
       <SolidColorBrush x:Key="EchoSelected">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoPanelMuted">#191a20</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoTitlebar">#202127</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoPage">#14151a</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoPageBase">#14151a</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSidebarSelected" Opacity="0.5" Color="#2a2c42" />
+      <SolidColorBrush x:Key="EchoPanelMuted">#1e1f23</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoTitlebar">#222327</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPage">#18191c</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPageBase">#18191c</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPageGlow">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoSidebar">#202127</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoPlayer">#1b1c22</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoField">#202127</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSidebar">#1e1f23</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoPlayer">#202125</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoField">#222327</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPlaceholder">#0d1939</SolidColorBrush>
       <Bitmap x:Key="EchoPlaceholderImage">avares://Echo.Desktop/Resources/Artwork/placeholder-dark.png</Bitmap>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
-  <FontFamily x:Key="EchoFont">avares://Echo.Desktop/Resources/Fonts#Outfit, Microsoft YaHei, Noto Sans SC, Segoe UI, PingFang SC</FontFamily>
+  <FontFamily x:Key="EchoFont">Segoe UI, Microsoft YaHei UI, Noto Sans, PingFang SC, DejaVu Sans</FontFamily>
 </ResourceDictionary>

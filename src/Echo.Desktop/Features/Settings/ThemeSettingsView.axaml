@@ -1,126 +1,83 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:theme="using:Echo.Desktop.Theming" xmlns:contracts="using:Echo.Contracts.Settings"
-             x:Class="Echo.Desktop.Features.Settings.ThemeSettingsView" x:DataType="theme:ThemeViewModel">
-  <UserControl.Styles>
-    <Style Selector="TextBlock.theme-label"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
-    <Style Selector="TextBox"><Setter Property="FontSize" Value="13" /><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
-    <Style Selector="ComboBox"><Setter Property="MinWidth" Value="120" /><Setter Property="FontSize" Value="13" /><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
-    <Style Selector="Expander"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="CornerRadius" Value="{DynamicResource EchoPanelRadius}" /></Style>
-  </UserControl.Styles>
-  <StackPanel Spacing="20">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18">
-      <StackPanel Spacing="4"><TextBlock Text="主题" FontSize="22" Classes="heading" /><TextBlock Text="经典配色 · 浅深色独立编辑" Classes="theme-label" /></StackPanel>
-      <ComboBox Grid.Column="1" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode, Mode=TwoWay}" VerticalAlignment="Center" AutomationProperties.Name="主题模式" />
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:theme="using:Echo.Desktop.Theming" xmlns:settings="using:Echo.Desktop.Features.Settings" xmlns:contracts="using:Echo.Contracts.Settings" x:Class="Echo.Desktop.Features.Settings.ThemeSettingsView" x:DataType="theme:ThemeViewModel">
+  <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /></UserControl.Styles>
+  <UserControl.Resources><x:Double x:Key="ThemeColorFieldWidth">250</x:Double><x:Double x:Key="ThemeModeWidth">500</x:Double></UserControl.Resources>
+  <StackPanel Spacing="14">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18" Margin="0,0,0,6" IsVisible="{Binding !IsBackgroundSection}">
+      <TextBlock Text="显示模式" FontSize="14" VerticalAlignment="Center" />
+      <theme:ThemeChoiceList Grid.Column="1" Classes="theme-choices theme-line-options" ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode, Mode=TwoWay}" AutomationProperties.Name="主题模式" />
     </Grid>
-    <Border Background="{Binding PreviewBackground}" Padding="20" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" CornerRadius="{DynamicResource EchoPanelRadius}" ClipToBounds="True">
-      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="16" RowSpacing="12">
-        <StackPanel Spacing="3"><TextBlock Text="ECHO" Foreground="{Binding PreviewText}" FontSize="24" FontWeight="SemiBold" /><TextBlock Text="音乐，呈现你喜欢的样子。" Foreground="{Binding PreviewMuted}" FontSize="12" /></StackPanel>
-        <Button Grid.Column="1" Background="{Binding PreviewAccent}" Foreground="{Binding PreviewOnAccent}" Padding="22,8" VerticalAlignment="Center"><TextBlock Text="播放" Foreground="{Binding PreviewOnAccent}" /></Button>
-        <Border Grid.Row="1" Grid.ColumnSpan="2" Background="{Binding PreviewPanel}" Padding="13,10" CornerRadius="4">
-          <Grid ColumnDefinitions="*,Auto"><TextBlock Text="喜欢的音乐" Foreground="{Binding PreviewText}" /><TextBlock Grid.Column="1" Text="03:42" Foreground="{Binding PreviewMuted}" FontSize="12" /></Grid>
-        </Border>
-      </Grid>
-    </Border>
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-      <StackPanel Spacing="4"><TextBlock Text="主题预设" FontWeight="SemiBold" /><TextBlock Text="沿用旧版的 49 个配色预设" Classes="theme-label" /></StackPanel>
-      <ComboBox Grid.Column="1" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}" Width="190" AutomationProperties.Name="主题预设" />
+    <Border Height="1" Background="{DynamicResource EchoDivider}" IsVisible="{Binding !IsBackgroundSection}" />
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20" Margin="0,4" IsVisible="{Binding !IsBackgroundSection}">
+      <StackPanel Spacing="8">
+        <TextBlock Text="当前主题" Classes="theme-caption" />
+        <Button Name="OpenPresetButton" Classes="theme-theme-picker" Width="250" HorizontalAlignment="Left" Command="{Binding OpenPresetGalleryCommand}" AutomationProperties.Name="全部主题">
+          <Grid ColumnDefinitions="*,14" ColumnSpacing="14"><TextBlock Text="{Binding CurrentThemeLabel}" FontSize="14" TextTrimming="CharacterEllipsis" /><Path Grid.Column="1" Data="M 2,3 L 6,7 L 10,3" Stroke="{DynamicResource EchoMuted}" StrokeThickness="1.5" Width="12" Height="9" VerticalAlignment="Center" /></Grid>
+        </Button>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Spacing="8" HorizontalAlignment="Right">
+        <TextBlock Text="编辑配色" Classes="theme-caption" HorizontalAlignment="Right" />
+        <theme:ThemeChoiceList Classes="theme-choices theme-line-options" ItemsSource="{Binding Tones}" SelectedItem="{Binding EditTone, Mode=TwoWay}" AutomationProperties.Name="编辑配色" />
+      </StackPanel>
+      <Popup Name="PresetPopup" PlacementTarget="{Binding #OpenPresetButton}" Placement="Bottom" VerticalOffset="7" IsOpen="{Binding IsPresetGalleryOpen, Mode=TwoWay}" IsLightDismissEnabled="True" ShouldUseOverlayLayer="True">
+        <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" CornerRadius="7" Padding="18"><settings:ThemePresetGallery DataContext="{Binding}" /></Border>
+      </Popup>
     </Grid>
-    <WrapPanel Orientation="Horizontal">
-      <CheckBox Content="定时切换" IsChecked="{Binding ScheduleEnabled, Mode=TwoWay}" Margin="0,0,14,0" />
-      <StackPanel Orientation="Horizontal" Spacing="7" IsEnabled="{Binding ScheduleEnabled}" VerticalAlignment="Center" Margin="0,0,14,0">
-        <TextBlock Text="深色" Classes="theme-label" VerticalAlignment="Center" /><TextBox Text="{Binding DarkAt, Mode=TwoWay}" Width="70" MaxLength="5" AutomationProperties.Name="深色切换时间" />
-        <TextBlock Text="浅色" Classes="theme-label" VerticalAlignment="Center" /><TextBox Text="{Binding LightAt, Mode=TwoWay}" Width="70" MaxLength="5" AutomationProperties.Name="浅色切换时间" />
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+      <theme:ThemeChoiceList Classes="theme-choices theme-tabs" ItemsSource="{Binding EditorSections}" SelectedItem="{Binding EditorSection, Mode=TwoWay}" AutomationProperties.Name="主题编辑分类" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button Content="撤销" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" Classes="theme-quiet" />
+        <Button Content="···" Classes="theme-quiet" ToolTip.Tip="更多主题操作" IsVisible="{Binding !IsBackgroundSection}">
+          <Button.Flyout><Flyout><StackPanel Spacing="4"><Button Content="随机配色" Command="{Binding RandomizeCommand}" HorizontalAlignment="Stretch" /><Button Content="恢复默认外观" Command="{Binding ResetAllCommand}" HorizontalAlignment="Stretch" /></StackPanel></Flyout></Button.Flyout>
+        </Button>
+        <Button Content="保存主题" Command="{Binding SaveCopyCommand}" Classes="theme-save" AutomationProperties.Name="保存当前配色" IsVisible="{Binding !IsBackgroundSection}" />
       </StackPanel>
-      <CheckBox Content="反色模式" IsChecked="{Binding Invert, Mode=TwoWay}" />
-    </WrapPanel>
-    <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,16,0,0">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-        <StackPanel Spacing="4"><TextBlock Text="自定义配色" FontSize="17" FontWeight="SemiBold" /><TextBlock Text="{Binding ContrastStatus}" Classes="theme-label" TextWrapping="Wrap" /></StackPanel>
-        <ComboBox Grid.Column="1" ItemsSource="{Binding Tones}" SelectedItem="{Binding EditTone, Mode=TwoWay}" AutomationProperties.Name="编辑配色" />
+    </Grid>
+    <settings:ThemeColorPalette IsVisible="{Binding IsColorsSection}" />
+    <settings:ThemeSurfaceSettings IsVisible="{Binding IsMaterialsSection}" />
+    <settings:ThemeBackgroundSettings IsVisible="{Binding IsBackgroundSection}" />
+    <StackPanel IsVisible="{Binding IsLibrarySection}" Spacing="18">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <TextBox Classes="theme-input" Text="{Binding Name, Mode=TwoWay}" MaxLength="60" PlaceholderText="为主题命名" AutomationProperties.Name="主题名称" />
+        <Button Grid.Column="1" Content="保存为新主题" Command="{Binding SaveCopyCommand}" Classes="theme-action" />
       </Grid>
+      <TextBlock Text="保存你喜欢的配色，让浅色与深色成对保留。" Classes="theme-caption" IsVisible="{Binding !HasLibrary}" TextWrapping="Wrap" />
+      <ItemsControl ItemsSource="{Binding Library}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="contracts:CustomTheme">
+            <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,8">
+              <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <Button Grid.Column="1" Content="应用" Classes="theme-action" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).ApplyCustomCommand}" CommandParameter="{Binding}" />
+                <Button Grid.Column="2" Content="改名" Classes="theme-quiet" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).RenameCustomCommand}" CommandParameter="{Binding}" ToolTip.Tip="使用上方名称" />
+                <Button Grid.Column="3" Content="删除" Classes="theme-quiet" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).DeleteCustomCommand}" CommandParameter="{Binding}" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="导入主题" Click="ImportTheme" Classes="theme-action" />
+        <Button Content="导出当前主题" Click="ExportTheme" Classes="theme-action" />
+      </StackPanel>
+    </StackPanel>
+    <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,18,0,0" IsVisible="{Binding !IsBackgroundSection}">
+      <WrapPanel>
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,24,12">
+          <ToggleButton Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding ScheduleEnabled, Mode=TwoWay}" AutomationProperties.Name="定时切换" />
+          <TextBlock Text="定时切换" FontSize="12" VerticalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="7" IsEnabled="{Binding ScheduleEnabled}" Margin="0,0,20,12">
+          <TextBlock Text="深色" Classes="theme-caption" VerticalAlignment="Center" />
+          <TextBox Classes="theme-input" Text="{Binding DarkAt, Mode=TwoWay}" Width="66" MaxLength="5" />
+          <TextBlock Text="浅色" Classes="theme-caption" VerticalAlignment="Center" />
+          <TextBox Classes="theme-input" Text="{Binding LightAt, Mode=TwoWay}" Width="66" MaxLength="5" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,12">
+          <ToggleButton Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding Invert, Mode=TwoWay}" AutomationProperties.Name="反色模式" />
+          <TextBlock Text="反色模式" FontSize="12" VerticalAlignment="Center" />
+        </StackPanel>
+      </WrapPanel>
     </Border>
-    <ItemsControl ItemsSource="{Binding ColorGroups}">
-      <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="10" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-      <ItemsControl.ItemTemplate><DataTemplate x:DataType="theme:ThemeColorGroup">
-        <Expander Header="{Binding Title}" IsExpanded="{Binding InitiallyExpanded}" Padding="0">
-          <ItemsControl ItemsSource="{Binding Fields}" Margin="0,8,0,0">
-            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate><DataTemplate x:DataType="theme:ThemeColorField">
-              <StackPanel Width="276" Spacing="3" Margin="0,0,12,12">
-                <Grid ColumnDefinitions="*,24" Margin="0,0,0,2"><TextBlock Text="{Binding Label}" Classes="theme-label" /><Button Grid.Column="1" Content="↺" Command="{Binding ResetCommand}" Padding="0" MinHeight="20" ToolTip.Tip="恢复此项" /></Grid>
-                <Grid ColumnDefinitions="32,*" ColumnSpacing="8">
-                  <Button Background="{Binding Swatch}" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" Height="32" Padding="0" AutomationProperties.Name="{Binding Label}">
-                    <Button.Flyout><Flyout><StackPanel Width="210" Spacing="8">
-                      <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                      <TextBlock Text="红" Classes="theme-label" /><Slider Minimum="0" Maximum="255" Value="{Binding Red, Mode=TwoWay}" AutomationProperties.Name="红色通道" />
-                      <TextBlock Text="绿" Classes="theme-label" /><Slider Minimum="0" Maximum="255" Value="{Binding Green, Mode=TwoWay}" AutomationProperties.Name="绿色通道" />
-                      <TextBlock Text="蓝" Classes="theme-label" /><Slider Minimum="0" Maximum="255" Value="{Binding Blue, Mode=TwoWay}" AutomationProperties.Name="蓝色通道" />
-                    </StackPanel></Flyout></Button.Flyout>
-                  </Button>
-                  <TextBox Grid.Column="1" Text="{Binding Value, Mode=TwoWay}" MaxLength="9" MinHeight="32" AutomationProperties.Name="{Binding Label}" />
-                </Grid>
-                <TextBlock Text="{Binding Error}" FontSize="11" Foreground="{DynamicResource EchoDanger}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" />
-              </StackPanel>
-            </DataTemplate></ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </Expander>
-      </DataTemplate></ItemsControl.ItemTemplate>
-    </ItemsControl>
-    <Expander Header="材质与主题动效">
-      <StackPanel Spacing="14" Margin="0,12,0,0">
-        <TextBlock Text="玻璃感降低面板遮罩；背景模糊用于图片层。系统亚克力由平台提供。" Classes="theme-label" TextWrapping="Wrap" />
-        <ItemsControl ItemsSource="{Binding NumberFields}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="theme:ThemeNumberField">
-          <Grid ColumnDefinitions="160,*,58" ColumnSpacing="12" Margin="0,7">
-            <TextBlock Text="{Binding Definition.Label}" FontSize="13" VerticalAlignment="Center" />
-            <Slider Grid.Column="1" Minimum="{Binding Definition.Min}" Maximum="{Binding Definition.Max}" SmallChange="{Binding Definition.Step}" Value="{Binding Value, Mode=TwoWay}" AutomationProperties.Name="{Binding Definition.Label}" />
-            <TextBlock Grid.Column="2" Text="{Binding Value, StringFormat={}{0:0.##}}" Classes="theme-label" VerticalAlignment="Center" HorizontalAlignment="Right" />
-          </Grid>
-        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-        <CheckBox Content="启用主题动效" IsChecked="{Binding MotionEnabled, Mode=TwoWay}" />
-      </StackPanel>
-    </Expander>
-    <WrapPanel>
-      <Button Content="撤销" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" Classes="settings-control" Margin="0,0,8,8" />
-      <Button Content="重置当前配色" Command="{Binding ResetToneCommand}" Classes="settings-control" Margin="0,0,8,8" />
-      <Button Content="恢复经典外观" Command="{Binding ResetAllCommand}" Classes="settings-control" Margin="0,0,8,8" />
-    </WrapPanel>
-    <Expander Header="我的主题与导入导出" IsExpanded="True">
-      <StackPanel Spacing="12" Margin="0,12,0,0">
-        <WrapPanel>
-          <TextBox Text="{Binding Name, Mode=TwoWay}" Width="180" MaxLength="60" PlaceholderText="主题名称" Margin="0,0,8,8" AutomationProperties.Name="主题名称" />
-          <Button Content="另存为新主题" Command="{Binding SaveCopyCommand}" Classes="settings-control" Margin="0,0,8,8" />
-          <Button Content="导入" Click="ImportTheme" Classes="settings-control" Margin="0,0,8,8" />
-          <Button Content="导出当前主题" Click="ExportTheme" Classes="settings-control" Margin="0,0,8,8" />
-        </WrapPanel>
-        <ItemsControl ItemsSource="{Binding Library}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="contracts:CustomTheme">
-          <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,4">
-            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-            <Button Grid.Column="1" Content="应用" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).ApplyCustomCommand}" CommandParameter="{Binding}" />
-            <Button Grid.Column="2" Content="重命名" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).RenameCustomCommand}" CommandParameter="{Binding}" ToolTip.Tip="使用上方名称" />
-            <Button Grid.Column="3" Content="删除" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).DeleteCustomCommand}" CommandParameter="{Binding}" />
-          </Grid>
-        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-      </StackPanel>
-    </Expander>
-    <Expander Header="背景与字体">
-      <StackPanel Spacing="14" Margin="0,12,0,0">
-        <WrapPanel><Button Content="选择背景图片" Click="ChooseWallpaper" Classes="settings-control" Margin="0,0,8,8" /><Button Content="移除背景" Command="{Binding ClearWallpaperCommand}" Classes="settings-control" Margin="0,0,8,8" /></WrapPanel>
-        <TextBlock Text="{Binding Wallpaper}" Classes="theme-label" TextWrapping="Wrap" />
-        <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-          <TextBlock Text="背景不透明度" VerticalAlignment="Center" /><Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding WallpaperOpacity, Mode=TwoWay}" />
-          <TextBlock Grid.Row="1" Text="图片模糊" VerticalAlignment="Center" /><Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="32" Value="{Binding WallpaperBlur, Mode=TwoWay}" />
-          <TextBlock Grid.Row="2" Text="图片适配" VerticalAlignment="Center" /><ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding WallpaperFits}" SelectedItem="{Binding WallpaperFit, Mode=TwoWay}" />
-          <TextBlock Grid.Row="3" Text="水平位置" VerticalAlignment="Center" /><Slider Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding WallpaperX, Mode=TwoWay}" />
-          <TextBlock Grid.Row="4" Text="垂直位置" VerticalAlignment="Center" /><Slider Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding WallpaperY, Mode=TwoWay}" />
-        </Grid>
-        <TextBlock Text="字体名称可直接输入；未安装的字体使用备用字体。" Classes="theme-label" TextWrapping="Wrap" />
-        <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
-          <TextBlock Text="主字体" VerticalAlignment="Center" /><TextBox Grid.Column="1" Text="{Binding Font, Mode=TwoWay}" MaxLength="120" />
-          <TextBlock Grid.Row="1" Text="中文字体" VerticalAlignment="Center" /><TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ChineseFont, Mode=TwoWay}" MaxLength="120" />
-          <TextBlock Grid.Row="2" Text="备用字体" VerticalAlignment="Center" /><TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FallbackFont, Mode=TwoWay}" MaxLength="120" />
-        </Grid>
-      </StackPanel>
-    </Expander>
-    <TextBlock Text="{Binding Feedback}" IsVisible="{Binding Feedback, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Foreground="{DynamicResource EchoWarning}" TextWrapping="Wrap" FontSize="13" />
+    <TextBlock Text="{Binding Feedback}" IsVisible="{Binding Feedback, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Foreground="{DynamicResource EchoWarning}" FontSize="12" TextWrapping="Wrap" />
   </StackPanel>
 </UserControl>

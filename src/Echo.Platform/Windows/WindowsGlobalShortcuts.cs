@@ -4,13 +4,14 @@ using static Echo.Platform.Windows.WindowsShortcutNative;
 
 namespace Echo.Platform.Windows;
 
-// Lazy blocking message thread. At most 33 registrations and one pending replacement.
+// Lazy blocking message thread. At most 64 registrations and one pending replacement.
 // Keyboard uses RegisterHotKey + MOD_NOREPEAT; mouse hook exists only for enabled mouse bindings.
 public sealed class WindowsGlobalShortcuts : IGlobalShortcutBackend
 {
     private const uint ApplyMessage = 0x8001;
     private readonly object _gate = new();
     private readonly Dictionary<int, (ShortcutBinding Binding, ShortcutGesture Gesture)> _registered = [];
+    private readonly HashSet<string> _suppressedMouseUps = [];
     private readonly TaskCompletionSource<uint> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly MouseHook _mouseCallback;
@@ -24,7 +25,7 @@ public sealed class WindowsGlobalShortcuts : IGlobalShortcutBackend
     public WindowsGlobalShortcuts() => _mouseCallback = OnMouse;
     public async Task<IReadOnlyList<ShortcutRegistration>> ApplyAsync(IReadOnlyList<ShortcutBinding> bindings, CancellationToken cancellation)
     {
-        if (bindings.Count > 33) throw new ArgumentOutOfRangeException(nameof(bindings));
+        if (bindings.Count > ShortcutLimits.MaxActions) throw new ArgumentOutOfRangeException(nameof(bindings));
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
@@ -85,14 +86,14 @@ public sealed class WindowsGlobalShortcuts : IGlobalShortcutBackend
             if (gesture is null || !gesture.IsSafeGlobal)
             { statuses.Add(new(binding.Action, binding.Accelerator ?? "", false, "此组合不能用作全局快捷键。")); continue; }
             if (_registered.Values.Any(x => x.Binding == binding)) { statuses.Add(new(binding.Action, gesture.Accelerator, true)); continue; }
-            var id = Enumerable.Range(1, 33).First(x => !_registered.ContainsKey(x));
+            var id = Enumerable.Range(1, ShortcutLimits.MaxActions).First(x => !_registered.ContainsKey(x));
             var success = gesture.IsMouse || VirtualKey(gesture.Key) is { } key && RegisterHotKey(0, id, (uint)gesture.Modifiers | 0x4000, key);
             if (success) _registered.Add(id, (binding, gesture));
             statuses.Add(new(binding.Action, gesture.Accelerator, success, success ? null : "被其他应用占用或系统保留，请换一个组合或重试。"));
         }
         var needsMouse = _registered.Values.Any(x => x.Gesture.IsMouse);
         if (needsMouse && _mouseHook == 0) _mouseHook = SetWindowsHookExW(14, _mouseCallback, 0, 0);
-        if (!needsMouse && _mouseHook != 0) { UnhookWindowsHookEx(_mouseHook); _mouseHook = 0; }
+        if (!needsMouse && _mouseHook != 0) { UnhookWindowsHookEx(_mouseHook); _mouseHook = 0; _suppressedMouseUps.Clear(); }
         if (needsMouse && _mouseHook == 0)
             foreach (var pair in _registered.Where(x => x.Value.Gesture.IsMouse).ToArray())
             {
@@ -104,18 +105,20 @@ public sealed class WindowsGlobalShortcuts : IGlobalShortcutBackend
     }
     private nint OnMouse(int code, nint message, nint pointer)
     {
-        if (code >= 0 && message is 0x0207 or 0x020B)
+        if (code >= 0 && message is 0x0207 or 0x0208 or 0x020B or 0x020C)
         {
             var data = Marshal.PtrToStructure<MouseData>(pointer);
             if ((data.Flags & 1) == 0) // Ignore injected input; do not trigger from automation or replay.
             {
-                var key = message == 0x0207 ? "MouseButton3" : (data.Data >> 16) == 1 ? "MouseButton4" : "MouseButton5";
+                var key = message is 0x0207 or 0x0208 ? "MouseButton3" : (data.Data >> 16) == 1 ? "MouseButton4" : "MouseButton5";
+                if (message is 0x0208 or 0x020C)
+                    return _suppressedMouseUps.Remove(key) ? 1 : CallNextHookEx(_mouseHook, code, message, pointer);
                 var modifiers = (GetAsyncKeyState(0x11) < 0 ? ShortcutModifiers.Control : 0)
                     | (GetAsyncKeyState(0x12) < 0 ? ShortcutModifiers.Alt : 0) | (GetAsyncKeyState(0x10) < 0 ? ShortcutModifiers.Shift : 0)
                     | (GetAsyncKeyState(0x5B) < 0 || GetAsyncKeyState(0x5C) < 0 ? ShortcutModifiers.Meta : 0);
                 foreach (var binding in _registered.Values)
                     if (binding.Gesture.Key == key && binding.Gesture.Modifiers == modifiers)
-                    { Triggered?.Invoke(binding.Binding.Action); return 1; }
+                    { _suppressedMouseUps.Add(key); Triggered?.Invoke(binding.Binding.Action); return 1; }
             }
         }
         return CallNextHookEx(_mouseHook, code, message, pointer);
@@ -123,7 +126,7 @@ public sealed class WindowsGlobalShortcuts : IGlobalShortcutBackend
     private void Clear()
     {
         foreach (var pair in _registered) if (!pair.Value.Gesture.IsMouse) UnregisterHotKey(0, pair.Key);
-        _registered.Clear(); if (_mouseHook != 0) { UnhookWindowsHookEx(_mouseHook); _mouseHook = 0; }
+        _registered.Clear(); _suppressedMouseUps.Clear(); if (_mouseHook != 0) { UnhookWindowsHookEx(_mouseHook); _mouseHook = 0; }
     }
     public async ValueTask DisposeAsync()
     {
@@ -142,6 +145,9 @@ public sealed class WindowsGlobalShortcuts : IGlobalShortcutBackend
             "Space" => 0x20, "Left" => 0x25, "Up" => 0x26, "Right" => 0x27, "Down" => 0x28,
             "Enter" => 0x0D, "Esc" => 0x1B, "Tab" => 0x09, "Delete" => 0x2E, "Backspace" => 0x08,
             "Home" => 0x24, "End" => 0x23, "PageUp" => 0x21, "PageDown" => 0x22, "Insert" => 0x2D,
+            "CapsLock" => 0x14, "NumLock" => 0x90, "ScrollLock" => 0x91, "Pause" => 0x13, "PrintScreen" => 0x2C, "ContextMenu" => 0x5D,
+            "BrowserBack" => 0xA6, "BrowserForward" => 0xA7, "BrowserRefresh" => 0xA8, "BrowserStop" => 0xA9,
+            "BrowserSearch" => 0xAA, "BrowserFavorites" => 0xAB, "BrowserHome" => 0xAC,
             "MediaPlayPause" => 0xB3, "MediaNextTrack" => 0xB0, "MediaPreviousTrack" => 0xB1, "MediaStop" => 0xB2,
             "VolumeUp" => 0xAF, "VolumeDown" => 0xAE, "VolumeMute" => 0xAD,
             "=" => 0xBB, "-" => 0xBD, "," => 0xBC, "." => 0xBE, "/" => 0xBF, ";" => 0xBA,

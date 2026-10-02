@@ -5,14 +5,14 @@
     <Border Name="SessionHero" Background="{DynamicResource EchoQueueHero}" CornerRadius="20" Padding="28,18,28,22">
       <Grid RowDefinitions="Auto,Auto" RowSpacing="16">
         <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <TextBlock Text="{Binding Queue.Heading}" Classes="heading" FontSize="30" FontWeight="Bold" />
+          <TextBlock Text="{Binding Queue.Heading}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontWeight="Bold" />
           <Border Background="{DynamicResource EchoPanelMuted}" CornerRadius="12" Padding="10,4" VerticalAlignment="Center"><TextBlock Text="{Binding Queue.Summary}" Classes="muted" FontSize="11" /></Border>
         </StackPanel>
         <Grid Name="HeroLayout" Grid.Row="1" ColumnDefinitions="176,*,300" ColumnSpacing="24" MinHeight="176" IsVisible="{Binding !Queue.ShowHistory}">
-          <queue:QueueArtwork Name="CurrentCover" Width="176" Height="176" CornerRadius="5" FilePath="{Binding Queue.CurrentArtworkPath}" Cache="{Binding Queue.Artwork}" />
+          <queue:QueueArtwork Name="CurrentCover" Width="176" Height="176" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding Queue.CurrentArtworkPath}" Cache="{Binding Queue.Artwork}" />
           <StackPanel Grid.Column="1" Spacing="9" VerticalAlignment="Center">
             <TextBlock Text="{DynamicResource ui.QueueView.e6666b2eb332}" Classes="muted" FontSize="11" />
-            <TextBlock Text="{Binding Player.Title}" Classes="heading" FontSize="30" FontWeight="Bold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Player.Title}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontWeight="Bold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{Binding Player.ArtistAlbum}" Classes="muted" FontSize="13" TextTrimming="CharacterEllipsis" />
             <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,3,0,0">
               <Border Classes="queue-chip"><TextBlock Text="{Binding Queue.CurrentQuality}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource EchoAccentText}" /></Border>
@@ -27,7 +27,7 @@
           </StackPanel>
           <Grid Name="NextPreview" Grid.Column="2" ColumnDefinitions="24,88,*" ColumnSpacing="14" VerticalAlignment="Center">
             <icon:GlyphIcon Kind="arrow-right" Width="18" Height="18" />
-            <queue:QueueArtwork Grid.Column="1" Width="88" Height="88" CornerRadius="5" FilePath="{Binding Queue.UpcomingPath}" Cache="{Binding Queue.Artwork}" />
+            <queue:QueueArtwork Grid.Column="1" Width="88" Height="88" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding Queue.UpcomingPath}" Cache="{Binding Queue.Artwork}" />
             <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Center">
               <TextBlock Text="{DynamicResource ui.LyricsTransportView.486e42475adb}" Classes="muted" FontSize="11" />
               <TextBlock Text="{Binding Queue.UpcomingTitle}" Classes="heading" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -42,7 +42,7 @@
       <Grid Name="StrategyLayout" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20">
         <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center"><TextBlock Text="{DynamicResource ui.QueueView.d2f138b35f09}" Classes="muted" FontSize="11" VerticalAlignment="Center" /><queue:QueueModes DataContext="{Binding Queue}" /></StackPanel>
         <StackPanel Name="PlaybackActions" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-          <Button Classes="queue-tool" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanPlay}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="play" Width="15" Height="15" /><TextBlock Text="{Binding Queue.PlayLabel}" /></StackPanel></Button>
+          <Button Classes="queue-tool" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Queue.CanPlay}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="play" Width="15" Height="15" /><TextBlock Text="{Binding Queue.PlayLabel}" /></StackPanel></Button>
           <Button Classes="queue-tool" Content="{DynamicResource ui.QueueDrawer.4c8a4e3da39e}" Click="OnAdd" />
         </StackPanel>
         <Button Grid.Column="2" Classes="queue-tool" ToolTip.Tip="{DynamicResource ui.QueueList.7bbb8a858f8c}">

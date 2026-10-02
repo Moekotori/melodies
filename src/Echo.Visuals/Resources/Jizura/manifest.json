@@ -1,0 +1,460 @@
+{
+  "revision": "8da975fb362d966b065217618aedafd5a35a39e0",
+  "scripts": [
+    {
+      "file": "000-01_util.js",
+      "source": "vendor/01_util.js",
+      "sha256": "66adb1e96aea93154beed3ffd0c485009315b7ed6ddf39b3cef2cfb9f3755447"
+    },
+    {
+      "file": "001-02_fonts.js",
+      "source": "vendor/02_fonts.js",
+      "sha256": "d4da9dd31b4f15889a601cc591b4d2e6a0e4e21e262aaf73315c19d8174ee278"
+    },
+    {
+      "file": "002-02b_lang.js",
+      "source": "vendor/02b_lang.js",
+      "sha256": "a0464cc32ec396e2198801387f3640ec217ec1d0ea790ee2e88dbafebd7fc770"
+    },
+    {
+      "file": "003-03_text.js",
+      "source": "vendor/03_text.js",
+      "sha256": "4909c8e5ba1c0427fe01ec5af011ed8a8036792e818cbaf0fc469fc63998e1de"
+    },
+    {
+      "file": "004-04_styles.js",
+      "source": "vendor/04_styles.js",
+      "sha256": "9519195ecaf660ab8ae29ece52bbc4adb538f0cf086c8cd96faf1e031cf67988"
+    },
+    {
+      "file": "005-05_anim.js",
+      "source": "vendor/05_anim.js",
+      "sha256": "3733c5e7059bf51781152475ad670e81885bc913fe1514cc5fc405761facddd8"
+    },
+    {
+      "file": "006-05b_registry.js",
+      "source": "vendor/05b_registry.js",
+      "sha256": "ecaefd208377658bb23adca79c36e093a7b3fce796f5facdb7d10806f6619cea"
+    },
+    {
+      "file": "007-06_layouts.js",
+      "source": "vendor/06_layouts.js",
+      "sha256": "ac800b2e64958d41f2a36e402a9ba9453def1e023b309284a255b1eb6522bb35"
+    },
+    {
+      "file": "008-07_decor.js",
+      "source": "vendor/07_decor.js",
+      "sha256": "9e0c6edc62ea6e0d220a5f5619e1ba10b35f776a45305fe1cde3288513fe4d24"
+    },
+    {
+      "file": "009-08_planner.js",
+      "source": "vendor/08_planner.js",
+      "sha256": "888f73e9d4ff2f7b20b9b493deff2e68b71975b18bedda330887a9c8d2963bee"
+    },
+    {
+      "file": "010-08b_omakase.js",
+      "source": "vendor/08b_omakase.js",
+      "sha256": "f3c2aab1523016732605f76c21c471c779bdf0d0262bd98d9beb4deff3f4f390"
+    },
+    {
+      "file": "011-09_render.js",
+      "source": "vendor/09_render.js",
+      "sha256": "c8b21bc9d5965fbb1b96f98544e93126610ec463c9cbe04d643b76197717c449"
+    },
+    {
+      "file": "012-11p_bgcamB.js",
+      "source": "vendor/11p_bgcamB.js",
+      "sha256": "baad1dab7a4743b4eab351c9e9dfa76d9af5f4e00b29538ce41837a5628dd644"
+    },
+    {
+      "file": "013-11p_decor.js",
+      "source": "vendor/11p_decor.js",
+      "sha256": "b533343d8ad5ad114300fed174d4eb0dff092201c778a6697345157595b933a5"
+    },
+    {
+      "file": "014-11p_decorB.js",
+      "source": "vendor/11p_decorB.js",
+      "sha256": "f49747910c456cb829bdfeffa5c0342898305a8e01eebfa8ac18b2cc279bcd62"
+    },
+    {
+      "file": "015-11p_enter.js",
+      "source": "vendor/11p_enter.js",
+      "sha256": "45b8d89a37e08bcfe035d4fde3f93ec739fca891116aeeba62ba28e31d7c97c6"
+    },
+    {
+      "file": "016-11p_enterB.js",
+      "source": "vendor/11p_enterB.js",
+      "sha256": "31bce8e07cec677f7ff5c1c77f7f1775a4e8918e46f7a86efdf86bca3f9efa14"
+    },
+    {
+      "file": "017-11p_exit.js",
+      "source": "vendor/11p_exit.js",
+      "sha256": "a013c8d40ba71fa69ea1bfa0782d2a55b7a152aa91bc7c0f7d85a9e89dca0b2b"
+    },
+    {
+      "file": "018-11p_exitB.js",
+      "source": "vendor/11p_exitB.js",
+      "sha256": "2b0479412290e7fc9d4d61c4121c2970e0394f5f843c1407c2a1c84478480629"
+    },
+    {
+      "file": "019-11p_fxB.js",
+      "source": "vendor/11p_fxB.js",
+      "sha256": "d6a2f392d2de9d2d53478960317177db58aad75fd2813568b09dceeebf7d2e0b"
+    },
+    {
+      "file": "020-11p_horror1.js",
+      "source": "vendor/11p_horror1.js",
+      "sha256": "34a6f7afe72c3e4d4459c671d98f1bb97c4a5fe70484179ce4e1c04788367ed0"
+    },
+    {
+      "file": "021-11p_horror2.js",
+      "source": "vendor/11p_horror2.js",
+      "sha256": "828ff4c48181e9755c5e2a82be4e30cab491ca0614cc25d711131108af50b7e4"
+    },
+    {
+      "file": "022-11p_horror3.js",
+      "source": "vendor/11p_horror3.js",
+      "sha256": "c99a0d0cef6cf2b246e84586d5a33ebc750d1ef659a1490f211e8316d2727853"
+    },
+    {
+      "file": "023-11p_kinetic1.js",
+      "source": "vendor/11p_kinetic1.js",
+      "sha256": "012282d5f3d44ef99c1b5fa26dd85210b138c4ecc73f54084f929bc74bd0045e"
+    },
+    {
+      "file": "024-11p_kinetic2.js",
+      "source": "vendor/11p_kinetic2.js",
+      "sha256": "8c0401cfc265b6fe79d83e6a056e1bed93f42ae60a17890db165058f842ffd45"
+    },
+    {
+      "file": "025-11p_kinetic3.js",
+      "source": "vendor/11p_kinetic3.js",
+      "sha256": "c1905cb3a5fb7fb7a14e9984b7ee4ce6b435eddeaab89fb71742c0075b7b3393"
+    },
+    {
+      "file": "026-11p_layoutsA.js",
+      "source": "vendor/11p_layoutsA.js",
+      "sha256": "65e74c8114413a8da4f268de77a0861d4d0df5581a3235506f08e547a501b288"
+    },
+    {
+      "file": "027-11p_layoutsB.js",
+      "source": "vendor/11p_layoutsB.js",
+      "sha256": "44a37fef1af83de84131bfe705e6eda2abc873bc5e5c11d2e1b7ed2062fc4191"
+    },
+    {
+      "file": "028-11p_layoutsC.js",
+      "source": "vendor/11p_layoutsC.js",
+      "sha256": "c40f2012acb24ba7b72e10def340c2d20919bef49a45374de27a63ab9ac49233"
+    },
+    {
+      "file": "029-11p_layoutsD.js",
+      "source": "vendor/11p_layoutsD.js",
+      "sha256": "64e8276750ff609eb505b251b8e34bb7d7bcf8d759bcef55d94542a2afcb2bad"
+    },
+    {
+      "file": "030-11p_looks.js",
+      "source": "vendor/11p_looks.js",
+      "sha256": "724f124e9b0dfac715bcffb56bbc0342ccc78fdc5f3151481b2c52583470afba"
+    },
+    {
+      "file": "031-11p_styles.js",
+      "source": "vendor/11p_styles.js",
+      "sha256": "a306862fa099e7fd39b2efe1b63a6d30b8abf0462e141a075cd7b9ec24106922"
+    },
+    {
+      "file": "032-11p_treattrans.js",
+      "source": "vendor/11p_treattrans.js",
+      "sha256": "32711ff3576a30b861ff76ac2330d34cf93db2b1f11c945c013b8967d3f26964"
+    },
+    {
+      "file": "033-11p_typo1.js",
+      "source": "vendor/11p_typo1.js",
+      "sha256": "0a1c61c77ebdd61754120283078a1e79e339a3de5341974e9ac7b5bb5a2878da"
+    },
+    {
+      "file": "034-11p_typo2.js",
+      "source": "vendor/11p_typo2.js",
+      "sha256": "0fefc16f3e3711da71763bf6f874d02532820e3bbf2f8fd9e327af1a107914e6"
+    },
+    {
+      "file": "035-11p_typo3.js",
+      "source": "vendor/11p_typo3.js",
+      "sha256": "bf8f19513f94044faedf74b45601d6cffa467edb79e37542149d34213c03df77"
+    },
+    {
+      "file": "036-11q_sets.js",
+      "source": "vendor/11q_sets.js",
+      "sha256": "aa74ee38017089330968b93c75b6ecb0c39de66cde53fcf35e01cb24931df2f4"
+    },
+    {
+      "file": "037-jizuraTypography.js",
+      "source": "jizuraTypography.js",
+      "sha256": "9fac053a13c4e53f92bcd2043b1a09f01a3a718901be0307c53d3b92908ebb00"
+    },
+    {
+      "file": "038-jizuraEchoKit.js",
+      "source": "jizuraEchoKit.js",
+      "sha256": "500016d8e7a148a668376ec30d8a4be88a71e1dd81fb17ba2fcbc5776d6ceef3"
+    },
+    {
+      "file": "039-jizuraBackdropsDay.js",
+      "source": "jizuraBackdropsDay.js",
+      "sha256": "b2ffa4f100acd4b4e8f7e7d6b60503b1653bc1512d14228e109aef9f614dde44"
+    },
+    {
+      "file": "040-jizuraBackdropsNight.js",
+      "source": "jizuraBackdropsNight.js",
+      "sha256": "b96a3e435eacb121ff43ecdc89893681186137bc37da4f67534d84d028e5a585"
+    },
+    {
+      "file": "041-jizuraBackdropsSweet.js",
+      "source": "jizuraBackdropsSweet.js",
+      "sha256": "8ac2977b2fc08e155b6a0f0b524bf43826a42080f20279e703ebd7f2dea83c32"
+    },
+    {
+      "file": "042-jizuraBackdropsSweetScenes.js",
+      "source": "jizuraBackdropsSweetScenes.js",
+      "sha256": "d15e21e1e7b2bff1bad98ea11917d7937b392b6c659dd8e75695bf8b560243ef"
+    },
+    {
+      "file": "043-jizuraBackdropsDayMore.js",
+      "source": "jizuraBackdropsDayMore.js",
+      "sha256": "7d87c2339463d8ceee1135184a98bdeb3f710bc35e44d10395e13ced759b6594"
+    },
+    {
+      "file": "044-jizuraBackdropsSweetMore.js",
+      "source": "jizuraBackdropsSweetMore.js",
+      "sha256": "f86156b85a791e8d30eaad44798f8183db4524abe64a8b5f692d952e8e8d5abb"
+    },
+    {
+      "file": "045-jizuraBackdropsNeko.js",
+      "source": "jizuraBackdropsNeko.js",
+      "sha256": "d661675f23def31eed518e3c02afdb4eda5ce0474004292148fbb626fcfb0aa7"
+    },
+    {
+      "file": "046-jizuraBackdropsNekoMore.js",
+      "source": "jizuraBackdropsNekoMore.js",
+      "sha256": "34ecf158c34c092f6887ee68a106f17020a22390b7307b16cf588df33348c4c9"
+    },
+    {
+      "file": "047-jizuraBackdropsNightMore.js",
+      "source": "jizuraBackdropsNightMore.js",
+      "sha256": "304189fe173d9c2b4c0495d53e78ef7fc59b462180a9b78b5447d63bf07337fd"
+    },
+    {
+      "file": "048-jizuraBackdropsPixel.js",
+      "source": "jizuraBackdropsPixel.js",
+      "sha256": "7e44951132b33047073ac7a3fafeb96e12abdf156a2aab2604dac63af540f447"
+    },
+    {
+      "file": "049-jizuraBackdropsPixelMore.js",
+      "source": "jizuraBackdropsPixelMore.js",
+      "sha256": "cf74de5fdb5b790dce767cb4cb52ecd5ac514f4594745ae532206ff8c3870076"
+    },
+    {
+      "file": "050-jizuraBackdropsEchoMist.js",
+      "source": "jizuraBackdropsEchoMist.js",
+      "sha256": "a2df6a007697b02a08f53985b8086c0e9826dea52b0eb6d58b0a903a584c66d7"
+    },
+    {
+      "file": "051-jizuraBackdropsEchoNight.js",
+      "source": "jizuraBackdropsEchoNight.js",
+      "sha256": "aedc62ceff3e227e733666b4c86a3e64d097e2662ee2c356f4de29bc5add7a5f"
+    },
+    {
+      "file": "052-jizuraBackdropsEchoLightFields.js",
+      "source": "jizuraBackdropsEchoLightFields.js",
+      "sha256": "8e6965b0e7141e0856f885cc70dc4f4e7084f4c210d46a1f59672678b2ebaf62"
+    },
+    {
+      "file": "053-jizuraBackdropsEchoDusk.js",
+      "source": "jizuraBackdropsEchoDusk.js",
+      "sha256": "4f5deba1c06e30d6d1f59c1515ec0061ec756761963dfabf19bc3aa84fb6b3b1"
+    },
+    {
+      "file": "054-jizuraBackdropsEchoPaper.js",
+      "source": "jizuraBackdropsEchoPaper.js",
+      "sha256": "cc33041068fc01afe3bb7052e10d95b4b2e42d9cf6a95bb873d9f64a8ae75789"
+    },
+    {
+      "file": "055-jizuraBackdropsEchoCuteA.js",
+      "source": "jizuraBackdropsEchoCuteA.js",
+      "sha256": "f0ff889d8446510256598677a326a7ee678bb4c365fa62e2c75ecb63ddf1faf8"
+    },
+    {
+      "file": "056-jizuraBackdropsEchoCuteB.js",
+      "source": "jizuraBackdropsEchoCuteB.js",
+      "sha256": "255f37623e1a72920508f26b19314bda9dc7e7086b880a80e4ee184ce5e12e72"
+    },
+    {
+      "file": "057-jizuraBackdropsEchoStage.js",
+      "source": "jizuraBackdropsEchoStage.js",
+      "sha256": "162337e5f823a2677c5d6dc758c2c1dc6d4265c534352dac9ff44a4f091132ce"
+    },
+    {
+      "file": "058-jizuraBackdropsEchoRockA.js",
+      "source": "jizuraBackdropsEchoRockA.js",
+      "sha256": "a06f38fff6d5789b62357067fc032d017c339326878b327c7c7fedd87b3d8dcc"
+    },
+    {
+      "file": "059-jizuraBackdropsEchoRockB.js",
+      "source": "jizuraBackdropsEchoRockB.js",
+      "sha256": "69fe8573a480c083d303e4f758f5dd1227b0028b9abcfc217d4c2385def2911a"
+    },
+    {
+      "file": "060-jizuraBackdropsEchoNew.js",
+      "source": "jizuraBackdropsEchoNew.js",
+      "sha256": "c75534dfa077bea2ecb564c2b08fb143fc10d35b03a0d90e6f234776dfe061d0"
+    },
+    {
+      "file": "061-jizuraBackdropsEchoPlay.js",
+      "source": "jizuraBackdropsEchoPlay.js",
+      "sha256": "df5f03eef368f1b0ec8b7c23241e71c5201cd2ffc8a011b523f27e006bafbf81"
+    },
+    {
+      "file": "062-jizuraBackdropsEchoHifi.js",
+      "source": "jizuraBackdropsEchoHifi.js",
+      "sha256": "cecf43f463505e05d7587004c6a23e3eb249ee3989c95b7d623ea2bd34530e3e"
+    },
+    {
+      "file": "063-jizuraBackdropsEchoCode.js",
+      "source": "jizuraBackdropsEchoCode.js",
+      "sha256": "49a1cefc951b02ea882d6e5d2052d5277da0f9995e1d408d63079ba626f5f9c4"
+    },
+    {
+      "file": "064-jizuraBackdropsEchoArena.js",
+      "source": "jizuraBackdropsEchoArena.js",
+      "sha256": "fdf5443550285ed99708dc3e94096e057a926c5444ac876c75f07b18a4bb1f68"
+    },
+    {
+      "file": "065-jizuraBackdropsEchoIcpc.js",
+      "source": "jizuraBackdropsEchoIcpc.js",
+      "sha256": "02ed3f97d2cb56492f4ff859bad2129a87111d8efdaa76acec45f475c461322d"
+    },
+    {
+      "file": "066-jizuraBackdropsEchoRhythm.js",
+      "source": "jizuraBackdropsEchoRhythm.js",
+      "sha256": "20983e0d2c097daecc3472b90490457f6e8022fb674f0d6195fdc96a533dfc16"
+    },
+    {
+      "file": "067-jizuraBackdropsEchoRhythmLanes.js",
+      "source": "jizuraBackdropsEchoRhythmLanes.js",
+      "sha256": "b04c74780223b6d581aee99f772331aba173733490ed110ac0288af012a7db7e"
+    },
+    {
+      "file": "068-jizuraBackdropsEchoRhythmFields.js",
+      "source": "jizuraBackdropsEchoRhythmFields.js",
+      "sha256": "3a24482a6ecf638e5b2208a99d473903108602454730a2f82b884d62014b3914"
+    },
+    {
+      "file": "069-jizuraBackdropsEchoRhythmStages.js",
+      "source": "jizuraBackdropsEchoRhythmStages.js",
+      "sha256": "7a95800ab0d1f398dc42b60b4060f2dd2c19109f9ff292e5716fdb40498b6c22"
+    },
+    {
+      "file": "070-jizuraRhythmTypography.js",
+      "source": "jizuraRhythmTypography.js",
+      "sha256": "7d50b769131118c146917f970da048909b681df42c36bc4630657c9660f737f3"
+    },
+    {
+      "file": "071-jizuraBackdropsEchoIcpcAlgorithms.js",
+      "source": "jizuraBackdropsEchoIcpcAlgorithms.js",
+      "sha256": "379011fe4cb59550a0f57bd668b665527c306c0a49b93b0678ae1f2768e02dfc"
+    },
+    {
+      "file": "072-jizuraBackdropsEchoIcpcProblems.js",
+      "source": "jizuraBackdropsEchoIcpcProblems.js",
+      "sha256": "73681ee120f1f5f9684262682e48e443c3e1794af969031a833248af648b418d"
+    },
+    {
+      "file": "073-jizuraIcpcDiagram.js",
+      "source": "jizuraIcpcDiagram.js",
+      "sha256": "d91d20b605ed676d71a99ddbc9c48376238cf6b56f32557623abc29ffe73ba85"
+    },
+    {
+      "file": "074-jizuraBackdropsEchoIcpcGraphs.js",
+      "source": "jizuraBackdropsEchoIcpcGraphs.js",
+      "sha256": "dd51df184151a4591a2ed6cb6db234fc49b779441959489e22085a08225d6d40"
+    },
+    {
+      "file": "075-jizuraBackdropsEchoIcpcStructures.js",
+      "source": "jizuraBackdropsEchoIcpcStructures.js",
+      "sha256": "f67a81487b17e4b6afcb05d32a0e4d4852ad082d6b286788c78b7a26dae711a2"
+    },
+    {
+      "file": "076-jizuraBackdropsEchoIcpcRange.js",
+      "source": "jizuraBackdropsEchoIcpcRange.js",
+      "sha256": "5180801d17c13b8312dcd9aea4c9df30337933e35adfad5308a3b3f0099eb623"
+    },
+    {
+      "file": "077-jizuraBackdropsEchoIcpcTrees.js",
+      "source": "jizuraBackdropsEchoIcpcTrees.js",
+      "sha256": "e715a27ed1ca163c95ec41da2fbe433a11fb2b0ece6e714032f069b4d39fe9de"
+    },
+    {
+      "file": "078-jizuraIcpcAdvancedCode.js",
+      "source": "jizuraIcpcAdvancedCode.js",
+      "sha256": "02b1b1d26e8f14f848f5ba33588531e0400cc23f3971f2cfe5715ffdc1f08f36"
+    },
+    {
+      "file": "079-jizuraBackdropsEchoIcpcAdvancedGraphs.js",
+      "source": "jizuraBackdropsEchoIcpcAdvancedGraphs.js",
+      "sha256": "0baae1ae9b8d0d2476928c017ddba3d1878981f80261a7105eaa84be182d3094"
+    },
+    {
+      "file": "080-jizuraBackdropsEchoIcpcAutomata.js",
+      "source": "jizuraBackdropsEchoIcpcAutomata.js",
+      "sha256": "a5c9f0f7bb695bbb87761b3f5f9bdb9fd9f3f0a35fed38a6f905631594d4c763"
+    },
+    {
+      "file": "081-jizuraBackdropsEchoUniversal.js",
+      "source": "jizuraBackdropsEchoUniversal.js",
+      "sha256": "e60c59bb0ae1a01ee9679b578a61b5823950a8a9e301595162624a1fe2379252"
+    },
+    {
+      "file": "082-jizuraBackdropsEchoAtmosphere.js",
+      "source": "jizuraBackdropsEchoAtmosphere.js",
+      "sha256": "703810c2ed81509279e2cc9dc0af1e73f47e95d370964a9c30ac10e2dad44fa8"
+    },
+    {
+      "file": "083-jizuraBackdropsEchoCalm.js",
+      "source": "jizuraBackdropsEchoCalm.js",
+      "sha256": "bf1c20b1137f862cf4e4416f1b23a169348e564d49210d2321d337b44d3a937f"
+    },
+    {
+      "file": "084-jizuraArtDirection.js",
+      "source": "jizuraArtDirection.js",
+      "sha256": "0bf67d52f73a93a5d59ebaf59559fb30ff57713c0d3356f2076f1197b7e81fa2"
+    },
+    {
+      "file": "085-jizuraScenePack.js",
+      "source": "jizuraScenePack.js",
+      "sha256": "983c3d2ad7e2e4e5b730e127b3a0aa59f11e37be1f268d7e03ad48c197c17801"
+    },
+    {
+      "file": "086-jizuraFrameCaches.js",
+      "source": "jizuraFrameCaches.js",
+      "sha256": "559c2eab5314f7b5494b36d79ab4284a53c57afd3cfedecf3b7b6c56ecf6c1a3"
+    },
+    {
+      "file": "087-jizuraEffectWindow.js",
+      "source": "jizuraEffectWindow.js",
+      "sha256": "57782e54a4a6f112308305d0a7e255dfd7bb0a46a1df53119bbfdf1660be3e56"
+    },
+    {
+      "file": "088-jizuraBackdropContinuity.js",
+      "source": "jizuraBackdropContinuity.js",
+      "sha256": "ef08a9e08c56cc9d910818f21f624cde042b6b80194bcd9aee2d62cae3dfbb52"
+    },
+    {
+      "file": "089-jizuraWordGlow.js",
+      "source": "jizuraWordGlow.js",
+      "sha256": "5291060f27d1fdfad7a83e48af5504f23a3783c7acc70ed26fa848e309b67b98"
+    },
+    {
+      "file": "090-jizuraLightMotion.js",
+      "source": "jizuraLightMotion.js",
+      "sha256": "4e0e854eee1de3b1d7cb04db2def84bd044976c2c5fde405a8f1b680b737a147"
+    }
+  ]
+}

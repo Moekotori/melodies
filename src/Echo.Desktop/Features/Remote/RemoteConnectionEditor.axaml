@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Remote" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Remote.RemoteConnectionEditor" x:DataType="local:RemoteViewModel">
+  <Border Background="#50000000" IsVisible="{Binding EditorOpen}">
+    <Border Background="{DynamicResource EchoField}" MaxWidth="520" Margin="24" Padding="30" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Center" KeyboardNavigation.TabNavigation="Cycle">
+      <ScrollViewer MaxHeight="580"><StackPanel Spacing="22">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="7"><TextBlock Text="{Binding EditorTitle}" FontSize="23" FontWeight="SemiBold" /><TextBlock Text="{DynamicResource remote.editorSubtitle}" Classes="remote-caption" /></StackPanel>
+          <Button Grid.Column="1" Classes="remote-icon" Command="{Binding CloseEditorCommand}" VerticalAlignment="Top" ToolTip.Tip="{DynamicResource remote.cancel}"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
+        </Grid>
+        <StackPanel Spacing="7" IsVisible="{Binding !IsOneDrive}">
+          <TextBlock Text="{Binding AddressLabel}" Classes="remote-label" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Name="UrlField" Text="{Binding DraftUrl, Mode=TwoWay}" MaxLength="4096" IsEnabled="{Binding !IsBusy}" /><Button Grid.Column="1" Content="{DynamicResource remote.pickFolder}" Classes="remote-tool" IsVisible="{Binding IsMounted}" IsEnabled="{Binding !IsBusy}" Click="OnPickMount" /></Grid>
+          <TextBlock Text="{Binding AddressHint}" Classes="remote-caption" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Spacing="8" IsVisible="{Binding IsOneDrive}">
+          <TextBlock Text="{DynamicResource remote.clientId}" Classes="remote-label" /><TextBox Name="ClientIdField" Text="{Binding DraftClientId, Mode=TwoWay}" MaxLength="36" IsEnabled="{Binding !IsBusy}" />
+          <TextBlock Text="{DynamicResource remote.oneDriveHint}" Classes="remote-caption" TextWrapping="Wrap" LineHeight="19" />
+          <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding AccountStatus}" Classes="remote-caption" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{DynamicResource remote.signInMicrosoft}" Classes="remote-tool" Click="OnOneDriveLogin" IsEnabled="{Binding !IsBusy}" /></Grid>
+          <TextBlock Text="{DynamicResource remote.rootFolder}" Classes="remote-label" /><TextBox Text="{Binding DraftRootPath, Mode=TwoWay}" MaxLength="4096" IsEnabled="{Binding !IsBusy}" />
+        </StackPanel>
+        <StackPanel Spacing="7" IsVisible="{Binding ShowAuthMode}"><TextBlock Text="{DynamicResource remote.authMode}" Classes="remote-label" /><ComboBox ItemsSource="{Binding AuthChoices}" SelectedItem="{Binding DraftAuth, Mode=TwoWay}" HorizontalAlignment="Stretch" IsEnabled="{Binding !IsBusy}"><ComboBox.ItemTemplate><DataTemplate x:DataType="local:RemoteAuthChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+          <StackPanel Grid.ColumnSpan="{Binding UsernameColumnSpan}" Spacing="7"><TextBlock Text="{DynamicResource remote.name}" Classes="remote-label" /><TextBox Name="NameField" Text="{Binding DraftName, Mode=TwoWay}" MaxLength="100" PlaceholderText="{DynamicResource remote.nameHint}" IsEnabled="{Binding !IsBusy}" /></StackPanel>
+          <StackPanel Grid.Column="1" Spacing="7" IsVisible="{Binding ShowUsername}"><TextBlock Text="{DynamicResource remote.user}" Classes="remote-label" /><TextBox Text="{Binding DraftUser, Mode=TwoWay}" MaxLength="256" IsEnabled="{Binding !IsBusy}" /></StackPanel>
+        </Grid>
+        <StackPanel Spacing="7" IsVisible="{Binding ShowPassword}"><TextBlock Text="{Binding PasswordLabel}" Classes="remote-label" /><TextBox Text="{Binding DraftPassword, Mode=TwoWay}" PasswordChar="●" MaxLength="16384" IsEnabled="{Binding !IsBusy}" /></StackPanel>
+        <StackPanel Spacing="7" IsVisible="{Binding ShowUserId}"><TextBlock Text="{DynamicResource remote.userId}" Classes="remote-label" /><TextBox Text="{Binding DraftUserId, Mode=TwoWay}" MaxLength="256" IsEnabled="{Binding !IsBusy}" /></StackPanel>
+        <TextBlock Text="{Binding EditorError}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding EditorError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,18,0,0">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{DynamicResource remote.testHint}" Classes="remote-caption" TextWrapping="Wrap" MaxWidth="210" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"><Button Content="{DynamicResource remote.cancel}" Command="{Binding CloseEditorCommand}" Classes="remote-tool" /><Button Content="{DynamicResource remote.save}" Command="{Binding SaveCommand}" Classes="primary remote-tool" IsEnabled="{Binding !IsBusy}" /></StackPanel>
+          </Grid>
+        </Border>
+        <ProgressBar Height="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+      </StackPanel></ScrollViewer>
+    </Border>
+  </Border>
+</UserControl>

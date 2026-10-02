@@ -10,6 +10,7 @@ public sealed partial class PlaybackSessionCoordinator
         if (!double.IsFinite(volume) || volume is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(volume));
         return Command(async () =>
         {
+            if (volumeLocked) throw new InvalidOperationException("音量已锁定，请先在播放设置中解锁。");
             await EnsureStartedAsync().ConfigureAwait(false);
             await native.CallAsync("audio.setVolume", Params(new JsonArray(new JsonObject { ["volume"] = volume }))).ConfigureAwait(false);
             Publish(snapshot with { Volume = volume });
@@ -51,6 +52,11 @@ public sealed partial class PlaybackSessionCoordinator
         {
             await EnsureStartedAsync().ConfigureAwait(false);
             result = await native.CallAsync(method, parameters).ConfigureAwait(false);
+            if (method == "playbackRate.configure")
+            {
+                ConfirmPlaybackRate(result);
+                parameters = Params(new JsonArray(JsonNode.Parse(result.GetRawText())));
+            }
             if (retainForRecovery)
             {
                 var request = parameters.ValueKind == JsonValueKind.Array && parameters.GetArrayLength() > 0 ? parameters[0] : parameters;
@@ -94,7 +100,7 @@ public sealed partial class PlaybackSessionCoordinator
             var result = await native.CallAsync("device.configure", Params(new JsonArray(JsonNode.Parse(config.GetRawText())))).ConfigureAwait(false);
             if (!result.Flag("accepted")) throw new IOException("无法恢复输出设备");
         }
-        foreach (var entry in dspCommands) await native.CallAsync(entry.Key[..entry.Key.IndexOf(':')], entry.Value).ConfigureAwait(false);
+        await ReplayRetainedDspAsync().ConfigureAwait(false);
         await SendQueueAsync(queue, track?.ItemId, repeat).ConfigureAwait(false);
         if (track is not null) await OpenAsync(track, position).ConfigureAwait(false);
     }, token);

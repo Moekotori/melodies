@@ -8,7 +8,8 @@ namespace Echo.Desktop.Features.Shortcuts;
 internal static class ShortcutInput
 {
     internal static bool IsEditing(object? source) => source is Control control
-        && control.GetVisualAncestors().Prepend(control).Any(x => x is TextBox or NumericUpDown or ComboBox or Slider);
+        && control.GetVisualAncestors().Prepend(control).Any(x => x is TextBox or NumericUpDown or ComboBox or Slider or Echo.Desktop.Theming.ThemeChoiceList or Echo.Desktop.Theming.ThemeSpectrum
+            || x is ListBox list && list.Classes.Contains("theme-color-list"));
     internal static ShortcutModifiers Modifiers(KeyModifiers modifiers) =>
         (modifiers.HasFlag(KeyModifiers.Control) ? ShortcutModifiers.Control : 0)
         | (modifiers.HasFlag(KeyModifiers.Alt) ? ShortcutModifiers.Alt : 0)

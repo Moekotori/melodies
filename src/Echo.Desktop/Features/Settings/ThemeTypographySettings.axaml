@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:theme="using:Echo.Desktop.Theming" x:Class="Echo.Desktop.Features.Settings.ThemeTypographySettings" x:DataType="theme:ThemeViewModel">
+  <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /></UserControl.Styles>
+  <StackPanel Spacing="16">
+    <TextBlock Text="{DynamicResource appearance.native.a1e96724c160}" Classes="theme-section" />
+    <Grid ColumnDefinitions="76,*,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="12">
+      <TextBlock Text="{DynamicResource appearance.native.4c325915a6a2}" FontSize="12" VerticalAlignment="Center" />
+      <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableFonts}" Text="{Binding Font, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.4c325915a6a2}" />
+      <Button Grid.Column="2" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="main" Click="ImportFont" Classes="theme-quiet" />
+      <Button Grid.Column="3" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="main" Click="ClearFont" Classes="theme-quiet" />
+      <TextBlock Grid.Row="1" Text="{DynamicResource appearance.native.98259098f2f7}" FontSize="12" VerticalAlignment="Center" />
+      <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding AvailableFonts}" Text="{Binding ChineseFont, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.98259098f2f7}" />
+      <Button Grid.Row="1" Grid.Column="2" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="chinese" Click="ImportFont" Classes="theme-quiet" />
+      <Button Grid.Row="1" Grid.Column="3" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="chinese" Click="ClearFont" Classes="theme-quiet" />
+      <TextBlock Grid.Row="2" Text="{DynamicResource appearance.native.d9585f3c183f}" FontSize="12" VerticalAlignment="Center" />
+      <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding AvailableFonts}" Text="{Binding FallbackFont, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.d9585f3c183f}" />
+      <Button Grid.Row="2" Grid.Column="2" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="fallback" Click="ImportFont" Classes="theme-quiet" />
+      <Button Grid.Row="2" Grid.Column="3" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="fallback" Click="ClearFont" Classes="theme-quiet" />
+    </Grid>
+    <TextBlock Text="{DynamicResource appearance.native.b6a607ab7ee2}" Classes="theme-caption" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding FontStatus}" Classes="theme-caption" TextWrapping="Wrap" />
+    <Grid ColumnDefinitions="*,160,Auto" ColumnSpacing="12">
+      <StackPanel Spacing="4"><TextBlock Text="{DynamicResource appearance.native.aba8d16cfba8}" FontSize="13" /><TextBlock Text="{DynamicResource appearance.native.4b08d3bfb1a9}" Classes="theme-caption" /></StackPanel>
+      <TextBox Grid.Column="1" Text="{Binding PageTextColor, Mode=TwoWay}" PlaceholderText="{DynamicResource appearance.native.d7fa90d22bb7}" MaxLength="40" AutomationProperties.Name="{DynamicResource appearance.native.aba8d16cfba8}" />
+      <Button Grid.Column="2" Content="{DynamicResource appearance.native.d7fa90d22bb7}" Command="{Binding ResetPageTextCommand}" IsEnabled="{Binding HasPageTextOverride}" Classes="theme-quiet" />
+    </Grid>
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource appearance.native.0e3e9f32bbdf}" FontSize="13" /><ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding RoundedCovers, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.native.0e3e9f32bbdf}" /></Grid>
+    <Grid ColumnDefinitions="*,Auto"><StackPanel Spacing="4"><TextBlock Text="{DynamicResource appearance.native.08af2512c311}" FontSize="13" /><TextBlock Text="{DynamicResource appearance.native.71eed35fa2f7}" Classes="theme-caption" /></StackPanel><ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding ArtistAlbumArtwork, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.native.08af2512c311}" /></Grid>
+  </StackPanel>
+</UserControl>

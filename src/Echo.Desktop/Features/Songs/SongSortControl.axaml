@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Songs" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Songs.SongSortControl" x:DataType="local:SongsViewModel">
+  <Button Name="SortButton" Classes="songTool" ToolTip.Tip="{DynamicResource query.sort}" AutomationProperties.Name="{DynamicResource query.sort}">
+    <StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="sort" Width="16" Height="16" /><TextBlock Text="{Binding SortText}" VerticalAlignment="Center" /><icon:GlyphIcon Kind="chevron-down" Width="10" Height="10" /></StackPanel>
+    <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterTheme="{StaticResource LibraryPopupPresenter}">
+      <Grid Width="252" RowDefinitions="Auto,*">
+        <Border Padding="10,8,10,10" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel Spacing="3"><TextBlock Text="{DynamicResource query.multiSort}" FontWeight="SemiBold" FontSize="14" /><TextBlock Text="{DynamicResource query.multiSortHint}" Classes="muted" FontSize="11" /></StackPanel>
+            <ToggleButton Name="MultiSwitch" Grid.Column="1" IsChecked="{Binding IsMultiSortEnabled, Mode=TwoWay}" Theme="{StaticResource LibraryMultiSwitch}" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource query.multiSort}" />
+          </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" MaxHeight="360" HorizontalScrollBarVisibility="Disabled" IsScrollChainingEnabled="False">
+          <ItemsControl ItemsSource="{Binding SortOptions}" Margin="0,0,4,3">
+            <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:SongSortOption">
+              <StackPanel>
+                <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="6,8,6,2" IsVisible="{Binding HasSeparator}" />
+                <TextBlock Text="{Binding Label}" IsVisible="{Binding IsHeader}" Classes="libraryGroup" />
+                <Grid ColumnDefinitions="*,28" IsVisible="{Binding !IsHeader}" ColumnSpacing="3">
+                  <Button Classes="libraryOption" Classes.selected="{Binding IsSelected}" Click="OnSelect">
+                    <Grid ColumnDefinitions="*,14" ColumnSpacing="8"><TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                      <icon:GlyphIcon Grid.Column="1" Kind="check" Width="14" Height="14" IsVisible="{Binding ShowCheck}" Stroke="{DynamicResource EchoAccentText}" />
+                      <TextBlock Grid.Column="1" Text="{Binding Priority}" IsVisible="{Binding ShowPriority}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </Grid>
+                  </Button>
+                  <Button Grid.Column="1" Classes="libraryDirection" Click="OnDirection" ToolTip.Tip="{DynamicResource query.reverseDirection}" AutomationProperties.Name="{DynamicResource query.reverseDirection}"><icon:SortDirectionIcon Width="12" Height="14" Descending="{Binding Descending}" IsActive="{Binding IsSelected}" ActiveBrush="{DynamicResource EchoAccent}" IdleBrush="{DynamicResource EchoMuted}" /></Button>
+                </Grid>
+              </StackPanel>
+            </DataTemplate></ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Flyout></Button.Flyout>
+  </Button>
+</UserControl>

@@ -1,5 +1,6 @@
 using Echo.Contracts.Library;
 using Echo.Infrastructure.Search;
+using Echo.Infrastructure.Files;
 using Microsoft.Data.Sqlite;
 
 namespace Echo.Infrastructure.Library;
@@ -25,9 +26,9 @@ internal static class LibraryFilterSql
         string Format(FileFormat format) => format switch
         {
             FileFormat.Flac => $"({codec}='FLAC' OR {path} LIKE '%.flac')",
-            FileFormat.Wav => $"({codec} IN ('WAV','WAVE','PCM') OR {path} LIKE '%.wav')",
+            FileFormat.Wav => $"({codec} IN ('WAV','WAVE') OR {path} LIKE '%.wav')",
             FileFormat.Aiff => $"({codec} IN ('AIFF','AIF','AIFC') OR {path} LIKE '%.aif' OR {path} LIKE '%.aiff' OR {path} LIKE '%.aifc')",
-            FileFormat.Alac => $"{codec} IN ('ALAC','APPLE LOSSLESS')",
+            FileFormat.Alac => $"({codec} IN ('ALAC','APPLE LOSSLESS') OR {path} LIKE '%.alac')",
             FileFormat.Mp3 => $"({codec}='MP3' OR {codec} LIKE 'MPEG%LAYER 3%' OR {codec} LIKE 'MPEG%LAYER III%' OR {path} LIKE '%.mp3')",
             FileFormat.Aac => $"({codec} IN ('AAC','MP4A') OR {codec} LIKE 'AAC %' OR {path} LIKE '%.aac')",
             FileFormat.Ogg => $"({codec}='OGG' OR {codec} LIKE '%VORBIS%' OR {path} LIKE '%.ogg')",
@@ -49,8 +50,13 @@ internal static class LibraryFilterSql
         if (!string.IsNullOrWhiteSpace(filter.Genre)) conditions.Add($"echo_fold({alias}.genre)=" + Bind("$genre", LibrarySearchSchema.Fold(filter.Genre.Trim())));
         if (!string.IsNullOrWhiteSpace(filter.Folder))
         {
-            var folder = filter.Folder.Trim().Replace('/', '\\').TrimEnd('\\') + '\\';
-            conditions.Add($"replace(lower(coalesce(json_extract({alias}.source_json,'$.AudioPath'),{alias}.path)),'/','\\') LIKE " + Bind("$folder", LibrarySearchSql.Escape(folder.ToLowerInvariant()) + "%") + " ESCAPE '\\'");
+            var prefix = LibraryPath.RootPrefix(filter.Folder.Trim());
+            var upper = prefix[..^1] + (char)(prefix[^1] + 1);
+            var lo = Bind("$folderLo", prefix); var hi = Bind("$folderHi", upper);
+            var pattern = Bind("$folder", LibrarySearchSql.Escape(prefix.Replace('\\','/').ToLowerInvariant()) + "%");
+            // Plain-file directory membership uses the path index, with virtual audio paths handled separately.
+            conditions.Add($"(({alias}.source_json IS NULL AND {alias}.path_key>={lo} AND {alias}.path_key<{hi}) OR " +
+                $"({alias}.source_json IS NOT NULL AND lower(replace(json_extract({alias}.source_json,'$.AudioPath'),'\\','/')) LIKE {pattern} ESCAPE '\\'))");
         }
         if (filter.FavoriteOnly) conditions.Add($"{alias}.favorite=1");
         if (filter.LosslessOnly) conditions.Add($"{codec} IN ('FLAC','ALAC','WAV','WAVE','AIFF','AIF','AIFC','APE','WV','DSF','DFF','DSD','PCM')");

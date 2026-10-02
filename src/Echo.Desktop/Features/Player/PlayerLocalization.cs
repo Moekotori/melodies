@@ -8,6 +8,7 @@ public sealed partial class PlayerViewModel
     {
         if (Volatile.Read(ref detached) != 0) return;
         var state = session.State;
+        RefreshPerformance();
         var playback = state.Playback;
         if (playback.Current is null)
         { Title = Text.Translate("暂无播放"); ArtistAlbum = Text.Translate("选择歌曲开始播放"); }

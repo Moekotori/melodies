@@ -10,11 +10,12 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
 {
     private readonly IAlbumLibrary library;
     private readonly ArtistRow? artist;
+    private readonly string? genreId;
     private readonly LocalizationService Text;
-    public AlbumsViewModel(IAlbumLibrary library, ArtistRow? artist = null, LocalizationService? text = null, LibraryViewPreferences? preference = null)
-    { this.library = library; this.artist = artist;
-        if (preference is not null) { sortIndex = Math.Clamp(preference.SortIndex,0,5); descending = preference.Descending; Filters.Restore(preference.Filter); }
-        Text = text ?? new(); Text.Changed += NotifyStatus; Filters.Changed += OnFiltersChanged; }
+    public AlbumsViewModel(IAlbumLibrary library, ArtistRow? artist = null, LocalizationService? text = null, LibraryViewPreferences? preference = null, string? genreId = null)
+    { this.library = library; this.artist = artist; this.genreId = genreId; Filters.AttachLibrary(library);
+        if (preference is not null) { sortIndex = Math.Clamp(preference.SortIndex,0,11); descending = preference.Descending; Filters.Restore(preference.Filter); }
+        Text = text ?? new(); Text.Changed += OnLanguageChanged; Filters.Changed += OnFiltersChanged; RebuildSortOptions(); }
     public LibraryFilterViewModel Filters { get; } = new();
     public event Action? PreferenceChanged;
     public LibraryViewPreferences Preference => new("albums", SortIndex, Descending, Filter: Filters.Snapshot() with { LosslessOnly = LosslessOnly || Filters.LosslessOnly });
@@ -26,7 +27,7 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
     private int _generation;
     private bool _closed;
     [ObservableProperty] private string search = "";
-    [ObservableProperty] private int sortIndex;
+    [ObservableProperty] private int sortIndex = (int)AlbumSort.Default;
     [ObservableProperty] private bool descending;
     [ObservableProperty] private bool losslessOnly;
     [ObservableProperty] private int total;
@@ -39,8 +40,8 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
     public event Action<bool>? Changed;
 
     partial void OnSearchChanged(string value) => _ = RefreshAsync(debounce: true);
-    partial void OnSortIndexChanged(int value) => OnOptions();
-    partial void OnDescendingChanged(bool value) => OnOptions();
+    partial void OnSortIndexChanged(int value) { NotifySort(); if (!changingSort) OnOptions(); }
+    partial void OnDescendingChanged(bool value) { NotifySort(); if (!changingSort) OnOptions(); }
     partial void OnLosslessOnlyChanged(bool value) => OnOptions();
     partial void OnTotalChanged(int value) => NotifyStatus();
     partial void OnIsLoadingChanged(bool value) => NotifyStatus();
@@ -48,10 +49,11 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
     private void NotifyStatus() { OnPropertyChanged(nameof(CountText)); OnPropertyChanged(nameof(IsEmpty)); }
 
     private AlbumQuery Query(int offset, long? revision) => new(offset, PageSize,
-        Search, (AlbumSort)Math.Clamp(SortIndex, 0, 5), Descending, LosslessOnly, revision, Filters.Snapshot());
+        Search, (AlbumSort)Math.Clamp(SortIndex, 0, 11), Descending, LosslessOnly, revision, Filters.Snapshot(), shufflePivot);
 
     private Task<AlbumPage> ReadAsync(AlbumQuery query, CancellationToken token) => artist is not null && library is IArtistLibrary artists
-        ? artists.GetArtistAlbumsAsync(artist.Id, artist.Grouping, query, token) : library.GetAlbumsAsync(query, token);
+        ? artists.GetArtistAlbumsAsync(artist.Id, artist.Grouping, query, token)
+        : genreId is not null && library is IGenreLibrary genres ? genres.GetGenreAlbumsAsync(genreId, query, token) : library.GetAlbumsAsync(query, token);
 
     private (CancellationTokenSource Request, int Generation) Start()
     {
@@ -65,6 +67,7 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
     {
         if (_closed) return;
         var (request, generation) = Start();
+        _pages.Clear(); Revision = null; Total = 0; Changed?.Invoke(true);
         IsLoading = true; Error = "";
         try
         {
@@ -77,6 +80,8 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
             Changed?.Invoke(true);
         }
         catch (OperationCanceledException) { }
+        catch (ArgumentException)
+        { if (generation == _generation && !_closed) Error = Text["query.invalid"]; }
         catch (Exception)
         { if (generation == _generation && !_closed) Error = Text.Translate("专辑读取失败。请确认曲库可用，再点击刷新。"); }
         finally
@@ -122,6 +127,7 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
 
     public void UpdatePersonalState(string id, bool favorite, int rating)
     {
+        if (Filters.FavoriteOnly && !favorite) { _ = RefreshAsync(); return; }
         foreach (var key in _pages.Keys.ToArray())
         {
             var page = _pages[key];
@@ -132,5 +138,5 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
     }
 
     public void Dispose()
-    { PreferenceChanged = null; Filters.Changed -= OnFiltersChanged; Text.Changed -= NotifyStatus; _closed = true; ++_generation; _request?.Cancel(); _request = null; _pages.Clear(); Changed = null; }
+    { PreferenceChanged = null; Filters.Changed -= OnFiltersChanged; Text.Changed -= OnLanguageChanged; _closed = true; ++_generation; _request?.Cancel(); _request = null; _pages.Clear(); Changed = null; }
 }

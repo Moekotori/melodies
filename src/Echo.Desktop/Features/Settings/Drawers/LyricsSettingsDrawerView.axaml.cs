@@ -12,9 +12,10 @@ public partial class LyricsSettingsDrawerView : UserControl, IDisposable, IDrawe
     public LyricsSettingsDrawerView(ShellViewModel shell)
     {
         _shell = shell; InitializeComponent(); DataContext = shell.LyricsAppearance;
-        _search = new(this, LyricsTabs, [new(0, "逐字 高亮 highlight", "LyricHighlightInput"), new(0, "翻译 译文 中文 translation", "LyricTranslationInput"),
-            new(0, "字体 font", "LyricFontFamilyInput"), new(0, "字号 大小 size", "LyricFontInput"), new(0, "对齐 alignment", "LyricAlignmentInput"),
-            new(1, "样式 主题 style Afterglow", "LyricStyleInput"), new(2, "时间 校准 偏移 同步 timing offset", "LyricOffsetInput")]);
+        _search = new(this, LyricsTabs, [new(0, "逐字高亮 highlight", "LyricHighlightInput"), new(0, "显示中文翻译 译文 translation", "LyricTranslationInput"),
+            new(0, "歌词字体 font", "LyricFontFamilyInput"), new(0, "歌词字号 大小 size", "LyricFontInput"), new(0, "歌词对齐 居中 alignment", "LyricAlignmentInput"),
+            new(0, "翻译与罗马音字号 辅助字号", "LyricSecondaryInput"), new(0, "显示罗马音 romanization", "LyricRomanizationInput"), new(0, "显示上下文 context", "LyricContextInput"),
+            new(1, "歌词样式 主题 style Afterglow", "LyricStyleInput"), new(2, "时间偏移 时间校准 同步 timing offset", "LyricOffsetInput")]);
     }
     bool IDrawerSearchTarget.FindSetting(string query) => _search.Find(query);
     public void Dispose() => _search.Cancel();

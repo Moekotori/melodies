@@ -8,7 +8,7 @@ namespace Echo.Infrastructure.Files;
 internal static class CueFolderExpansion
 {
     public static IEnumerable<FileSnapshot> Expand(FileSnapshot definition, string root,
-        FolderFileFacts facts, HashSet<string> suppressed, bool embedded, CancellationToken cancellation)
+        FolderFileFacts facts, FolderSourceSet suppressed, bool embedded, CancellationToken cancellation)
     {
         var result = ScanCueReader.Read(new ScanCueRequest
         { FilePath = definition.Path, Embedded = embedded, RootPath = root, IsolateFileErrors = true }, cancellation);
@@ -19,8 +19,6 @@ internal static class CueFolderExpansion
             cancellation.ThrowIfCancellationRequested();
             if (track.CueTrack is not { } cue) continue;
             var audio = facts.Read(track.AudioPath);
-            if (suppressed.Count >= 4096 && !suppressed.Contains(audio.PathKey))
-                throw new MetadataReadException("cue_folder_source_limit");
             suppressed.Add(audio.PathKey);
             var source = new TrackSource("cue", audio.Path, definition.Path, SourceStamp.Compute(audio, definition),
                 audio.SizeBytes, audio.ModifiedTicks, definition.SizeBytes, definition.ModifiedTicks,

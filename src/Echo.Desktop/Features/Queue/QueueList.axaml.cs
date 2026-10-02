@@ -11,6 +11,8 @@ public partial class QueueList : UserControl
 {
     public static readonly StyledProperty<bool> CompactProperty = AvaloniaProperty.Register<QueueList, bool>(nameof(Compact));
     public bool Compact { get => GetValue(CompactProperty); set => SetValue(CompactProperty, value); }
+    public static readonly StyledProperty<bool> DrawerProperty = AvaloniaProperty.Register<QueueList, bool>(nameof(Drawer));
+    public bool Drawer { get => GetValue(DrawerProperty); set => SetValue(DrawerProperty, value); }
     private QueueViewModel? model;
     private bool restoringSelection;
     private string[] selected = [];
@@ -29,14 +31,21 @@ public partial class QueueList : UserControl
         Tracks.AddHandler(PointerReleasedEvent, OnReleased, RoutingStrategies.Tunnel);
     }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-    { base.OnPropertyChanged(change); if (change.Property == CompactProperty) Classes.Set("compact", Compact); }
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == CompactProperty) Classes.Set("compact", Compact);
+        if (change.Property == DrawerProperty) { Classes.Set("drawer", Drawer); UpdateItems(); }
+    }
     private void Attach()
-    { model = DataContext as QueueViewModel; if (model is not null) model.PropertyChanged += OnModelChanged; }
+    { model = DataContext as QueueViewModel; if (model is not null) model.PropertyChanged += OnModelChanged; UpdateItems(); }
+    private void UpdateItems()
+    { if (Tracks is not null) Tracks.ItemsSource = Drawer ? model?.DrawerRows : model?.Rows; }
     private void Detach()
     { if (model is not null) model.PropertyChanged -= OnModelChanged; model = null; dragStart = null; ClearDropTarget(); }
     private void OnModelChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName != nameof(QueueViewModel.Rows) || model is null) return;
+        if (model is null || args.PropertyName != (Drawer ? nameof(QueueViewModel.DrawerRows) : nameof(QueueViewModel.Rows))) return;
+        UpdateItems();
         restoringSelection = true;
         try
         {
@@ -56,6 +65,8 @@ public partial class QueueList : UserControl
     { if (FindRow(args.Source) is { } row && model is not null) { args.Handled = true; await model.PlayAsync(row); } }
     private async void OnRowPlay(object? sender, RoutedEventArgs args)
     { if (sender is Button { DataContext: QueueRowViewModel row } && model is not null) { args.Handled = true; await model.PlayAsync(row); } }
+    private async void OnRowRemove(object? sender, RoutedEventArgs args)
+    { if (sender is Button { DataContext: QueueRowViewModel row } && model is not null) { args.Handled = true; await model.RemoveAsync(row); } }
     private async void OnKeyDown(object? sender, KeyEventArgs args)
     {
         if (model is null) return;

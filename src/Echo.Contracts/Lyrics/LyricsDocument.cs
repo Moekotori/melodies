@@ -19,7 +19,9 @@ public sealed record LyricsDocument(IReadOnlyList<LyricLine> Lines, bool IsSynce
         return high;
     }
 }
-public sealed record LyricsText(string Text, string Format, string Origin);
+public sealed record LyricsTrackText(string Text, string Format);
+public sealed record LyricsText(string Text, string Format, string Origin,
+    LyricsTrackText? Translation = null, LyricsTrackText? Romanization = null);
 public interface ILyricsSource
 {
     Task<LyricsText?> ReadAsync(string audioPath, string? explicitPath, CancellationToken cancellation);

@@ -6,11 +6,7 @@ namespace Echo.Infrastructure.Files;
 
 public sealed class DirectoryDiscovery : IFileDiscovery
 {
-    private static readonly string[] Extensions =
-        [".wav", ".flac", ".fla", ".mp3", ".aiff", ".aif", ".aifc", ".ogg", ".oga", ".opus",
-         ".m4a", ".m4b", ".m4p", ".mp4", ".alac", ".aac", ".ape", ".wv", ".wma", ".dsf", ".dff",
-         ".caf", ".ac3", ".dts", ".mka", ".tak", ".tta", ".cue", ".osu"];
-    internal static bool Supports(string extension) => Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
+    internal static bool Supports(string extension) => ScanFormats.Supports(extension);
 
     public IEnumerable<FileSnapshot> Enumerate(string root, bool requireFullCoverage, CancellationToken cancellation, bool force = false)
     {
@@ -30,16 +26,15 @@ public sealed class DirectoryDiscovery : IFileDiscovery
                 cancellation.ThrowIfCancellationRequested();
                 if (entry.IsDirectory) return false;
                 var extension = Path.GetExtension(entry.FileName);
-                foreach (var candidate in Extensions)
-                    if (extension.Equals(candidate, StringComparison.OrdinalIgnoreCase))
+                if (ScanFormats.Supports(extension))
+                {
+                    if ((entry.Attributes & FileAttributes.ReparsePoint) != 0)
                     {
-                        if ((entry.Attributes & FileAttributes.ReparsePoint) != 0)
-                        {
-                            if (requireFullCoverage) throw new IOException("Missing detection cannot exclude linked media.");
-                            return false;
-                        }
-                        return true;
+                        if (requireFullCoverage) throw new IOException("Missing detection cannot exclude linked media.");
+                        return false;
                     }
+                    return true;
+                }
                 return false;
             },
             ShouldRecursePredicate = (ref FileSystemEntry entry) =>

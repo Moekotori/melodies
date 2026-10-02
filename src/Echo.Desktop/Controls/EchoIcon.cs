@@ -82,7 +82,7 @@ public class EchoIcon : Control
         {
             // Only bundled names are resolved; user input cannot become a resource path.
             if (scope is not ("sidebar" or "player" or "glyph") || !kind.All(c => char.IsAsciiLetterOrDigit(c) || c == '-')) return null;
-            var root = $"avares://Echo.Desktop/Resources/Icons/{scope}/{kind}-{layer}";
+            var root = $"avares://{typeof(EchoIcon).Assembly.GetName().Name}/Resources/Icons/{scope}/{kind}-{layer}";
             var png = new Uri(root + ".png");
             var svg = new Uri(root + ".svg");
             var result = new IconLayer();

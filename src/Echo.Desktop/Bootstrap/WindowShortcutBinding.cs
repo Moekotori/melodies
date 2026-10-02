@@ -15,7 +15,7 @@ public sealed class WindowShortcutBinding : IAsyncDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private Task _apply = Task.CompletedTask;
     private Task _restore = Task.CompletedTask;
-    private bool _dirty, _closing;
+    private bool _dirty, _closing, _restoreStarted;
     private int _generation, _dispatchPending;
     public WindowShortcutBinding(MainWindow window, ShortcutSettingsViewModel model, IGlobalShortcutBackend? backend,
         IShortcutProfileStore? store, string platformHint)
@@ -27,7 +27,11 @@ public sealed class WindowShortcutBinding : IAsyncDisposable
         if (backend is not null) backend.Triggered += OnTriggered;
         if (store is not null) store.Error += OnError;
     }
-    public Task RestoreAsync() => _restore = RestoreCoreAsync();
+    public Task RestoreAsync()
+    {
+        if (_restoreStarted || _closing) return _restore;
+        _restoreStarted = true; return _restore = RestoreCoreAsync();
+    }
     private async Task RestoreCoreAsync()
     {
         _model.SetCapabilities(_window.SupportsShortcut, _backend is not null, _model.PlatformHint);

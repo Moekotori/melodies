@@ -1,0 +1,28 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="PlayerControlRailButton" TargetType="RepeatButton">
+      <Setter Property="Template"><ControlTemplate><Grid Background="Transparent"><Border Background="{TemplateBinding Background}" Height="5" CornerRadius="3" VerticalAlignment="Center" /></Grid></ControlTemplate></Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="PlayerControlRail" TargetType="Slider">
+      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+          <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}" Orientation="Horizontal">
+            <Track.DecreaseButton><RepeatButton Name="PART_DecreaseButton" Theme="{StaticResource PlayerControlRailButton}" Background="{DynamicResource EchoAccent}" Focusable="False" /></Track.DecreaseButton>
+            <Track.IncreaseButton><RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource PlayerControlRailButton}" Background="{DynamicResource EchoDivider}" Focusable="False" /></Track.IncreaseButton>
+            <Thumb Name="PART_Thumb" Width="20" Height="20"><Thumb.Template><ControlTemplate><Border Background="{DynamicResource EchoAccent}" CornerRadius="10" /></ControlTemplate></Thumb.Template></Thumb>
+          </Track>
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="FlyoutPresenter.player-controls-presenter"><Setter Property="Background" Value="{DynamicResource EchoPlayer}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="16" /></Style>
+  <Style Selector="Button.control-tab"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="10,8" /><Setter Property="MinHeight" Value="36" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.control-step"><Setter Property="Width" Value="32" /><Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="22" /></Style>
+  <Style Selector="Button.control-step.active"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+  <Style Selector="Button.control-step.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="TextBlock.control-value"><Setter Property="FontSize" Value="23" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="Slider.control-rail"><Setter Property="Theme" Value="{StaticResource PlayerControlRail}" /></Style>
+  <Style Selector="Slider.control-rail:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+</Styles>

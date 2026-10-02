@@ -38,7 +38,7 @@ public partial class AlbumsView : UserControl, IDisposable
     private void OnRefresh(object? sender, RoutedEventArgs args)
     {
         _viewport.SetSuspended(true); _shell.AlbumArtwork!.ClearUnused();
-        _viewport.SetSuspended(false); _ = _model.RefreshAsync();
+        _viewport.SetSuspended(false); _ = _model.ReloadAsync();
     }
     private void OnClearSearch(object? sender, RoutedEventArgs args) { _model.Search = ""; FocusSearch(); }
     private void OnSearchKey(object? sender, KeyEventArgs args)
@@ -49,9 +49,8 @@ public partial class AlbumsView : UserControl, IDisposable
         _viewport.FixedColumns = combo.SelectedIndex switch { 1 => 4, 2 => 5, 3 => 6, _ => 0 };
         _viewport.ScrollTo(0); _viewport.RequestLayout();
     }
-    private void OnResetFilter(object? sender, RoutedEventArgs args) { _model.LosslessOnly = false; _model.Filters.Reset(); Density.SelectedIndex = 0; }
 
-    private void OpenDetail(AlbumRow album)
+    public void OpenDetail(AlbumRow album)
     {
         _detail?.Dispose();
         _detail = new(_shell);

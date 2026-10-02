@@ -13,6 +13,10 @@ public sealed partial class AlbumTrackItem : ObservableObject
     [ObservableProperty] private bool isPlaying;
     public TrackRow Row { get; }
     public string Number { get; }
+    public string Position { get; }
+    public string CodecLabel => Row.Codec.ToUpperInvariant();
+    public string Resolution => string.Join(" · ", new[] { Row.BitDepth > 0 ? $"{Row.BitDepth} bit" : "",
+        Row.SampleRate > 0 ? $"{Row.SampleRate / 1000d:0.##} kHz" : "" }.Where(value => value.Length > 0));
     public string Duration => TimeSpan.FromSeconds(Math.Max(0, Row.DurationSeconds)).ToString(Row.DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"m\:ss");
     public string Signal => string.Join("  ", new[] { Row.Codec.ToUpperInvariant(), Row.BitDepth > 0 ? $"{Row.BitDepth} bit" : "",
         Row.SampleRate > 0 ? $"{Row.SampleRate / 1000d:0.##} kHz" : "" }.Where(s => s.Length > 0));
@@ -24,6 +28,7 @@ public sealed partial class AlbumTrackItem : ObservableObject
     {
         Row = row; _state = state; _cancellation = cancellation; _reportError = reportError;
         Favorite = row.Favorite;
+        Position = index.ToString(System.Globalization.CultureInfo.CurrentCulture);
         Number = row.DiscNumber is > 1 ? $"{row.DiscNumber}-{row.TrackNumber ?? index}" : $"{row.TrackNumber ?? index}";
     }
     [RelayCommand] private async Task ToggleFavoriteAsync()

@@ -6,16 +6,19 @@ namespace Echo.Infrastructure.Library;
 public sealed partial class LibraryDatabase
 {
     // Only the interactive SQLite owner touches this cache; counts never block every deep page.
-    private readonly Dictionary<(string? Search, bool Lossless, string? Artist, ArtistGrouping Grouping, LibraryFilter? Filter), int> _albumCounts = [];
+    private readonly Dictionary<(string? Search, bool Lossless, string? Artist, ArtistGrouping Grouping, LibraryFilter? Filter, string? Genre), int> _albumCounts = [];
     private long _albumCountRevision = -1;
+    private readonly Dictionary<(string? Search, bool Lossless, string? Artist, ArtistGrouping Grouping, LibraryFilter? Filter, string? Genre, string Pivot), int> _albumPivots = [];
     public Task<AlbumPage> GetAlbumsAsync(AlbumQuery query, CancellationToken cancellation = default)
         => QueryAlbumsAsync(query, null, ArtistGrouping.Credits, cancellation);
 
-    private Task<AlbumPage> QueryAlbumsAsync(AlbumQuery query, string? artistId, ArtistGrouping grouping, CancellationToken cancellation)
+    private Task<AlbumPage> QueryAlbumsAsync(AlbumQuery query, string? artistId, ArtistGrouping grouping, CancellationToken cancellation, string? genreId = null)
     {
         if (query.Offset < 0 || query.Limit is < 1 or > 200 || query.Search?.Length > 128 || !Enum.IsDefined(query.Sort))
             throw new ArgumentException("Invalid bounded album query.");
         LibraryFilterSql.Validate(query.Filter);
+        if (query.ShufflePivot is { } pivot && (pivot.Length != 16 || pivot.Any(c => !char.IsAsciiHexDigit(c))))
+            throw new ArgumentException("Invalid shuffle pivot.");
         return _interactiveReader.QueueAsync(connection =>
         {
             using var interrupt = new ReadCancellation(connection, cancellation);
@@ -30,9 +33,10 @@ public sealed partial class LibraryDatabase
                 + AlbumSearchSql.Build(command, search, query.Filter)
                 + (query.LosslessOnly ? " AND a.lossless_count=a.track_count " : "")
                 + (artistId is null ? "" : " AND a.id IN(SELECT album_id FROM artist_albums WHERE grouping=$group AND artist_id=$artist) ");
+            if (genreId is not null) { from += " AND a.id IN(SELECT album_id FROM genre_albums WHERE genre_id=$genreId)"; command.Parameters.AddWithValue("$genreId", genreId); }
             if (artistId is not null) { command.Parameters.AddWithValue("$artist", artistId); command.Parameters.AddWithValue("$group", (int)grouping); }
-            if (_albumCountRevision != revision) { _albumCounts.Clear(); _albumCountRevision = revision; }
-            var countKey = (search, query.LosslessOnly, artistId, grouping, query.Filter);
+            if (_albumCountRevision != revision) { _albumCounts.Clear(); _albumPivots.Clear(); _albumCountRevision = revision; }
+            var countKey = (search, query.LosslessOnly, artistId, grouping, query.Filter, genreId);
             if (!_albumCounts.TryGetValue(countKey, out var total))
             {
                 command.CommandText = "SELECT count(*)" + from;
@@ -41,21 +45,34 @@ public sealed partial class LibraryDatabase
                 _albumCounts[countKey] = total;
             }
             cancellation.ThrowIfCancellationRequested();
-            var sort = query.Sort switch
-            {
-                AlbumSort.Artist => "i.artist_key", AlbumSort.Year => "a.year", AlbumSort.Recent => "a.added",
-                AlbumSort.Duration => "a.duration", AlbumSort.TrackCount => "a.track_count", _ => "i.title_key"
-            };
-            var direction = query.Descending ? " DESC" : " ASC";
-            command.CommandText = "SELECT i.stable_id,i.display_title,i.display_artist,a.track_count,a.duration,a.year," +
+            var select = "SELECT i.stable_id,i.display_title,i.display_artist,a.track_count,a.duration,a.year," +
                 "(SELECT path FROM tracks WHERE album_key=a.id AND missing=0 ORDER BY disc_no,track_no,sort_key,id LIMIT 1)," +
                 "a.lossless_count,a.added,coalesce((SELECT favorite FROM album_user_state WHERE album_id=a.id),0)," +
-                "coalesce((SELECT rating FROM album_user_state WHERE album_id=a.id),0)" + from +
-                $" ORDER BY {sort}{direction},i.stable_id{direction} LIMIT $limit OFFSET $offset";
-            command.Parameters.AddWithValue("$limit", query.Limit);
-            command.Parameters.AddWithValue("$offset", query.Offset);
+                "coalesce((SELECT rating FROM album_user_state WHERE album_id=a.id),0)" + from;
+            var offset = query.Offset;
+            var limit = Math.Min(query.Limit, Math.Max(0, total - query.Offset));
+            if (query.Sort == AlbumSort.Random && query.ShufflePivot is { } shuffle && total > 0)
+            {
+                var pivotKey = (search, query.LosslessOnly, artistId, grouping, query.Filter, genreId, shuffle);
+                if (!_albumPivots.TryGetValue(pivotKey, out var rank))
+                {
+                    command.Parameters.AddWithValue("$pivot", shuffle.ToUpperInvariant());
+                    command.CommandText = "SELECT count(*)" + from + " AND a.shuffle_key<$pivot";
+                    rank = checked((int)(long)command.ExecuteScalar()!);
+                    if (_albumPivots.Count >= 16) _albumPivots.Remove(_albumPivots.Keys.First());
+                    _albumPivots[pivotKey] = rank;
+                }
+                offset = (int)(((long)rank + query.Offset) % total);
+            }
+            command.Parameters.AddWithValue("$limit", limit);
+            command.Parameters.AddWithValue("$offset", offset);
             var items = new List<AlbumRow>(query.Limit);
-            using (var reader = command.ExecuteReader())
+            // A random view is an indexed permutation rotated around a session pivot. At most two slices.
+            while (items.Count < limit)
+            {
+                command.CommandText = select + AlbumOrdering.Sql(query.Sort, query.Descending) + " LIMIT $limit OFFSET $offset";
+                var before = items.Count;
+                using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
                     cancellation.ThrowIfCancellationRequested();
@@ -63,6 +80,10 @@ public sealed partial class LibraryDatabase
                         reader.GetDouble(4), reader.IsDBNull(5) ? null : reader.GetInt32(5), reader.GetString(6), reader.GetInt32(7),
                         reader.GetInt64(8), reader.GetBoolean(9), reader.GetInt32(10)));
                 }
+                if (query.Sort != AlbumSort.Random || offset == 0 || items.Count == before) break;
+                offset = 0; command.Parameters["$offset"].Value = 0;
+                command.Parameters["$limit"].Value = limit - items.Count;
+            }
             transaction.Commit();
             return new AlbumPage(items, total, revision);
         }, true, cancellation);

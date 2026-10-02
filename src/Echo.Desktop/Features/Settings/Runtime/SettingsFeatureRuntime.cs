@@ -20,7 +20,7 @@ public sealed class SettingsFeatureRuntime(FeaturePreferences preferences) : IDi
         if (!_changes.TryGetValue(row.Id, out var handler) || !_busy.Add(row.Id)) return;
         var desired = new FeatureSetting(row.BoolValue, row.SelectedValue, row.NumberValue);
         try { await handler(desired, _lifetime.Token); preferences.Confirm(row.Id, desired); }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (OperationCanceledException) { }
         catch (Exception exception) { Failed?.Invoke(exception.Message); }
         finally { _busy.Remove(row.Id); Changed?.Invoke(row.Id); }
     }
@@ -28,7 +28,7 @@ public sealed class SettingsFeatureRuntime(FeaturePreferences preferences) : IDi
     {
         if (!_actions.TryGetValue(id, out var handler) || !_busy.Add(id)) return;
         try { await handler(action, _lifetime.Token); }
-        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (OperationCanceledException) { }
         catch (Exception exception) { Failed?.Invoke(exception.Message); }
         finally { _busy.Remove(id); Changed?.Invoke(id); }
     }

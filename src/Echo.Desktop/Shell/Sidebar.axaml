@@ -3,31 +3,73 @@
              x:Class="Echo.Desktop.Shell.Sidebar" x:DataType="shell:ShellViewModel">
   <UserControl.Resources>
     <DataTemplate x:Key="NavigationTemplate" x:DataType="shell:NavigationItem">
-      <Button Classes="nav" Classes.active="{Binding IsActive}" Command="{Binding $parent[shell:Sidebar].((shell:ShellViewModel)DataContext).NavigateCommand}"
-              CommandParameter="{Binding Id}" ToolTip.Tip="{Binding Label}" AutomationProperties.Name="{Binding Label}">
+      <Grid Classes="navigation-row" ColumnDefinitions="Auto,*,Auto" IsVisible="{Binding IsShown}" Classes.hidden="{Binding IsHidden}">
+        <Button Classes="sidebar-handle" IsVisible="{Binding IsEditing}" Width="24" Height="38" Padding="0" Cursor="SizeAll"
+                PointerCaptureLost="OnGripCaptureLost" KeyDown="OnGripKeyDown"
+                ToolTip.Tip="{DynamicResource sidebar.reorder}" AutomationProperties.Name="{Binding Label}">
+          <icon:GlyphIcon Kind="grip" Scope="sidebar" StrokeWidth="1.25" Width="14" Height="14" />
+        </Button>
+      <Button Grid.Column="1" Classes="nav" Classes.active="{Binding IsActive}" Classes.editing="{Binding IsEditing}" Click="OnNavigationClicked"
+              ToolTip.Tip="{Binding Label}" AutomationProperties.Name="{Binding Label}">
         <Grid ColumnDefinitions="30,*" ColumnSpacing="7">
-          <icon:EchoIcon Kind="{Binding Id}" Width="25" Height="25" HorizontalAlignment="Center" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="14" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+          <icon:EchoIcon Kind="{Binding Id}" BaseBrush="{Binding $parent[Button].Foreground}" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="13" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                      IsVisible="{Binding $parent[shell:Sidebar].((shell:ShellViewModel)DataContext).IsSidebarLabelVisible}" Foreground="{Binding $parent[Button].Foreground}" />
         </Grid>
       </Button>
+        <Button Grid.Column="2" Classes="sidebar-eye" Classes.active="{Binding IsActive}" IsVisible="{Binding IsEditing}" Width="30" Height="38" Padding="0"
+                Command="{Binding $parent[shell:Sidebar].((shell:ShellViewModel)DataContext).ToggleNavigationVisibilityCommand}" CommandParameter="{Binding}"
+                ToolTip.Tip="{DynamicResource sidebar.visibility}" AutomationProperties.Name="{Binding Label}">
+          <icon:GlyphIcon Kind="{Binding VisibilityIcon}" Scope="sidebar" StrokeWidth="1.25" Width="17" Height="17" Stroke="{Binding $parent[Button].Foreground}" />
+        </Button>
+      </Grid>
     </DataTemplate>
   </UserControl.Resources>
-  <Border Background="{DynamicResource EchoSidebar}" Padding="10,14,10,14">
-    <Grid RowDefinitions="28,*,Auto" RowSpacing="8">
+  <UserControl.Styles>
+    <Style Selector="Button.nav"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+    <Style Selector="Button.nav.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button.sidebar-eye"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+    <Style Selector="Grid.navigation-row.hidden Button.nav"><Setter Property="Opacity" Value="0.45" /></Style>
+    <Style Selector="Grid.navigation-row.drop-target"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+    <Style Selector="Button.sidebar-eye.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button.nav.editing"><Setter Property="Background" Value="Transparent" /></Style>
+  </UserControl.Styles>
+  <Border Background="Transparent" Padding="10,14,10,14">
+    <Border.ContextMenu>
+      <ContextMenu>
+        <MenuItem Header="{DynamicResource sidebar.edit}" Click="OnEditClicked" />
+        <MenuItem Header="{DynamicResource sidebar.reset}" Click="OnResetClicked" />
+      </ContextMenu>
+    </Border.ContextMenu>
+    <Grid RowDefinitions="28,Auto,*,Auto" RowSpacing="8">
       <Grid ColumnDefinitions="*,28" Margin="4,0">
-        <TextBlock Text="{DynamicResource ui.Sidebar.433bdcb25776}" IsVisible="{Binding IsSidebarLabelVisible}" Classes="subtle" FontSize="11" FontWeight="SemiBold" Margin="4,7,0,0" />
-        <Button Grid.Column="1" Width="28" Height="28" MinHeight="28" Padding="0" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="{DynamicResource ui.Sidebar.c3d1de44037a}"><icon:GlyphIcon Kind="collapse" Width="16" Height="16" /></Button>
+        <TextBlock Text="{DynamicResource ui.Sidebar.433bdcb25776}" IsVisible="{Binding IsSidebarLabelVisible}" Classes="muted" FontSize="11" FontWeight="SemiBold" Margin="4,7,0,0" />
+        <Button Grid.Column="1" Classes="quiet" Width="28" Height="28" MinHeight="28" Padding="0" Command="{Binding ToggleSidebarCommand}" IsVisible="{Binding !IsSidebarEditing}" ToolTip.Tip="{DynamicResource ui.Sidebar.c3d1de44037a}"><icon:GlyphIcon Kind="collapse" Scope="sidebar" StrokeWidth="1.25" Width="16" Height="16" /></Button>
       </Grid>
-      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+      <Border Grid.Row="1" IsVisible="{Binding IsSidebarEditing}" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" CornerRadius="10" Padding="7,4">
+        <Grid ColumnDefinitions="16,*,Auto" ColumnSpacing="5">
+          <icon:GlyphIcon Kind="grip" Scope="sidebar" StrokeWidth="1.25" Width="13" Height="13" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="{DynamicResource sidebar.edit}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Grid.Column="2" Name="ExitEditing" Command="{Binding ExitSidebarEditingCommand}" Padding="5,0" MinHeight="26" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" CornerRadius="8">
+            <StackPanel Orientation="Horizontal" Spacing="3"><icon:GlyphIcon Kind="close" Scope="sidebar" StrokeWidth="1.25" Width="13" Height="13" VerticalAlignment="Center" /><TextBlock Text="{DynamicResource sidebar.exit}" FontSize="12" VerticalAlignment="Center" /></StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+      <ScrollViewer Name="NavigationScroll" Grid.Row="2" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="18">
           <ItemsControl ItemsSource="{Binding LibraryItems}" ItemTemplate="{StaticResource NavigationTemplate}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
           <StackPanel Spacing="4">
-            <TextBlock Text="{DynamicResource ui.Sidebar.a488e93d69cc}" Classes="subtle" FontSize="11" FontWeight="SemiBold" Margin="10,0" IsVisible="{Binding IsSidebarLabelVisible}" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="10,0" IsVisible="{Binding IsSidebarLabelVisible}">
+              <TextBlock Text="{DynamicResource ui.Sidebar.a488e93d69cc}" Classes="subtle" FontSize="11" FontWeight="SemiBold" />
+              <Border Grid.Column="1" Height="1" Background="{DynamicResource EchoDivider}" VerticalAlignment="Center" />
+            </Grid>
             <ItemsControl ItemsSource="{Binding SourceItems}" ItemTemplate="{StaticResource NavigationTemplate}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
           </StackPanel>
           <StackPanel Spacing="4">
-            <TextBlock Text="{DynamicResource ui.Sidebar.795d21bbf36d}" Classes="subtle" FontSize="11" FontWeight="SemiBold" Margin="10,0" IsVisible="{Binding IsSidebarLabelVisible}" />
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="10,0" IsVisible="{Binding IsSidebarLabelVisible}">
+              <TextBlock Text="{DynamicResource ui.Sidebar.795d21bbf36d}" Classes="subtle" FontSize="11" FontWeight="SemiBold" />
+              <Border Grid.Column="1" Height="1" Background="{DynamicResource EchoDivider}" VerticalAlignment="Center" />
+            </Grid>
             <ItemsControl ItemsSource="{Binding PlaybackItems}" ItemTemplate="{StaticResource NavigationTemplate}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
           </StackPanel>
           <StackPanel Spacing="4" IsVisible="{Binding PluginItems.Count}">
@@ -36,10 +78,10 @@
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
-      <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource EchoDivider}" Padding="0,12,0,0">
+      <Border Grid.Row="3" IsVisible="{Binding !IsSidebarEditing}" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource EchoDivider}" Padding="0,12,0,0">
         <Button Classes="nav" Command="{Binding NavigateCommand}" CommandParameter="settings" ToolTip.Tip="{DynamicResource ui.Sidebar.df3d58c7d84b}">
           <Grid ColumnDefinitions="30,*" ColumnSpacing="7">
-            <icon:EchoIcon Kind="settings" Width="25" Height="25" HorizontalAlignment="Center" />
+            <icon:EchoIcon Kind="settings" BaseBrush="{DynamicResource EchoMuted}" Width="20" Height="20" HorizontalAlignment="Center" />
             <TextBlock Grid.Column="1" Text="{DynamicResource ui.Sidebar.df3d58c7d84b}" IsVisible="{Binding IsSidebarLabelVisible}" FontSize="14" Classes="muted" VerticalAlignment="Center" />
           </Grid>
         </Button>

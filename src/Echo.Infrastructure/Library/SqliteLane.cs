@@ -58,6 +58,10 @@ internal sealed class SqliteLane : IAsyncDisposable
             using var connection = new SqliteConnection(settings.ToString());
             connection.Open();
             connection.CreateFunction<string, string>("echo_fold", Echo.Infrastructure.Search.LibrarySearchSchema.Fold, isDeterministic: true);
+            connection.CreateFunction<string, string?>("echo_directory", value => Path.GetDirectoryName(value), isDeterministic: true);
+            connection.CreateFunction<string, string>("echo_folder_prefix", Echo.Infrastructure.Files.LibraryPath.RootPrefix, isDeterministic: true);
+            connection.CreateFunction<string, string>("echo_genre_key", GenreSchema.Key, isDeterministic: true);
+            connection.CreateFunction<string, string>("echo_genre_name", GenreSchema.Name, isDeterministic: true);
             initialize?.Invoke(connection);
             using (var command = connection.CreateCommand())
             {

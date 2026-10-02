@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:theme="using:Echo.Desktop.Theming" x:Class="Echo.Desktop.Features.Settings.ThemeRainbowSettings" x:DataType="theme:ThemeViewModel">
+  <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /></UserControl.Styles>
+  <StackPanel Spacing="18">
+    <Grid ColumnDefinitions="*,Auto"><StackPanel Spacing="4"><TextBlock Text="{DynamicResource appearance.native.1369f06017f7}" Classes="theme-section" /><TextBlock Text="{DynamicResource appearance.native.6918ed9441c2}" Classes="theme-caption" /></StackPanel><ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding RainbowEnabled, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.native.1369f06017f7}" /></Grid>
+    <StackPanel IsVisible="{Binding RainbowEnabled}" Spacing="16">
+      <ComboBox ItemsSource="{Binding RainbowChoices}" SelectedItem="{Binding SelectedRainbowChoice, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.a3f3800a1110}" />
+      <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource appearance.native.e22b04f7e5a0}" Classes="theme-caption" /><TextBlock Grid.Column="1" Text="{Binding RainbowSpeed, StringFormat={}{0:0}%}" Classes="theme-caption" /></Grid>
+      <Slider Minimum="25" Maximum="400" SmallChange="25" Value="{Binding RainbowSpeed, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.native.6ddb9f18846f}" />
+      <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource appearance.native.485c8e521e3a}" Classes="theme-caption" /><TextBlock Grid.Column="1" Text="{Binding RainbowIntensity, StringFormat={}{0:0}%}" Classes="theme-caption" /></Grid>
+      <Slider Minimum="20" Maximum="200" SmallChange="10" Value="{Binding RainbowIntensity, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.native.95b426b8cb5f}" />
+      <TextBlock Text="{DynamicResource appearance.native.aad5e2f8d340}" Classes="theme-caption" TextWrapping="Wrap" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

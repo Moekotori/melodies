@@ -46,11 +46,11 @@ WAV/FLAC 直接读取头部和有上限的文本标签，seek 跳过 PCM、图�
 
 文件指纹不读取音频正文，无法检测大小和修改时间都保持不变的改写。显式 --force 重新解析。metadata header 有效不等于音频帧完整性；PCM/CRC 全文件校验是独立按需能力。
 
-WAV 支持普通 RIFF PCM/float/extensible 及 UTF-8 INFO 标签。RF64、复杂 ID3 标签和未明确编码的非 UTF-8 INFO 报错，避免猜测。FLAC 支持 STREAMINFO 和 Vorbis 文本标签，跳过图片；嵌入 CUE 明确报告 cue_expansion_required，尚未生成虚拟曲目。
+WAV 支持普通 RIFF PCM/float/extensible 及 UTF-8 INFO 标签。RF64、复杂 ID3 标签和未明确编码的非 UTF-8 INFO 的旧版兼容回退继续迁移。FLAC 支持 STREAMINFO 和 Vorbis 文本标签，跳过图片；文本 CUESHEET 和独立 CUE 复用旧 Core parser 展开分段。
 
 MP3、AIFF、Ogg/Opus、M4A 等能力取决于配置的既有 C++ scanner 协议 v3 及实际 parser 支持。原生进程异常/超时只终止自己的进程，不能据此切换到伪造 filename metadata。复用原生解析器不代表已对所有格式/异常完成验收。
 
-独立 CUE/osu 和其他已识别但解析器尚不支持的音频格式也会产生错误诊断，不会默默当成已导入。CLI 的 issues 命令按 jobId 读取最多 64 条错误样本。
+独立 CUE/osu 已接入文件夹扫描：CUE 保留旧标识与播放范围，osu 共享音频去重、标签覆盖和有界落盘缓存。尚不支持的格式保留诊断。CLI 的 issues 命令按 jobId 读取最多 64 条错误样本。
 
 本地 WAV/FLAC 与目录发现是在固定后台工作器执行的有界同步 I/O，取消在块与文件之间检查；卡住的文件系统调用不能宣称已被强制终止。NAS 卡顿与跨平台取消时延尚未验收。原生解析取消通过终止自己的进程实现。
 
@@ -58,7 +58,7 @@ MP3、AIFF、Ogg/Opus、M4A 等能力取决于配置的既有 C++ scanner 协议
 
 ## 数据迁移边界
 
-本数据库有独立 application_id 和 schema v1，遇到旧 ECHO 或其他格式直接拒绝。新旧程序不同时自主写一份生产库。当前保存文件级歌曲事实，不代表已迁移旧 Core 的分析身份、歌单、专辑聚合、CUE/osu、封面、手动标签和远程同步。
+本数据库有独立 application_id 与版本化迁移，虚拟来源从 schema 7 开始保存，目前大库优化升级到 schema 18。遇到旧 ECHO 或其他格式直接拒绝原地写入。新旧程序不同时自主写一份生产库。CUE/osu 来源已经保存，不代表已迁移旧 Core 的全部分析身份、歌单、封面、手动标签和远程同步。多 TB 约束、目录落盘去重及本轮验证见 [LARGE_LIBRARY_SCANNING.md](LARGE_LIBRARY_SCANNING.md)。
 
 迁移器后续按开发文档实现，保留旧 ID、用户数据和备份。不要把新数据库结构直接覆盖到旧数据库。
 
@@ -71,3 +71,5 @@ Smoke 使用真实临时 SQLite、真实 WAV 标签文件和 FLAC metadata 夹�
 结果写入本次 misc/ 验证目录的 results.json。夹具/热缓存、样本量和未测平台需要与数字一起报告；不得把短测声称为真实 HDD 或长期内存验收。
 
 当前记录见 [扫描性能短测](SCANNING_PERFORMANCE.md)。
+
+直接复用的源码、已迁能力与新增短测见 [旧版扫描实现迁移](LEGACY_SCAN_MIGRATION.md)。

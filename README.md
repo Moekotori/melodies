@@ -30,7 +30,7 @@ dotnet run --project src/Echo.Cli -c Release -- stats --db misc/library.sqlite
 dotnet run --project src/Echo.Cli -c Release -- issues --db misc/library.sqlite --job '扫描返回的jobId'
 ```
 
-WAV/FLAC 使用内置有界解析。MP3、M4A、Ogg、Opus、AIFF 等通过 `--native-scanner` 指定已构建的 ECHO C++ scanner；不支持或损坏的文件会计入失败，不生成伪造 metadata。封面提取、CUE/osu 虚拟曲目和完整旧库导入在后续阶段迁移。
+WAV/FLAC 使用有界解析，CUE 与 osu 文件夹规则已迁入。运行 tools/build-native-scanner.ps1 后，MP3、M4A、Ogg、Opus、AIFF 等可自动使用本工程构建的旧版 C++ scanner，也支持 --native-scanner 覆盖。完整兼容范围见 [旧版扫描迁移](docs/LEGACY_SCAN_MIGRATION.md)；完整旧库导入仍在后续阶段。
 
 普通扫描是增量扫描。需要复查属性未变但内容被改写的文件时加 `--force`。完整扫描需要标记删除文件时显式加 `--detect-missing`；任何枚举不完整、解析错误、链接排除或取消都阻止缺失清理。
 
@@ -38,4 +38,4 @@ WAV/FLAC 使用内置有界解析。MP3、M4A、Ogg、Opus、AIFF 等通过 `--n
 
 ## 显示语言
 
-设置 → 通用 → 显示语言支持简体中文、English 和跟随系统，修改即时生效并保存。新增语言只需在 `src/Echo.Desktop/Resources/Languages/` 添加 JSON 包并重新构建；语言目录与选择器自动发现。资源格式、开发调用和当前迁移边界见 [I18N 文档](docs/I18N.md)。
+设置 → 通用 → 显示语言支持简体中文、English 和跟随系统，修改即时生效并保存。用户可在同页“用户语言包”中导入 JSON、导出模板、打开目录和重新加载；新语言或内置文案覆盖无需构建或重启。随发行版提供的内置包仍放在 `src/Echo.Desktop/Resources/Languages/`。资源格式、开发调用和当前迁移边界见 [I18N 文档](docs/I18N.md)。

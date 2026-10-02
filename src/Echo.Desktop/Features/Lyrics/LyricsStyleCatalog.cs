@@ -11,11 +11,11 @@ public static class LyricsStyleCatalog
     public static IReadOnlyList<LyricsStyle> All { get; } = [
         new("default", "简约", "留白与清晰的滚动歌词", LyricsLayout.Reading, "", "", ""),
         new("luminous", "浮光", "暗色舞台与流动光束", LyricsLayout.Light, "#070911", "#F7F8FF", "#BEC8FF", 1.12),
-        new("afterglow", "余音", "聚焦当前句，逐字点亮", LyricsLayout.WordFocus, "#080D16", "#FFFFFF", "#B6DFFF", 1.4),
+        new("afterglow", "余音", "居中单句与逐字点亮", LyricsLayout.WordFocus, "#0B0D12", "#FFFFFF", "#FFFFFF", 1, true),
         new("afterglowCover", "余晖", "封面与温暖的阅读舞台", LyricsLayout.CoverLeft, "#1B1716", "#F9F5ED", "#F1C28F"),
         new("editorial", "纸笺", "纸张底色与边栏排版", LyricsLayout.Editorial, "#FBFAF8", "#122039", "#4046F2"),
         new("folded", "折光", "青紫折射与透视层次", LyricsLayout.Folded, "#01060C", "#F1F5F7", "#78E4EE", 1.1),
-        new("roseVinyl", "留声", "唱片、封面与一列歌词", LyricsLayout.Vinyl, "#1F171D", "#FFF2EB", "#EAB7C9"),
+        new("roseVinyl", "留声", "封面阅读列与克制排版", LyricsLayout.Vinyl, "#10131A", "#F8FAFC", "#F8FAFC"),
         new("cinemaStage", "映幕", "宽银幕构图与字幕焦点", LyricsLayout.Cinema, "#020407", "#F8FAFC", "#BEECE2", 1.18, true),
         new("kineticPoster", "跃字", "已唱、当前词与未唱词的三栏海报", LyricsLayout.Poster, "#07111F", "#FFF3D4", "#FF776D", 1.65, true),
         new("coverStage", "画境", "封面铺陈与并列歌词", LyricsLayout.CoverRight, "#16181E", "#F8F8F8", "#F8F8F8"),
@@ -44,6 +44,7 @@ public static class LyricsStyleCatalog
         new("code", "代码", "#0D1117", "#E6EDF3", "#7EE787", "#79C0FF"),
         new("math", "数学", "#123026", "#F3F1E6", "#FFE082", "#8FD6FF"),
         new("icpc", "竞赛", "#0B1E2D", "#EAF4FF", "#2ECC71", "#F1C40F"),
-        new("block", "方块", "#0B1130", "#EAF4E6", "#6BCB4C", "#8FD3FF")
+        new("block", "方块", "#0B1130", "#EAF4E6", "#6BCB4C", "#8FD3FF"),
+        new("rhythm", "音游", "#0A1020", "#F1F3FF", "#48D9EA", "#F276AD")
     ];
 }

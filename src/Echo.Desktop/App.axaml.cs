@@ -23,7 +23,7 @@ public partial class App : Avalonia.Application
             {
                 if (released) return;
                 args.Cancel = true;
-                desktop.MainWindow.Close();
+                (desktop.MainWindow as Echo.Desktop.Shell.MainWindow)?.RequestExit();
             };
             desktop.MainWindow.Closed += async (_, _) =>
             {

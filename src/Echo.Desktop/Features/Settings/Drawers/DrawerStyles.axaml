@@ -43,6 +43,23 @@
         <Style Selector="^:pointerover /template/ Border#DeviceBackground"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
         <Style Selector="^:focus-visible /template/ Border#DeviceBackground"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
       </ControlTheme>
+      <ControlTheme x:Key="DrawerSliderTrackTheme" TargetType="RepeatButton">
+        <Setter Property="Template"><ControlTemplate><Grid Background="Transparent" Height="26"><Border Background="{TemplateBinding Background}" Height="3" CornerRadius="2" VerticalAlignment="Center" /></Grid></ControlTemplate></Setter>
+      </ControlTheme>
+      <ControlTheme x:Key="DrawerSliderThumbTheme" TargetType="Thumb">
+        <Setter Property="Template"><ControlTemplate><Border Background="{TemplateBinding Background}" CornerRadius="7" /></ControlTemplate></Setter>
+      </ControlTheme>
+      <ControlTheme x:Key="DrawerSliderTheme" TargetType="Slider">
+        <Setter Property="Template"><ControlTemplate>
+          <Grid Height="26">
+            <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}" IsDirectionReversed="{TemplateBinding IsDirectionReversed}" Orientation="Horizontal">
+              <Track.DecreaseButton><RepeatButton Name="PART_DecreaseButton" Theme="{DynamicResource DrawerSliderTrackTheme}" Background="{DynamicResource EchoAccent}" Focusable="False" /></Track.DecreaseButton>
+              <Track.IncreaseButton><RepeatButton Name="PART_IncreaseButton" Theme="{DynamicResource DrawerSliderTrackTheme}" Background="{DynamicResource DrawerToggleTrack}" Focusable="False" /></Track.IncreaseButton>
+              <Thumb Width="14" Height="14" Theme="{DynamicResource DrawerSliderThumbTheme}" Background="{DynamicResource EchoAccent}" />
+            </Track>
+          </Grid>
+        </ControlTemplate></Setter>
+      </ControlTheme>
     </ResourceDictionary>
   </Styles.Resources>
   <Style Selector="TabControl.drawer-tabs"><Setter Property="Theme" Value="{DynamicResource DrawerTabsTheme}" /></Style>
@@ -60,8 +77,6 @@
   <Style Selector="NumericUpDown"><Setter Property="FontSize" Value="12" /><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
   <Style Selector="TextBox.drawer-search"><Setter Property="FontSize" Value="12" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
   <Style Selector="TemplatedControl.drawer-match"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
-  <Style Selector="Slider"><Setter Property="Foreground" Value="{DynamicResource EchoAccent}" /><Setter Property="Background" Value="{DynamicResource DrawerToggleTrack}" /></Style>
-  <Style Selector="Slider /template/ Thumb, Slider:pointerover /template/ Thumb, Slider:pressed /template/ Thumb"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Width" Value="16" /><Setter Property="Height" Value="16" /></Style>
-  <Style Selector="Slider /template/ RepeatButton#PART_DecreaseButton"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /></Style>
-  <Style Selector="Slider /template/ RepeatButton#PART_IncreaseButton"><Setter Property="Background" Value="{DynamicResource DrawerToggleTrack}" /></Style>
+  <Style Selector="Slider"><Setter Property="Theme" Value="{DynamicResource DrawerSliderTheme}" /></Style>
+  <Style Selector="ScrollViewer.drawer-scroll"><Setter Property="Padding" Value="0,0,12,0" /></Style>
 </Styles>

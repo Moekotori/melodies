@@ -8,6 +8,7 @@ Directory.CreateDirectory(root);
 var a = Path.Combine(root, "a.wav");
 var b = Path.Combine(root, "b.wav");
 Wave(a, 2.5); Wave(b, 0.6);
+if (args.Contains("--admission-only")) { await AdmissionSmoke.RunAsync(a, root); await StateSmoke.RunAsync(a); return; }
 if (args.Contains("--state-only")) { await StateSmoke.RunAsync(a); await RuntimeSmoke.RunAsync(root, a); return; }
 if (args.Contains("--runtime-only")) { await RuntimeSmoke.RunAsync(root, a); return; }
 await FakeAsync(a, b);
@@ -110,7 +111,7 @@ sealed class FakeHost : INativeAudio
         var json = method switch
         {
             "queue.set" => $"{{\"queueRevision\":{parameters!.Value.GetProperty("revision").GetInt64()}}}",
-            "audio.sessionBegin" => "{\"accepted\":true,\"sessionId\":1,\"ready\":{\"sampleRate\":48000}}",
+            "audio.sessionBegin" => "{\"accepted\":true,\"sessionId\":1,\"ready\":{\"sampleRate\":48000,\"format\":\"float32le\"}}",
             "audio.openFile" => $"{{\"operationId\":{++operation},\"sampleRate\":48000,\"durationSeconds\":10}}",
             "audio.seek" => $"{{\"operationId\":{++operation}}}",
             _ => "true"

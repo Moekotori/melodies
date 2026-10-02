@@ -23,8 +23,9 @@ using SkiaSharp;
 
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions())
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
+if (args.Contains("--local-compatibility")) { CompatibilityUiSmoke.Run(); return; }
 var watch = Stopwatch.StartNew();
-var root = Path.GetFullPath("misc/lyrics-migration"); Directory.CreateDirectory(root);
+var root = Path.GetFullPath(args.Length > 0 ? args[0] : "misc/lyrics-migration"); Directory.CreateDirectory(root);
 using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(40));
 ParserSmoke.Run();
 var host = new TestHost(); var session = new PlaybackSessionCoordinator(host); var player = new PlayerViewModel(new PlaybackZone("lyrics-test", "歌词测试", session));
@@ -51,6 +52,7 @@ Check(window.FindControl<ContentControl>("LyricsStageHost")!.IsVisible
     && Math.Abs(view.Bounds.Width - window.ClientSize.Width) < 1
     && Math.Abs(view.Bounds.Height - window.ClientSize.Height) < 1, "independent lyric host fills the entire client area");
 Check(view.Model.Cover is not null && view.Model.Document.Lines[1].Translation is not null, "real sidecar/translation/shared artwork");
+Check(view.Model.CoverColors is not null, "stage cover colors produced by the existing worker");
 using (var data = SKData.CreateCopy(cover))
 using (var codec = SKCodec.Create(data))
 {
@@ -67,7 +69,9 @@ foreach (var style in appearance.Styles)
     Check(viewport.LayoutCount <= 18 && !viewport.IsFrameDriverRunning, "bounded layouts and paused driver");
 }
 appearance.SelectedStyle = appearance.Styles.Last();
-foreach (var look in appearance.Looks) { appearance.SelectedLook = look; Capture("afterglow-" + look.Id); }
+Check(appearance.Styles.Count == 12 && appearance.Looks.Count == 23 && appearance.Looks.Any(look => look.Id == "rhythm"), "complete old style and look catalogs including rhythm");
+foreach (var look in appearance.Looks.Where(look => args.Contains("--full-looks") || look.Id is "mist" or "neon" or "rhythm"))
+{ appearance.SelectedLook = look; Capture("afterglow-" + look.Id); }
 appearance.SelectedStyle = appearance.Styles[0];
 var viewportControl = view.FindControl<LyricsViewportControl>("Viewport")!;
 shell.Motion.SelectedChoice = shell.Motion.Choices.First(c => c.Mode == MotionMode.Full);
@@ -110,6 +114,12 @@ Console.WriteLine($"PASS parser, actual sidecar + shared artwork, independent fu
 LyricsView FindView() => window.GetVisualDescendants().OfType<LyricsView>().Last();
 void Capture(string name)
 {
+    if (appearance.IsAfterglow && view.Model.HasLyrics)
+    {
+        var scene = view.FindControl<JizuraSceneControl>("JizuraScene")!;
+        Wait(() => scene.HasFrame || scene.RenderError.Length > 0);
+        Check(scene.HasFrame, "original Afterglow scene: " + scene.RenderDiagnostic);
+    }
     Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     using var frame = window.CaptureRenderedFrame() ?? throw new Exception("native render failed");
     frame.Save(Path.Combine(root, name + ".png"), PngBitmapEncoderOptions.Default);

@@ -9,10 +9,25 @@ public static partial class LyricsParser
 {
     public const int MaxCharacters = 512 * 1024;
     public const int MaxLines = 6000;
+    public static LyricsDocument Parse(LyricsText source, CancellationToken cancellation = default)
+    {
+        var primary = Parse(source.Text, source.Format, cancellation);
+        return LyricsCompanionMerger.Merge(primary, ParseCompanion(source.Translation, cancellation),
+            ParseCompanion(source.Romanization, cancellation), cancellation);
+    }
+    private static LyricsDocument? ParseCompanion(LyricsTrackText? track, CancellationToken cancellation)
+    {
+        if (track is null) return null;
+        try { return Parse(track.Text, track.Format, cancellation); }
+        catch (Exception error) when (error is InvalidDataException or System.Xml.XmlException) { return null; }
+    }
     public static LyricsDocument Parse(string text, string format, CancellationToken cancellation = default)
     {
+        cancellation.ThrowIfCancellationRequested();
         if (text.Length > MaxCharacters) throw new InvalidDataException("歌词文件过大（最多 512 KiB 文本）。");
         format = format.ToLowerInvariant().TrimStart('.');
+        if (format is "qrc" or "krc") return TimedLyricsParser.Parse(text, format, cancellation);
+        if (text.TrimStart().StartsWith("<QrcInfos", StringComparison.OrdinalIgnoreCase)) return TimedLyricsParser.Parse(text, "qrc", cancellation);
         if (format is "ttml" or "xml") return TtmlLyricsParser.Parse(text, cancellation);
         if (format is "srt" or "vtt") return SubtitleLyricsParser.Parse(text, cancellation);
         var lines = new List<LyricLine>(); var plain = new List<LyricLine>(); double offset = 0;
@@ -30,6 +45,8 @@ public static partial class LyricsParser
             {
                 var start = Number(yrc.Groups[1].Value); var end = start + Number(yrc.Groups[2].Value);
                 var content = row[yrc.Length..]; var words = new List<LyricWord>();
+                if (content.TrimStart().StartsWith('<')) return TimedLyricsParser.Parse(text, "krc", cancellation);
+                if (!content.TrimStart().StartsWith('(') && WordTiming().IsMatch(content)) return TimedLyricsParser.Parse(text, "qrc", cancellation);
                 var matches = WordTiming().Matches(content);
                 foreach (Match match in matches)
                 {
@@ -43,10 +60,13 @@ public static partial class LyricsParser
             if (stamps.Count > 0)
             {
                 var content = LineStamp().Replace(row, "");
+                var firstStart = LrcClock(stamps[0].Groups[1].Value);
                 foreach (Match stamp in stamps)
                 {
-                    var start = Clock(stamp.Groups[1].Value);
+                    if (lines.Count >= MaxLines) throw new InvalidDataException("歌词行数超过 6000 行。");
+                    var start = LrcClock(stamp.Groups[1].Value);
                     var words = ParseEnhanced(content);
+                    if (start != firstStart) words = words.Select(w => w with { StartMs = w.StartMs + start - firstStart, EndMs = w.EndMs + start - firstStart }).ToArray();
                     lines.Add(new(WordStamp().Replace(content, ""), start, double.MaxValue, words));
                 }
             }
@@ -62,9 +82,9 @@ public static partial class LyricsParser
         for (var i = 0; i < matches.Count; i++)
         {
             var m = matches[i]; var next = i + 1 < matches.Count ? matches[i + 1] : null;
-            var start = Clock(m.Groups[1].Value);
+            var start = LrcClock(m.Groups[1].Value);
             var content = text.Substring(m.Index + m.Length, (next?.Index ?? text.Length) - m.Index - m.Length);
-            if (content.Length > 0) words.Add(new(content, start, next is null ? start + 1500 : Clock(next.Groups[1].Value)));
+            if (content.Length > 0) words.Add(new(content, start, next is null ? start + 1500 : LrcClock(next.Groups[1].Value)));
         }
         return words;
     }
@@ -88,14 +108,20 @@ public static partial class LyricsParser
         return new(result, true, offset);
     }
     internal static double Number(string value) => double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var n) && double.IsFinite(n) ? n : 0;
+    private static double LrcClock(string value)
+    {
+        var separator = value.LastIndexOf(':');
+        if (separator != value.IndexOf(':')) value = value[..separator] + "." + value[(separator + 1)..];
+        return Clock(value);
+    }
     internal static double Clock(string value)
     {
         var pieces = value.Replace(',', '.').Split(':'); double seconds = 0;
         foreach (var piece in pieces) seconds = seconds * 60 + Number(piece);
         return Math.Max(0, seconds * 1000);
     }
-    [GeneratedRegex(@"\[(\d+:\d{2}(?:[.,]\d+)?)\]", RegexOptions.CultureInvariant)] private static partial Regex LineStamp();
-    [GeneratedRegex(@"<(\d+:\d{2}(?:[.,]\d+)?)>", RegexOptions.CultureInvariant)] private static partial Regex WordStamp();
+    [GeneratedRegex(@"\[(\d+:\d{2}(?:[.,:]\d+)?)\]", RegexOptions.CultureInvariant)] private static partial Regex LineStamp();
+    [GeneratedRegex(@"<(\d+:\d{2}(?:[.,:]\d+)?)>", RegexOptions.CultureInvariant)] private static partial Regex WordStamp();
     [GeneratedRegex(@"^\[offset:([+-]?\d+)\]", RegexOptions.IgnoreCase)] private static partial Regex OffsetTag();
     [GeneratedRegex(@"^\[(\d+),(\d+)\]")] private static partial Regex LineTiming();
     [GeneratedRegex(@"\((\d+),(\d+)(?:,\d+)?\)([^()]*)")] private static partial Regex WordTiming();

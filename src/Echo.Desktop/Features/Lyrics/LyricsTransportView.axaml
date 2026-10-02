@@ -1,48 +1,60 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:icon="using:Echo.Desktop.Controls"
+             xmlns:shell="using:Echo.Desktop.Shell"
+             xmlns:player="using:Echo.Desktop.Features.Player"
+             xmlns:controls="using:Echo.Desktop.Controls.Lyrics"
              x:Class="Echo.Desktop.Features.Lyrics.LyricsTransportView" x:DataType="lyrics:LyricsViewModel">
   <UserControl.Styles><StyleInclude Source="LyricsTransportStyles.axaml" /></UserControl.Styles>
-  <!-- Keep the hit region stable while the idle surface shrinks. -->
-  <Grid Name="TransportLayout" Height="108" Background="Transparent">
-    <Border Name="BarSurface" Classes="lyric-player" VerticalAlignment="Bottom" Padding="20,12" CornerRadius="18">
-      <Grid Name="ExpandedLayout" RowDefinitions="Auto,Auto" RowSpacing="3">
-        <Grid Name="ControlRow" ColumnDefinitions="*,Auto,*" ColumnSpacing="18">
-          <Grid Name="TrackInfo" ColumnDefinitions="48,*" ColumnSpacing="12" VerticalAlignment="Center" ClipToBounds="True">
-            <Border Name="CoverFrame" Width="48" Height="48" CornerRadius="9" ClipToBounds="True" Background="{DynamicResource LyricsRail}">
-              <Image Source="{Binding Cover}" Stretch="UniformToFill" />
-            </Border>
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
-              <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
-              <TextBlock Name="ArtistText" Text="{Binding Artist}" FontSize="11" Opacity="0.62" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
-          </Grid>
-          <StackPanel Name="PlaybackControls" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-            <Button Name="ModeButton" Classes="lyric-control" Classes.active="{Binding Player.IsSpecialMode}" Command="{Binding Player.CycleRepeatCommand}" ToolTip.Tip="{Binding Player.RepeatText}" AutomationProperties.Name="{Binding Player.RepeatText}"><icon:GlyphIcon Kind="{Binding Player.ModeIcon}" Width="18" Height="18" /></Button>
-            <Button Name="PreviousButton" Classes="lyric-control" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.8c747908bf69}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.8c747908bf69}"><icon:EchoIcon Scope="player" Kind="previous" Width="21" Height="21" /></Button>
-            <Button Name="PlayButton" Classes="lyric-control lyric-play" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanStartPlayback}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}"><icon:EchoIcon Scope="player" Kind="{Binding Player.PlayIcon}" Width="31" Height="31" /></Button>
-            <Button Name="NextButton" Classes="lyric-control" Command="{Binding Player.NextCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.486e42475adb}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.486e42475adb}"><icon:EchoIcon Scope="player" Kind="next" Width="21" Height="21" /></Button>
-            <Button Name="FavoriteButton" Classes="lyric-control" Classes.active="{Binding Player.Details.IsFavorite}" Command="{Binding Player.Details.ToggleFavoriteCommand}" IsEnabled="{Binding Player.Details.CanFavorite}" ToolTip.Tip="{Binding Player.Details.FavoriteLabel}" AutomationProperties.Name="{Binding Player.Details.FavoriteLabel}"><icon:GlyphIcon Kind="{Binding Player.Details.HeartIcon}" Width="19" Height="19" /></Button>
-          </StackPanel>
-          <StackPanel Name="AuxiliaryControls" Grid.Column="2" Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right" VerticalAlignment="Center">
-            <Button Name="VolumeButton" Classes="lyric-control" ToolTip.Tip="{DynamicResource ui.PlayerBar.8bf8b9780d34}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.8bf8b9780d34}"><icon:EchoIcon Scope="player" Kind="volume" Width="19" Height="19" /></Button>
-            <Button Name="QueueButton" Classes="lyric-control" Click="OnQueue" ToolTip.Tip="{DynamicResource ui.PlayerBar.f01b6815d826}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.f01b6815d826}"><icon:GlyphIcon Kind="queue" Width="19" Height="19" /></Button>
-            <Button Name="BarModeButton" Classes="lyric-control" Click="OnBarMode" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.a68396c8e278}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.a68396c8e278}"><icon:GlyphIcon Kind="collapse" Width="18" Height="18" /></Button>
-          </StackPanel>
-        </Grid>
-        <Grid Grid.Row="1" ColumnDefinitions="40,*,40" ColumnSpacing="10">
+  <!-- One stable hit region owns the expanded capsule and its idle progress surface. -->
+  <Grid Name="TransportLayout" Height="88" Background="Transparent">
+    <controls:LyricsPlayerSurface Name="CapsuleSurface" IsHitTestVisible="False" SurfaceBrush="{DynamicResource LyricsSurface}" />
+    <Border Name="BarSurface" Height="88" VerticalAlignment="Bottom" Padding="28,0" Background="Transparent">
+      <Grid Name="ExpandedLayout" ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Name="PlaybackControls" Orientation="Horizontal" Spacing="28" VerticalAlignment="Center">
+          <Button Name="FavoriteButton" Classes="lyric-control" Classes.active="{Binding Player.Details.IsFavorite}" Command="{Binding Player.Details.ToggleFavoriteCommand}" IsEnabled="{Binding Player.Details.CanFavorite}" ToolTip.Tip="{Binding Player.Details.FavoriteLabel}" AutomationProperties.Name="{Binding Player.Details.FavoriteLabel}"><icon:GlyphIcon Kind="{Binding Player.Details.HeartIcon}" Width="24" Height="24" StrokeWidth="1.8" /></Button>
+          <Button Name="PreviousButton" Classes="lyric-control" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.8c747908bf69}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.8c747908bf69}"><icon:GlyphIcon Kind="skip-back" Width="24" Height="24" StrokeWidth="1.9" /></Button>
+          <Button Name="PlayButton" Classes="lyric-control lyric-play" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanStartPlayback}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}"><icon:EchoIcon Scope="glyph" Kind="{Binding Player.PlayIcon, StringFormat='{}{0}-solid'}" Width="32" Height="32" BaseBrush="{DynamicResource LyricsInk}" AccentBrush="{DynamicResource LyricsInk}" /></Button>
+          <Button Name="NextButton" Classes="lyric-control" Command="{Binding Player.NextCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.486e42475adb}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.486e42475adb}"><icon:GlyphIcon Kind="skip-forward" Width="24" Height="24" StrokeWidth="1.9" /></Button>
+          <Button Name="ModeButton" Classes="lyric-control" Classes.active="{Binding Player.IsSpecialMode}" Command="{Binding Player.CycleRepeatCommand}" ToolTip.Tip="{Binding Player.RepeatText}" AutomationProperties.Name="{Binding Player.RepeatText}">
+            <Grid><icon:GlyphIcon Kind="sequence" Width="22" Height="22" StrokeWidth="1.8" IsVisible="{Binding !Player.IsSpecialMode}" /><icon:GlyphIcon Kind="{Binding Player.ModeIcon}" Width="22" Height="22" StrokeWidth="1.8" IsVisible="{Binding Player.IsSpecialMode}" /></Grid>
+          </Button>
+          <Button Name="QueueButton" Classes="lyric-control" Click="OnQueue" ToolTip.Tip="{DynamicResource ui.PlayerBar.f01b6815d826}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.f01b6815d826}"><icon:GlyphIcon Kind="queue" Width="23" Height="23" StrokeWidth="1.8" /></Button>
+          <Button Name="LyricsButton" Classes="lyric-control" Click="OnLyricsSettings" ToolTip.Tip="{DynamicResource ui.LyricsView.8eef1c88e182}" AutomationProperties.Name="{DynamicResource ui.LyricsView.8eef1c88e182}"><icon:GlyphIcon Kind="captions" Width="23" Height="23" StrokeWidth="1.8" /></Button>
+        </StackPanel>
+        <Grid Name="ProgressRow" Grid.Column="1" ColumnDefinitions="52,*,52" ColumnSpacing="16" Margin="32,0,60,0" VerticalAlignment="Center">
           <TextBlock Name="ElapsedText" Text="{Binding Player.PositionText}" Classes="lyric-time" />
-          <Slider Name="SeekSlider" Grid.Column="1" Classes="lyric-rail" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position, Mode=OneWay}" IsEnabled="{Binding Player.CanControl}" SmallChange="5" LargeChange="15" AutomationProperties.Name="{DynamicResource ui.PlayerBar.fc16e2a0fca6}" />
-          <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" Classes="lyric-time" Opacity="0.5" />
+          <Slider Name="SeekSlider" Grid.Column="1" Classes="lyric-rail" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position, Mode=OneWay}" IsEnabled="{Binding Player.CanSeek}" SmallChange="5" LargeChange="15" AutomationProperties.Name="{DynamicResource ui.PlayerBar.fc16e2a0fca6}" />
+          <TextBlock Name="DurationLabel" Grid.Column="2" Text="{Binding Player.DurationText}" Classes="lyric-time" />
         </Grid>
+        <StackPanel Name="AuxiliaryControls" Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <Button Name="MoreButton" Classes="lyric-control" ToolTip.Tip="{DynamicResource ui.PlayerBar.38844b135cf7}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.38844b135cf7}">
+            <icon:EchoIcon Scope="player" Kind="more" Width="28" Height="28" />
+            <Button.Flyout><Flyout Placement="Top"><StackPanel Width="280" Spacing="12" x:DataType="shell:ShellViewModel">
+              <TextBlock Text="{Binding Player.Details.Title}" FontWeight="SemiBold" FontSize="16" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding Player.Details.ArtistAlbum}" FontSize="12" Opacity="0.65" TextTrimming="CharacterEllipsis" />
+              <Border Height="1" Background="{DynamicResource EchoDivider}" />
+              <CheckBox Name="BarModeInput" Content="{DynamicResource ui.LyricsSettingsDrawerView.a0ba94307ac8}" IsChecked="{Binding LyricsAppearance.MiniPlayer}" />
+              <CheckBox Content="{DynamicResource ui.LyricsSettingsDrawerView.6e206a6e06e8}" IsChecked="{Binding LyricsAppearance.PlayerCompact}" />
+              <CheckBox Content="{DynamicResource ui.LyricsSettingsDrawerView.59e3a2c265fb}" IsChecked="{Binding LyricsAppearance.PlayerAutoHide}" />
+              <Border Height="1" Background="{DynamicResource EchoDivider}" />
+              <Button Content="{Binding Player.RepeatText}" Command="{Binding Player.CycleRepeatCommand}" HorizontalAlignment="Stretch" />
+              <Expander Header="{DynamicResource playerTools.title}" HorizontalAlignment="Stretch"><ScrollViewer MaxHeight="440" VerticalScrollBarVisibility="Auto"><player:PlayerToolsPanel DataContext="{Binding Player.Tools}" Margin="0,10,0,0" /></ScrollViewer></Expander>
+              <Button Content="{DynamicResource ui.PlayerBar.f01b6815d826}" Click="OnQueue" HorizontalAlignment="Stretch" />
+              <Button Content="{DynamicResource ui.PlayerBar.e63af6420456}" Click="OnLyricsSettings" HorizontalAlignment="Stretch" />
+              <Button Content="{DynamicResource ui.PlayerBar.ff71ead6e0d9}" Click="OnAudioSettings" HorizontalAlignment="Stretch" />
+              <Button Content="{DynamicResource ui.PlayerBar.a8cc3c4658a5}" Click="OnSignalPath" HorizontalAlignment="Stretch" />
+            </StackPanel></Flyout></Button.Flyout>
+          </Button>
+          <Button Name="VolumeButton" Classes="lyric-control" ToolTip.Tip="{Binding Player.VolumeText}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.8bf8b9780d34}"><icon:EchoIcon Scope="player" Kind="volume" Width="24" Height="24" /></Button>
+        </StackPanel>
       </Grid>
     </Border>
-    <Border Name="IdleSurface" Classes="lyric-player" Width="340" Height="40" Padding="18,0" CornerRadius="20" VerticalAlignment="Bottom" Opacity="0" IsHitTestVisible="False">
+    <Border Name="IdleSurface" Background="Transparent" Width="340" Height="40" Padding="18,0" VerticalAlignment="Bottom" Opacity="0" IsHitTestVisible="False">
       <Grid ColumnDefinitions="40,*,40" ColumnSpacing="12">
-        <TextBlock Text="{Binding Player.PositionText}" Classes="lyric-time" />
-        <ProgressBar Grid.Column="1" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position}" Height="3" VerticalAlignment="Center" Foreground="{DynamicResource LyricsInk}" Background="{DynamicResource LyricsRail}" />
-        <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" Classes="lyric-time" Opacity="0.5" />
+        <TextBlock Text="{Binding Player.PositionText}" Classes="lyric-time idle-time" />
+        <ProgressBar Grid.Column="1" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position}" Height="4" VerticalAlignment="Center" Foreground="{DynamicResource LyricsProgress}" Background="{DynamicResource LyricsRail}" />
+        <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" Classes="lyric-time idle-time" />
       </Grid>
     </Border>
   </Grid>
 </UserControl>
-

@@ -99,6 +99,8 @@ public sealed partial class NativeAudioHost(string executable, bool allowProDsp 
         }
         else if (message.Text("method") is { } method)
             Notification?.Invoke(method, message.Child("params") ?? default);
+        else if (message.TryGetProperty("pos", out _) && message.TryGetProperty("underrunCallbacks", out _))
+            Notification?.Invoke("host.performance", message.Clone());
     }
 
     public async Task<JsonElement> CallAsync(string method, JsonElement? parameters = null, CancellationToken cancellationToken = default)

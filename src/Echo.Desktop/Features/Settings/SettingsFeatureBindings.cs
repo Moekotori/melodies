@@ -9,6 +9,7 @@ public sealed partial class SettingsViewModel
     private SettingsFeatureRuntime? _runtime;
     public void AttachRuntime(SettingsFeatureRuntime runtime)
     {
+        DetachRuntime();
         _runtime = runtime; runtime.Changed += OnFeatureChanged; runtime.Failed += OnFeatureFailed;
         Shell.FeaturePreferences.Changed += OnFeatureChanged;
         BuildSections(); SectionVersion++;
@@ -17,7 +18,8 @@ public sealed partial class SettingsViewModel
     private void OnFeatureChanged(string id)
     {
         foreach (var row in Sections.SelectMany(section => section.Rows).Where(row => id.Length == 0 || row.Id == id))
-            if (_runtime?.CanHandle(row.Id) == true) SynchronizeFeature(row);
+            if (IsVisualSetting(row.Id)) Synchronize(row);
+            else if (_runtime?.CanHandle(row.Id) == true) SynchronizeFeature(row);
     }
     private void SynchronizeFeature(SettingRowViewModel row)
     {

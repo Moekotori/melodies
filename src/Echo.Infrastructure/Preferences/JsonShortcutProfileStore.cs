@@ -20,10 +20,22 @@ public sealed class JsonShortcutProfileStore : IShortcutProfileStore
         await using var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
         if (stream.Length > 32768) throw new InvalidDataException("Shortcut profile exceeds limit.");
         var result = await JsonSerializer.DeserializeAsync(stream, ShortcutProfileJsonContext.Default.ShortcutProfile, cancellation).ConfigureAwait(false);
-        if (result is not { Version: 1, Bindings.Count: <= 66 }) throw new InvalidDataException("Unsupported shortcut profile.");
+        if (result is null) throw new InvalidDataException("Missing shortcut profile.");
+        Validate(result);
         return result;
     }, cancellation);
-    public void Save(ShortcutProfile profile) => _pending.Writer.TryWrite(profile);
+    public void Save(ShortcutProfile profile)
+    {
+        Validate(profile);
+        _pending.Writer.TryWrite(profile with { Bindings = profile.Bindings.ToArray() });
+    }
+    private static void Validate(ShortcutProfile profile)
+    {
+        if (profile is not { Version: 1, Bindings.Count: <= ShortcutLimits.MaxBindings }
+            || profile.Bindings.Any(x => x is null || x.Action is not { Length: > 0 and <= 64 }
+                || x.Accelerator is { Length: > 96 } || x.Scope is not (ShortcutScope.Local or ShortcutScope.Global)))
+            throw new InvalidDataException("Unsupported shortcut profile.");
+    }
     private async Task WriteAsync()
     {
         await foreach (var profile in _pending.Reader.ReadAllAsync().ConfigureAwait(false))

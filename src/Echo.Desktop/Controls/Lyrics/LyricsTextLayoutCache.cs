@@ -12,11 +12,11 @@ internal sealed class LyricsTextLayoutCache : IDisposable
     private long bytes;
     public int Count => cache.Count;
     public Entry Get(LyricLine line, Typeface font, double size, double secondarySize, double width,
-        TextAlignment alignment, IBrush ink, IBrush accent, bool translation, bool romanization)
+        TextAlignment alignment, IBrush ink, IBrush accent, bool translation, bool romanization, double lineHeight = 1.18, double letterSpacing = 0)
     {
-        var key = new Key(line, font, size, secondarySize, width, alignment, ink, accent, translation, romanization);
+        var key = new Key(line, font, size, secondarySize, width, alignment, ink, accent, translation, romanization, lineHeight, letterSpacing);
         if (cache.TryGetValue(key, out var entry)) return entry;
-        entry = new(line, font, size, secondarySize, width, alignment, ink, accent, translation, romanization);
+        entry = new(line, font, size, secondarySize, width, alignment, ink, accent, translation, romanization, lineHeight, letterSpacing);
         while (cache.Count > 0 && (cache.Count >= 18 || bytes + entry.Bytes > 4 * 1024 * 1024))
         { var first = cache.First(); first.Value.Dispose(); bytes -= first.Value.Bytes; cache.Remove(first.Key); }
         cache[key] = entry; bytes += entry.Bytes;
@@ -24,7 +24,7 @@ internal sealed class LyricsTextLayoutCache : IDisposable
     }
     public void Dispose() { foreach (var entry in cache.Values) entry.Dispose(); cache.Clear(); bytes = 0; }
     private sealed record Key(LyricLine Line, Typeface Font, double Size, double Secondary, double Width,
-        TextAlignment Alignment, IBrush Ink, IBrush Accent, bool Translation, bool Romanization);
+        TextAlignment Alignment, IBrush Ink, IBrush Accent, bool Translation, bool Romanization, double LineHeight, double LetterSpacing);
     internal sealed class Entry : IDisposable
     {
         public TextLayout Primary { get; }
@@ -35,11 +35,11 @@ internal sealed class LyricsTextLayoutCache : IDisposable
         public double Height { get; }
         public long Bytes { get; }
         public Entry(LyricLine line, Typeface font, double size, double secondarySize, double width,
-            TextAlignment alignment, IBrush ink, IBrush accent, bool translation, bool romanization)
+            TextAlignment alignment, IBrush ink, IBrush accent, bool translation, bool romanization, double lineHeight, double letterSpacing)
         {
             TextLayout Shape(string text, double px, IBrush brush) => new(text, font, px, brush,
                 textAlignment: alignment, textWrapping: TextWrapping.Wrap, maxWidth: Math.Max(32, width), maxLines: 5,
-                textTrimming: TextTrimming.CharacterEllipsis);
+                textTrimming: TextTrimming.CharacterEllipsis, lineHeight: px * (px == size ? lineHeight : 1.4), letterSpacing: px == size ? letterSpacing : 0);
             Primary = Shape(line.Text.Length == 0 ? "♪" : line.Text, size, ink);
             Highlight = Shape(line.Text.Length == 0 ? "♪" : line.Text, size, accent);
             if (translation && !string.IsNullOrWhiteSpace(line.Translation)) Secondary = Shape(line.Translation, secondarySize, ink);

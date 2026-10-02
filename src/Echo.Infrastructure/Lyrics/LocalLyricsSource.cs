@@ -1,11 +1,10 @@
-using System.Text;
 using Echo.Contracts.Lyrics;
 
 namespace Echo.Infrastructure.Lyrics;
 
 public sealed class LocalLyricsSource : ILyricsSource, IAsyncDisposable
 {
-    private static readonly string[] Extensions = [".ttml", ".yrc", ".lrc", ".srt", ".vtt", ".txt"];
+    internal static readonly string[] Extensions = [".ttml", ".yrc", ".qrc", ".krc", ".lrc", ".srt", ".vtt", ".txt"];
     private readonly SemaphoreSlim reader = new(1);
     public async Task<LyricsText?> ReadAsync(string audioPath, string? explicitPath, CancellationToken cancellation)
     {
@@ -14,32 +13,52 @@ public sealed class LocalLyricsSource : ILyricsSource, IAsyncDisposable
         {
             return await Task.Run(async () =>
             {
-                var candidates = explicitPath is null ? Extensions.Select(ext => Path.ChangeExtension(audioPath, ext)) : [explicitPath];
+                Exception? failure = null;
+                var candidates = explicitPath is null ? Candidates(audioPath, cancellation) : [explicitPath];
                 foreach (var path in candidates)
                 {
                     cancellation.ThrowIfCancellationRequested();
                     try
                     {
-                        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete,
-                            4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
-                        if (stream.Length > 1024 * 1024) throw new InvalidDataException("歌词文件超过 1 MiB，请使用较小的文件。");
-                        using var text = new StreamReader(stream, new UTF8Encoding(false, true), true);
-                        var buffer = new char[8192]; var content = new StringBuilder();
-                        int count;
-                        while ((count = await text.ReadAsync(buffer.AsMemory(), cancellation).ConfigureAwait(false)) > 0)
+                        var primary = await LocalLyricsReader.ReadAsync(path, cancellation).ConfigureAwait(false);
+                        if (explicitPath is null && string.IsNullOrWhiteSpace(primary.Text)) continue;
+                        var companions = LocalLyricsSidecars.Companions(path, cancellation);
+                        return primary with
                         {
-                            if (content.Length + count > 512 * 1024) throw new InvalidDataException("歌词文本超过 512 KiB。");
-                            content.Append(buffer, 0, count);
-                        }
-                        return new LyricsText(content.ToString(), Path.GetExtension(path), Path.GetFileName(path));
+                            Translation = await ReadCompanionAsync(companions.Translation, cancellation).ConfigureAwait(false),
+                            Romanization = await ReadCompanionAsync(companions.Romanization, cancellation).ConfigureAwait(false)
+                        };
                     }
                     catch (FileNotFoundException) when (explicitPath is null) { }
                     catch (DirectoryNotFoundException) when (explicitPath is null) { }
+                    catch (Exception error) when (explicitPath is null && error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
+                    { failure ??= error; }
                 }
+                if (failure is not null) throw failure;
                 return null;
             }, cancellation).ConfigureAwait(false);
         }
         finally { reader.Release(); }
+    }
+    private static IEnumerable<string> Candidates(string audioPath, CancellationToken cancellation)
+    {
+        var folder = Path.GetDirectoryName(audioPath) ?? "";
+        var name = Path.GetFileName(audioPath);
+        var stem = Path.GetFileNameWithoutExtension(audioPath);
+        foreach (var directory in new[] { folder, Path.Combine(folder, "lyrics") })
+            foreach (var candidateStem in new[] { stem, name }.Distinct(StringComparer.Ordinal))
+                foreach (var extension in Extensions) yield return Path.Combine(directory, candidateStem + extension);
+        foreach (var path in LocalLyricsSidecars.Promoted(audioPath, cancellation)) yield return path;
+    }
+    private static async Task<LyricsTrackText?> ReadCompanionAsync(string? path, CancellationToken cancellation)
+    {
+        if (path is null) return null;
+        try
+        {
+            var text = await LocalLyricsReader.ReadAsync(path, cancellation).ConfigureAwait(false);
+            return new(text.Text, text.Format);
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException) { return null; }
     }
     public async ValueTask DisposeAsync()
     { await reader.WaitAsync().ConfigureAwait(false); reader.Dispose(); }

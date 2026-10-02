@@ -24,7 +24,12 @@ public partial class MainWindow
         "toggleLyrics" => _viewModel?.LyricsSource is not null,
         "openGlobalSearch" => _viewModel?.TrackLibrary is not null,
         "openLiked" => _viewModel?.TrackLibrary is not null,
-        _ => _viewModel?.Player is not null
+        "playPause" or "previousTrack" or "nextTrack" or "stop" or "seekBackward" or "seekForward" or "replayCurrentTrack"
+            or "volumeUp" or "volumeDown" or "toggleMute" or "toggleShuffle" or "cycleRepeatMode" or "toggleCurrentTrackLiked"
+            or "openPlaybackQueue" or "locateCurrentTrack" or "openSettings" or "openAudioSettings" or "openLyricsSettings"
+            or "openSearch" or "showMainWindow" or "bossKey" or "revealCurrentTrackInFolder" or "toggleEq"
+            or "speedUp" or "speedDown" or "resetPlaybackSpeed" => _viewModel?.Player is not null,
+        _ => false
     };
     private void CaptureShortcut(object? sender, KeyEventArgs e)
     {
@@ -41,12 +46,14 @@ public partial class MainWindow
     }
     private void OnShortcutMouse(object? sender, PointerPressedEventArgs e)
     {
+        if (_viewModel?.IsGlobalSearchOpen == true) return;
         if (e.Handled || _viewModel?.Shortcuts is not { } shortcuts || ShortcutInput.IsEditing(e.Source)) return;
         if (ShortcutInput.FromMouse(e, this) is { } key && !shortcuts.IsGlobalRegistered(key) && shortcuts.ResolveLocal(key) is { } action)
         { e.Handled = true; _ = ExecuteShortcutAsync(action); }
     }
     private bool TryShortcut(KeyEventArgs e)
     {
+        if (_viewModel?.IsGlobalSearchOpen == true) return false;
         if (_viewModel?.Shortcuts is not { } shortcuts || ShortcutInput.FromKey(e) is not { } key) return false;
         if (shortcuts.IsGlobalRegistered(key)) return true;
         if (ShortcutInput.IsEditing(e.Source)) return false;
@@ -58,10 +65,12 @@ public partial class MainWindow
     }
     public async Task ExecuteShortcutAsync(string action)
     {
-        if (_shortcutBusy || _viewModel is not { Player: { } player } shell || shell.Shortcuts.IsRecording || !SupportsShortcut(action)) return;
+        if (_shortcutBusy || _viewModel is not { Player: { } player } shell || shell.Shortcuts.IsRecording || shell.Shortcuts.IsApplying || !SupportsShortcut(action)) return;
         _shortcutBusy = true;
         try
         {
+            if (action is "openPlaybackQueue" or "openLiked" or "locateCurrentTrack" or "openSettings" or "openAudioSettings"
+                or "openLyricsSettings" or "toggleLyrics" or "openSearch" or "openGlobalSearch" or "showMainWindow") RestoreMainWindow();
             var state = player.Session.Snapshot;
             switch (action)
             {
@@ -96,10 +105,12 @@ public partial class MainWindow
                     else { _lyricsReturnRoute = shell.ActiveRouteId; shell.NavigateCommand.Execute("lyrics"); } break;
                 case "openSearch": FocusShortcutSearch(); break;
                 case "openGlobalSearch": shell.OpenSearchCommand.Execute(null); break;
-                case "showMainWindow": Show(); if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal; Activate(); break;
+                case "showMainWindow": RestoreMainWindow(); break;
                 case "bossKey":
                     if (state.Volume > 0) _unmutedVolume = state.Volume;
-                    await player.ChangeVolumeAsync(0); WindowState = WindowState.Minimized; break;
+                    await player.ChangeVolumeAsync(0);
+                    if (EnsureTrayRecovery()) { ShowInTaskbar = false; Hide(); }
+                    else WindowState = WindowState.Minimized; break;
                 case "revealCurrentTrackInFolder":
                     if (state.Current is { } track && Path.GetDirectoryName(track.FilePath) is { Length: > 0 } directory)
                         await Launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(directory)); break;
@@ -129,9 +140,11 @@ public partial class MainWindow
     private void FocusShortcutSearch()
     {
         if (_searchPage is not null) _searchPage.FocusSearch();
+        else if (_historyPage is not null) _historyPage.FocusSearch();
         else if (_songsPage is not null) _songsPage.FocusSearch();
         else if (_albumsPage is not null) _albumsPage.FocusSearch();
         else if (_artistsPage is not null) _artistsPage.FocusSearch();
+        else if (_genresPage is not null) _genresPage.FocusSearch();
         else if (_foldersPage is not null) _foldersPage.FocusSearch();
         else if (PageHost.Content is QueueView queue) queue.FocusSearch();
         else if (PageHost.Content is SettingsView settings) settings.FocusSearch();

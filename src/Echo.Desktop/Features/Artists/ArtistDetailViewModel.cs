@@ -128,6 +128,6 @@ public sealed partial class ArtistDetailViewModel : ObservableObject, IDisposabl
         Source: track.Source is { } source ? AudioSource.Local(source.AudioPath, source.StartSeconds, source.EndSeconds) : null,
         Metadata: new Dictionary<string, string?> { ["title"] = track.Title, ["artist"] = track.Artist, ["album"] = track.Album,
             ["duration"] = track.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture), ["codec"] = track.Codec },
-        Origin: new("artist", Artist.Name, Artist.Id));
+        Origin: new("artist", Artist.Name, Artist.Id), SampleRate: track.SampleRate > 0 ? track.SampleRate : null);
     public void Dispose() { if (_closed) return; _closed = true; _player.Session.Changed -= OnPlayback; _request?.Cancel(); _lifetime.Cancel(); ++_generation; Tracks = []; }
 }

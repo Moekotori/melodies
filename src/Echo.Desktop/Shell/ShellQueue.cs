@@ -7,6 +7,12 @@ public sealed partial class ShellViewModel
     [ObservableProperty] private bool isQueueDrawerOpen;
     [RelayCommand] private void ToggleQueueDrawer()
     {
+        if (!IsQueueDrawerOpen)
+        {
+            CloseQuickSettingsCommand.Execute(null);
+            CloseGlobalSearchCommand.Execute(null);
+            CloseSidebarDrawerCommand.Execute(null);
+        }
         IsQueueDrawerOpen = !IsQueueDrawerOpen;
     }
     [RelayCommand] private void CloseQueueDrawer() => IsQueueDrawerOpen = false;

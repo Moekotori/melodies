@@ -76,8 +76,19 @@ internal static class MotionDepthSmoke
         surface.IsOpen = false;
         policy.SelectedChoice = policy.Choices.First(x => x.Mode == MotionMode.Off); Pump(15);
         Require(!surface.IsVisible && !surface.IsTransitioning, "Disabling motion left a drawer alive.");
+        policy.SelectedChoice = policy.Choices.First(x => x.Mode == MotionMode.Full);
+        policy.ThemeIntensityScale = 0.5;
+        surface.Axis = MotionAxis.Vertical; surface.Travel = 20;
+        surface.IsOpen = true; Pump(30);
+        surface.IsOpen = false; Pump(20);
+        var themedPose = MotionLane.Current(surface).Value.M32;
+        surface.IsOpen = true;
+        Require(Math.Abs(MotionLane.Current(surface).Value.M32 - themedPose) < 0.001,
+            "Theme intensity was applied again to an interrupted pose.");
+        Pump(330);
+        Require(surface.IsVisible && !surface.IsTransitioning, "Themed reversal did not settle.");
         window.Close(); policy.ReleaseLocalization();
-        Console.WriteLine("Retirement/drawer proof passed: appearance, bounded trees, deferred/exactly-once disposal, axis, reversal and off mode.");
+        Console.WriteLine("Retirement/drawer proof passed: appearance, bounded trees, deferred/exactly-once disposal, axis, reversal, off mode and theme continuity.");
     }
     private sealed class ProbePage(IBrush brush) : Control, IDisposable
     {

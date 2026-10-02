@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup Condition="'$(PlaybackToolsIsolated)' != 'true'">
+    <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Semi.Avalonia" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <Compile Include="../../src/Echo.Desktop/Theming/ThemeResourcePalette.cs" Link="Product/ThemeResourcePalette.cs" />
+    <Compile Include="../../src/Echo.Desktop/Theming/SemiResourcePalette.cs" Link="Product/SemiResourcePalette.cs" />
+  </ItemGroup>
+  <!-- Compile the unchanged product panel/VM against a known desktop binary if parallel modules block the shell. -->
+  <ItemGroup Condition="'$(PlaybackToolsIsolated)' == 'true'">
+    <Reference Include="Echo.Desktop"><HintPath>../../src/Echo.Desktop/bin/Debug/net10.0/Echo.Desktop.dll</HintPath></Reference>
+    <Reference Include="Echo.Contracts"><HintPath>../../misc/playback-tools/core/Echo.Contracts.dll</HintPath></Reference>
+    <Reference Include="Echo.Playback"><HintPath>../../misc/playback-tools/core/Echo.Playback.dll</HintPath></Reference>
+    <Reference Include="Echo.Application"><HintPath>../../misc/playback-tools/core/Echo.Application.dll</HintPath></Reference>
+    <Compile Include="../../src/Echo.Desktop/Features/Player/PlayerToolsViewModel.cs" Link="Product/PlayerToolsViewModel.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Player/PlayerToolsPanel.axaml.cs" Link="Product/PlayerToolsPanel.axaml.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Settings/Runtime/PlaybackToolsSettingsModule.cs" Link="Product/PlaybackToolsSettingsModule.cs" />
+    <AvaloniaResource Include="../../src/Echo.Desktop/Features/Player/PlayerToolsPanel.axaml" Link="Product/PlayerToolsPanel.axaml" />
+  </ItemGroup>
+</Project>

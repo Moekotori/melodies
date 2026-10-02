@@ -9,8 +9,38 @@ using Echo.Desktop.Shell;
 
 // Native Avalonia render, no HTML recreation. This tool is not loaded by Desktop.
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions()).UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
+if (args.Length >= 2 && args[0] == "--song-menu")
+{ SongContextMenuSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--dsp")
+{ DspWorkbenchSmoke.Run(Path.GetFullPath(args[1]), args.Length > 2 ? Path.GetFullPath(args[2]) : Path.Combine(AppContext.BaseDirectory, "native", "echo-audio-host.exe")); return; }
+if (args.Length >= 2 && args[0] == "--queue-window")
+{ QueueDrawerSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--settings-functional")
+{ await SettingsFunctionalSmoke.RunAsync(Path.GetFullPath(args[1])).ConfigureAwait(false); return; }
+if (args.Length >= 2 && args[0] == "--user-languages")
+{ UserLanguagePanelSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 3 && args[0] == "--songs")
+{ SongsVisualCapture.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
+if (args.Length >= 2 && args[0] == "--songs-visual")
+{ SongsVisualCapture.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--playlists")
+{ PlaylistUiSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--theme")
+{ ThemeUiSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 3 && args[0] == "--browse")
+{ BrowseUiSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
+if (args.Length >= 2 && args[0] == "--home")
+{ HomeUiSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--song-drop")
+{ SongDropSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--global-search")
+{ GlobalSearchSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--genres")
+{ GenreUiSmoke.Run(Path.GetFullPath(args[1]), args.Length > 2 ? args[2] : null); return; }
 if (args.Length >= 2 && args[0] == "--shortcuts")
 { ShortcutSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--history")
+{ HistorySmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 3 && args[0] == "--queue-reference")
 { QueueVisualCapture.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
 if (args.Length >= 2 && args[0] == "--motion-depth")
@@ -30,6 +60,8 @@ if (args.Length >= 2 && args[0] == "--i18n")
 { LocalizationSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--playerbar")
 { PlayerBarSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--floating")
+{ FloatingWindowsSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--quick-settings")
 { QuickSettingsSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--queue")

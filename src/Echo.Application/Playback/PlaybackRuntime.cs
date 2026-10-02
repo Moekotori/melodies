@@ -1,6 +1,7 @@
 using Echo.Playback;
 using Echo.Playback.MediaTransport;
 using System.Threading.Channels;
+using Echo.Application.Scheduling;
 
 namespace Echo.Application.Playback;
 
@@ -19,17 +20,22 @@ public sealed class PlaybackRuntime : IAsyncDisposable
     private string? persistenceError, mediaError;
 
     public PlaybackZone LocalZone { get; }
+    public PlaybackWorkAdmission BackgroundWork { get; }
+    public SleepTimerService SleepTimer { get; }
     public string? PersistenceError => Volatile.Read(ref persistenceError);
     public string? MediaError => Volatile.Read(ref mediaError);
     public event Action<string?>? PersistenceDiagnosticChanged;
     public event Action<string?>? MediaDiagnosticChanged;
 
     public PlaybackRuntime(INativeAudio native,
-        Func<CancellationToken, Task<IPlaybackCheckpointStore>>? openStore = null, IMediaTransport? transport = null)
+        Func<CancellationToken, Task<IPlaybackCheckpointStore>>? openStore = null, IMediaTransport? transport = null,
+        IPlaybackSourceProbe? sourceProbe = null)
     {
         this.openStore = openStore;
         this.transport = transport;
-        LocalZone = new(PlaybackZone.LocalId, "本机", new(native));
+        LocalZone = new(PlaybackZone.LocalId, "本机", new(native, sourceProbe));
+        SleepTimer = new(LocalZone.Session);
+        BackgroundWork = new(LocalZone.Session);
         if (transport is not null)
         {
             transport.DiagnosticChanged += OnMediaDiagnostic;
@@ -108,6 +114,8 @@ public sealed class PlaybackRuntime : IAsyncDisposable
     private async Task ShutdownAsync()
     {
         if (startup is not null) await startup.ConfigureAwait(false);
+        await SleepTimer.DisposeAsync().ConfigureAwait(false);
+        await BackgroundWork.DisposeAsync().ConfigureAwait(false);
         try
         {
             // Stop accepting system commands before capturing the session checkpoint.

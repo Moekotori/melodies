@@ -1,5 +1,7 @@
 using Echo.Contracts.Library;
 using Echo.Contracts.Scanning;
+using Echo.Contracts.Settings;
+using Echo.Infrastructure.Preferences;
 using Echo.Infrastructure.Files;
 using Echo.Infrastructure.Library;
 using Microsoft.Data.Sqlite;
@@ -21,7 +23,7 @@ internal static class SearchProbe
                 i < 2 ? "周杰倫" : "Aurora", i < 2 ? "旅程" : "North", "", i % 7 * 30 + 60,
                 i % 2 == 0 ? "FLAC" : "MP3", i % 2 == 0 ? 96000 : 44100, i % 2 == 0 ? 24 : 16,
                 i + 1, 1, i < 2 ? 2026 : 2020, i < 2 ? "Pop" : "Rock");
-            TrackSource? source = i < 428 ? null : new(i == 428 ? "cue" : "osu", file, file + ".definition", "fixture", 100, 1000 + i, 10, 1);
+            TrackSource? source = i < 428 ? null : new(i == 428 ? "cue" : "osu", file + ".audio", file + ".definition", "fixture", 100, 1000 + i, 10, 1);
             entries.Add(new(new(file, LibraryPath.Key(file), 100, 1000 + i, Source: source), ScanEntryKind.Metadata, metadata));
         }
         long sequence = 0;
@@ -83,7 +85,13 @@ internal static class SearchProbe
         var legacyPath = Path.Combine(root, "generated-v5.sqlite");
         MigrationFixture.ExtractV5(legacyPath, root);
         await using (var migrated = await LibraryDatabase.OpenAsync(legacyPath, token))
-            Check((await migrated.GetTracksAsync(new(Search: "/artist Singer"), token)).Items.Count == 2, "v5 search index backfill");
+            Check((await migrated.GetTracksAsync(new(Search: "/artist Singer"), token)).Items.Count == 1, "v5 search index backfill excludes missing tracks");
+        var preferencePath = Path.Combine(root, "query-preferences.json");
+        var preference = new LibraryViewPreferences("songs", 1, true, 3, Filter: filter);
+        await using (var store = new JsonDesktopPreferencesStore(preferencePath))
+            store.Save(new(LibraryQueries: [preference]));
+        await using (var store = new JsonDesktopPreferencesStore(preferencePath))
+            Check((await store.ReadAsync(token))?.LibraryQueries?.Single() == preference, "query preference persistence");
         Console.WriteLine("Search migration: 430 rows; commands, CJK/NFKC, shared filter intersections, 24 sort directions with full pagination, cursor identity, favorite revision and cancellation passed.");
     }
 }

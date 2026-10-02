@@ -20,7 +20,7 @@ public sealed class QueueRowViewModel(QueueTrack track, int index, string? curre
     public bool IsCurrent => ItemId == currentId;
     public bool IsNextUp => Track.QueuedNext && !IsCurrent;
     public bool HasBadge => IsNextUp || Track.RemoveAfterPlay;
-    public string AudioDetail => string.Join(" · ", new[] { Track.Metadata?.GetValueOrDefault("bitDepth") is { } bits && bits != "0" ? bits + " bit" : null,
+    public string AudioDetail => string.Join(" · ", new[] { int.TryParse(Track.Metadata?.GetValueOrDefault("bitDepth"), out var bits) && bits > 0 ? bits + " bit" : null,
         double.TryParse(Track.Metadata?.GetValueOrDefault("sampleRate"), NumberStyles.Float, CultureInfo.InvariantCulture, out var hz) && hz > 0 ? (hz / 1000).ToString("0.#", CultureInfo.InvariantCulture) + " kHz" : null }.OfType<string>());
     public string State => IsCurrent ? "正在播放" : IsNextUp ? "下一首播放" : Track.RemoveAfterPlay ? "播后移除" : earlier ? "已播放" : "";
     public string Duration => double.TryParse(Track.Metadata?.GetValueOrDefault("duration"), NumberStyles.Float,

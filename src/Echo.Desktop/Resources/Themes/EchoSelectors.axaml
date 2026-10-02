@@ -1,0 +1,21 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <!-- Keep existing compact library callers on Semi's complete selection templates. -->
+    <ControlTheme x:Key="EchoSelectItem" TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="MinHeight" Value="36" />
+    </ControlTheme>
+    <ControlTheme x:Key="EchoSelect" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+      <Setter Property="ItemContainerTheme" Value="{StaticResource EchoSelectItem}" />
+      <Setter Property="MaxDropDownHeight" Value="340" />
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="ComboBox">
+    <Setter Property="Theme" Value="{StaticResource EchoSelect}" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="ComboBox /template/ Popup#PART_Popup">
+    <Setter Property="ShouldUseOverlayLayer" Value="True" />
+  </Style>
+</Styles>

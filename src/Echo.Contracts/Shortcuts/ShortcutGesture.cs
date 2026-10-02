@@ -36,11 +36,15 @@ public sealed record ShortcutGesture(ShortcutModifiers Modifiers, string Key)
         {
             "space" or "spacebar" => "Space", "left" or "arrowleft" => "Left", "right" or "arrowright" => "Right",
             "up" or "arrowup" => "Up", "down" or "arrowdown" => "Down", "escape" or "esc" => "Esc",
-            "return" or "enter" => "Enter", "delete" => "Delete", "backspace" => "Backspace", "tab" => "Tab",
+            "return" or "enter" => "Enter", "delete" => "Delete", "backspace" or "back" => "Backspace", "tab" => "Tab",
             "home" => "Home", "end" => "End", "pageup" => "PageUp", "pagedown" => "PageDown", "insert" => "Insert",
             "mediaplaypause" => "MediaPlayPause", "medianexttrack" => "MediaNextTrack", "mediaprevioustrack" => "MediaPreviousTrack",
             "mediastop" => "MediaStop", "volumeup" => "VolumeUp", "volumedown" => "VolumeDown", "volumemute" => "VolumeMute",
             "mousebutton3" => "MouseButton3", "mousebutton4" or "xbutton1" => "MouseButton4", "mousebutton5" or "xbutton2" => "MouseButton5",
+            "capital" or "capslock" => "CapsLock", "numlock" => "NumLock", "scroll" or "scrolllock" => "ScrollLock",
+            "pause" or "break" => "Pause", "snapshot" or "printscreen" => "PrintScreen", "apps" or "contextmenu" => "ContextMenu",
+            "browserback" => "BrowserBack", "browserforward" => "BrowserForward", "browserhome" => "BrowserHome",
+            "browserrefresh" => "BrowserRefresh", "browsersearch" => "BrowserSearch", "browserstop" => "BrowserStop", "browserfavorites" => "BrowserFavorites",
             "plus" or "numadd" => "numadd", "numsub" => "numsub", "nummult" => "nummult", "numdiv" => "numdiv", "numdec" => "numdec",
             _ => token.ToUpperInvariant()
         };
@@ -50,6 +54,8 @@ public sealed record ShortcutGesture(ShortcutModifiers Modifiers, string Key)
         return key is "Space" or "Left" or "Right" or "Up" or "Down" or "Esc" or "Enter" or "Delete" or "Backspace" or "Tab"
             or "Home" or "End" or "PageUp" or "PageDown" or "Insert" or "MediaPlayPause" or "MediaNextTrack" or "MediaPreviousTrack"
             or "MediaStop" or "VolumeUp" or "VolumeDown" or "VolumeMute" or "MouseButton3" or "MouseButton4" or "MouseButton5"
+            or "CapsLock" or "NumLock" or "ScrollLock" or "Pause" or "PrintScreen" or "ContextMenu" or "BrowserBack" or "BrowserForward"
+            or "BrowserHome" or "BrowserRefresh" or "BrowserSearch" or "BrowserStop" or "BrowserFavorites"
             or "numadd" or "numsub" or "nummult" or "numdiv" or "numdec" ? new(modifiers, key) : null;
     }
 }

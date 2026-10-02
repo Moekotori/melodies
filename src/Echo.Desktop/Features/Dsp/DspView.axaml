@@ -1,0 +1,111 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspView" x:DataType="local:DspViewModel">
+  <UserControl.Styles>
+    <StyleInclude Source="DspStyles.axaml" />
+  </UserControl.Styles>
+  <Grid Name="Workbench" ColumnDefinitions="178,*">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="12,24,0,18">
+      <Grid ColumnDefinitions="*,Auto" Margin="12,0,12,16">
+        <TextBlock Text="音效模块" FontSize="15" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="1" Text="DSP" FontSize="10" Classes="muted dsp-data" VerticalAlignment="Center" />
+      </Grid>
+      <ListBox Grid.Row="1" Name="ModuleList" Classes="dsp-navigation" ItemsSource="{Binding Modules}" SelectedItem="{Binding SelectedModule, Mode=TwoWay}" IsEnabled="{Binding !IsBusy}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ToolTip.Tip="{Binding SelectedModule.Status}" />
+      <Border Grid.Row="2" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="0,1,0,0" Padding="12,14,8,0" Margin="0,14,0,0">
+        <StackPanel Spacing="5">
+          <TextBlock Text="{Binding OutputName}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding OutputRate}" FontSize="10" Classes="muted" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </Grid>
+    <Grid Name="Workspace" Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="30,26,30,18">
+      <Grid Name="Header" ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,22">
+        <StackPanel Spacing="7">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="{Binding SelectedModule.Title}" FontSize="30" FontWeight="SemiBold" />
+            <Border BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" CornerRadius="3" Padding="7,3" VerticalAlignment="Center">
+              <TextBlock Text="{Binding ConfirmedStatus}" FontSize="10" Classes="muted" />
+            </Border>
+          </StackPanel>
+          <TextBlock Text="{Binding SelectedModule.Description}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Name="HeaderTools" Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <ToggleSwitch Name="ModuleEnable" OnContent="开启" OffContent="旁路" IsVisible="{Binding HasEnable}" IsChecked="{Binding Enabled, Mode=TwoWay}" IsEnabled="{Binding CanEdit}" ToolTip.Tip="{Binding EnableLabel}" />
+          <Button Classes="dsp-quiet" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="重新读取模块状态">
+            <icons:GlyphIcon Kind="refresh" Width="16" Height="16" Stroke="{DynamicResource EchoMuted}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+      <ScrollViewer Name="EditorScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="20" Margin="0,0,6,16">
+          <StackPanel IsVisible="{Binding IsPending}" Spacing="16" Margin="0,24,0,0">
+            <TextBlock Text="正在完善这个模块" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding PendingDescription}" TextWrapping="Wrap" Classes="muted" MaxWidth="560" HorizontalAlignment="Left" />
+            <Button Content="打开音频设置" Command="{Binding OpenOutputCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel IsVisible="{Binding IsReady}" Spacing="20">
+            <local:EqEditorView IsVisible="{Binding IsEq}" />
+            <StackPanel IsVisible="{Binding IsReplayGain}" Spacing="14" IsEnabled="{Binding CanEdit}">
+              <TextBlock Text="增益来源" FontWeight="SemiBold" />
+              <ComboBox ItemsSource="{Binding ReplayModes}" SelectedItem="{Binding ReplayMode, Mode=TwoWay}" MinWidth="220">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="local:DspChoice">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <CheckBox Content="防止削波" IsChecked="{Binding PreventClipping, Mode=TwoWay}" />
+              <TextBlock Text="增益标签的自动读取与逐曲同步仍在迁移。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding Parameters}" IsEnabled="{Binding CanEdit}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="local:DspParameter">
+                  <Border BorderBrush="{DynamicResource EchoBorder}" BorderThickness="0,0,0,1" Padding="0,14,0,18">
+                    <Grid ColumnDefinitions="*,116" ColumnSpacing="24">
+                      <StackPanel Spacing="10">
+                        <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="SemiBold" />
+                        <Slider Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" TickFrequency="{Binding Step}" IsSnapToTickEnabled="True" Value="{Binding Value, Mode=TwoWay}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="5">
+                        <TextBlock Text="{Binding Unit}" Classes="muted" FontSize="10" />
+                        <NumericUpDown Classes="dsp-value" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Increment="{Binding Step}" Value="{Binding Value, Mode=TwoWay}" FormatString="0.##" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel IsVisible="{Binding IsRack}" Spacing="16">
+              <TextBlock Text="信号流向" FontSize="18" FontWeight="SemiBold" />
+              <ItemsControl ItemsSource="{Binding RackStages}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <Border BorderBrush="{DynamicResource EchoBorder}" BorderThickness="0,0,0,1" Padding="12">
+                      <TextBlock Text="{Binding}" FontSize="13" />
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="机架顺序来自原生宿主；拖拽排序正在迁移。" FontSize="12" Classes="muted" />
+            </StackPanel>
+          </StackPanel>
+          <StackPanel IsVisible="{Binding !IsReady}" Spacing="12">
+            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Height="3" />
+            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="muted" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+      <Border Grid.Row="2" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="0,1,0,0" Padding="0,12,0,0" IsVisible="{Binding IsReady}">
+        <Grid Name="Footer" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Spacing="4">
+            <TextBlock Text="{Binding DraftLabel}" FontSize="11" Classes="muted" />
+            <TextBlock Text="{Binding Message}" FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <Button Content="撤销" Classes="dsp-quiet" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" />
+            <Button Content="还原" Classes="dsp-quiet" Command="{Binding RevertCommand}" IsEnabled="{Binding CanEdit}" />
+            <Button Name="ApplyButton" Content="应用调整" Command="{Binding ApplyCommand}" IsEnabled="{Binding CanApply}" Classes="primary" Padding="18,7" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

@@ -1,0 +1,97 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="DspNavigationItem" TargetType="ListBoxItem" x:DataType="local:DspModule">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,1" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <StackPanel>
+            <TextBlock Text="{Binding Group}" IsVisible="{Binding HasGroupHeading}" Margin="12,14,0,7" FontSize="11" Foreground="{DynamicResource EchoMuted}" />
+            <Border Name="Row" Padding="10,10" CornerRadius="4" BorderThickness="1" BorderBrush="Transparent">
+              <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="9">
+                <icons:GlyphIcon Kind="{Binding Icon}" Width="16" Height="16" StrokeWidth="1.3" Stroke="{DynamicResource EchoMuted}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="13" VerticalAlignment="Center" />
+                <Ellipse Grid.Column="2" Width="4" Height="4" Fill="{DynamicResource EchoAccent}" IsVisible="{Binding IsActive}" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover /template/ Border#Row">
+        <Setter Property="Background" Value="{DynamicResource EchoHover}" />
+      </Style>
+      <Style Selector="^:selected /template/ Border#Row">
+        <Setter Property="Background" Value="{DynamicResource EchoSelected}" />
+      </Style>
+      <Style Selector="^:selected">
+        <Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+      </Style>
+      <Style Selector="^:focus-visible /template/ Border#Row">
+        <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+      </Style>
+    </ControlTheme>
+    <ControlTheme x:Key="DspBandItem" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="10,7" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Name="BandRow" BorderBrush="Transparent" BorderThickness="0,0,0,2" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover">
+        <Setter Property="Background" Value="{DynamicResource EchoHover}" />
+      </Style>
+      <Style Selector="^:selected /template/ Border#BandRow">
+        <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+      </Style>
+      <Style Selector="^:selected">
+        <Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" />
+      </Style>
+      <Style Selector="^:focus-visible /template/ Border#BandRow">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+      </Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="ListBox.dsp-navigation">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ItemContainerTheme" Value="{StaticResource DspNavigationItem}" />
+  </Style>
+  <Style Selector="ListBox.dsp-bands">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ItemContainerTheme" Value="{StaticResource DspBandItem}" />
+  </Style>
+  <Style Selector="TextBlock.dsp-data">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+  </Style>
+  <Style Selector="Button.dsp-quiet">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="10,6" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="NumericUpDown.dsp-value">
+    <Setter Property="MinHeight" Value="38" />
+    <Setter Property="FontSize" Value="19" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="NumericUpDown.dsp-value /template/ TextBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="0,5" />
+  </Style>
+  <Style Selector="NumericUpDown.dsp-value:focus-within /template/ TextBox">
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+  </Style>
+</Styles>

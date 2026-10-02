@@ -5,11 +5,14 @@
     <Style Selector="Button.track"><Setter Property="Background" Value="{DynamicResource EchoRow}" /><Setter Property="CornerRadius" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
     <Style Selector="Button.track:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
     <Style Selector="Button.track.playing"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+    <Style Selector="icon|GlyphIcon.row-play"><Setter Property="Opacity" Value="0" /></Style>
     <Style Selector="TextBlock.title"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
     <Style Selector="Button.track.playing TextBlock.title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
     <Style Selector="Button.track:pointerover TextBlock.number"><Setter Property="Opacity" Value="0" /></Style>
     <Style Selector="Button.track:pointerover icon|GlyphIcon.row-play"><Setter Property="Opacity" Value="1" /></Style>
     <Style Selector="Button.track.playing TextBlock.number"><Setter Property="Opacity" Value="0" /></Style>
+    <Style Selector="Button.track:focus-within TextBlock.number"><Setter Property="Opacity" Value="0" /></Style>
+    <Style Selector="Button.track:focus-within icon|GlyphIcon.row-play"><Setter Property="Opacity" Value="1" /></Style>
     <Style Selector="Button.track.playing icon|GlyphIcon.row-play"><Setter Property="Opacity" Value="1" /></Style>
     <Style Selector="Button.liked"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
     <Style Selector="Button.liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
@@ -21,7 +24,7 @@
     <Grid Name="Columns" ColumnDefinitions="46,*,230,68,34" ColumnSpacing="18" Margin="0,7">
       <Grid VerticalAlignment="Center">
         <TextBlock Classes="muted number" Text="{Binding Number}" FontSize="12" />
-        <icon:GlyphIcon Classes="row-play" Kind="play" Width="13" Height="13" Stroke="{DynamicResource EchoAccentText}" Opacity="0" HorizontalAlignment="Left" />
+        <icon:GlyphIcon Classes="row-play" Kind="play" Width="13" Height="13" Stroke="{DynamicResource EchoAccentText}" HorizontalAlignment="Left" />
       </Grid>
       <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
         <TextBlock Classes="title" Text="{Binding Row.Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Row.Title}" />

@@ -1,0 +1,47 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ControlTheme x:Key="ThemeColorRow" TargetType="ListBoxItem">
+      <Setter Property="Focusable" Value="True" /><Setter Property="Padding" Value="13,8" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Name="RowSurface" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+          <Grid ColumnDefinitions="2,*" ColumnSpacing="10">
+            <Border Name="SelectedLine" Background="{DynamicResource EchoAccent}" Width="2" Height="22" Opacity="0" VerticalAlignment="Center" />
+            <ContentPresenter Grid.Column="1" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
+          </Grid>
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:pointerover /template/ Border#RowSurface"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      <Style Selector="^:selected /template/ Border#RowSurface"><Setter Property="Background" Value="{DynamicResource EchoField}" /></Style>
+      <Style Selector="^:selected /template/ Border#SelectedLine"><Setter Property="Opacity" Value="1" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#RowSurface"><Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+    <ControlTheme x:Key="ThemeHueThumb" TargetType="Thumb">
+      <Setter Property="Width" Value="10" /><Setter Property="Height" Value="18" />
+      <Setter Property="Template"><ControlTemplate><Border CornerRadius="3" Background="White" BorderBrush="#80000000" BorderThickness="1" /></ControlTemplate></Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="ThemeHueSlider" TargetType="Slider">
+      <Setter Property="MinHeight" Value="22" />
+      <Setter Property="Template"><ControlTemplate>
+        <Grid>
+          <Border Height="9" CornerRadius="4" VerticalAlignment="Center">
+            <Border.Background><LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+              <GradientStop Color="#ff0000" Offset="0" /><GradientStop Color="#ffff00" Offset="0.1667" /><GradientStop Color="#00ff00" Offset="0.3333" />
+              <GradientStop Color="#00ffff" Offset="0.5" /><GradientStop Color="#0000ff" Offset="0.6667" /><GradientStop Color="#ff00ff" Offset="0.8333" /><GradientStop Color="#ff0000" Offset="1" />
+            </LinearGradientBrush></Border.Background>
+          </Border>
+          <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}">
+            <Track.DecreaseButton><RepeatButton Theme="{StaticResource ThemeSliderRail}" Background="Transparent" /></Track.DecreaseButton>
+            <Track.IncreaseButton><RepeatButton Theme="{StaticResource ThemeSliderRail}" Background="Transparent" /></Track.IncreaseButton>
+            <Track.Thumb><Thumb Theme="{StaticResource ThemeHueThumb}" /></Track.Thumb>
+          </Track>
+        </Grid>
+      </ControlTemplate></Setter>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="ListBox.theme-color-list"><Setter Property="ItemContainerTheme" Value="{StaticResource ThemeColorRow}" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="AutoScrollToSelectedItem" Value="False" /></Style>
+  <Style Selector="Button.theme-theme-picker"><Setter Property="Padding" Value="12,8" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="5" /></Style>
+  <Style Selector=":is(ListBox).theme-line-options"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="0" /></Style>
+  <Style Selector=":is(ListBox).theme-line-options ListBoxItem"><Setter Property="Padding" Value="12,7" /></Style>
+  <Style Selector=":is(ListBox).theme-line-options ListBoxItem /template/ Border#ChoiceSurface"><Setter Property="Background" Value="Transparent" /><Setter Property="BoxShadow" Value="0 0 0 0 Transparent" /></Style>
+  <Style Selector=":is(ListBox).theme-line-options ListBoxItem:selected TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+</Styles>

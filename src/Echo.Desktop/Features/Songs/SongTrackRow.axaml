@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Songs" xmlns:library="using:Echo.Contracts.Library" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Songs.SongTrackRow" x:DataType="library:TrackRow">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.trackTitle"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+    <Style Selector="local|SongTrackRow.playing TextBlock.trackTitle"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="local|SongTrackRow:pointerover Border#CoverVeil"><Setter Property="Opacity" Value="0.8" /></Style>
+    <Style Selector="local|SongTrackRow:pointerover Button#CoverPlay"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="local|SongTrackRow:focus-within Button#CoverPlay"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="local|SongTrackRow:pointerover StackPanel#RowActions"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="local|SongTrackRow:focus-within StackPanel#RowActions"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="Button.liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Border.specTag"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="0" /></Style>
+    <Style Selector="Border#FormatTag"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="CornerRadius" Value="3" /><Setter Property="Padding" Value="5,1" /></Style>
+    <Style Selector="Border#PlayingMark"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector="local|SongTrackRow.playing Border#PlayingMark"><Setter Property="IsVisible" Value="True" /></Style>
+  </UserControl.Styles>
+  <Grid Name="Columns" ColumnDefinitions="52,*,140,64,56" ColumnSpacing="12" Height="72" Margin="8,0,8,0" ToolTip.Tip="{Binding Path}">
+    <Grid Width="52" Height="52" VerticalAlignment="Center">
+      <Border Background="{DynamicResource EchoPlaceholder}" CornerRadius="6" ClipToBounds="True">
+        <Image Name="Cover" Stretch="UniformToFill" />
+      </Border>
+      <Border Name="CoverVeil" Background="{DynamicResource EchoField}" CornerRadius="6" Opacity="0" />
+      <Border Name="PlayingMark" Width="3" Height="20" CornerRadius="1.5" Background="{DynamicResource EchoAccent}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+      <Button Name="CoverPlay" Classes="icon" Click="OnPlay" Opacity="0" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{DynamicResource query.playTrack}" AutomationProperties.Name="{DynamicResource query.playTrack}">
+        <icon:GlyphIcon Kind="play-solid" Width="20" Height="20" Stroke="{DynamicResource EchoAccentText}" />
+      </Button>
+    </Grid>
+    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto" VerticalAlignment="Center" RowSpacing="2" MinWidth="0">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock Text="{Binding Title}" Classes="trackTitle" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><icon:GlyphIcon Kind="heart-filled" Grid.Column="1" Width="12" Height="12" VerticalAlignment="Center" Stroke="{DynamicResource EchoAccentText}" IsVisible="{Binding Favorite}" /></Grid>
+      <TextBlock Name="Subtitle" Grid.Row="1" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Album}" />
+      <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+        <Border Name="FormatTag" Classes="specTag"><TextBlock Name="FormatText" Foreground="{DynamicResource EchoAccentText}" FontSize="10" FontWeight="Medium" /></Border>
+        <Border Name="SpecTag" Classes="specTag" VerticalAlignment="Center"><TextBlock Name="SpecText" Classes="subtle" FontSize="10" /></Border>
+        <Border Name="BpmTag" Classes="specTag" VerticalAlignment="Center"><TextBlock Name="BpmText" Classes="subtle" FontSize="10" /></Border>
+      </StackPanel>
+    </Grid>
+    <TextBlock Name="Genre" Grid.Column="2" Text="{Binding Genre}" VerticalAlignment="Center" Classes="subtle" FontSize="11.5" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Genre}" />
+    <TextBlock Name="Duration" Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right" Classes="muted" FontSize="12" FontWeight="Medium" />
+    <StackPanel Name="RowActions" Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Opacity="0">
+      <Button Name="FavoriteButton" Classes="icon" Width="30" Click="OnFavorite" ToolTip.Tip="{DynamicResource query.favorite}" AutomationProperties.Name="{DynamicResource query.favorite}"><icon:GlyphIcon Name="Heart" Kind="heart" Width="16" Height="16" /></Button>
+      <Button Name="MoreButton" Classes="icon" Width="30" Click="OnMore" ToolTip.Tip="{DynamicResource query.actions}" AutomationProperties.Name="{DynamicResource query.actions}"><icon:GlyphIcon Kind="more" Width="17" Height="17" /></Button>
+    </StackPanel>
+  </Grid>
+</UserControl>

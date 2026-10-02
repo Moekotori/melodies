@@ -10,33 +10,48 @@ using Echo.Desktop.Features.Albums;
 using Echo.Desktop.Features.Songs;
 using Echo.Desktop.Features.Search;
 using Echo.Desktop.Features.Artists;
+using Echo.Desktop.Features.Genres;
 using Echo.Desktop.Features.Folders;
 using Echo.Desktop.Features.Lyrics;
 using Echo.Desktop.Features.Queue;
+using Echo.Desktop.Features.Playlists;
 using Echo.Desktop.Localization;
 
 namespace Echo.Desktop.Shell;
 
 public partial class MainWindow : Window
 {
+    private Echo.Desktop.Bootstrap.WindowAppearanceVisualBinding? _appearanceVisuals;
     private ShellViewModel? _viewModel;
     private WindowLocalizationBinding? _localization;
     private Echo.Desktop.Bootstrap.WindowThemeBinding? _theme;
     private readonly MotionLane _layoutMotion = new();
     private LibrarySearchView? _searchPage;
     private SongsView? _songsPage;
+    private Echo.Desktop.Features.History.HistoryView? _historyPage;
+    private HomeView? _homePage;
     private AlbumsView? _albumsPage;
     private ArtistsView? _artistsPage;
+    private GenresView? _genresPage;
     private FoldersView? _foldersPage;
+    private PlaylistsView? _playlistsPage;
     private LyricsView? _lyricsPage;
     private string _previousRoute = "home";
 
     public MainWindow()
     {
         InitializeComponent();
+        InitializeSongDrop();
+        CreateSurface();
+        AddHandler(KeyDownEvent, OnGlobalSearchKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         DataContextChanged += OnDataContextChanged;
-        Closed += (_, _) => { ReleaseLyricsPage(); _layoutMotion.Dispose(); DetachViewModel(); };
-        Closing += (_, _) => PageHost.Settle();
+        Closed += (_, _) => { _residency?.Dispose(); ReleaseLyricsPage(); _layoutMotion.Dispose(); DetachViewModel(); };
+        Closing += (_, args) =>
+        {
+            if (!IsExitRequested && args.CloseReason is not (WindowCloseReason.OSShutdown or WindowCloseReason.ApplicationShutdown)
+                && _residency?.TryHideToTray() == true) args.Cancel = true;
+            if (_surface is not null) PageHost.Settle();
+        };
         Activated += (_, _) => _lyricsPage?.SetFocused(true);
         Deactivated += (_, _) => _lyricsPage?.SetFocused(false);
         KeyDown += OnWindowKeyDown;
@@ -45,7 +60,7 @@ public partial class MainWindow : Window
         PointerPressed += OnShortcutMouse;
         KeyUp += (_, e) => _shortcutKeysDown.Remove(e.Key);
         Deactivated += (_, _) => { _shortcutKeysDown.Clear(); _viewModel?.Shortcuts.CancelRecording(); };
-        Opened += (_, _) => PageHost.Reveal();
+        Opened += (_, _) => { if (_surface is not null) PageHost.Reveal(); };
         PropertyChanged += (_, args) =>
         {
             if (args.Property == IsVisibleProperty || args.Property == WindowStateProperty)
@@ -58,19 +73,24 @@ public partial class MainWindow : Window
         DetachViewModel();
         _viewModel = DataContext as ShellViewModel;
         if (_viewModel is null) return;
+        if (_surface is null) CreateSurface();
         _viewModel.Shortcuts.SetCapabilities(SupportsShortcut, _viewModel.Shortcuts.GlobalAvailable, _viewModel.Shortcuts.PlatformHint);
         _localization = new WindowLocalizationBinding(this, _viewModel.Text);
         _theme = new Echo.Desktop.Bootstrap.WindowThemeBinding(this, _viewModel.Theme, _viewModel.Motion, dark => _viewModel.IsDark = dark);
+        _appearanceVisuals = new(this, _viewModel);
         _viewModel.PropertyChanged += OnShellPropertyChanged;
+        _viewModel.SongsImported += RefreshImportedSongs;
         MotionScope.SetPolicy(this, _viewModel.Motion);
         _viewModel.Motion.PropertyChanged += OnMotionPolicyChanged;
         UpdateMotionVisibility();
         ApplyShellAppearance();
         ShowPage();
+        _residency = new(this, _viewModel);
     }
 
     private void OnShellPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (_surface is null) return;
         if (args.PropertyName == nameof(ShellViewModel.IsDark) && _theme?.IsApplying == false && _viewModel is not null)
             _viewModel.Theme.Mode = _viewModel.IsDark ? "深色" : "浅色";
         if (args.PropertyName is nameof(ShellViewModel.IsDark) or nameof(ShellViewModel.IsSidebarExpanded))
@@ -81,12 +101,13 @@ public partial class MainWindow : Window
 
     private void ApplyShellAppearance()
     {
-        if (_viewModel is null) return;
+        if (_viewModel is null || _surface is null) return;
         RequestedThemeVariant = _viewModel.IsDark ? ThemeVariant.Dark : ThemeVariant.Light;
         var previous = ShellGrid.ColumnDefinitions[0].Width.Value;
         var width = _viewModel.SidebarReservedWidth;
         UiScaleHost.LayoutTransform = new Avalonia.Media.ScaleTransform(_viewModel.UiScalePercent / 100d, _viewModel.UiScalePercent / 100d);
         QuickSettingsScaleHost.LayoutTransform = UiScaleHost.LayoutTransform;
+        SearchScaleHost.LayoutTransform = UiScaleHost.LayoutTransform;
         ShellGrid.ColumnDefinitions[0].Width = new GridLength(width);
         if (previous != width)
         {
@@ -100,16 +121,20 @@ public partial class MainWindow : Window
 
     private void DetachViewModel()
     {
+        _residency?.Dispose(); _residency = null;
+        _appearanceVisuals?.Dispose(); _appearanceVisuals = null;
         _theme?.Dispose(); _theme = null;
         _localization?.Dispose(); _localization = null;
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged -= OnShellPropertyChanged;
+            _viewModel.SongsImported -= RefreshImportedSongs;
+            _viewModel.CancelSongImportCommand.Execute(null);
             _viewModel.Motion.PropertyChanged -= OnMotionPolicyChanged;
         }
         _viewModel = null;
         MotionScope.SetPolicy(this, null);
-        PageHost.Settle();
+        if (_surface is not null) PageHost.Settle();
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs args)
@@ -126,7 +151,7 @@ public partial class MainWindow : Window
 
     private void ShowPage()
     {
-        if (_viewModel is null) return;
+        if (_viewModel is null || _surface is null) return;
         if (ShowStandaloneLyrics()) return;
         ApplyShellAppearance();
         ReleaseLibraryPage(retiring: true);
@@ -140,18 +165,29 @@ public partial class MainWindow : Window
         ReleaseLyricsPage();
         Control page = _viewModel.ActiveRouteId switch
         {
-            "home" => new HomeView(),
-            "queue" or "history" when _viewModel.Player is not null => new QueueView(_viewModel.Player, _viewModel.Text, _viewModel.ActiveRouteId == "history"),
+            "home" => _homePage = new HomeView(_viewModel),
+            "radio" => new Echo.Desktop.Features.Radio.RadioView(_viewModel),
+            "dsp" => new Echo.Desktop.Features.Dsp.DspView(_viewModel),
+            "remote" when _viewModel.RemoteSources is not null => new Echo.Desktop.Features.Remote.RemoteView(_viewModel),
+            "queue" when _viewModel.Player is not null => new QueueView(_viewModel.Player, _viewModel.Text, false),
+            "history" when _viewModel.HistoryLibrary is not null => _historyPage = new Echo.Desktop.Features.History.HistoryView(_viewModel),
             "search" when _viewModel.TrackLibrary is not null => _searchPage = new LibrarySearchView(_viewModel),
             "songs" when _viewModel.TrackLibrary is not null => _songsPage = new SongsView(_viewModel),
             "albums" when _viewModel.AlbumLibrary is not null => _albumsPage = new AlbumsView(_viewModel),
             "artists" when _viewModel.ArtistLibrary is not null => _artistsPage = new ArtistsView(_viewModel),
+            "genres" when _viewModel.GenreLibrary is not null => _genresPage = new GenresView(_viewModel),
             "folders" when _viewModel.FolderLibrary is not null => _foldersPage = new FoldersView(_viewModel),
+            "playlists" when _viewModel.PlaylistLibrary is not null => _playlistsPage = new PlaylistsView(_viewModel),
             _ => new PendingPage(_viewModel.ActivePageTitle, _viewModel.ActiveRouteId)
         };
-        page.Margin = new Thickness(42, 24, 42, 28);
+        page.Margin = (Thickness)this.FindResource("EchoPageInset")!;
         if (_viewModel.ActiveRouteId != "lyrics") _previousRoute = _viewModel.ActiveRouteId;
-        if (page is AlbumsView or ArtistsView or SongsView or LibrarySearchView or FoldersView)
+        if (page is Echo.Desktop.Features.Dsp.DspView) { page.Margin = default; PageHost.Content = page; return; }
+        if (page is Echo.Desktop.Features.Remote.RemoteView) { page.Margin = default; PageHost.Content = page; return; }
+        if (page is Echo.Desktop.Features.Radio.RadioView) { page.Margin = default; PageHost.Content = page; return; }
+        if (page is PlaylistsView) { page.Margin = new Thickness(0); PageHost.Content = page; return; }
+        if (page is SongsView) { page.Margin = new Thickness(42, 24, 0, 0); PageHost.Content = page; return; }
+        if (page is AlbumsView or ArtistsView or GenresView or LibrarySearchView or FoldersView or Echo.Desktop.Features.History.HistoryView)
         { page.Margin = new Thickness(42, 24, 42, 0); PageHost.Content = page; return; }
         if (page is QueueView) { PageHost.Content = page; return; }
         PageHost.Content = new ScrollViewer
@@ -162,25 +198,33 @@ public partial class MainWindow : Window
     }
     public void ReleaseLibraryPage(bool retiring = false)
     {
+        _homePage?.SetWindowVisible(false); if (!retiring) _homePage?.Dispose(); _homePage = null;
         // Retiring pages keep their artwork until visual detach, which already owns Dispose.
-        if (!retiring) { _songsPage?.Dispose(); _searchPage?.Dispose(); _albumsPage?.Dispose(); _artistsPage?.Dispose(); _foldersPage?.Dispose(); }
+        if (!retiring) _historyPage?.Dispose();
+        _historyPage = null;
+        if (!retiring) { _songsPage?.Dispose(); _searchPage?.Dispose(); _albumsPage?.Dispose(); _artistsPage?.Dispose(); _genresPage?.Dispose(); _foldersPage?.Dispose(); _playlistsPage?.Dispose(); }
         _songsPage = null; _searchPage = null;
-        _albumsPage = null; _artistsPage = null; _foldersPage = null;
+        _albumsPage = null; _artistsPage = null; _genresPage = null; _foldersPage = null;
+        _playlistsPage = null;
     }
     public void ReleaseLyricsPage() { _lyricsPage?.Dispose(); _lyricsPage = null; }
     private void UpdateMotionVisibility()
     {
         var visible = IsVisible && WindowState != WindowState.Minimized;
         if (_viewModel is not null) _viewModel.Motion.IsWindowVisible = visible;
+        _homePage?.SetWindowVisible(visible);
         _albumsPage?.SetWindowVisible(visible);
         _artistsPage?.SetWindowVisible(visible);
+        _genresPage?.SetWindowVisible(visible);
         _foldersPage?.SetWindowVisible(visible);
+        _playlistsPage?.SetWindowVisible(visible);
         _searchPage?.SetWindowVisible(visible);
     }
     private void OnMotionPolicyChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName != nameof(MotionPolicy.CanAnimate)) return;
         _layoutMotion.Cancel();
+        if (_surface is null) return;
         PageArea.RenderTransform = MotionLane.At();
     }
 }

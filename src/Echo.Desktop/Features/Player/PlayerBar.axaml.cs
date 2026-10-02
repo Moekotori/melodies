@@ -18,10 +18,13 @@ public partial class PlayerBar : UserControl
     public PlayerBar()
     {
         InitializeComponent();
+        SignalPathButton.Flyout = SignalPathPanel.Create(SignalPathButton, () => Player,
+            () => OpenOutputSettings(this, new RoutedEventArgs()));
         seekInteraction = new(SeekSlider, () => Player, seek: true,
             () => ElapsedText.SetCurrentValue(TextBlock.TextProperty, Player?.PositionText ?? "0:00"));
         outputFlyout = new() { Placement = PlacementMode.Top, Content = new PlayerOutputPanel() };
         foreach (var flyout in new[] { SignalPathButton.Flyout, OutputSettingsButton.Flyout, VolumeButton.Flyout, outputFlyout }.OfType<Flyout>()) popoverBinding.Wrap(flyout);
+        if (SignalPathButton.Flyout is { } signal) signal.Opened += (_, _) => Player?.RefreshPerformance();
         SizeChanged += (_, _) => ApplyLayout();
         SeekSlider.PropertyChanged += (_, e) =>
         {
@@ -40,7 +43,7 @@ public partial class PlayerBar : UserControl
         PlayerLayout.ColumnDefinitions[2].Width = small ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
         PlayerLayout.ColumnSpacing = compact ? 8 : 16;
         BarSurface.Padding = new Thickness(small ? 16 : 28, 6);
-        var cover = tiny ? 48 : small ? 64 : 84;
+        var cover = tiny ? 44 : small ? 56 : 64;
         NowPlaying.ColumnDefinitions[0].Width = new GridLength(cover);
         NowPlaying.ColumnSpacing = small ? 10 : 14;
         CoverButton.Width = CoverButton.Height = CoverArtwork.Width = CoverArtwork.Height = cover;
@@ -54,6 +57,8 @@ public partial class PlayerBar : UserControl
     { base.OnAttachedToVisualTree(e); popoverBinding.Attach(DataContext as ShellViewModel); }
     private void HidePopovers()
     { SignalPathButton.Flyout?.Hide(); OutputSettingsButton.Flyout?.Hide(); VolumeButton.Flyout?.Hide(); }
+    private void OpenSignalPath(object? sender, RoutedEventArgs args)
+    { OutputSettingsButton.Flyout?.Hide(); VolumeButton.Flyout?.Hide(); outputFlyout.Hide(); SignalPathButton.Flyout?.ShowAt(SignalPathButton); }
     private async void OpenOutputSettings(object? sender, RoutedEventArgs args)
     {
         HidePopovers();
@@ -73,7 +78,7 @@ public partial class PlayerBar : UserControl
             var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 Title = "打开音频文件", AllowMultiple = true,
-                FileTypeFilter = [new FilePickerFileType("音频") { Patterns = ["*.mp3", "*.flac", "*.wav", "*.m4a", "*.aac", "*.ogg", "*.opus", "*.aiff", "*.ape", "*.wv", "*.dsf", "*.dff", "*.wma", "*.ac3", "*.mka"] }, FilePickerFileTypes.All]
+                FileTypeFilter = AudioFilePickerTypes.All
             });
             var paths = files.Select(x => x.TryGetLocalPath()).OfType<string>().ToArray();
             await player.OpenPathsAsync(paths);

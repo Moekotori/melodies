@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Echo.Desktop.Features.Genres.GenreCard">
+  <UserControl.Styles>
+    <Style Selector="Button.genre-card"><Setter Property="Padding" Value="6,8,6,12" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="CornerRadius" Value="0" /></Style>
+    <Style Selector="Button.genre-card:pointerover TextBlock.artist-name"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button.genre-card:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  </UserControl.Styles>
+  <Button Name="OpenButton" Classes="genre-card" Click="OnOpen">
+    <StackPanel Spacing="9">
+      <Grid Width="124" Height="124" HorizontalAlignment="Center">
+        <TextBlock Name="Monogram" Foreground="{DynamicResource EchoHeading}" FontFamily="Times New Roman" FontSize="58" FontWeight="Normal" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Border Name="PortraitFrame" CornerRadius="62" ClipToBounds="True" IsVisible="False">
+          <Image Name="Portrait" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+        </Border>
+      </Grid>
+      <StackPanel Spacing="3">
+        <TextBlock Name="GenreName" Classes="artist-name" Foreground="{DynamicResource EchoHeading}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <TextBlock Name="Stats" Classes="muted" FontSize="11" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </StackPanel>
+  </Button>
+</UserControl>

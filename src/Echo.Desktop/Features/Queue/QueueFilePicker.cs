@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using Echo.Desktop.Features.Player;
 namespace Echo.Desktop.Features.Queue;
 internal static class QueueFilePicker
 {
@@ -11,7 +12,7 @@ internal static class QueueFilePicker
             var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 Title = "添加到播放队列", AllowMultiple = true,
-                FileTypeFilter = [new FilePickerFileType("音频") { Patterns = ["*.mp3", "*.flac", "*.wav", "*.m4a", "*.aac", "*.ogg", "*.opus", "*.aiff", "*.ape", "*.wv", "*.dsf", "*.dff", "*.wma", "*.ac3", "*.mka"] }]
+                FileTypeFilter = AudioFilePickerTypes.All
             });
             await model.EnqueuePathsAsync(files.Select(x => x.TryGetLocalPath()).OfType<string>());
         }

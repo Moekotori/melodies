@@ -19,6 +19,7 @@
 #include <vector>
 #include "music_graph.hpp"
 #include "metadata_file_tail.hpp"
+#include "ffmpeg_metadata.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -59,34 +60,6 @@ struct SnapshotEntry {
   std::int64_t mtimeMs = 0;
 };
 
-struct NativeMetadataResult {
-  std::string title;
-  std::string artist;
-  std::string album;
-  std::string albumArtist;
-  std::optional<int> trackNo;
-  std::optional<int> discNo;
-  std::optional<int> year;
-  std::optional<std::string> genre;
-  double duration = 0;
-  std::optional<int> sampleRate;
-  std::optional<int> bitDepth;
-  std::optional<int> bitrate;
-  bool mqa = false;
-  std::optional<double> bpm;
-  std::optional<double> replayGainTrackGainDb;
-  std::optional<double> replayGainAlbumGainDb;
-  std::optional<double> replayGainTrackPeak;
-  std::optional<double> replayGainAlbumPeak;
-  std::optional<double> replayGainIntegratedLufs;
-  std::vector<unsigned char> embeddedCover;
-  std::string embeddedCoverMimeType;
-  std::string codec = "FLAC";
-  bool hasVorbisComments = false;
-  bool hasEmbeddedMetadata = false;
-  std::map<std::string, std::string> sources;
-  std::optional<NativeMusicGraph> musicGraph;
-};
 
 struct Mp3StreamInfo {
   double duration = 0;
@@ -2849,9 +2822,12 @@ static std::optional<NativeMetadataResult> readNativeMetadata(const std::string&
     result = readMp4Metadata(filePath, unsupportedReason);
   } else {
     unsupportedReason = "native metadata reader currently supports WAV, AIFF, Ogg/Opus, FLAC, MP3, and M4A/MP4/ALAC only";
-    return std::nullopt;
   }
 
+  if (!result || result->duration <= 0 || !result->sampleRate || *result->sampleRate <= 0 || result->codec == "WAV") {
+    NativeMetadataResult fallback = result.value_or(NativeMetadataResult{});
+    if (fillFfmpegAudioMetadata(filePath, fallback, unsupportedReason)) result = std::move(fallback);
+  }
   if (result && result->album.empty()) {
     const std::string folderAlbum = parentFolderNameFromPath(filePath);
     if (!folderAlbum.empty()) {
@@ -2963,10 +2939,19 @@ static void writeNativeCapabilities() {
   std::cout
     << "{\"type\":\"capabilities\""
     << ",\"protocolVersion\":3"
+#ifdef ECHO_SCANNER_HAS_FFMPEG
+    << ",\"ffmpegAudioMetadata\":true"
+#else
+    << ",\"ffmpegAudioMetadata\":false"
+#endif
     << ",\"supportedRequests\":[\"scan\",\"metadata\"]"
     << ",\"features\":[\"batching\",\"progress\",\"directorySnapshots\",\"persistentMetadata\",\"requestIds\",\"singleMetadataResponse\",\"embeddedCoverFile\",\"musicGraphVorbis\",\"shallowScan\",\"skipJunkDirectories\",\"outOfTreeReparse\",\"scanIgnoreRules\"]"
     << ",\"metadataFormats\":[\"WAV/PCM\",\"AIFF/AIFC\",\"Ogg Vorbis\",\"Opus\",\"FLAC\",\"MP3\",\"M4A/MP4/ALAC\"]"
+#ifdef ECHO_SCANNER_HAS_FFMPEG
+    << ",\"metadataExtensions\":" << ffmpegMetadataExtensionsJson()
+#else
     << ",\"metadataExtensions\":[\".wav\",\".aiff\",\".aif\",\".ogg\",\".opus\",\".flac\",\".fla\",\".mp3\",\".m4a\",\".mp4\",\".m4b\",\".m4p\",\".alac\"]"
+#endif
     << "}" << std::endl;
 }
 

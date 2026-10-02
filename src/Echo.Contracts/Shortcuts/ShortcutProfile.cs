@@ -1,6 +1,7 @@
 namespace Echo.Contracts.Shortcuts;
 
 public enum ShortcutScope { Local, Global }
+public static class ShortcutLimits { public const int MaxActions = 64; public const int MaxBindings = MaxActions * 2; }
 
 public sealed record ShortcutBinding(string Action, ShortcutScope Scope, bool Enabled, string? Accelerator);
 public sealed record ShortcutProfile(int Version, IReadOnlyList<ShortcutBinding> Bindings);

@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/Echo.Application/Echo.Application.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Infrastructure/Echo.Infrastructure.csproj" /></ItemGroup>
 </Project>

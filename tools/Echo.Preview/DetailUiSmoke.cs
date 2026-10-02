@@ -72,6 +72,23 @@ internal static class DetailUiSmoke
             Until(() => detail.FindControl<TextBlock>("Description")!.Text == "星际旅程的本地专辑介绍。");
             Tab(detail, 3); Until(() => detail.FindControl<StackPanel>("Versions")!.Children.Count == 1);
             Tab(detail, 0); Capture("album-detail-light.png"); shell.IsDark = true; Capture("album-detail-dark.png");
+            shell.IsDark = false; Settle();
+            CaptureControl((Control)detail.FindControl<Button>("AlbumFavoriteButton")!.Parent!, "album-actions-light.png");
+            CaptureControl(detail.FindControl<DetailSortButton>("TrackSort")!, "album-sort-control-light.png");
+            shell.IsDark = true; Settle();
+            var sortControl = detail.FindControl<DetailSortButton>("TrackSort")!;
+            var sortOpener = sortControl.FindControl<Button>("SortOpener")!;
+            sortOpener.Flyout!.ShowAt(sortOpener); Settle();
+            var sortMenu = (StackPanel)((Flyout)sortOpener.Flyout).Content!;
+            using (var menuImage = new RenderTargetBitmap(new PixelSize(172, 220), new Vector(96, 96)))
+            { menuImage.Render(sortMenu); menuImage.Save(Path.Combine(output, "sort-menu-dark.png"), PngBitmapEncoderOptions.Default); }
+            Click(sortMenu.GetVisualDescendants().OfType<Button>().First(button => button.Tag?.ToString() == "1"));
+            Until(() => model.SortIndex == 1 && !model.IsLoading);
+            sortOpener.Flyout.ShowAt(sortOpener); Settle();
+            Click(sortMenu.GetVisualDescendants().OfType<Button>().First(button => button.Tag?.ToString() == "False"));
+            Until(() => !model.Descending && !model.IsLoading);
+            Check(sortControl.SelectedIndex == 1 && !sortControl.Descending, "compact sort menu binds both field and direction");
+            Capture("album-detail-sort-dark.png");
             Until(() => detail.FindControl<Button>("CoverButton")!.IsEnabled);
             Click(detail.FindControl<Button>("CoverButton")!); Capture("album-cover-preview.png");
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Settle();
@@ -121,6 +138,19 @@ internal static class DetailUiSmoke
         {
             Settle(); using var bitmap = window.CaptureRenderedFrame() ?? throw new IOException("Render unavailable.");
             bitmap.Save(Path.Combine(output, name), PngBitmapEncoderOptions.Default); Console.WriteLine(Path.Combine(output, name));
+        }
+        void CaptureControl(Control control, string name)
+        {
+            using var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(control.Bounds.Width), (int)Math.Ceiling(control.Bounds.Height)), new Vector(96, 96));
+            // A standalone control render has no parent backdrop. Use the real page brush
+            // for the capture, then restore the transparent control immediately.
+            var page = (TopLevel.GetTopLevel(control) as Window)?.Background ?? Avalonia.Media.Brushes.White;
+            if (control is Panel panel)
+            { var background = panel.Background; panel.Background = page; Settle(); bitmap.Render(control); panel.Background = background; }
+            else if (control is UserControl view)
+            { var background = view.Background; view.Background = page; Settle(); bitmap.Render(control); view.Background = background; }
+            else bitmap.Render(control);
+            bitmap.Save(Path.Combine(output, name), PngBitmapEncoderOptions.Default);
         }
         void Until(Func<bool> ready) { while (!ready()) { if (clock.Elapsed.TotalSeconds > 25) throw new TimeoutException("detail smoke"); Settle(); Thread.Sleep(2); } Settle(); }
         void Wait(Task task) { Until(() => task.IsCompleted); task.GetAwaiter().GetResult(); }

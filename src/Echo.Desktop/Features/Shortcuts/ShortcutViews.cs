@@ -25,7 +25,17 @@ public partial class ShortcutSettingsView : UserControl
         var rows = (DataContext as ShortcutSettingsViewModel)?.VisibleRows;
         if (_compact == compact && _renderedRows == rows) return;
         _compact = compact; _renderedRows = rows;
-        // Fixed 33 rows; inspect once when the breakpoint or filtered rows change.
+        FilterToolbar.ColumnDefinitions = new(compact ? "*,Auto" : "*,Auto,Auto");
+        FilterToolbar.RowDefinitions = new(compact ? "Auto,Auto" : "Auto");
+        FilterToolbar.RowSpacing = compact ? 10 : 0;
+        for (var i = 0; i < FilterToolbar.Children.Count; i++)
+        {
+            var child = FilterToolbar.Children[i];
+            Grid.SetColumn(child, compact ? Math.Max(0, i - 1) : i);
+            Grid.SetRow(child, compact && i > 0 ? 1 : 0);
+            Grid.SetColumnSpan(child, compact && i == 0 ? 2 : 1);
+        }
+        // Bounded catalog; inspect once when the breakpoint or filtered rows change.
         foreach (var grid in this.GetVisualDescendants().OfType<Grid>().Where(x => x.Classes.Contains("shortcut-row-grid")).Prepend(ColumnHeader))
         {
             grid.ColumnDefinitions = new(compact ? "*,*" : "*,230,230");

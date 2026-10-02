@@ -13,30 +13,35 @@ internal sealed class KineticPosterLayout : IDisposable
     private double width, fontSize;
     private TextLayout? passed, current, future, label;
     private IBrush? ink, accent;
-    public void Draw(DrawingContext dc, LyricLine value, double position, Rect area, double size, IBrush body, IBrush highlight)
+    public void Draw(DrawingContext dc, LyricLine value, double position, Rect area, double size, IBrush body, IBrush highlight, double viewportWidth = 1440)
     {
         var index = 0;
         while (index + 1 < value.Words.Count && value.Words[index + 1].StartMs <= position) index++;
-        var centerWidth = Math.Clamp(area.Width * 0.26, 240, 400);
-        var sideWidth = Math.Max(60, (area.Width - centerWidth) / 2 - 36);
+        var centerWidth = Math.Clamp(viewportWidth * .22, 290, 400);
+        var sidePadding = Math.Clamp(viewportWidth * .032, 24, 64);
+        var sideWidth = Math.Max(60, (area.Width - centerWidth) / 2 - sidePadding);
         if (line != value || word != index || width != area.Width || fontSize != size || ink != body || accent != highlight)
         {
             Dispose(); line = value; word = index; width = area.Width; fontSize = size; ink = body; accent = highlight;
-            var font = new Typeface("Bahnschrift, Microsoft YaHei, Noto Sans CJK SC", weight: FontWeight.SemiBold);
+            var font = new Typeface("Bahnschrift, Microsoft YaHei, Noto Sans CJK SC", weight: (FontWeight)640);
             var text = value.Words[index].Text;
-            var focusSize = Math.Clamp(area.Width * 0.095, 84, 156) * size / 36;
-            if (text.Length > 8) focusSize *= 0.5;
-            else if (text.Length > 4) focusSize *= 0.7;
+            var wide = text.Any(c => c is >= '\u2E80' and <= '\uD7FF');
+            var count = text.Trim().Length;
+            var focusSize = count <= (wide ? 2 : 4) ? Math.Clamp(viewportWidth * .08, 84, 156)
+                : count <= (wide ? 3 : 6) ? Math.Clamp(viewportWidth * .065, 68, 120)
+                : count <= (wide ? 4 : 8) ? Math.Clamp(viewportWidth * .05, 52, 90) : Math.Clamp(viewportWidth * .04, 42, 68);
+            focusSize *= size / 36;
             current = Shape(text, font, focusSize, highlight, centerWidth, TextAlignment.Center);
-            passed = Shape(string.Concat(value.Words.Take(index).Select(w => w.Text)), font, Math.Clamp(area.Width * 0.05, 36, 72) * size / 36, body, sideWidth, TextAlignment.Right);
-            future = Shape(string.Concat(value.Words.Skip(index + 1).Select(w => w.Text)), font, Math.Clamp(area.Width * 0.05, 36, 72) * size / 36, body, sideWidth, TextAlignment.Left);
+            var sideFont = new Typeface(font.FontFamily, weight: (FontWeight)500);
+            passed = Shape(string.Concat(value.Words.Take(index).Select(w => w.Text)), sideFont, Math.Clamp(viewportWidth * .05, 44, 88) * size / 36, body, sideWidth, TextAlignment.Right);
+            future = Shape(string.Concat(value.Words.Skip(index + 1).Select(w => w.Text)), sideFont, Math.Clamp(viewportWidth * .05, 44, 88) * size / 36, body, sideWidth, TextAlignment.Left);
             label = Shape("NOW", font, 10, highlight, centerWidth, TextAlignment.Center);
         }
         var centerX = area.X + (area.Width - centerWidth) / 2;
         var mid = area.Y + area.Height / 2;
         using (dc.PushOpacity(0.88)) passed!.Draw(dc, new(area.X, mid - passed.Height / 2 - 24));
         current!.Draw(dc, new(centerX, mid - current.Height / 2));
-        using (dc.PushOpacity(0.65)) future!.Draw(dc, new(centerX + centerWidth + 36, mid - future.Height / 2 + 22));
+        using (dc.PushOpacity(0.84)) future!.Draw(dc, new(centerX + centerWidth + sidePadding, mid - future.Height / 2 + 22));
         label!.Draw(dc, new(centerX, area.Y + 12));
         dc.DrawLine(new Pen(highlight, 2), new(centerX + centerWidth * 0.27, area.Bottom - 12), new(centerX + centerWidth * 0.73, area.Bottom - 12));
     }

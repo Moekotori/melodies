@@ -1,0 +1,5 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="Echo.Desktop.Features.Home.HomeNowLyrics">
+ <Button Name="OpenLyrics" Classes="content-link" Click="OnOpen" HorizontalAlignment="Left" HorizontalContentAlignment="Stretch" Padding="0,8" IsVisible="False" CornerRadius="0">
+  <StackPanel Spacing="5"><TextBlock Name="Previous" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" Opacity="0.65" /><TextBlock Name="Current" Classes="heading" FontSize="15" TextTrimming="CharacterEllipsis" /><TextBlock Name="Next" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" Opacity="0.65" /></StackPanel>
+ </Button>
+</UserControl>

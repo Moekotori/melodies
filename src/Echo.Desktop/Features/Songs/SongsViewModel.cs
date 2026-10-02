@@ -41,10 +41,15 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     public bool CanPrevious => !IsLoading && offset > 0;
     public bool CanNext => !IsLoading && hasNext;
     public bool IsEmpty => !IsLoading && Items.Count == 0 && Error.Length == 0;
+    public bool HasQuery => Search.Length > 0 || Filters.HasActive;
+    public string SortText => SortChoiceLabel(Math.Clamp(SortIndex,0,11), Descending)
+        + (Order().Count > 1 ? " +" + (Order().Count - 1) : "");
+    public string CountText => text.Format("query.visibleCount", Items.Count);
     public string PageText => text.Format("query.page", offset / 200 + 1, Items.Count);
     public SongsViewModel(ITrackLibrary library, PlayerViewModel? player, LocalizationService text, LibraryViewPreferences? preference = null)
     {
         this.library = library; this.player = player; this.text = text;
+        Filters.AttachLibrary(library as IAlbumLibrary);
         if (preference is not null)
         {
             sortIndex = preference.SortIndex; descending = preference.Descending;
@@ -52,14 +57,17 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
             tertiaryIndex = preference.TertiaryIndex; tertiaryDescending = preference.TertiaryDescending;
             Filters.Restore(preference.Filter);
         }
+        isMultiSortEnabled = secondaryIndex > 0 || tertiaryIndex > 0;
         Filters.Changed += OnFilters; text.Changed += OnLanguage;
     }
     public event Action? PreferenceChanged;
     public LibraryViewPreferences Preference => new("songs", SortIndex, Descending, SecondaryIndex, SecondaryDescending, TertiaryIndex, TertiaryDescending, Filters.Snapshot());
-    private void OnFilters() { PreferenceChanged?.Invoke(); _ = LoadAsync(0, true); }
-    private void OnOptions() { PreferenceChanged?.Invoke(); _ = LoadAsync(); }
+    private void OnFilters() { OnPropertyChanged(nameof(HasQuery)); PreferenceChanged?.Invoke(); _ = LoadAsync(0, true); }
+    private void OnOptions() { if (changingSort) return;
+        if ((SecondaryIndex > 0 || TertiaryIndex > 0) && !IsMultiSortEnabled) { IsMultiSortEnabled = true; OnPropertyChanged(nameof(IsMultiSortEnabled)); }
+        OnPropertyChanged(nameof(SortText)); OnPropertyChanged(nameof(SortOptions)); PreferenceChanged?.Invoke(); _ = LoadAsync(); }
     private void OnLanguage()
-    { OnPropertyChanged(nameof(SortChoices)); OnPropertyChanged(nameof(AdditionalSortChoices)); Notify(); }
+    { OnPropertyChanged(nameof(SortChoices)); OnPropertyChanged(nameof(AdditionalSortChoices)); OnPropertyChanged(nameof(SortOptions)); Notify(); }
     private IReadOnlyList<TrackOrder> Order()
     {
         var result = new List<TrackOrder> { new((TrackSort)Math.Clamp(SortIndex, 0, 11), Descending) };
@@ -67,7 +75,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
             if (index is >= 1 and <= 12 && result.All(order => order.Field != (TrackSort)(index - 1))) result.Add(new((TrackSort)(index - 1), desc));
         return result;
     }
-    partial void OnSearchChanged(string value) => _ = LoadAsync(0, true);
+    partial void OnSearchChanged(string value) { OnPropertyChanged(nameof(HasQuery)); _ = LoadAsync(0, true); }
     partial void OnSortIndexChanged(int value) => OnOptions();
     partial void OnSecondaryIndexChanged(int value) => OnOptions();
     partial void OnTertiaryIndexChanged(int value) => OnOptions();
@@ -78,12 +86,13 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     private void Notify()
     {
         OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext));
-        OnPropertyChanged(nameof(IsEmpty)); OnPropertyChanged(nameof(PageText));
+        OnPropertyChanged(nameof(IsEmpty)); OnPropertyChanged(nameof(CountText)); OnPropertyChanged(nameof(PageText)); OnPropertyChanged(nameof(SortText));
     }
     [RelayCommand] private Task RefreshAsync() => LoadAsync();
     [RelayCommand] private Task PreviousAsync() => CanPrevious ? LoadAsync(offset - 200, expected: revision) : Task.CompletedTask;
     [RelayCommand] private Task NextAsync() => CanNext ? LoadAsync(offset + 200, expected: revision) : Task.CompletedTask;
     [RelayCommand] private void ClearSearch() => Search = "";
+    [RelayCommand] private void ResetQuery() { Search = ""; Filters.Reset(); }
     public async Task LoadAsync(int target = 0, bool debounce = false, long? expected = null)
     {
         if (closed) return;
@@ -118,7 +127,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
             var queue = rows.Select(row => new QueueTrack(Guid.NewGuid().ToString("N"), row.Id, row.Path,
                 Metadata: new Dictionary<string, string?> { ["title"] = row.Title, ["artist"] = row.Artist, ["album"] = row.Album,
                     ["duration"] = row.DurationSeconds.ToString(CultureInfo.InvariantCulture), ["codec"] = row.Codec },
-                Origin: new("songs", text["navigation.songs"]))).ToArray();
+                Origin: new("songs", text["navigation.songs"]), SampleRate: row.SampleRate > 0 ? row.SampleRate : null)).ToArray();
             if (append) await player.Session.EnqueueAsync(queue, next, lifetime.Token);
             else await player.Session.SetQueueAsync(queue, queue.First(track => track.TrackId == selected.Id).ItemId, lifetime.Token);
         }
@@ -130,7 +139,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     {
         if (Selected is not { } row || library is not IAlbumPersonalState state || IsActing || closed) return;
         IsActing = true;
-        try { await state.SetTrackFavoriteAsync(row.Id, !row.Favorite, lifetime.Token); await LoadAsync(); }
+        try { await state.SetTrackFavoriteAsync(row.Id, !row.Favorite, lifetime.Token); await LoadAsync(offset); }
         catch (OperationCanceledException) { }
         catch (Exception) { if (!closed) Error = text["query.failed"]; }
         finally { if (!closed) IsActing = false; }

@@ -62,7 +62,7 @@
       </RadialGradientBrush>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
-  <FontFamily x:Key="EchoFont">avares://Echo.Desktop/Resources/Fonts#Outfit, Segoe UI, Microsoft YaHei UI, Noto Sans, DejaVu Sans, PingFang SC</FontFamily>
+  <FontFamily x:Key="EchoFont">Segoe UI, Microsoft YaHei UI, Noto Sans, PingFang SC, DejaVu Sans</FontFamily>
   <x:Double x:Key="EchoTitlebarHeight">40</x:Double>
   <x:Double x:Key="EchoSidebarWidth">220</x:Double>
   <x:Double x:Key="EchoPlayerHeight">108</x:Double>

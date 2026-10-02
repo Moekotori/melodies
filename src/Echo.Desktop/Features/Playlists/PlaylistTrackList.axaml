@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pl="using:Echo.Desktop.Features.Playlists" xmlns:folders="using:Echo.Desktop.Features.Folders" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Playlists.PlaylistTrackList" x:DataType="pl:PlaylistsViewModel">
+  <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="/Features/Playlists/PlaylistStyles.axaml" />
+  </ResourceDictionary.MergedDictionaries></ResourceDictionary></UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Border.playing TextBlock.track-title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button.liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+    <folders:FolderColumnsGrid Name="HeaderColumns" Margin="8,0,8,0" HorizontalAlignment="Left">
+      <TextBlock Text="#" Classes="muted" FontSize="11" />
+      <TextBlock Grid.Column="1" Text="{DynamicResource playlists.track}" Classes="muted" FontSize="11" />
+      <TextBlock Grid.Column="2" Text="{DynamicResource playlists.album}" Classes="muted wide" FontSize="11" />
+      <TextBlock Grid.Column="3" Text="{DynamicResource playlists.quality}" Classes="muted wide" FontSize="11" />
+      <TextBlock Grid.Column="4" Text="{DynamicResource playlists.duration}" Classes="muted" FontSize="11" HorizontalAlignment="Right" />
+    </folders:FolderColumnsGrid>
+    <ListBox Name="TrackList" Grid.Row="1" ItemsSource="{Binding Tracks}" Background="Transparent" Padding="0" BorderThickness="0"
+             ItemContainerTheme="{StaticResource PlaylistListItem}" SelectionMode="Multiple" SelectionChanged="OnSelection" DoubleTapped="OnDoubleTap" KeyDown="OnKey"
+             IsEnabled="{Binding CanAct}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+      <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="pl:PlaylistTrackItem">
+          <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="8,9" Classes.playing="{Binding IsPlaying}">
+            <Border.ContextMenu><ContextMenu>
+              <MenuItem Header="{DynamicResource playlists.play}" Click="OnMenuPlay" />
+              <MenuItem Header="{DynamicResource playlists.nextUp}" Click="OnMenuNext" />
+              <MenuItem Header="{DynamicResource playlists.append}" Click="OnMenuAppend" />
+            </ContextMenu></Border.ContextMenu>
+            <folders:FolderColumnsGrid>
+              <TextBlock Text="{Binding Number}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Row.Title}" Classes="track-title heading" FontSize="13" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <TextBlock Grid.Column="2" Text="{Binding Row.Album}" Classes="muted wide" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="3" Text="{Binding Signal}" Classes="muted wide" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="4" Text="{Binding Duration}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
+              <Button Grid.Column="5" Classes="icon" Classes.liked="{Binding Favorite}" Command="{Binding FavoriteCommand}" Click="OnFavorite"
+                      ToolTip.Tip="{DynamicResource playlists.favorite}" AutomationProperties.Name="{DynamicResource playlists.favorite}"><icon:GlyphIcon Kind="{Binding HeartIcon}" Width="16" Height="16" /></Button>
+            </folders:FolderColumnsGrid>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="320" Margin="24">
+      <icon:GlyphIcon Kind="queue" Width="32" Height="32" HorizontalAlignment="Center" />
+      <TextBlock Text="{DynamicResource playlists.emptyTracks}" Classes="heading" FontSize="20" HorizontalAlignment="Center" />
+      <TextBlock Text="{DynamicResource playlists.emptyTracksHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
+    </StackPanel>
+    <Border Grid.Row="1" IsVisible="{Binding IsLoading}" Background="{DynamicResource EchoPage}">
+      <TextBlock Text="{DynamicResource playlists.loading}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+    <StackPanel Name="SelectionBar" Grid.Row="2" IsVisible="False" Orientation="Horizontal" Spacing="4" IsEnabled="{Binding CanAct}">
+      <TextBlock Name="SelectionText" Classes="muted" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
+      <Button Content="{DynamicResource playlists.play}" Click="OnPlaySelected" />
+      <Button Content="{DynamicResource playlists.nextUp}" Click="OnNextSelected" />
+      <Button Content="{DynamicResource playlists.append}" Click="OnAppendSelected" />
+      <Button Content="{DynamicResource playlists.remove}" Click="OnRemove" IsVisible="{Binding IsManual}" />
+      <Button Content="↑" Click="OnUp" IsVisible="{Binding IsManual}" IsEnabled="{Binding CanMove}" ToolTip.Tip="{DynamicResource playlists.moveUp}" />
+      <Button Content="↓" Click="OnDown" IsVisible="{Binding IsManual}" IsEnabled="{Binding CanMove}" ToolTip.Tip="{DynamicResource playlists.moveDown}" />
+    </StackPanel>
+  </Grid>
+</UserControl>

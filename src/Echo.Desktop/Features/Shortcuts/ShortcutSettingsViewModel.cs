@@ -8,7 +8,7 @@ namespace Echo.Desktop.Features.Shortcuts;
 
 public sealed record ShortcutRow(ShortcutAction Action, ShortcutCellViewModel Local, ShortcutCellViewModel Global, string Title, string Group);
 
-// Window-owned fixed 33 rows/66 cells. Dispatch index is rebuilt only on edits, never per key event.
+// Window-owned bounded catalog. Dispatch index is rebuilt only on edits, never per key event.
 public sealed partial class ShortcutSettingsViewModel : ObservableObject, IDisposable
 {
     public LocalizationService Text { get; }
@@ -28,12 +28,13 @@ public sealed partial class ShortcutSettingsViewModel : ObservableObject, IDispo
     private readonly HashSet<string> _global = new(StringComparer.Ordinal);
     private string _platformHintSource = "";
     public event Action<bool>? Changed; // true = persist profile, false = suspension only
-    public string Summary => Text.Format("shortcuts.summary", Rows.Count(x => x.Local.Enabled), Rows.Count(x => x.Global.Registered));
+    public string Summary => Text.Format("shortcuts.summary", Rows.Count(x => x.Local.Enabled && x.Local.Available), Rows.Count(x => x.Global.Registered));
     public string PlatformHint { get; private set; } = "";
     public string RecordingHint => Text.Translate(IsRecording ? "录制期间暂停快捷键执行。按 Esc 取消，保留原绑定。" : "点击按键即可录制；开关控制生效，× 清除绑定。输入框与滑块保留自身按键。" );
     public bool HasNoMatches => VisibleRows.Count == 0;
     public ShortcutSettingsViewModel(LocalizationService text)
     {
+        if (ShortcutCatalog.Actions.Count > ShortcutLimits.MaxActions) throw new InvalidOperationException("Shortcut catalog exceeds its resource budget.");
         Text = text;
         Rows = ShortcutCatalog.Actions.Select(action => new ShortcutRow(action,
             new(this, action.Id, ShortcutScope.Local) { Enabled = action.LocalEnabled, Accelerator = action.LocalKey },
@@ -49,6 +50,7 @@ public sealed partial class ShortcutSettingsViewModel : ObservableObject, IDispo
         {
             row.Local.Available = supported(row.Action.Id) && row.Action.Id != "showMainWindow";
             row.Global.Available = supported(row.Action.Id) && global;
+            row.Global.UnavailableReason = supported(row.Action.Id) && !global ? "此平台的全局快捷键暂未接入。" : "此功能暂未接入。";
             row.Local.Refresh(); row.Global.Refresh();
         }
         OnPropertyChanged(nameof(PlatformHint)); OnPropertyChanged(nameof(GlobalAvailable)); Reindex();
@@ -58,7 +60,7 @@ public sealed partial class ShortcutSettingsViewModel : ObservableObject, IDispo
         .Where(x => x.Enabled && x.Scope == ShortcutScope.Global && Rows.First(row => row.Action.Id == x.Action).Global.Available).ToArray();
     public void Restore(ShortcutProfile profile)
     {
-        if (profile.Version != 1 || profile.Bindings.Count > 66) throw new InvalidDataException("Unsupported shortcut profile.");
+        if (profile.Version != 1 || profile.Bindings.Count > ShortcutLimits.MaxBindings) throw new InvalidDataException("Unsupported shortcut profile.");
         foreach (var cell in Cells()) { cell.Enabled = false; cell.Message = ""; }
         foreach (var binding in profile.Bindings)
         {
@@ -111,7 +113,7 @@ public sealed partial class ShortcutSettingsViewModel : ObservableObject, IDispo
     }
     public void Clear(ShortcutCellViewModel cell)
     {
-        if (!cell.CanEdit) return;
+        if (!cell.CanClear) return;
         CancelRecording(false); cell.Enabled = false; cell.Accelerator = null; cell.Message = ""; Publish(true);
     }
     [RelayCommand] private void RestoreRecommended()
@@ -126,7 +128,7 @@ public sealed partial class ShortcutSettingsViewModel : ObservableObject, IDispo
     }
     [RelayCommand] private void Retry() => Publish(false);
     [RelayCommand] private void Cancel() => CancelRecording();
-    public string? ResolveLocal(string accelerator) => !IsRecording && _local.TryGetValue(accelerator, out var action) ? action : null;
+    public string? ResolveLocal(string accelerator) => !IsRecording && !IsApplying && _local.TryGetValue(accelerator, out var action) ? action : null;
     public bool IsGlobalRegistered(string accelerator) => !IsRecording && _global.Contains(accelerator);
     private string? Conflict(ShortcutCellViewModel cell, string key)
     {

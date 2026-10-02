@@ -37,13 +37,26 @@ internal static class QuickSettingsSmoke
             Require(Read(session.GetOutputModesAsync()).Count > 0, "native query host starts");
             window.Show(); Pump(40);
             var host = window.FindControl<QuickSettingsDrawer>("QuickSettingsOverlay")!;
-            var audioButton = window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "AudioDrawerButton");
-            audioButton.Focus(); Click(audioButton); Pump(30);
+            var titleBar = window.GetVisualDescendants().OfType<TitleBar>().Single();
+            var moreButton = titleBar.FindControl<Button>("MoreButton")!;
+            Click(moreButton); Pump(30);
+            Save(window, output, "titlebar-more-light");
+            var audioButton = titleBar.FindControl<MenuItem>("AudioDrawerButton")!;
+            Click(audioButton); Pump(30);
             var audio = host.GetVisualDescendants().OfType<AudioSettingsDrawerView>().Single();
             Require(shell.ActiveRouteId == "home" && shell.QuickSettingsKind == "audio", "titlebar opens drawer without page navigation");
             Wait(player.AudioSettings.RefreshCommand.ExecutionTask!);
             Require(player.AudioSettings.Devices.Count > 0 && !player.AudioSettings.IsRefreshing, $"real native output enumeration: {player.AudioSettings.Message}; devices={player.AudioSettings.Devices.Count}, refreshing={player.AudioSettings.IsRefreshing}");
             Save(window, output, "audio-output-light");
+            var devices = audio.FindControl<ListBox>("OutputDeviceInput")!;
+            if (player.AudioSettings.Devices.Count > 1)
+            {
+                var second = devices.GetVisualDescendants().OfType<ListBoxItem>().ElementAt(1);
+                var point = second.TranslatePoint(new Point(second.Bounds.Width / 2, second.Bounds.Height / 2), window)!.Value;
+                window.MouseMove(point); window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+                Wait(player.AudioSettings.ApplyCommand.ExecutionTask!);
+                Require(session.RequestedOutput!.Value.GetProperty("deviceId").GetString() == player.AudioSettings.Devices[1].Id, "native device row click applies selected output");
+            }
             audio.FindControl<TabControl>("AudioTabs")!.SelectedIndex = 1; Pump(30);
             audio.FindControl<ComboBox>("SampleRateInput")!.SelectedItem = 44100;
             audio.FindControl<NumericUpDown>("BufferInput")!.Value = 512;
@@ -62,13 +75,21 @@ internal static class QuickSettingsSmoke
             Require(fresh.PlaybackRate == 1.25 && fresh.SampleRate == 44100 && fresh.BufferFrames == 512, "acknowledged config reads back into a fresh settings VM");
             fresh.CancelPendingRead();
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Pump(30);
-            Require(!host.IsVisible && audioButton.IsFocused && host.FindControl<ContentControl>("DrawerContent")!.Content is null, "Escape restores focus and releases drawer view");
-            var lyricsButton = window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "LyricsDrawerButton");
+            Require(!host.IsVisible && moreButton.IsFocused && host.FindControl<ContentControl>("DrawerContent")!.Content is null, "Escape restores focus to titlebar More and releases drawer view");
+            Click(moreButton); Pump(30);
+            Save(window, output, "titlebar-more-dark");
+            var lyricsButton = titleBar.FindControl<MenuItem>("LyricsDrawerButton")!;
             Click(lyricsButton); Pump(30);
             var lyrics = host.GetVisualDescendants().OfType<LyricsSettingsDrawerView>().Single();
             lyrics.FindControl<Slider>("LyricFontInput")!.Value = 42;
+            lyrics.FindControl<Slider>("LyricFontInput")!.Focus(NavigationMethod.Tab);
+            window.KeyPress(Key.Right, RawInputModifiers.None, default, null); Pump(20);
+            Require(appearance.FontSize > 42, "custom lyric slider keeps keyboard range input");
+            lyrics.FindControl<Slider>("LyricFontInput")!.Value = 42;
             lyrics.FindControl<CheckBox>("LyricTranslationInput")!.IsChecked = false;
+            lyrics.FindControl<TabControl>("LyricsTabs")!.SelectedIndex = 2; Pump(30);
             lyrics.FindControl<NumericUpDown>("LyricOffsetInput")!.Value = 300;
+            lyrics.FindControl<TabControl>("LyricsTabs")!.SelectedIndex = 1; Pump(30);
             lyrics.FindControl<ComboBox>("LyricStyleInput")!.SelectedItem = appearance.StyleChoices[2];
             Pump(30); Require(appearance.FontSize == 42 && !appearance.Translation && appearance.OffsetMs == 300 && appearance.SelectedStyle == appearance.Styles[2], "lyric bindings change shared live appearance");
             host.FindControl<TextBox>("DrawerSearchInput")!.Text = "时间偏移"; Pump(30);
@@ -114,7 +135,7 @@ internal static class QuickSettingsSmoke
     private static JsonElement Json(string text) { using var document = JsonDocument.Parse(text); return document.RootElement.Clone(); }
     private static T Read<T>(Task<T> task) { Wait(task); return task.GetAwaiter().GetResult(); }
     private static void Wait(Task task) { while (!task.IsCompleted) Pump(3); task.GetAwaiter().GetResult(); Pump(5); }
-    private static void Click(Button button)
+    private static void Click(Control button)
     {
         var window = TopLevel.GetTopLevel(button) as Window ?? throw new InvalidOperationException("Detached button");
         var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;

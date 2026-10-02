@@ -4,6 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Echo.Desktop.Theming;
+using System.ComponentModel;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 
 namespace Echo.Desktop.Features.Settings;
 
@@ -11,8 +14,41 @@ public partial class ThemeSettingsView : UserControl
 {
     private readonly CancellationTokenSource _lifetime = new();
     private bool _busy;
+    private ThemeViewModel? _observed;
     public ThemeSettingsView()
-    { InitializeComponent(); DetachedFromVisualTree += (_, _) => _lifetime.Cancel(); }
+    {
+        InitializeComponent();
+        AttachedToVisualTree += (_, _) => ObserveEditor();
+        DetachedFromVisualTree += (_, _) =>
+        {
+            if (_observed is not null) { _observed.IsPresetGalleryOpen = false; _observed.PropertyChanged -= EditorChanged; }
+            _observed = null; CloseSelections(); _lifetime.Cancel();
+        };
+        KeyDown += (_, args) =>
+        {
+            if (args.Key == Key.Escape && _observed?.IsPresetGalleryOpen == true)
+            { _observed.IsPresetGalleryOpen = false; args.Handled = true; }
+        };
+        SizeChanged += (_, _) =>
+        {
+            var available = Math.Max(140, Bounds.Width);
+            var columns = available >= 760 ? 3 : available >= 460 ? 2 : 1;
+            Resources["ThemeColorFieldWidth"] = available / columns - 16;
+            Resources["ThemeModeWidth"] = Math.Min(500, available);
+        };
+    }
+    private void ObserveEditor()
+    {
+        if (_observed is not null) _observed.PropertyChanged -= EditorChanged;
+        _observed = DataContext as ThemeViewModel;
+        if (_observed is not null) _observed.PropertyChanged += EditorChanged;
+    }
+    private void EditorChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(ThemeViewModel.EditorSection)) CloseSelections();
+    }
+    private void CloseSelections()
+    { foreach (var select in this.GetVisualDescendants().OfType<ComboBox>()) select.IsDropDownOpen = false; }
     private async void ImportTheme(object? sender, RoutedEventArgs args)
     {
         if (_busy || DataContext is not ThemeViewModel model || TopLevel.GetTopLevel(this) is not { } top) return;
@@ -49,20 +85,6 @@ public partial class ThemeSettingsView : UserControl
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { model.Feedback = "主题导出失败，请选择其他保存位置"; }
-        finally { _busy = false; }
-    }
-    private async void ChooseWallpaper(object? sender, RoutedEventArgs args)
-    {
-        if (_busy || DataContext is not ThemeViewModel model || TopLevel.GetTopLevel(this) is not { } top) return;
-        _busy = true;
-        try
-        {
-            var files = await top.StorageProvider.OpenFilePickerAsync(new() { Title = "选择背景图片", FileTypeFilter = [FilePickerFileTypes.ImageAll] });
-            if (files.Count == 0 || _lifetime.IsCancellationRequested) return;
-            if (files[0].TryGetLocalPath() is { } path) model.Wallpaper = path;
-            else model.Feedback = "请选择本地图片";
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException) { model.Feedback = "图片选择失败，请重试"; }
         finally { _busy = false; }
     }
 }

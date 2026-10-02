@@ -4,13 +4,15 @@ using Echo.Contracts.Scanning;
 using Echo.Infrastructure.Files;
 using Echo.Infrastructure.Library;
 using Echo.Infrastructure.Metadata;
+using Echo.Contracts.Tasks;
 
 namespace Echo.Desktop.Bootstrap;
 
 // Lazy desktop lifetime: the same database instance owns reads and every imported scan.
-internal sealed class DesktopLibrary(string path) : ITrackLibrary, IAlbumLibrary, IArtistLibrary, IFolderLibrary, IAlbumPersonalState, IPlayerTrackLibrary, IHomeLibrary, IAsyncDisposable
+internal sealed partial class DesktopLibrary(string path, IBackgroundWorkAdmission? admission = null) : ITrackLibrary, IAlbumLibrary, IArtistLibrary, IGenreLibrary, IFolderLibrary, IAlbumPersonalState, IPlayerTrackLibrary, IHomeLibrary, IAsyncDisposable
 {
     private readonly object _gate = new();
+    private readonly CancellationTokenSource _shutdown = new();
     private Task<LibraryDatabase>? _opening;
     private Task<ScanReport>? _scan;
     private bool _closed;
@@ -29,7 +31,21 @@ internal sealed class DesktopLibrary(string path) : ITrackLibrary, IAlbumLibrary
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_closed, this);
-            return _opening ??= Task.Run(() => LibraryDatabase.OpenAsync(path));
+            return _opening ??= Task.Run(async () =>
+            {
+                var database = await LibraryDatabase.OpenAsync(path).ConfigureAwait(false);
+                var rules = await database.GetFolderRulesAsync(_shutdown.Token).ConfigureAwait(false);
+                foreach (var rule in rules.Where(rule => rule.Watch).Take(16))
+                {
+                    try
+                    {
+                        lock (_gate) { _folderWatch ??= new(ScanFolderAsync, changed => FolderChanged?.Invoke(changed)); }
+                        await _folderWatch.SetAsync(rule.Path, true, _shutdown.Token).ConfigureAwait(false);
+                    }
+                    catch (Exception) when (!_shutdown.IsCancellationRequested) { /* Missing watched roots remain available for explicit retry. */ }
+                }
+                return database;
+            });
         }
     }
 
@@ -43,6 +59,13 @@ internal sealed class DesktopLibrary(string path) : ITrackLibrary, IAlbumLibrary
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetFoldersAsync(query, cancellation).ConfigureAwait(false);
     public async Task<FolderTrackPage> GetFolderTracksAsync(FolderTrackQuery query, CancellationToken cancellation = default)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetFolderTracksAsync(query, cancellation).ConfigureAwait(false);
+
+    public async Task<GenrePage> GetGenresAsync(GenreQuery query, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetGenresAsync(query, cancellation).ConfigureAwait(false);
+    public async Task<TrackPage> GetGenreTracksAsync(GenreTrackQuery query, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetGenreTracksAsync(query, cancellation).ConfigureAwait(false);
+    public async Task<AlbumPage> GetGenreAlbumsAsync(string id, AlbumQuery query, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetGenreAlbumsAsync(id, query, cancellation).ConfigureAwait(false);
 
     public async Task<ArtistPage> GetArtistsAsync(ArtistQuery query, CancellationToken cancellation = default)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetArtistsAsync(query, cancellation).ConfigureAwait(false);
@@ -68,16 +91,29 @@ internal sealed class DesktopLibrary(string path) : ITrackLibrary, IAlbumLibrary
         {
             ObjectDisposedException.ThrowIf(_closed, this);
             if (_scan is { IsCompleted: false }) throw new InvalidOperationException("A scan is already active.");
-            return _scan = RunImportAsync(folder, progress, cancellation);
+            return _scan = Task.Run(() => RunImportAsync(folder, progress, cancellation));
         }
     }
 
-    private async Task<ScanReport> RunImportAsync(string folder, IProgress<ScanProgress> progress, CancellationToken cancellation)
+    private async Task<ScanReport> RunImportAsync(string folder, IProgress<ScanProgress> progress, CancellationToken cancellation, FolderScanOptions? options = null)
     {
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _shutdown.Token);
+        cancellation = lifetime.Token;
         var database = await Database().WaitAsync(cancellation).ConfigureAwait(false);
+        cancellation.ThrowIfCancellationRequested();
+        var target = LibraryPath.Canonical(folder);
+        var isFolder = Directory.Exists(target);
+        var root = isFolder ? target : Path.GetDirectoryName(target)!;
         var native = Environment.GetEnvironmentVariable("ECHO_METADATA_SCANNER");
-        var scan = new ScanCoordinator(database, new LegacyFolderDiscovery(database), () => new LocalMetadataReader(native));
-        return await scan.ScanAsync(new(folder), progress, cancellation).ConfigureAwait(false);
+        var rules = await database.GetFolderRulesAsync(cancellation).ConfigureAwait(false);
+        var rule = rules.FirstOrDefault(item => LibraryPath.Key(item.Path) == LibraryPath.Key(Path.TrimEndingDirectorySeparator(root)));
+        var ignore = new FolderIgnoreRules(root, rule?.Ignore ?? []);
+        var recursive = options?.Recursive ?? rule?.Recursive ?? true;
+        IFileDiscovery discovery = isFolder ? new LegacyFolderDiscovery(database, recursive, ignore.Matches) : new SelectedFileDiscovery(target, database);
+        var scan = new ScanCoordinator(database, discovery, () => new LocalMetadataReader(native), admission);
+        var limits = ScanLimits;
+        return await scan.ScanAsync(new(root, limits.Workers, limits.Batch, Force: options?.Mode == FolderScanMode.EmbeddedTags,
+            DetectMissing: isFolder && options?.Mode == FolderScanMode.Full && recursive && rule?.Ignore is not { Count: > 0 }), progress, cancellation).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
@@ -85,11 +121,14 @@ internal sealed class DesktopLibrary(string path) : ITrackLibrary, IAlbumLibrary
         Task<LibraryDatabase>? opening;
         Task<ScanReport>? scan;
         lock (_gate) { _closed = true; opening = _opening; scan = _scan; }
+        await _shutdown.CancelAsync().ConfigureAwait(false);
+        if (_folderWatch is not null) await _folderWatch.DisposeAsync().ConfigureAwait(false);
         if (scan is not null) { try { await scan; } catch (Exception) { } }
         if (opening is not null)
         {
             try { await (await opening).DisposeAsync(); }
             catch (Exception) { /* Initialization errors are reported by the page. */ }
         }
+        _shutdown.Dispose();
     }
 }

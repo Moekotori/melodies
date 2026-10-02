@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Search" xmlns:icon="using:Echo.Desktop.Controls"
+             xmlns:queue="using:Echo.Desktop.Features.Queue"
+             x:Class="Echo.Desktop.Features.Search.GlobalSearchOverlay">
+  <UserControl.Styles>
+    <Style Selector="TextBox.global-search">
+      <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0,10" /><Setter Property="FontSize" Value="21" />
+      <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBox.global-search /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="10,7" /><Setter Property="Margin" Value="0,1" />
+      <Setter Property="CornerRadius" Value="10" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource EchoHover}" />
+    </Style>
+  </UserControl.Styles>
+  <Grid ClipToBounds="True">
+    <Border Background="#38181a20" PointerPressed="OnScrimPressed" />
+    <Border Name="SearchPanel" x:DataType="local:GlobalSearchViewModel" Width="760"
+            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="18,108,18,24"
+            Background="{DynamicResource EchoField}" CornerRadius="22" ClipToBounds="True"
+            BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" BoxShadow="0 18 60 0 #30181a20"
+            AutomationProperties.Name="{DynamicResource query.globalSearch}">
+      <Grid RowDefinitions="Auto,Auto,Auto">
+        <Grid Height="74" ColumnDefinitions="26,*,Auto" ColumnSpacing="14" Margin="20,0">
+          <icon:GlyphIcon Kind="search" Width="26" Height="26" Stroke="{DynamicResource EchoAccent}" VerticalAlignment="Center" />
+          <TextBox Name="SearchField" Grid.Column="1" Classes="global-search" Text="{Binding Search, Mode=TwoWay}"
+                   MaxLength="128" PlaceholderText="{DynamicResource globalSearch.hint}" VerticalAlignment="Center"
+                   AutomationProperties.Name="{DynamicResource query.globalSearch}" />
+          <Button Grid.Column="2" Classes="icon" Width="28" Height="28" Click="OnClear" IsVisible="{Binding IsExpanded}"
+                  ToolTip.Tip="{DynamicResource globalSearch.clear}" AutomationProperties.Name="{DynamicResource globalSearch.clear}">
+            <icon:GlyphIcon Kind="close" Width="16" Height="16" />
+          </Button>
+        </Grid>
+        <Border Grid.Row="1" IsVisible="{Binding IsExpanded}" Background="{DynamicResource EchoPanelMuted}"
+                BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1" Padding="18,10">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+            <TextBlock Text="{Binding Summary}" FontSize="12" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="1" Text="{DynamicResource globalSearch.keys}" Classes="muted" FontSize="11"
+                       HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Column="2" Text="{DynamicResource globalSearch.loading}" IsVisible="{Binding IsLoading}" Classes="muted" FontSize="11" />
+          </Grid>
+        </Border>
+        <Grid Grid.Row="2" IsVisible="{Binding IsExpanded}" MaxHeight="340">
+          <ListBox Name="HitList" ItemsSource="{Binding Hits}" Background="Transparent" BorderThickness="0" Padding="8"
+                   SelectionChanged="OnSelectionChanged" PointerReleased="OnResultReleased"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="local:GlobalSearchHit">
+                <Grid ColumnDefinitions="42,*,Auto,18" ColumnSpacing="12" MinHeight="44">
+                  <Border Background="{DynamicResource EchoPanelMuted}" CornerRadius="10" Width="42" Height="42">
+                    <Grid>
+                      <icon:GlyphIcon Kind="{Binding Icon}" Stroke="{DynamicResource EchoAccentText}" Width="21" Height="21" />
+                      <queue:QueueArtwork FilePath="{Binding ArtworkPath}" Cache="{Binding $parent[local:GlobalSearchOverlay].Artwork}"
+                                          IsVisible="{Binding HasArtwork}" CornerRadius="{DynamicResource EchoCoverRadius}" />
+                    </Grid>
+                  </Border>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Description}" FontSize="12" Classes="muted" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <Border Grid.Column="2" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="10" Padding="8,3" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Kind}" FontSize="10" Classes="muted" />
+                  </Border>
+                  <icon:GlyphIcon Grid.Column="3" Kind="arrow-right" Width="15" Height="15" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <TextBlock Text="{DynamicResource globalSearch.empty}" IsVisible="{Binding IsEmpty}" Classes="muted" Margin="24,26" HorizontalAlignment="Center" />
+          <Border IsVisible="{Binding HasError}" Background="{DynamicResource EchoField}" Padding="18,14" VerticalAlignment="Bottom">
+            <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" />
+              <Button Grid.Column="1" Content="{DynamicResource globalSearch.retry}" Click="OnRetry" Margin="12,0,0,0" />
+            </Grid>
+          </Border>
+          <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" Height="2" VerticalAlignment="Top" />
+        </Grid>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

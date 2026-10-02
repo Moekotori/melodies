@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:Echo.Desktop.Features.Settings"
+             x:Class="Echo.Desktop.Features.Settings.UserLanguagesView" x:DataType="settings:UserLanguagesViewModel">
+  <StackPanel Spacing="12">
+    <TextBlock Text="{DynamicResource language.user.title}" Classes="heading" FontSize="18" FontWeight="SemiBold" />
+    <TextBlock Text="{DynamicResource language.user.help}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+    <WrapPanel>
+      <Button Name="ImportLanguageButton" Content="{DynamicResource language.user.import}" Click="OnImport" IsEnabled="{Binding CanRun}" Margin="0,0,8,8" />
+      <Button Content="{DynamicResource language.user.export}" Click="OnExport" IsEnabled="{Binding CanRun}" Margin="0,0,8,8" />
+      <Button Content="{DynamicResource language.user.open}" Click="OnOpenDirectory" IsEnabled="{Binding CanRun}" Margin="0,0,8,8" />
+      <Button Name="ReloadLanguagesButton" Content="{DynamicResource language.user.reload}" Command="{Binding ReloadCommand}" Margin="0,0,8,8" />
+      <Button Content="{DynamicResource language.user.cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" Margin="0,0,0,8" />
+    </WrapPanel>
+    <SelectableTextBlock Text="{Binding DirectoryPath}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Status}" FontSize="13" TextWrapping="Wrap" />
+    <SelectableTextBlock Text="{Binding Issues}" IsVisible="{Binding HasIssues}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+  </StackPanel>
+</UserControl>

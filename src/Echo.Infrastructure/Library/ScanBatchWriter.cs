@@ -59,6 +59,8 @@ public sealed partial class LibraryDatabase
             ["$job","$n","$path","$code"]);
         var inserted = 0; var updated = 0; var unchanged = 0; var failed = 0;
         using var artists = new ArtistIndexWriter(connection, transaction);
+        using var userState = CreateTrackUserStateCommand(connection, transaction);
+        using var reconciliation = new VirtualAudioReconciliation(connection, transaction);
         foreach (var entry in entries)
         {
             cancellation.ThrowIfCancellationRequested();
@@ -94,8 +96,10 @@ public sealed partial class LibraryDatabase
             for (var i = 0; i < values.Length; i++) upsert.Parameters[i].Value = values[i] ?? DBNull.Value;
             if (upsert.ExecuteNonQuery() == 0)
                 throw new MetadataReadException("path_case_identity_required");
+            userState.Parameters[0].Value = entry.File.PathKey;
+            userState.ExecuteNonQuery();
             artists.Update(entry.File.PathKey, cancellation);
-            ReconcileVirtualAudio(connection, transaction, entry, artists, cancellation);
+            reconciliation.Apply(entry, artists, cancellation);
             if (entry.ExistingId is null) inserted++; else updated++;
         }
         job.Parameters.AddWithValue("$inserted", inserted);

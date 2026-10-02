@@ -4,7 +4,9 @@ public sealed record DesktopPreferences(int Version = 1, int UiScalePercent = 10
     bool SidebarIconOnly = false, bool HideSidebarInSettings = false, bool RememberWindowSize = true,
     double WindowWidth = 1440, double WindowHeight = 900, string MotionMode = "System", bool SidebarAutoHideEnabled = false,
     string Language = "system", ThemePreferences? Theme = null, LibraryViewPreferences[]? LibraryQueries = null,
-    FloatingPreferences? Floating = null, Dictionary<string, FeatureSetting>? Features = null);
+    FloatingPreferences? Floating = null, Dictionary<string, FeatureSetting>? Features = null, SidebarLayoutPreferences? SidebarLayout = null);
+
+public sealed record SidebarLayoutPreferences(string[] Order, string[] Hidden);
 
 public interface IDesktopPreferencesStore : IAsyncDisposable
 {

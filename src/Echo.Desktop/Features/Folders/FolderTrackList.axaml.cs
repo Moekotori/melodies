@@ -30,7 +30,7 @@ public partial class FolderTrackList : UserControl
     private void UpdateHeaderWidth()
     {
         // Reserve precisely the scroll viewport; no per-frame visual-tree discovery.
-        var width = Math.Max(0, (_scroll?.Viewport.Width ?? TrackList.Bounds.Width) - 16);
+        var width = Math.Max(0, (_scroll?.Viewport.Width ?? TrackList.Bounds.Width) - 20);
         if (Math.Abs(HeaderColumns.Width - width) > .1 || double.IsNaN(HeaderColumns.Width)) HeaderColumns.Width = width;
     }
     private AlbumTrackItem[] Selection() => TrackList.SelectedItems?.OfType<AlbumTrackItem>().ToArray() ?? [];

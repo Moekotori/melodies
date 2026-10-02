@@ -2,10 +2,12 @@ using System.Diagnostics;
 using System.Threading.Channels;
 using Echo.Contracts.Library;
 using Echo.Contracts.Scanning;
+using Echo.Contracts.Tasks;
 
 namespace Echo.Application.Scanning;
 
-public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discovery, Func<IMetadataReader> readerFactory)
+public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discovery, Func<IMetadataReader> readerFactory,
+    IBackgroundWorkAdmission? admission = null)
 {
     private int _active;
 
@@ -52,8 +54,16 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
             {
                 var batch = new List<FileSnapshot>(request.BatchSize);
                 var characters = 0;
-                foreach (var file in discovery.Enumerate(request.Root, request.DetectMissing, stop.Token, request.Force))
+                using var enumeration = discovery.Enumerate(request.Root, request.DetectMissing, stop.Token, request.Force).GetEnumerator();
+                while (true)
                 {
+                    if (admission is not null)
+                    {
+                        if (admission.Snapshot.Pressure == PlaybackWorkPressure.Protected) counters.Publish("waiting_playback", true);
+                        await admission.WaitAsync(BackgroundWorkKind.Discovery, stop.Token).ConfigureAwait(false);
+                    }
+                    if (!enumeration.MoveNext()) break;
+                    var file = enumeration.Current;
                     var size = file.Path.Length + file.PathKey.Length;
                     if (batch.Count != 0 && (batch.Count == request.BatchSize || characters + size > 256 * 1024))
                     {
@@ -75,7 +85,9 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
             await using var reader = readerFactory();
             await foreach (var batch in files.Reader.ReadAllAsync(stop.Token).ConfigureAwait(false))
             {
-                var known = await store.FindKnownAsync(batch, stop.Token).ConfigureAwait(false);
+                IReadOnlyDictionary<string, KnownTrack> known;
+                using (var access = admission is null ? null : await admission.EnterMetadataAsync(stop.Token).ConfigureAwait(false))
+                    known = await store.FindKnownAsync(batch, stop.Token).ConfigureAwait(false);
                 foreach (var file in batch)
                 {
                     stop.Token.ThrowIfCancellationRequested();
@@ -91,7 +103,12 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
                         existing.SizeBytes == file.SizeBytes && existing.ModifiedTicks == file.ModifiedTicks)
                         entry = new(file, ScanEntryKind.Unchanged, ExistingId: existing.Id);
                     else
+                    {
+                        if (admission?.Snapshot.Pressure == PlaybackWorkPressure.Protected) counters.Publish("waiting_playback", true);
+                        using var access = admission is null ? null : await admission.EnterMetadataAsync(stop.Token).ConfigureAwait(false);
+                        counters.Publish("reading");
                         entry = await ReadChangedAsync(reader, file, existing?.Id, stop.Token).ConfigureAwait(false);
+                    }
                     await results.Writer.WriteAsync(entry, stop.Token).ConfigureAwait(false);
                 }
             }
@@ -104,7 +121,7 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
         }
         var complete = CompleteResults();
         var commit = Task.Run(() => Guard(() =>
-            ScanCommitPump.RunAsync(store, job, results.Reader, request.BatchSize, counters, stop.Token)), CancellationToken.None);
+            ScanCommitPump.RunAsync(store, job, results.Reader, request.BatchSize, counters, stop.Token, admission)), CancellationToken.None);
         ScanStatus status;
         string? errorCode = null;
         try

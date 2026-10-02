@@ -49,7 +49,7 @@ public sealed partial class SettingRowViewModel : ObservableObject
     }
     public string ScaleLabel => $"{NumberValue:0}%";
     public string SliderLabel => NumberValue == 0 ? _text.Translate("未开启") : $"{NumberValue:0}";
-    public double Minimum => Id == "lyrics-font-size" ? 18 : Id == "lyrics-secondary-size" ? 10 : 0;
+    public double Minimum => Id == "lyrics-font-size" ? 18 : Id == "lyrics-secondary-size" ? 10 : Id == "lyrics-line-height" ? 80 : 0;
     public double Maximum => Id == "lyrics-font-size" ? 72 : Id == "lyrics-secondary-size" ? 32 : Id == "lyrics-line-height" ? 200 : 100;
     [ObservableProperty] private bool boolValue;
     [ObservableProperty] private string selectedValue;

@@ -4,6 +4,7 @@
   <StackPanel Spacing="10">
     <TextBlock Text="{DynamicResource floating.title}" FontSize="15" FontWeight="SemiBold" />
     <CheckBox Content="{DynamicResource floating.mini}" IsChecked="{Binding Floating.MiniEnabled}" />
+    <Button Content="{DynamicResource floating.useMini}" Command="{Binding Floating.UseMiniCommand}" />
     <CheckBox Content="{DynamicResource floating.topmost}" IsChecked="{Binding Floating.MiniTopmost}" />
     <CheckBox Content="{DynamicResource floating.fixed}" IsChecked="{Binding Floating.MiniLocked}" />
     <Border Height="1" Background="{DynamicResource EchoDivider}" />
@@ -14,8 +15,8 @@
     <CheckBox Content="{DynamicResource floating.hideEmpty}" IsChecked="{Binding Floating.HideWithoutLyrics}" />
     <Grid ColumnDefinitions="*,100"><TextBlock Text="{DynamicResource floating.fontSize}" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="16" Maximum="72" Value="{Binding Floating.FontSize}" /></Grid>
     <Grid ColumnDefinitions="*,100"><TextBlock Text="{DynamicResource floating.secondarySize}" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="10" Maximum="40" Value="{Binding Floating.SecondarySize}" /></Grid>
-    <TextBox Text="{Binding Floating.FontFamily}" Watermark="{DynamicResource floating.fontFamily}" AutomationProperties.Name="{DynamicResource floating.fontFamily}" />
-    <Grid ColumnDefinitions="*,*" ColumnSpacing="8"><TextBox Text="{Binding Floating.Color}" Watermark="#FFFFFF" AutomationProperties.Name="{DynamicResource floating.color}" /><TextBox Grid.Column="1" Text="{Binding Floating.HighlightColor}" Watermark="#A8D6FF" AutomationProperties.Name="{DynamicResource floating.highlightColor}" /></Grid>
+    <TextBox Text="{Binding Floating.FontFamily}" MaxLength="256" PlaceholderText="{DynamicResource floating.fontFamily}" AutomationProperties.Name="{DynamicResource floating.fontFamily}" />
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8"><TextBox Text="{Binding Floating.Color}" MaxLength="7" PlaceholderText="#FFFFFF" AutomationProperties.Name="{DynamicResource floating.color}" /><TextBox Grid.Column="1" Text="{Binding Floating.HighlightColor}" MaxLength="7" PlaceholderText="#A8D6FF" AutomationProperties.Name="{DynamicResource floating.highlightColor}" /></Grid>
     <TextBlock Text="{DynamicResource floating.opacity}" FontSize="12" />
     <Slider Minimum="0.2" Maximum="1" Value="{Binding Floating.Opacity}" SmallChange="0.05" AutomationProperties.Name="{DynamicResource floating.opacity}" />
     <Grid ColumnDefinitions="*,130"><TextBlock Text="{DynamicResource floating.offset}" FontSize="12" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding Floating.OffsetMs}" /></Grid>

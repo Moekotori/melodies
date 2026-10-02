@@ -23,12 +23,12 @@ try
 {
 Pump(runtime.StartAsync());
 var session = runtime.LocalZone.Session;
-var admission = Enumerable.Range(0, 31).Select(_ => session.Subscribe()).ToArray();
+var admission = Enumerable.Range(0, 30).Select(_ => session.Subscribe()).ToArray();
 try { _ = new PlayerViewModel(runtime.LocalZone); throw new Exception("control admission unexpectedly exceeded capacity"); }
 catch (InvalidOperationException) { }
 using (var capacityRecovered = session.Subscribe()) { }
 foreach (var subscription in admission) subscription.Dispose();
-var player = new PlayerViewModel(runtime.LocalZone);
+var player = new PlayerViewModel(runtime.LocalZone, workAdmission: runtime.BackgroundWork);
 var shell = new ShellViewModel(); shell.AttachPlayback(player);
 shell.Motion.SelectedChoice = shell.Motion.Choices.First(x => x.Mode == Echo.Desktop.Motion.MotionMode.Off);
 var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
@@ -49,7 +49,7 @@ Pump(wait);
 Console.WriteLine("UI native pause confirmed");
 Dispatcher.UIThread.RunJobs();
 if (player.Title == "暂无播放" || !player.HasTrack || player.PlayIcon != "play") throw new Exception("PlayerBar bindings did not update");
-var second = new PlayerViewModel(runtime.LocalZone);
+var second = new PlayerViewModel(runtime.LocalZone, workAdmission: runtime.BackgroundWork);
 Dispatcher.UIThread.RunJobs();
 if (!second.HasTrack || second.Title != player.Title || second.Position != player.Position)
     throw new Exception("A newly connected control did not receive the current zone snapshot");
@@ -59,7 +59,7 @@ Pump(second.SeekToAsync(0.5));
 if (Math.Abs(second.Position - 0.5) > 0.01 || player.Position != detachedPosition || native.ProcessId is null)
     throw new Exception("Disconnecting one control stopped playback or delivered late UI state");
 second.Detach();
-player = new PlayerViewModel(runtime.LocalZone);
+player = new PlayerViewModel(runtime.LocalZone, workAdmission: runtime.BackgroundWork);
 shell.AttachPlayback(player);
 Dispatcher.UIThread.RunJobs();
 if (!player.HasTrack || Math.Abs(player.Position - 0.5) > 0.01 || player.Zone.Id != PlaybackZone.LocalId)
@@ -72,6 +72,23 @@ Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 using (var zoneFrame = window.CaptureRenderedFrame() ?? throw new Exception("Zone output panel failed to render"))
     zoneFrame.Save(Path.Combine(root, "zone-output.png"), PngBitmapEncoderOptions.Default);
 zoneButton.Flyout.Hide();
+var performanceButton = window.GetVisualDescendants().OfType<Button>().First(x => x.Name == "SignalPathButton");
+performanceButton.Flyout!.ShowAt(performanceButton);
+Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+if (((Flyout)performanceButton.Flyout).Content is Control performanceContent)
+{
+    var diagnostics = performanceContent.GetVisualDescendants().OfType<Expander>().First(x => x.Name == "DiagnosticsExpander");
+    diagnostics.IsExpanded = true;
+    Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+    performanceContent.GetVisualDescendants().OfType<ScrollViewer>().First(x => x.Name == "ContentScroll").ScrollToEnd();
+    Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+}
+if (!player.PerformanceText.Contains("PCM") || !player.PerformanceText.Contains("metadata"))
+    throw new Exception("Performance panel is not connected to live admission and native state");
+using (var performanceFrame = window.CaptureRenderedFrame() ?? throw new Exception("Performance panel failed to render"))
+    performanceFrame.Save(Path.Combine(root, "performance-panel.png"), PngBitmapEncoderOptions.Default);
+Console.WriteLine($"Native telemetry: PCM frames={session.State.Performance.BufferedFrames?.ToString() ?? "unknown"}, host underruns={session.State.Performance.HostUnderrunCallbacks?.ToString() ?? "unknown"}");
+performanceButton.Flyout.Hide();
 Pump(player.AudioSettings.RefreshCommand.ExecuteAsync(null));
 var asioMode = player.AudioSettings.Modes.FirstOrDefault(x => x.Key == "asio");
 if (asioMode is not null)

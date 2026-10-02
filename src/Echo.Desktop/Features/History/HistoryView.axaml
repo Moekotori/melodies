@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.History" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.History.HistoryView" x:DataType="local:HistoryViewModel">
+  <UserControl.Resources>
+    <ControlTheme x:Key="HistoryItemTheme" TargetType="ListBoxItem">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Template"><ControlTemplate><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" /></ControlTemplate></Setter>
+    </ControlTheme>
+  </UserControl.Resources>
+  <UserControl.Styles><StyleInclude Source="avares://Echo.Desktop/Features/History/HistoryStyles.axaml" /></UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="0,0,0,14">
+    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
+      <StackPanel Spacing="7">
+        <StackPanel Orientation="Horizontal" Spacing="12"><icon:GlyphIcon Kind="history" Width="25" Height="25" Stroke="{DynamicResource EchoAccentText}" VerticalAlignment="Center" /><TextBlock Text="{DynamicResource navigation.history}" FontSize="{StaticResource EchoPageTitleSize}" FontWeight="SemiBold" Classes="heading" /></StackPanel>
+        <TextBlock Text="{DynamicResource history.caption}" Classes="muted" FontSize="12" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top" Margin="0,4,0,0">
+        <Button Classes="history-tool" Command="{Binding RefreshCommand}" IsEnabled="{Binding CanRefresh}" ToolTip.Tip="{DynamicResource query.refresh}"><icon:GlyphIcon Kind="refresh" Width="16" Height="16" /></Button>
+        <Button Classes="history-tool" ToolTip.Tip="{DynamicResource history.manage}" IsEnabled="{Binding !IsActing}">
+          <icon:GlyphIcon Kind="more" Width="18" Height="18" />
+          <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight"><StackPanel Spacing="4" MinWidth="220">
+            <Button Content="{DynamicResource history.prune}" Command="{Binding PruneCommand}" HorizontalContentAlignment="Left" ToolTip.Tip="{DynamicResource history.pruneHint}" />
+            <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,4" />
+            <Button Content="{DynamicResource history.clear}" Command="{Binding RequestClearCommand}" HorizontalContentAlignment="Left" />
+          </StackPanel></Flyout></Button.Flyout>
+        </Button>
+      </StackPanel>
+    </Grid>
+    <Border Grid.Row="1" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Margin="0,0,0,18">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="26" IsEnabled="{Binding !IsActing}">
+          <Button Classes="history-view-tab" Classes.active="{Binding IsRecords}" Content="{DynamicResource history.records}" Command="{Binding SetViewCommand}" CommandParameter="records" />
+          <Button Classes="history-view-tab" Classes.active="{Binding IsReview}" Content="{DynamicResource history.review}" Command="{Binding SetViewCommand}" CommandParameter="review" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsRecords}" Margin="0,0,0,7">
+          <Button Classes="history-play" Content="{DynamicResource history.play}" Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}" />
+          <Button Classes="history-tool" IsEnabled="{Binding CanPlay}" ToolTip.Tip="{DynamicResource query.add}"><icon:GlyphIcon Kind="queue" Width="16" Height="16" />
+            <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight"><StackPanel MinWidth="180" Spacing="4"><Button Content="{DynamicResource query.nextUp}" Command="{Binding PlayNextCommand}" HorizontalContentAlignment="Left" /><Button Content="{DynamicResource query.add}" Command="{Binding AddCommand}" HorizontalContentAlignment="Left" /></StackPanel></Flyout></Button.Flyout>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <StackPanel Grid.Row="2" Spacing="10" Margin="0,0,0,18" IsEnabled="{Binding !IsActing}">
+      <WrapPanel>
+        <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="8" Width="300" Height="38" Margin="0,0,16,8">
+          <Grid ColumnDefinitions="32,*,30"><icon:GlyphIcon Kind="search" Width="15" Height="15" Stroke="{DynamicResource EchoMuted}" HorizontalAlignment="Center" />
+            <TextBox Name="SearchField" Grid.Column="1" Classes="history-search" MaxLength="128" PlaceholderText="{DynamicResource history.search}" Text="{Binding Search, Mode=TwoWay}" KeyDown="OnSearchKey" />
+            <Button Grid.Column="2" Classes="history-clear-search" Command="{Binding ClearSearchCommand}" ToolTip.Tip="{DynamicResource query.clear}" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><icon:GlyphIcon Kind="close" Width="12" Height="12" /></Button>
+          </Grid>
+        </Border>
+        <ItemsControl ItemsSource="{Binding RangeButtons}" Margin="0,0,14,8" VerticalAlignment="Center">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:HistoryRangeChoice"><Button Classes="history-range" Classes.active="{Binding Active}" Content="{Binding Label}" Tag="{Binding Index}" Click="OnRange" /></DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <CheckBox Classes="history-counted" Content="{DynamicResource history.countedOnly}" IsChecked="{Binding CountedOnly, Mode=TwoWay}" ToolTip.Tip="{DynamicResource history.countedHint}" Margin="0,0,0,8" />
+      </WrapPanel>
+      <StackPanel IsVisible="{Binding IsCustom}" Orientation="Horizontal" Spacing="10">
+        <TextBox Width="130" MaxLength="10" Text="{Binding FromDate, Mode=TwoWay}" PlaceholderText="yyyy-MM-dd" FontSize="12" CornerRadius="6" />
+        <TextBlock Text="—" Classes="subtle" VerticalAlignment="Center" />
+        <TextBox Width="130" MaxLength="10" Text="{Binding ToDate, Mode=TwoWay}" PlaceholderText="yyyy-MM-dd" FontSize="12" CornerRadius="6" />
+        <Button Content="{DynamicResource history.apply}" Command="{Binding ApplyDatesCommand}" Classes="history-range" />
+      </StackPanel>
+    </StackPanel>
+    <StackPanel Grid.Row="3" Spacing="8">
+      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Margin="0,0,0,10" />
+      <TextBlock Text="{Binding Message}" Classes="muted" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Margin="0,0,0,10" />
+      <Border IsVisible="{Binding ConfirmClear}" Background="{DynamicResource EchoPanelMuted}" CornerRadius="8" Padding="16" Margin="0,0,0,12"><WrapPanel><TextBlock Text="{DynamicResource history.clearConfirm}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0" /><Button Content="{DynamicResource history.cancel}" Command="{Binding CancelClearCommand}" Margin="0,0,8,0" /><Button Content="{DynamicResource history.clear}" Command="{Binding ClearCommand}" /></WrapPanel></Border>
+      <TextBlock Text="{DynamicResource history.working}" IsVisible="{Binding IsActing}" Classes="muted" Margin="0,0,0,10" />
+    </StackPanel>
+    <Grid Grid.Row="4">
+      <Grid IsVisible="{Binding IsRecords}" RowDefinitions="Auto,Auto,*">
+        <TextBlock Text="{Binding CountText}" Classes="subtle" FontSize="11" Margin="0,0,0,15" />
+        <Grid Name="RecordsColumns" Grid.Row="1" ColumnDefinitions="64,3*,2*,150,28" ColumnSpacing="16" Margin="14,0,14,4">
+          <TextBlock Text="{DynamicResource history.time}" Classes="history-column" />
+          <TextBlock Grid.Column="1" Text="{DynamicResource history.track}" Classes="history-column" />
+          <TextBlock Name="AlbumColumn" Grid.Column="2" Text="{DynamicResource history.album}" Classes="history-column" />
+          <TextBlock Grid.Column="3" Text="{DynamicResource history.progress}" Classes="history-column" />
+        </Grid>
+        <ListBox Name="RecordsList" Grid.Row="2" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected, Mode=TwoWay}" DoubleTapped="OnPlay" KeyDown="OnRecordsKey" PointerPressed="OnRecordPointer" Background="Transparent" BorderThickness="0" IsEnabled="{Binding !IsLoading}">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+          <ListBox.ItemTemplate><DataTemplate x:DataType="local:HistoryRow"><local:HistoryRecordRow /></DataTemplate></ListBox.ItemTemplate>
+          <ListBox.ContextMenu><ContextMenu><MenuItem Header="{DynamicResource history.play}" Click="OnMenuPlay" /><MenuItem Header="{DynamicResource query.nextUp}" Click="OnMenuNext" /><MenuItem Header="{DynamicResource query.add}" Click="OnMenuAdd" /><Separator /><MenuItem Header="{DynamicResource history.copy}" Click="OnCopy" /><MenuItem Header="{DynamicResource history.showFolder}" Click="OnShowFolder" /></ContextMenu></ListBox.ContextMenu>
+        </ListBox>
+      </Grid>
+      <local:HistoryReviewView Name="ReviewView" DataContext="{Binding Review}" IsVisible="{Binding $parent[local:HistoryView].((local:HistoryViewModel)DataContext).IsReview}" />
+      <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+        <icon:GlyphIcon Kind="history" Width="32" Height="32" Stroke="{DynamicResource EchoSubtle}" HorizontalAlignment="Center" />
+        <TextBlock Text="{DynamicResource history.empty}" FontSize="17" FontWeight="Medium" HorizontalAlignment="Center" />
+        <TextBlock Text="{DynamicResource history.emptyHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" MaxWidth="380" TextAlignment="Center" />
+      </StackPanel>
+      <ProgressBar Height="2" IsIndeterminate="True" IsVisible="{Binding IsLoading}" VerticalAlignment="Top" />
+    </Grid>
+    <Border Grid.Row="5" IsVisible="{Binding IsRecords}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,12,0,0" Margin="0,10,0,0">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8"><TextBlock Text="{Binding PageText}" Classes="muted" FontSize="12" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{DynamicResource query.previous}" Classes="history-range" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" /><Button Grid.Column="2" Content="{DynamicResource query.next}" Classes="history-range" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" /></Grid>
+    </Border>
+  </Grid>
+</UserControl>

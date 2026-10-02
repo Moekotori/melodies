@@ -8,12 +8,12 @@
     <Border Name="HoverSurface" Background="#A0202430" CornerRadius="8" Opacity="0" />
     <lyrics:FloatingLyricsControl Name="LyricsCanvas" Margin="16,38,16,12" IsHitTestVisible="False" />
     <StackPanel Name="Toolbar" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Spacing="4" Margin="8,4" Opacity="0">
-      <Button Classes="icon" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.previous}"><icon:EchoIcon Kind="previous" Scope="player" /></Button>
-      <Button Classes="icon" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanPlay}" ToolTip.Tip="{Binding Player.Subtitle}"><icon:EchoIcon Kind="{Binding Player.PlayIcon}" Scope="player" /></Button>
-      <Button Classes="icon" Command="{Binding Player.NextCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.next}"><icon:EchoIcon Kind="next" Scope="player" /></Button>
-      <Button Classes="icon" Command="{Binding Floating.ToggleLockCommand}" IsEnabled="{Binding Floating.SupportsPassthrough}" ToolTip.Tip="{DynamicResource floating.lock}"><icon:GlyphIcon Kind="settings" /></Button>
-      <Button Classes="icon" Command="{Binding Floating.RestoreMainCommand}" ToolTip.Tip="{DynamicResource floating.restore}"><icon:GlyphIcon Kind="maximize" /></Button>
-      <Button Classes="icon" Command="{Binding Floating.ToggleLyricsCommand}" ToolTip.Tip="{DynamicResource floating.close}"><icon:GlyphIcon Kind="close" /></Button>
+      <Button Classes="icon" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.previous}"><icon:EchoIcon Width="18" Height="18" Kind="previous" Scope="player" /></Button>
+      <Button Classes="icon" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanPlay}" ToolTip.Tip="{Binding Player.Subtitle}"><icon:EchoIcon Width="18" Height="18" Kind="{Binding Player.PlayIcon}" Scope="player" /></Button>
+      <Button Classes="icon" Command="{Binding Player.NextCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.next}"><icon:EchoIcon Width="18" Height="18" Kind="next" Scope="player" /></Button>
+      <Button Classes="icon" Command="{Binding Floating.ToggleLockCommand}" IsEnabled="{Binding Floating.SupportsPassthrough}" ToolTip.Tip="{DynamicResource floating.lock}"><icon:GlyphIcon Width="18" Height="18" Kind="lock" /></Button>
+      <Button Classes="icon" Command="{Binding Floating.RestoreMainCommand}" ToolTip.Tip="{DynamicResource floating.restore}"><icon:GlyphIcon Width="18" Height="18" Kind="maximize" /></Button>
+      <Button Classes="icon" Command="{Binding Floating.ToggleLyricsCommand}" ToolTip.Tip="{DynamicResource floating.close}"><icon:GlyphIcon Width="18" Height="18" Kind="close" /></Button>
     </StackPanel>
     <Border Name="ResizeGrip" Width="20" Height="20" Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="BottomRightCorner" PointerPressed="Resize"><icon:GlyphIcon Kind="grip" Width="12" Height="12" /></Border>
   </Grid>

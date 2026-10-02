@@ -18,6 +18,8 @@ public sealed partial class MotionPolicy : ObservableObject
     [ObservableProperty] private bool themeAllowsAnimation = true;
     [ObservableProperty] private double themeDurationScale = 1;
     [ObservableProperty] private double themeIntensityScale = 1;
+    [ObservableProperty] private bool lightweightMode;
+    [ObservableProperty] private int maximumFrameRate = 60;
 
     private readonly LocalizationService Text;
     public MotionPolicy(LocalizationService? text = null)
@@ -30,7 +32,7 @@ public sealed partial class MotionPolicy : ObservableObject
         OnPropertyChanged(nameof(Choices)); SelectedChoice = Choices.First(choice => choice.Mode == mode); OnPropertyChanged(nameof(Status));
     }
     public void ReleaseLocalization() => Text.Changed -= RefreshLanguage;
-    public bool CanAnimate => IsWindowVisible && ThemeAllowsAnimation && SelectedChoice.Mode != MotionMode.Off
+    public bool CanAnimate => IsWindowVisible && ThemeAllowsAnimation && !LightweightMode && SelectedChoice.Mode != MotionMode.Off
         && (SelectedChoice.Mode != MotionMode.System || SystemAllowsAnimation != false);
     public bool UseSpatialMotion => CanAnimate && SelectedChoice.Mode != MotionMode.Reduced;
     public string Status => Text.Translate(SelectedChoice.Mode switch
@@ -53,8 +55,8 @@ public sealed partial class MotionPolicy : ObservableObject
     public TimeSpan Duration(TimeSpan value)
     {
         if (SelectedChoice.Mode == MotionMode.Reduced) return TimeSpan.FromMilliseconds(Math.Min(80, value.TotalMilliseconds));
-        var factor = double.IsFinite(ThemeDurationScale) ? Math.Clamp(ThemeDurationScale, 0.35, 2.5) : 1;
-        return TimeSpan.FromMilliseconds(Math.Clamp(value.TotalMilliseconds * factor, 0, 600));
+        var factor = double.IsFinite(ThemeDurationScale) ? Math.Clamp(ThemeDurationScale, 0.1, 36.364) : 1;
+        return TimeSpan.FromMilliseconds(Math.Clamp(value.TotalMilliseconds * factor, 0, 8000));
     }
     public double Travel(double value)
     {
@@ -63,6 +65,8 @@ public sealed partial class MotionPolicy : ObservableObject
     }
     partial void OnThemeDurationScaleChanged(double value) => NotifyPolicy();
     partial void OnThemeIntensityScaleChanged(double value) => NotifyPolicy();
+    partial void OnLightweightModeChanged(bool value) => NotifyPolicy();
+    partial void OnMaximumFrameRateChanged(int value) => NotifyPolicy();
     private void NotifyPolicy()
     {
         OnPropertyChanged(nameof(CanAnimate));

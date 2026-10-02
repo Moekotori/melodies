@@ -1,34 +1,87 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:Echo.Desktop.Features.LibraryDetails" x:Class="Echo.Desktop.Features.LibraryDetails.LibraryFilterView"
              x:DataType="local:LibraryFilterViewModel">
-  <StackPanel Spacing="12" Width="300">
-    <Grid ColumnDefinitions="*,Auto">
-      <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{DynamicResource query.filters}" FontWeight="SemiBold" /><TextBlock Text="{Binding ActiveCount}" Classes="muted" /></StackPanel>
-      <Button Grid.Column="1" Content="{DynamicResource query.reset}" Command="{Binding ResetCommand}" Padding="8,3" />
-    </Grid>
-    <Border Height="1" Background="{DynamicResource EchoDivider}" />
-    <TextBlock Text="{DynamicResource query.source}" Classes="muted" FontSize="12" />
-    <ComboBox SelectedIndex="{Binding SourceIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
-      <ComboBoxItem Content="{DynamicResource query.allLocal}" /><ComboBoxItem Content="{DynamicResource query.files}" /><ComboBoxItem Content="CUE" /><ComboBoxItem Content="osu!" />
-    </ComboBox>
-    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-      <StackPanel Spacing="5"><TextBlock Text="{DynamicResource query.format}" Classes="muted" FontSize="12" />
-        <ComboBox SelectedIndex="{Binding FormatIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
-          <ComboBoxItem Content="{DynamicResource query.all}" /><ComboBoxItem Content="FLAC" /><ComboBoxItem Content="WAV" /><ComboBoxItem Content="AIFF" /><ComboBoxItem Content="ALAC" /><ComboBoxItem Content="DSD" /><ComboBoxItem Content="MP3" /><ComboBoxItem Content="AAC" /><ComboBoxItem Content="OGG" /><ComboBoxItem Content="Opus" /><ComboBoxItem Content="{DynamicResource query.other}" />
-        </ComboBox>
+  <UserControl.Resources>
+    <ResourceDictionary>
+    <ResourceDictionary.MergedDictionaries><ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light"><SolidColorBrush x:Key="FilterReferenceText">#30323c</SolidColorBrush><SolidColorBrush x:Key="FilterReferenceMuted">#656978</SolidColorBrush><SolidColorBrush x:Key="FilterReferenceHeading">#222530</SolidColorBrush></ResourceDictionary>
+        <ResourceDictionary x:Key="Dark"><SolidColorBrush x:Key="FilterReferenceText">#dddfe7</SolidColorBrush><SolidColorBrush x:Key="FilterReferenceMuted">#a7abba</SolidColorBrush><SolidColorBrush x:Key="FilterReferenceHeading">#f0f1f6</SolidColorBrush></ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary></ResourceDictionary.MergedDictionaries>
+
+    <ControlTheme x:Key="FilterReferenceReset" TargetType="Button">
+      <Setter Property="Template"><ControlTemplate><Border Background="Transparent" Padding="{TemplateBinding Padding}"><ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" FontWeight="Bold" VerticalContentAlignment="Center" /></Border></ControlTemplate></Setter>
+      <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+    </ControlTheme>
+    <ControlTheme x:Key="FilterReferenceChoice" TargetType="ComboBox" BasedOn="{StaticResource EchoSelect}">
+      <Setter Property="Template"><ControlTemplate>
+        <Grid ColumnDefinitions="*,26">
+          <Border Name="Background" Grid.ColumnSpan="2" Background="{TemplateBinding Background}" BorderThickness="0" CornerRadius="2" />
+          <TextBlock Name="FilterValue" Text="{TemplateBinding SelectionBoxItem}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource FilterReferenceText}" Margin="11,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <Path Grid.Column="1" Data="M 1,2 L 5,6 L 9,2" Width="10" Height="8" Stroke="{DynamicResource FilterReferenceMuted}" StrokeThickness="1.6" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+          <Popup Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}" PlacementTarget="Background" Placement="Bottom" VerticalOffset="4" MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}" IsLightDismissEnabled="True" InheritsTransform="True" ShouldUseOverlayLayer="True">
+            <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="4" Padding="4">
+              <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" IsScrollChainingEnabled="False"><ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" /></ScrollViewer>
+            </Border>
+          </Popup>
+        </Grid>
+      </ControlTemplate></Setter>
+      <Style Selector="^:pointerover /template/ Border#Background"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#Background"><Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="FilterMoreTheme" TargetType="Expander">
+      <Setter Property="Template"><ControlTemplate><StackPanel>
+        <ToggleButton Name="MoreToggle" Theme="{StaticResource EchoButtonTheme}" IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" Content="{TemplateBinding Header}" Height="24" MinHeight="24" FontSize="10" Padding="0" Background="Transparent" BorderThickness="0" HorizontalAlignment="Right" />
+        <ContentPresenter Content="{TemplateBinding Content}" IsVisible="{TemplateBinding IsExpanded}" Margin="0,6,0,0" />
+      </StackPanel></ControlTemplate></Setter>
+    </ControlTheme>
+
+    <DataTemplate x:Key="FilterChoiceTemplate" x:DataType="local:FilterChoice"><TextBlock Text="{Binding Label}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource FilterReferenceText}" TextTrimming="CharacterEllipsis" /></DataTemplate>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Border.filterRow"><Setter Property="MinHeight" Value="42" /><Setter Property="Padding" Value="0,4" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="0,0,0,1" /></Style>
+    <Style Selector="TextBlock.filterLabel"><Setter Property="Foreground" Value="{DynamicResource FilterReferenceMuted}" /><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="Normal" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="ComboBox"><Setter Property="Theme" Value="{StaticResource FilterReferenceChoice}" /><Setter Property="MinHeight" Value="34" /><Setter Property="Height" Value="34" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="2" /><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Padding" Value="11,0" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Foreground" Value="{DynamicResource FilterReferenceText}" /><Setter Property="MaxDropDownHeight" Value="260" /></Style>
+    <Style Selector="ComboBox /template/ ContentPresenter#ContentPresenter TextBlock"><Setter Property="Foreground" Value="{DynamicResource FilterReferenceText}" /><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="TextBox"><Setter Property="MinHeight" Value="34" /><Setter Property="Height" Value="34" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="11,6" /><Setter Property="Foreground" Value="{DynamicResource FilterReferenceText}" /></Style>
+    <Style Selector="Button.filterReset"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="Padding" Value="9,4" /><Setter Property="MinHeight" Value="28" /><Setter Property="CornerRadius" Value="2" /></Style>
+    <Style Selector="Button.filterReset TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontWeight" Value="Bold" /></Style>
+    <Style Selector="Button.filterReset:disabled TextBlock"><Setter Property="Foreground" Value="{DynamicResource FilterReferenceMuted}" /></Style>
+  </UserControl.Styles>
+  <Grid Width="364" RowDefinitions="Auto,*">
+    <Border MinHeight="57" Padding="14,11,14,9" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="2" VerticalAlignment="Center"><TextBlock Text="{DynamicResource query.filters}" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource FilterReferenceHeading}" /><TextBlock Text="{DynamicResource query.referenceHint}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FilterReferenceMuted}" /></StackPanel>
+        <Button Theme="{StaticResource FilterReferenceReset}" Name="ResetButton" Grid.Column="1" Classes="filterReset" Content="{DynamicResource query.referenceReset}" Command="{Binding ResetCommand}" IsEnabled="{Binding HasActive}" VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+    <ScrollViewer Grid.Row="1" MaxHeight="480" HorizontalScrollBarVisibility="Disabled" IsScrollChainingEnabled="False">
+      <StackPanel Margin="14,4,14,6">
+        <Border Classes="filterRow"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.condition}" Classes="filterLabel" />
+          <ComboBox Theme="{StaticResource FilterReferenceChoice}" Name="ConditionChoice" Grid.Column="1" SelectedIndex="{Binding ConditionIndex, Mode=TwoWay}"><ComboBoxItem Content="{DynamicResource query.allSongs}" /><ComboBoxItem Content="{DynamicResource query.favorite}" /><ComboBoxItem Content="{DynamicResource query.lossless}" /><ComboBoxItem Content="{DynamicResource query.favoriteLossless}" /></ComboBox>
+        </Grid></Border>
+        <Border Classes="filterRow"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.folderLabel}" Classes="filterLabel" /><ComboBox Theme="{StaticResource FilterReferenceChoice}" Name="FolderChoice" Grid.Column="1" ItemTemplate="{StaticResource FilterChoiceTemplate}" DropDownOpened="OnFolderOpened" SelectionChanged="OnFolderSelected" /></Grid></Border>
+        <Border Classes="filterRow"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.audioFormat}" Classes="filterLabel" />
+          <ComboBox Theme="{StaticResource FilterReferenceChoice}" Name="FormatChoice" Grid.Column="1" SelectedIndex="{Binding FormatIndex, Mode=TwoWay}"><ComboBoxItem Content="{DynamicResource query.anyFormat}" /><ComboBoxItem Content="FLAC" /><ComboBoxItem Content="WAV" /><ComboBoxItem Content="AIFF" /><ComboBoxItem Content="ALAC" /><ComboBoxItem Content="DSD" /><ComboBoxItem Content="MP3" /><ComboBoxItem Content="AAC" /><ComboBoxItem Content="OGG" /><ComboBoxItem Content="Opus" /><ComboBoxItem Content="{DynamicResource query.other}" /></ComboBox>
+        </Grid></Border>
+        <Border Classes="filterRow"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.rate}" Classes="filterLabel" />
+          <ComboBox Theme="{StaticResource FilterReferenceChoice}" Name="RateChoice" Grid.Column="1" SelectedIndex="{Binding RateIndex, Mode=TwoWay}"><ComboBoxItem Content="{DynamicResource query.anyRate}" /><ComboBoxItem Content="44.1 kHz" /><ComboBoxItem Content="48 kHz" /><ComboBoxItem Content="88.2 kHz" /><ComboBoxItem Content="96 kHz" /><ComboBoxItem Content="176.4 kHz" /><ComboBoxItem Content="192 kHz" /><ComboBoxItem Content="352.8 kHz" /><ComboBoxItem Content="384 kHz" /><ComboBoxItem Content="DSD" /><ComboBoxItem Content="{DynamicResource query.other}" /></ComboBox>
+        </Grid></Border>
+        <Border Classes="filterRow"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.year}" Classes="filterLabel" /><StackPanel Grid.Column="1"><ComboBox Theme="{StaticResource FilterReferenceChoice}" Name="YearChoice" ItemTemplate="{StaticResource FilterChoiceTemplate}" SelectionChanged="OnYearSelected" /><TextBlock Text="{DynamicResource query.yearInvalid}" Foreground="{DynamicResource EchoAccentText}" IsVisible="{Binding HasInvalidYear}" FontSize="10" TextWrapping="Wrap" /></StackPanel></Grid></Border>
+        <Border Classes="filterRow" BorderThickness="0"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.genreLabel}" Classes="filterLabel" /><ComboBox Theme="{StaticResource FilterReferenceChoice}" Name="GenreChoice" Grid.Column="1" ItemTemplate="{StaticResource FilterChoiceTemplate}" DropDownOpened="OnGenreOpened" SelectionChanged="OnGenreSelected" /></Grid></Border>
+        <Expander Theme="{StaticResource FilterMoreTheme}" Name="MoreFilters" IsVisible="{Binding IsExpanded, ElementName=MoreFilters}" Header="{DynamicResource query.moreFilters}" IsExpanded="False" BorderThickness="0" Background="Transparent" FontSize="11" Foreground="{DynamicResource FilterReferenceMuted}" Margin="0,2,0,0">
+          <StackPanel>
+            <Border Classes="filterRow"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.source}" Classes="filterLabel" /><ComboBox Theme="{StaticResource FilterReferenceChoice}" Name="SourceChoice" Grid.Column="1" SelectedIndex="{Binding SourceIndex, Mode=TwoWay}"><ComboBoxItem Content="{DynamicResource query.allLocal}" /><ComboBoxItem Content="{DynamicResource query.files}" /><ComboBoxItem Content="CUE" /><ComboBoxItem Content="osu!" /></ComboBox></Grid></Border>
+            <Border Classes="filterRow"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.depth}" Classes="filterLabel" /><ComboBox Theme="{StaticResource FilterReferenceChoice}" Grid.Column="1" SelectedIndex="{Binding DepthIndex, Mode=TwoWay}"><ComboBoxItem Content="{DynamicResource query.all}" /><ComboBoxItem Content="16 bit" /><ComboBoxItem Content="24 bit" /><ComboBoxItem Content="32 bit" /></ComboBox></Grid></Border>
+            <Border Classes="filterRow"><Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.year}" Classes="filterLabel" /><TextBox Grid.Column="1" Text="{Binding Year, Mode=TwoWay}" MaxLength="4" PlaceholderText="{DynamicResource query.customYear}" /></Grid></Border>
+            <Grid ColumnDefinitions="76,*" ColumnSpacing="10"><TextBlock Text="{DynamicResource query.genreLabel}" Classes="filterLabel" /><TextBox Grid.Column="1" Text="{Binding Genre, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource query.customGenre}" /></Grid>
+          </StackPanel>
+        </Expander>
       </StackPanel>
-      <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{DynamicResource query.rate}" Classes="muted" FontSize="12" />
-        <ComboBox SelectedIndex="{Binding RateIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
-          <ComboBoxItem Content="{DynamicResource query.all}" /><ComboBoxItem Content="44.1 kHz" /><ComboBoxItem Content="48 kHz" /><ComboBoxItem Content="88.2 kHz" /><ComboBoxItem Content="96 kHz" /><ComboBoxItem Content="176.4 kHz" /><ComboBoxItem Content="192 kHz" /><ComboBoxItem Content="352.8 kHz" /><ComboBoxItem Content="384 kHz" /><ComboBoxItem Content="DSD" /><ComboBoxItem Content="{DynamicResource query.other}" />
-        </ComboBox>
-      </StackPanel>
-    </Grid>
-    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-      <StackPanel Spacing="5"><TextBlock Text="{DynamicResource query.depth}" Classes="muted" FontSize="12" /><ComboBox SelectedIndex="{Binding DepthIndex, Mode=TwoWay}" HorizontalAlignment="Stretch"><ComboBoxItem Content="{DynamicResource query.all}" /><ComboBoxItem Content="16 bit" /><ComboBoxItem Content="24 bit" /><ComboBoxItem Content="32 bit" /></ComboBox></StackPanel>
-      <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{DynamicResource query.year}" Classes="muted" FontSize="12" /><TextBox Text="{Binding Year, Mode=TwoWay}" MaxLength="4" PlaceholderText="2026" /></StackPanel>
-    </Grid>
-    <TextBox Text="{Binding Genre, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource query.genre}" />
-    <TextBox Text="{Binding Folder, Mode=TwoWay}" MaxLength="1024" PlaceholderText="{DynamicResource query.folder}" />
-    <StackPanel Orientation="Horizontal" Spacing="14"><CheckBox Content="{DynamicResource query.favorite}" IsChecked="{Binding FavoriteOnly, Mode=TwoWay}" /><CheckBox Content="{DynamicResource query.lossless}" IsChecked="{Binding LosslessOnly, Mode=TwoWay}" /></StackPanel>
-  </StackPanel>
+    </ScrollViewer>
+  </Grid>
+  <UserControl.ContextMenu><ContextMenu><MenuItem Header="{DynamicResource query.moreFilters}" Click="OnMoreFilters" /></ContextMenu></UserControl.ContextMenu>
 </UserControl>
