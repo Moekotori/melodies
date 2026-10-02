@@ -2,6 +2,10 @@
   <!-- Final default palette, from theme-classic-colors.css, not the earlier tokens.css gradients. -->
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="EchoSignalBitPerfect">#7950c7</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSignalModified">#4d856f</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSignalDsp">#467bdd</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSignalStreaming">#aa761b</SolidColorBrush>
       <SolidColorBrush x:Key="EchoText">#30323c</SolidColorBrush>
       <SolidColorBrush x:Key="EchoHeading">#222530</SolidColorBrush>
       <SolidColorBrush x:Key="EchoMuted">#656978</SolidColorBrush>
@@ -25,6 +29,10 @@
       <Bitmap x:Key="EchoPlaceholderImage">avares://Echo.Desktop/Resources/Artwork/placeholder-light.png</Bitmap>
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="EchoSignalBitPerfect">#b394ee</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSignalModified">#8bc6ac</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSignalDsp">#89afff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSignalStreaming">#f1c66b</SolidColorBrush>
       <SolidColorBrush x:Key="EchoText">#dddfe7</SolidColorBrush>
       <SolidColorBrush x:Key="EchoHeading">#f0f1f6</SolidColorBrush>
       <SolidColorBrush x:Key="EchoMuted">#a7abba</SolidColorBrush>

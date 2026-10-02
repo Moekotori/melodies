@@ -16,6 +16,7 @@ namespace Echo.Desktop.Controls.Lyrics;
 public sealed class LyricsViewportControl : Control, IDisposable
 {
     private readonly LyricsTextLayoutCache cache = new();
+    private readonly KineticPosterLayout poster = new();
     private readonly LyricsFrameController frames;
     private readonly List<(int Index, Rect Rect)> hits = [];
     private LyricsViewModel? model;
@@ -63,7 +64,7 @@ public sealed class LyricsViewportControl : Control, IDisposable
     private void OnMotionChanged(object? sender, PropertyChangedEventArgs e) { if (motion?.UseSpatialMotion != true) shift = 0; Refresh(); }
     private void ResetLayout()
     {
-        cache.Dispose(); headerKey = null;
+        cache.Dispose(); poster.Dispose(); headerKey = null;
         if (model is not null)
         {
             var appearance = model.Appearance; var current = appearance.SelectedStyle;
@@ -115,17 +116,21 @@ public sealed class LyricsViewportControl : Control, IDisposable
         hits.Clear();
         if (document.Lines.Count == 0)
         {
-            LyricsStagePainter.Label(dc, model.IsLoading ? "正在读取歌词…" : "还没有歌词", textRect.X, h * 0.44, 28, ink);
+            LyricsStagePainter.Label(dc, model.Player.Text.Translate(model.IsLoading ? "正在读取歌词…" : "还没有歌词"), textRect.X, h * 0.44, 28, ink);
             return;
         }
         var index = DisplayIndex;
+        var wordPoster = current.Layout == LyricsLayout.Poster && browse < 0 && document.IsSynced && document.Lines[index].Words.Count > 0;
         var activeSize = Math.Clamp(appearance.FontSize, 18, 72) * current.Scale;
+        if (current.Layout == LyricsLayout.Light) activeSize = Math.Clamp(w * 0.064, appearance.FontSize * 1.45, appearance.FontSize * 3.2);
+        if (current.Layout == LyricsLayout.Editorial) activeSize = Math.Clamp(w * 0.035, appearance.FontSize, appearance.FontSize * 1.5);
         var entry = Layout(index, activeSize, textRect.Width);
         if (entry.Height > h * 0.52) { activeSize = Math.Max(18, activeSize * h * 0.5 / entry.Height); entry = Layout(index, activeSize, textRect.Width); }
         var center = h * (current.Layout == LyricsLayout.Cinema ? 0.56 : 0.50);
         var elapsed = shift == 0 ? 220 : Stopwatch.GetElapsedTime(transition).TotalMilliseconds;
         var drift = motion?.UseSpatialMotion == true ? shift * Math.Pow(1 - Math.Clamp(elapsed / 220, 0, 1), 3) : 0;
-        var y = center - entry.Height / 2 + drift;
+        var rowHeight = wordPoster ? Math.Clamp(h * 0.31, 230, 340) : entry.Height;
+        var y = center - rowHeight / 2 + drift;
         if (appearance.Context && current.Layout is not (LyricsLayout.Afterglow or LyricsLayout.WordFocus))
         {
             var above = y;
@@ -138,20 +143,22 @@ public sealed class LyricsViewportControl : Control, IDisposable
             }
         }
         var isActive = browse < 0 && document.IsSynced && active >= 0;
-        if (current.Layout == LyricsLayout.Poster)
+        if (wordPoster)
         {
-            using (dc.PushTransform(Matrix.CreateRotation(-0.018) * Matrix.CreateTranslation(0, 0)))
-                DrawLine(dc, index, entry, new(textRect.X, y), isActive, 1);
+            poster.Draw(dc, document.Lines[index], model.PositionMs(motion?.CanAnimate == true) + document.OffsetMs,
+                new Rect(textRect.X, y, textRect.Width, rowHeight), appearance.FontSize, ink, accent);
+            hits.Add((index, new Rect(textRect.X, y, textRect.Width, rowHeight)));
+            if (entry.Secondary is not null) entry.Secondary.Draw(dc, new(textRect.X, y + rowHeight + 8));
         }
         else DrawLine(dc, index, entry, new(textRect.X, y), isActive, 1);
         if (appearance.Context && current.Layout != LyricsLayout.Afterglow)
         {
-            var below = y + entry.Height + 30;
+            var below = y + rowHeight + (wordPoster ? 52 : 30);
             var count = current.Layout == LyricsLayout.WordFocus ? 1 : 4;
             for (var i = index + 1; i <= Math.Min(document.Lines.Count - 1, index + count); i++)
             {
                 var neighbor = Layout(i, appearance.FontSize * 0.75, textRect.Width);
-                if (below + neighbor.Height > h * 0.94) break;
+                if (below + neighbor.Height > h * 0.80) break;
                 DrawLine(dc, i, neighbor, new(textRect.X, below), false, i == index + 1 ? 0.43 : 0.22);
                 below += neighbor.Height + 26;
             }
@@ -171,7 +178,15 @@ public sealed class LyricsViewportControl : Control, IDisposable
     {
         hits.Add((index, new Rect(point, new Size(Bounds.Width - point.X - 20, layout.Height + 18))));
         using var alpha = dc.PushOpacity(opacity);
-        layout.Primary.Draw(dc, point);
+        var upcomingOpacity = current && layout.Words.Count > 0 && model!.Appearance.WordHighlight
+            ? model.Appearance.SelectedStyle.Layout switch { LyricsLayout.Light => 0.46, LyricsLayout.WordFocus => 0.44, LyricsLayout.CoverRight => 0.56, _ => 1 } : 1;
+        using (dc.PushOpacity(upcomingOpacity)) layout.Primary.Draw(dc, point);
+        if (current && model!.Appearance.SelectedStyle.Layout == LyricsLayout.Editorial)
+        {
+            var dot = new Point(point.X - 28, point.Y + layout.Primary.Height / 2);
+            using (dc.PushOpacity(0.08)) dc.DrawEllipse(accent, null, dot, 10, 10);
+            dc.DrawEllipse(accent, null, dot, 4, 4);
+        }
         if (current && model!.Appearance.WordHighlight)
         {
             var position = model.PositionMs(motion?.CanAnimate == true) + model.Document.OffsetMs;
@@ -201,22 +216,30 @@ public sealed class LyricsViewportControl : Control, IDisposable
     private void DrawHeader(DrawingContext dc, Rect area, LyricsLayout layout)
     {
         var width = Math.Max(32, area.Width); var font = new Typeface("Segoe UI, Microsoft YaHei, Noto Sans CJK SC");
+        var x = area.X; var y = Math.Clamp(Bounds.Height * 0.04, 29, 47); var size = 17d;
+        if (layout == LyricsLayout.Light)
+        { x = Math.Clamp(Bounds.Width * 0.07, 54, 148) + 70; y = Bounds.Height - Math.Clamp(Bounds.Height * 0.13, 96, 140) - 44; width = 440; }
+        else if (layout == LyricsLayout.CoverLeft && Bounds.Width >= 780)
+        { x = Math.Clamp(Bounds.Width * 0.048, 36, 86); y = Bounds.Height * 0.80; width = Math.Min(540, Bounds.Width * 0.36); size = 27; }
+        else if (layout == LyricsLayout.Editorial && Bounds.Width >= 780)
+        { x = Math.Clamp(Bounds.Width * 0.031, 40, 56); y = Bounds.Height * 0.25 + Math.Clamp(Bounds.Width * 0.21, 250, 312) + 28; width = Math.Clamp(Bounds.Width * 0.21, 250, 312); size = 30; font = new(font.FontFamily, weight: FontWeight.Bold); }
+        else if (layout == LyricsLayout.CoverRight) { y = Math.Clamp(Bounds.Height * 0.086, 64, 104); size = 27; }
+        else if (layout is LyricsLayout.Reading or LyricsLayout.WordFocus or LyricsLayout.Afterglow) y = Math.Max(82, Bounds.Height * 0.105);
         var key = (model!.Title, model.Artist, model.Album, width);
         if (headerKey != key || headerTitle is null)
         {
             headerTitle?.Dispose(); headerArtist?.Dispose(); headerKey = key;
-            headerTitle = new(model.Title, font, 17, ink, maxWidth: width, maxLines: 1, textTrimming: TextTrimming.CharacterEllipsis);
+            headerTitle = new(model.Title, font, size, ink, maxWidth: width, maxLines: 1, textTrimming: TextTrimming.CharacterEllipsis);
             headerArtist = new(string.Join(" · ", new[] { model.Artist, model.Album }.Where(s => s.Length > 0)), font, 12, ink, maxWidth: width, maxLines: 1, textTrimming: TextTrimming.CharacterEllipsis);
         }
-        var y = Bounds.Height * (layout == LyricsLayout.Cinema ? 0.16 : 0.065);
-        headerTitle.Draw(dc, new(area.X, y)); using var opacity = dc.PushOpacity(0.6); headerArtist!.Draw(dc, new(area.X, y + 26));
+        headerTitle.Draw(dc, new(x, y)); using var opacity = dc.PushOpacity(0.6); headerArtist!.Draw(dc, new(x, y + size + 10));
     }
     private static Rect TextArea(LyricsLayout layout, double w, double h) => layout switch
     {
         LyricsLayout.CoverLeft when w >= 780 => new(w * 0.46, 0, w * 0.47, h),
-        LyricsLayout.CoverRight when w >= 780 => new(w * 0.055, 0, w * 0.50, h),
+        LyricsLayout.CoverRight when w >= 780 => new(w * 0.62, 0, w * 0.32, h),
         LyricsLayout.Vinyl when w >= 780 => new(w * 0.07, 0, w * 0.52, h),
-        LyricsLayout.Editorial => new(w * 0.25, 0, w * 0.67, h),
+        LyricsLayout.Editorial when w >= 780 => new(Math.Clamp(w * 0.031, 40, 56) + Math.Clamp(w * 0.21, 250, 312) + Math.Clamp(w * 0.052, 56, 84), 0, w * 0.60, h),
         LyricsLayout.Poster or LyricsLayout.Slices => new(w * 0.12, 0, w * 0.77, h),
         _ => new(w * 0.08, 0, w * 0.84, h)
     };
@@ -247,7 +270,7 @@ public sealed class LyricsViewportControl : Control, IDisposable
     }
     public void Dispose()
     {
-        if (closed) return; closed = true; frames.Dispose(); cache.Dispose();
+        if (closed) return; closed = true; frames.Dispose(); cache.Dispose(); poster.Dispose();
         headerTitle?.Dispose(); headerArtist?.Dispose();
         if (model is not null) { model.Changed -= Refresh; model.PropertyChanged -= OnModelPropertyChanged; model.Appearance.PropertyChanged -= OnAppearanceChanged; }
         if (motion is not null) motion.PropertyChanged -= OnMotionChanged;

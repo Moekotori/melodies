@@ -14,6 +14,7 @@ public partial class MainWindow
             ReleaseLibraryPage(); ReleaseLyricsPage();
             PageHost.Content = null; PageHost.Settle();
             _viewModel.CloseQueueDrawerCommand.Execute(null);
+            _viewModel.Player.Queue.ShowHistory = false;
             UiScaleHost.IsVisible = false; LyricsStageHost.IsVisible = true;
             _lyricsPage = new LyricsView(_viewModel, _previousRoute);
             LyricsStageHost.Content = _lyricsPage;

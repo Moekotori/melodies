@@ -38,9 +38,12 @@ public partial class SettingsView : UserControl
     private void ShowSection()
     {
         if (_model is null) return;
+        _model.Shell.Shortcuts.CancelRecording();
         SectionHost.Content = new ScrollViewer
         {
-            Content = new SettingsSectionView(_model), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Content = _model.ActiveCategory.Id == "shortcuts"
+                ? new Echo.Desktop.Features.Shortcuts.ShortcutSettingsView { DataContext = _model.Shell.Shortcuts }
+                : new SettingsSectionView(_model), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
         };
     }
@@ -62,6 +65,7 @@ public partial class SettingsView : UserControl
         if (e.Key == Key.Enter && _model.HasSearchResults)
         { _model.OpenResultCommand.Execute(_model.SearchResults.ElementAtOrDefault(_model.ActiveSearchIndex)); e.Handled = true; }
     }
+    public void FocusSearch() => SearchInput.Focus();
     private async void OpenLink(string label)
     {
         var target = label switch

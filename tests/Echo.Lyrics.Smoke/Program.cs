@@ -19,6 +19,7 @@ using Echo.Desktop.Motion;
 using Echo.Desktop.Shell;
 using Echo.Infrastructure.Lyrics;
 using Echo.Playback;
+using SkiaSharp;
 
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions())
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
@@ -45,7 +46,20 @@ var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
 Dispatcher.UIThread.RunJobs();
 var view = FindView();
 Wait(() => view.Model.HasLyrics && !view.Model.IsLoading);
+Check(window.FindControl<ContentControl>("LyricsStageHost")!.IsVisible
+    && !window.FindControl<LayoutTransformControl>("UiScaleHost")!.IsVisible
+    && Math.Abs(view.Bounds.Width - window.ClientSize.Width) < 1
+    && Math.Abs(view.Bounds.Height - window.ClientSize.Height) < 1, "independent lyric host fills the entire client area");
 Check(view.Model.Cover is not null && view.Model.Document.Lines[1].Translation is not null, "real sidecar/translation/shared artwork");
+using (var data = SKData.CreateCopy(cover))
+using (var codec = SKCodec.Create(data))
+{
+    var expected = Math.Min(768, Math.Max(codec.Info.Width, codec.Info.Height));
+    Check(Math.Max(view.Model.Cover!.PixelSize.Width, view.Model.Cover.PixelSize.Height) == expected, "lyric cover uses bounded higher resolution");
+    var thumbnail = artwork.AcquireAsync(audio, limit.Token); Pump(thumbnail);
+    using var thumbnailLease = thumbnail.Result;
+    Check(thumbnailLease?.Image is { } thumb && Math.Max(thumb.PixelSize.Width, thumb.PixelSize.Height) <= 320, "ordinary thumbnail budget remains 320");
+}
 foreach (var style in appearance.Styles)
 {
     appearance.SelectedStyle = style; Capture("style-" + style.Id);
@@ -83,6 +97,7 @@ Pump(view.Model.LoadAsync(null)); Check(view.Model.HasLyrics, "reload recovery")
 var old = view;
 shell.NavigateCommand.Execute("home"); Dispatcher.UIThread.RunJobs();
 Check(!viewportControl.IsFrameDriverRunning && old.Model.Document.Lines.Count == 0, "page exit releases layouts/clock/document");
+Check(window.FindControl<LayoutTransformControl>("UiScaleHost")!.IsVisible && !window.FindControl<ContentControl>("LyricsStageHost")!.IsVisible, "normal shell restored on back");
 shell.NavigateCommand.Execute("lyrics"); Dispatcher.UIThread.RunJobs(); view = FindView(); Wait(() => view.Model.HasLyrics);
 Check(ReferenceEquals(view.Model.Appearance, appearance), "appearance survives route recreation");
 window.Close(); player.Detach(); Pump(session.DisposeAsync().AsTask()); Pump(artwork.DisposeAsync().AsTask()); Pump(source.DisposeAsync().AsTask());
@@ -90,7 +105,7 @@ appearance.SelectedStyle = appearance.Styles[5]; appearance.FontSize = 42; Pump(
 var reread = new LocalLyricsPreferencesStore(settingsPath); var loaded = reread.ReadAsync(limit.Token); Pump(loaded);
 Check(loaded.Result.Style == "folded" && loaded.Result.FontSize == 42, "persistent last-write roundtrip"); Pump(reread.DisposeAsync().AsTask());
 CancellationSmoke.Run(Pump);
-Console.WriteLine($"PASS parser, actual sidecar + shared artwork, 12 styles / 22 looks native renders, offsets, browse/seek, narrow/dark/plain/error, navigation disposal, settings, stale cancellation ({watch.ElapsedMilliseconds} ms)");
+Console.WriteLine($"PASS parser, actual sidecar + shared artwork, independent full-client host + normal-shell restore, 12 styles / 22 looks native renders, fresh/hidden/stale/paused frame driver, offsets, browse/seek, narrow/dark/plain/error, navigation disposal, settings, stale cancellation ({watch.ElapsedMilliseconds} ms)");
 
 LyricsView FindView() => window.GetVisualDescendants().OfType<LyricsView>().Last();
 void Capture(string name)

@@ -1,39 +1,71 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:lyrics="using:Echo.Desktop.Features.Lyrics"
+             xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Settings.Drawers.LyricsSettingsDrawerView" x:DataType="lyrics:LyricsAppearance">
   <Grid RowDefinitions="*,Auto">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <StackPanel Spacing="15" Margin="22,24,22,24">
-        <TextBlock Text="显示样式" Classes="heading" FontSize="15" FontWeight="SemiBold" />
-        <ComboBox Name="LyricStyleInput" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Stretch">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsStyle"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Text="{Binding SelectedStyle.Description}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-        <ComboBox ItemsSource="{Binding Looks}" SelectedItem="{Binding SelectedLook}" IsVisible="{Binding IsAfterglow}" HorizontalAlignment="Stretch">
-          <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:AfterglowLook"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-        </ComboBox>
-        <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,6" />
-        <TextBlock Text="文字与排版" Classes="heading" FontSize="15" FontWeight="SemiBold" />
-        <Grid ColumnDefinitions="*,120"><TextBlock Text="歌词字号" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Name="LyricFontInput" Grid.Column="1" Minimum="18" Maximum="72" Increment="1" Value="{Binding FontSize}" /></Grid>
-        <Grid ColumnDefinitions="*,120"><TextBlock Text="译文 / 罗马音字号" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="10" Maximum="32" Increment="1" Value="{Binding SecondarySize}" /></Grid>
-        <ComboBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding Font}" HorizontalAlignment="Stretch" AutomationProperties.Name="歌词字体" />
-        <ComboBox ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment}" HorizontalAlignment="Stretch" AutomationProperties.Name="歌词对齐" />
-        <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,6" />
-        <TextBlock Text="显示内容" Classes="heading" FontSize="15" FontWeight="SemiBold" />
-        <CheckBox Name="LyricHighlightInput" Content="逐字高亮" IsChecked="{Binding WordHighlight}" />
-        <CheckBox Content="显示上下文" IsChecked="{Binding Context}" />
-        <CheckBox Name="LyricTranslationInput" Content="显示译文" IsChecked="{Binding Translation}" />
-        <CheckBox Content="显示罗马音" IsChecked="{Binding Romanization}" />
-        <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,6" />
-        <TextBlock Text="时间同步" Classes="heading" FontSize="15" FontWeight="SemiBold" />
-        <NumericUpDown Name="LyricOffsetInput" Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" />
-        <TextBlock Text="单位：毫秒。正值让歌词提前，负值让歌词延后。" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-        <Button Content="恢复歌词显示默认值" Click="OnReset" HorizontalAlignment="Left" />
-      </StackPanel>
-    </ScrollViewer>
-    <Border Grid.Row="1" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="22,14,22,20">
-      <StackPanel Spacing="10"><TextBlock Text="修改立即生效，并自动保存。" FontSize="12" Classes="muted" />
-        <Button Content="打开歌词页" Click="OnOpenLyrics" Classes="primary" HorizontalContentAlignment="Center" /></StackPanel>
+    <TabControl Name="LyricsTabs" Classes="drawer-tabs" Margin="22,14,22,0" HorizontalContentAlignment="Stretch">
+      <TabItem Header="文字显示">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="0" Margin="0,22,0,24">
+            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="40"><icon:GlyphIcon Kind="captions" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="歌词显示" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
+            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
+              <icon:GlyphIcon Kind="captions" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="逐字高亮" FontSize="13" VerticalAlignment="Center" />
+              <CheckBox Name="LyricHighlightInput" Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding WordHighlight}" AutomationProperties.Name="逐字高亮" />
+              <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="按歌词自带的逐字时间高亮。"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+            </Grid></Border>
+            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
+              <icon:GlyphIcon Kind="captions" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="显示上下文" FontSize="13" VerticalAlignment="Center" />
+              <CheckBox Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding Context}" AutomationProperties.Name="显示上下文" />
+              <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="保留当前行前后的歌词。"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+            </Grid></Border>
+            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="52" Margin="0,14,0,0"><icon:GlyphIcon Kind="type" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="文字与样式" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
+            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
+              <icon:GlyphIcon Kind="captions" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="显示罗马音" FontSize="13" VerticalAlignment="Center" />
+              <CheckBox Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding Romanization}" AutomationProperties.Name="显示罗马音" />
+              <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="显示歌词文件中提供的罗马音。"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+            </Grid></Border>
+            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
+              <icon:GlyphIcon Kind="captions" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="显示中文翻译" FontSize="13" VerticalAlignment="Center" />
+              <CheckBox Name="LyricTranslationInput" Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding Translation}" AutomationProperties.Name="显示中文翻译" />
+              <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="显示歌词文件中提供的译文，没有译文时留空。"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+            </Grid></Border>
+            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,180" ColumnSpacing="10"><icon:GlyphIcon Kind="type" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="歌词字体" FontSize="13" VerticalAlignment="Center" /><ComboBox Name="LyricFontFamilyInput" Grid.Column="2" ItemsSource="{Binding Fonts}" SelectedItem="{Binding Font}" HorizontalAlignment="Stretch" /></Grid></Border>
+            <Border Classes="drawer-row"><StackPanel Spacing="8" Margin="0,6">
+              <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="10"><icon:GlyphIcon Kind="type" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="歌词字号" FontSize="13" /><TextBlock Grid.Column="2" Text="{Binding FontSize, StringFormat='{}{0:0}px'}" Classes="muted" FontSize="12" /></Grid>
+              <Slider Name="LyricFontInput" Minimum="18" Maximum="72" Value="{Binding FontSize}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="歌词字号" />
+            </StackPanel></Border>
+            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="48" Margin="0,12,0,0"><icon:GlyphIcon Kind="type" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="排版与颜色" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
+            <Border Classes="drawer-row"><StackPanel Spacing="8" Margin="0,6">
+              <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="10"><icon:GlyphIcon Kind="type" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="翻译与罗马音字号" FontSize="13" /><TextBlock Grid.Column="2" Text="{Binding SecondarySize, StringFormat='{}{0:0}px'}" Classes="muted" FontSize="12" /></Grid>
+              <Slider Name="LyricSecondaryInput" Minimum="10" Maximum="32" Value="{Binding SecondarySize}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="翻译与罗马音字号" />
+            </StackPanel></Border>
+            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,180" ColumnSpacing="10"><icon:GlyphIcon Kind="type" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="对齐" FontSize="13" VerticalAlignment="Center" /><ComboBox Name="LyricAlignmentInput" Grid.Column="2" ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment}" HorizontalAlignment="Stretch" /></Grid></Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="歌词样式">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="14" Margin="0,22,0,24">
+            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="36"><icon:GlyphIcon Kind="palette" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="内置歌词样式" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
+            <ComboBox Name="LyricStyleInput" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsStyle"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+            <TextBlock Text="{Binding SelectedStyle.Description}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            <StackPanel Spacing="12" IsVisible="{Binding IsAfterglow}"><TextBlock Text="Afterglow 外观" Classes="drawer-section" /><ComboBox ItemsSource="{Binding Looks}" SelectedItem="{Binding SelectedLook}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:AfterglowLook"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+            <Button Content="恢复歌词显示默认值" Classes="drawer-action" Click="OnReset" HorizontalAlignment="Left" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="来源与校准">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Spacing="18" Margin="0,22,0,24">
+            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="36"><icon:GlyphIcon Kind="gauge" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="歌词时间校准" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
+            <Border Classes="drawer-row"><Grid ColumnDefinitions="*,150" ColumnSpacing="12"><TextBlock Text="时间偏移 / 毫秒" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Name="LyricOffsetInput" Grid.Column="1" Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" /></Grid></Border>
+            <TextBlock Text="正值让歌词提前，负值让歌词延后。修改后立即按新的偏移显示。" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            <Button Content="恢复歌词显示默认值" Classes="drawer-action" Click="OnReset" HorizontalAlignment="Left" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+    <Border Grid.Row="1" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="22,12">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12"><TextBlock Text="修改立即生效 · 自动保存" FontSize="11" Classes="muted" VerticalAlignment="Center" /><Button Grid.Column="1" Content="打开歌词页" Click="OnOpenLyrics" Classes="drawer-action" /></Grid>
     </Border>
   </Grid>
 </UserControl>

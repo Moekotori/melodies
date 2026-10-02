@@ -4,30 +4,30 @@
   <StackPanel Spacing="24">
     <StackPanel Spacing="16">
       <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource EchoDivider}" Padding="0,0,0,10">
-        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="This Week" Classes="heading" FontSize="16" VerticalAlignment="Center" /><Button Grid.Column="1" Content="历史" Command="{Binding NavigateCommand}" CommandParameter="history" FontSize="12" /></Grid>
+        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="This Week" Classes="heading" FontSize="16" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{DynamicResource ui.ListeningOverview.b0385cfe4b42}" Command="{Binding NavigateCommand}" CommandParameter="history" FontSize="12" /></Grid>
       </Border>
       <Grid ColumnDefinitions="*,*">
-        <StackPanel Spacing="4"><TextBlock Text="本周播放" Classes="muted" FontSize="12" /><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="0" FontSize="19" Classes="heading" FontWeight="Medium" /><TextBlock Text="次" Classes="muted" FontSize="11" VerticalAlignment="Bottom" Margin="0,0,0,4" /></StackPanel></StackPanel>
-        <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="聆听时长" Classes="muted" FontSize="12" /><TextBlock Text="0 分钟" FontSize="19" Classes="heading" FontWeight="Medium" /></StackPanel>
+        <StackPanel Spacing="4"><TextBlock Text="{DynamicResource ui.ListeningOverview.7f86543bdd77}" Classes="muted" FontSize="12" /><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="0" FontSize="19" Classes="heading" FontWeight="Medium" /><TextBlock Text="{DynamicResource ui.ListeningOverview.172fb7e67b9b}" Classes="muted" FontSize="11" VerticalAlignment="Bottom" Margin="0,0,0,4" /></StackPanel></StackPanel>
+        <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="{DynamicResource ui.ListeningOverview.4af4c8a6ccc8}" Classes="muted" FontSize="12" /><TextBlock Text="{DynamicResource ui.ListeningOverview.a030cc8d2891}" FontSize="19" Classes="heading" FontWeight="Medium" /></StackPanel>
       </Grid>
       <StackPanel Spacing="7">
-        <TextBlock Text="7月           8月           9月" FontSize="10" Classes="subtle" Margin="20,0,0,0" />
+        <TextBlock Text="{DynamicResource ui.ListeningOverview.248967871650}" FontSize="10" Classes="subtle" Margin="20,0,0,0" />
         <Grid Height="116">
           <icon:ListeningHeatmap Height="116" CellBrush="{DynamicResource EchoPanelMuted}" />
-          <Canvas IsHitTestVisible="False"><TextBlock Text="一" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="1" /><TextBlock Text="三" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="35" /><TextBlock Text="五" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="69" /></Canvas>
+          <Canvas IsHitTestVisible="False"><TextBlock Text="{DynamicResource ui.ListeningOverview.51a75f4634df}" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="1" /><TextBlock Text="{DynamicResource ui.ListeningOverview.a4c3313deb18}" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="35" /><TextBlock Text="{DynamicResource ui.ListeningOverview.c9b87f516a38}" FontSize="10" Classes="subtle" Canvas.Left="3" Canvas.Top="69" /></Canvas>
         </Grid>
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="0 周活跃" FontSize="10" Classes="subtle" />
+          <TextBlock Text="{DynamicResource ui.ListeningOverview.6e7367e7b3a9}" FontSize="10" Classes="subtle" />
           <UniformGrid Grid.Column="1" Columns="5" Rows="1" Width="86" Height="14"><Border Background="{DynamicResource EchoPanelMuted}" Margin="1,0" /><Border Background="{DynamicResource EchoAccent}" Opacity="0.18" Margin="1,0" /><Border Background="{DynamicResource EchoAccent}" Opacity="0.36" Margin="1,0" /><Border Background="{DynamicResource EchoAccent}" Opacity="0.65" Margin="1,0" /><Border Background="{DynamicResource EchoAccent}" Margin="1,0" /></UniformGrid>
         </Grid>
       </StackPanel>
-      <TextBlock Text="播放后，格子会按每周节奏被点亮。" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+      <TextBlock Text="{DynamicResource ui.ListeningOverview.fa92e6441c6f}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
     </StackPanel>
     <StackPanel Spacing="16">
-      <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource EchoDivider}" Padding="0,0,0,10"><TextBlock Text="艺人排行榜" Classes="heading" FontSize="16" /></Border>
+      <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource EchoDivider}" Padding="0,0,0,10"><TextBlock Text="{DynamicResource ui.ListeningOverview.7817196f39a2}" Classes="heading" FontSize="16" /></Border>
       <StackPanel Spacing="8" Margin="0,12">
-        <TextBlock Text="还没有艺人排行" Classes="heading" FontWeight="Medium" FontSize="13" />
-        <TextBlock Text="播放更多音乐后，这里会形成你的高频艺人榜。" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="19" />
+        <TextBlock Text="{DynamicResource ui.ListeningOverview.22daf6f8085c}" Classes="heading" FontWeight="Medium" FontSize="13" />
+        <TextBlock Text="{DynamicResource ui.ListeningOverview.96f73169e806}" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="19" />
       </StackPanel>
     </StackPanel>
   </StackPanel>

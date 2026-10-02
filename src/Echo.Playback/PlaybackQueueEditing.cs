@@ -68,13 +68,12 @@ public sealed partial class PlaybackSessionCoordinator
         Func<QueueTrack[], QueueTrack[]>? editHistory = null) => Command(async () =>
     {
         var items = edit(queue); ValidateItems(items);
-        await EnsureStartedAsync().ConfigureAwait(false);
         var previous = new QueueEdit(queue, history, shuffleOrder);
         var removedCurrent = snapshot.Current is not null && !items.Any(x => x.ItemId == snapshot.Current.ItemId);
         var order = shuffleOrder.Where(id => items.Any(x => x.ItemId == id)).ToList();
         var additions = items.Where(x => !x.QueuedNext && !order.Contains(x.ItemId)).Select(x => x.ItemId).ToArray();
         Random.Shared.Shuffle(additions); order.AddRange(additions); shuffleOrder = order.ToArray();
-        try { await SendQueueAsync(items, snapshot.Current?.ItemId, removedCurrent ? RepeatMode.Off : repeat).ConfigureAwait(false); }
+        try { if (initialized) await SendQueueAsync(items, snapshot.Current?.ItemId, removedCurrent ? RepeatMode.Off : repeat).ConfigureAwait(false); }
         catch { shuffleOrder = previous.ShuffleOrder; throw; }
         SetQueueItems(items); history = editHistory?.Invoke(history) ?? history; undo = previous;
         Publish(snapshot with { Current = items.FirstOrDefault(x => x.ItemId == snapshot.Current?.ItemId) ?? snapshot.Current });
@@ -85,7 +84,7 @@ public sealed partial class PlaybackSessionCoordinator
     {
         if (undo is not { } previous) return;
         var oldOrder = shuffleOrder; shuffleOrder = previous.ShuffleOrder;
-        try { await SendQueueAsync(previous.Items, snapshot.Current?.ItemId, repeat).ConfigureAwait(false); }
+        try { if (initialized) await SendQueueAsync(previous.Items, snapshot.Current?.ItemId, repeat).ConfigureAwait(false); }
         catch { shuffleOrder = oldOrder; throw; }
         SetQueueItems(previous.Items); history = previous.History; undo = null;
         Publish(snapshot with { Current = queue.FirstOrDefault(x => x.ItemId == snapshot.Current?.ItemId) ?? snapshot.Current });

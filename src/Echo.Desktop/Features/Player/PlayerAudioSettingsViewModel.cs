@@ -36,12 +36,14 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
     private bool updatingModes;
     public IReadOnlyList<OutputFormatChoice> Formats { get; } = [new("pcm", "PCM（含 DSD 解码）"), new("dop24le", "DoP / SDM 输出"), new("dsd-native-raw", "Native DSD / SDM 输出")];
     public IReadOnlyList<OutputFormatChoice> AvailableFormats => Formats.Where(format => format.Key == "pcm" || CanUseDsd
-        && (format.Key == "dop24le" && SelectedMode.Key is "exclusive" or "asio" || format.Key == "dsd-native-raw" && IsAsio)).ToArray();
+        && (format.Key == "dop24le" && SelectedMode?.Key is "exclusive" or "asio" || format.Key == "dsd-native-raw" && IsAsio)).ToArray();
     public IReadOnlyList<int> Rates { get; } = [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000];
     public IReadOnlyList<int> DsdRates { get; } = [176400, 192000, 352800, 384000, 705600, 768000, 1411200, 1536000];
 
     partial void OnSelectedModeChanged(AudioOutputMode value)
     {
+        // ComboBox may clear selection briefly while its device/mode list changes.
+        if (value is null) return;
         IsAsio = value.Key == "asio";
         if (!IsAsio) OutputChannels = 2;
         if (!updatingModes)
@@ -52,7 +54,7 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
         }
     }
     partial void OnSelectedFormatChanged(OutputFormatChoice value)
-    { IsDsd = value.Key != "pcm"; if (IsDsd) OutputChannels = 2; }
+    { IsDsd = value is not null && value.Key != "pcm"; if (IsDsd) OutputChannels = 2; }
     partial void OnSelectedDeviceChanged(AudioOutputDevice? value) => DsdCapabilities = "DSD 支持须以驱动探测结果为准。";
 
     [RelayCommand(IncludeCancelCommand = true)] private async Task RefreshAsync(CancellationToken token)
@@ -63,12 +65,10 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
         {
             var modes = await session.GetOutputModesAsync(token);
             if (version != refreshVersion || token.IsCancellationRequested) return;
-            Modes = modes;
-            CanUseDsd = session.GeneratedDsdAllowed;
             var current = session.RequestedOutput;
-            var mode = current is { } settings && settings.TryGetProperty("outputMode", out var outputMode) ? outputMode.GetString() : SelectedMode.Key;
+            var mode = current is { } settings && settings.TryGetProperty("outputMode", out var outputMode) ? outputMode.GetString() : SelectedMode?.Key ?? "shared";
             updatingModes = true;
-            try { SelectedMode = Modes.FirstOrDefault(x => x.Key == mode) ?? Modes[0]; }
+            try { Modes = modes; CanUseDsd = session.GeneratedDsdAllowed; SelectedMode = Modes.FirstOrDefault(x => x.Key == mode) ?? Modes[0]; }
             finally { updatingModes = false; }
             if (current is { } config)
             {
@@ -80,6 +80,7 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
                     if (SelectedFormat.Key != "pcm") { DsdTransportRate = SelectedFormat.Key == "dsd-native-raw" ? SampleRate / 16 : SampleRate; SampleRate = 48000; }
                 }
             }
+            if (SelectedFormat is null || !AvailableFormats.Contains(SelectedFormat)) SelectedFormat = Formats[0];
             await LoadDevicesAsync(token, duringRefresh: true);
             if (version != refreshVersion || token.IsCancellationRequested) return;
             var eq = await session.DspAsync("eq.getState", Json(new JsonArray()), token: token);
@@ -102,13 +103,13 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
         using var query = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         deviceQuery = query;
         var version = ++requestVersion;
-        var mode = SelectedMode.Key;
+        var mode = SelectedMode?.Key ?? "shared";
         var selectedId = SelectedDevice?.Mode == mode ? SelectedDevice.Id : null;
         Devices = []; SelectedDevice = null; IsRefreshing = true;
         try
         {
             var found = await session.GetOutputDevicesAsync(mode, query.Token);
-            if (version != requestVersion || SelectedMode.Key != mode || query.IsCancellationRequested) return;
+            if (version != requestVersion || SelectedMode?.Key != mode || query.IsCancellationRequested) return;
             Devices = mode == "shared" ? new[] { new AudioOutputDevice("", "系统默认输出", mode, -1, true, 0, []) }.Concat(found).ToArray() : found;
             if (session.RequestedOutput is { } saved && saved.TryGetProperty("outputMode", out var savedMode) && savedMode.GetString() == mode
                 && saved.TryGetProperty("deviceId", out var id)) selectedId ??= id.GetString();
@@ -151,7 +152,7 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
     [RelayCommand] private async Task ApplyAsync()
     {
         if (IsApplying) return;
-        if (IsRefreshing || SelectedDevice is null) { Message = "请先选择当前模式下的输出设备。"; return; }
+        if (IsRefreshing || SelectedDevice is null || SelectedMode is null || SelectedFormat is null) { Message = "请先选择当前模式下的输出设备与格式。"; return; }
         var equalizer = EqualizerEnabled; var crossfeed = CrossfeedEnabled; var rate = PlaybackRate;
         IsApplying = true;
         try

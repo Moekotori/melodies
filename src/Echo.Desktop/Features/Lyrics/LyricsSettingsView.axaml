@@ -3,26 +3,30 @@
              x:DataType="lyrics:LyricsAppearance">
   <ScrollViewer MaxHeight="560" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Width="280" Spacing="12" Margin="4">
-      <TextBlock Text="歌词显示" Classes="heading" FontSize="18" />
-      <TextBlock Text="字号" Classes="muted" />
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.fe6bae899f4f}" Classes="heading" FontSize="18" />
+      <ComboBox ItemsSource="{Binding StyleChoices}" SelectedItem="{Binding StyleChoice}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Text="{Binding StyleDescription}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.f71561b5af0a}" Classes="muted" />
       <Slider Minimum="18" Maximum="72" Value="{Binding FontSize}" TickFrequency="1" />
-      <TextBlock Text="译文 / 罗马音字号" Classes="muted" />
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.6e6d009404e9}" Classes="muted" />
       <Slider Minimum="10" Maximum="32" Value="{Binding SecondarySize}" TickFrequency="1" />
-      <TextBlock Text="字体" Classes="muted" />
-      <ComboBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding Font}" HorizontalAlignment="Stretch" />
-      <TextBlock Text="对齐" Classes="muted" />
-      <ComboBox ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment}" HorizontalAlignment="Stretch" />
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.078838da4218}" Classes="muted" />
+      <ComboBox ItemsSource="{Binding FontChoices}" SelectedItem="{Binding FontChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.fd5fb78ba29c}" Classes="muted" />
+      <ComboBox ItemsSource="{Binding AlignmentChoices}" SelectedItem="{Binding AlignmentChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
       <Border Background="{DynamicResource EchoDivider}" Height="1" />
-      <CheckBox Content="逐字高亮" IsChecked="{Binding WordHighlight}" />
-      <CheckBox Content="显示上下文" IsChecked="{Binding Context}" />
-      <CheckBox Content="显示译文" IsChecked="{Binding Translation}" />
-      <CheckBox Content="显示罗马音" IsChecked="{Binding Romanization}" />
-      <TextBlock Text="歌词时间偏移 / 毫秒" Classes="muted" />
+      <CheckBox Content="{DynamicResource ui.LyricsSettingsView.e17be4f4d18f}" IsChecked="{Binding WordHighlight}" />
+      <CheckBox Content="{DynamicResource ui.LyricsSettingsView.6531249bf16e}" IsChecked="{Binding Context}" />
+      <CheckBox Content="{DynamicResource ui.LyricsSettingsView.7cd62999f274}" IsChecked="{Binding Translation}" />
+      <CheckBox Content="{DynamicResource ui.LyricsSettingsView.1dd07ef2a8c1}" IsChecked="{Binding Romanization}" />
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.fb43fe56bffd}" Classes="muted" />
       <NumericUpDown Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" />
-      <TextBlock Text="正值让歌词提前，负值让歌词延后。" Classes="muted" FontSize="11" TextWrapping="Wrap" />
-      <TextBlock Text="Afterglow 主题" Classes="heading" IsVisible="{Binding IsAfterglow}" />
-      <ComboBox ItemsSource="{Binding Looks}" SelectedItem="{Binding SelectedLook}" IsVisible="{Binding IsAfterglow}" HorizontalAlignment="Stretch">
-        <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:AfterglowLook"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.02a99f7fd75a}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.7f923409a2c7}" Classes="heading" IsVisible="{Binding IsAfterglow}" />
+      <ComboBox ItemsSource="{Binding LookChoices}" SelectedItem="{Binding LookChoice}" IsVisible="{Binding IsAfterglow}" HorizontalAlignment="Stretch">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
     </StackPanel>
   </ScrollViewer>

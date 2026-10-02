@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell"
+             x:Class="Echo.Desktop.Features.Floating.FloatingSettingsView" x:DataType="shell:ShellViewModel">
+  <StackPanel Spacing="10">
+    <TextBlock Text="{DynamicResource floating.title}" FontSize="15" FontWeight="SemiBold" />
+    <CheckBox Content="{DynamicResource floating.mini}" IsChecked="{Binding Floating.MiniEnabled}" />
+    <CheckBox Content="{DynamicResource floating.topmost}" IsChecked="{Binding Floating.MiniTopmost}" />
+    <CheckBox Content="{DynamicResource floating.fixed}" IsChecked="{Binding Floating.MiniLocked}" />
+    <Border Height="1" Background="{DynamicResource EchoDivider}" />
+    <CheckBox Content="{DynamicResource floating.lyrics}" IsChecked="{Binding Floating.LyricsEnabled}" />
+    <CheckBox Content="{DynamicResource floating.lock}" IsChecked="{Binding Floating.LyricsLocked}" IsEnabled="{Binding Floating.SupportsPassthrough}" />
+    <CheckBox Content="{DynamicResource floating.double}" IsChecked="{Binding Floating.DoubleLine}" />
+    <Grid ColumnDefinitions="*,*"><CheckBox Content="{DynamicResource floating.translation}" IsChecked="{Binding Floating.Translation}" /><CheckBox Grid.Column="1" Content="{DynamicResource floating.romanization}" IsChecked="{Binding Floating.Romanization}" /></Grid>
+    <CheckBox Content="{DynamicResource floating.hideEmpty}" IsChecked="{Binding Floating.HideWithoutLyrics}" />
+    <Grid ColumnDefinitions="*,100"><TextBlock Text="{DynamicResource floating.fontSize}" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="16" Maximum="72" Value="{Binding Floating.FontSize}" /></Grid>
+    <Grid ColumnDefinitions="*,100"><TextBlock Text="{DynamicResource floating.secondarySize}" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="10" Maximum="40" Value="{Binding Floating.SecondarySize}" /></Grid>
+    <TextBox Text="{Binding Floating.FontFamily}" Watermark="{DynamicResource floating.fontFamily}" AutomationProperties.Name="{DynamicResource floating.fontFamily}" />
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8"><TextBox Text="{Binding Floating.Color}" Watermark="#FFFFFF" AutomationProperties.Name="{DynamicResource floating.color}" /><TextBox Grid.Column="1" Text="{Binding Floating.HighlightColor}" Watermark="#A8D6FF" AutomationProperties.Name="{DynamicResource floating.highlightColor}" /></Grid>
+    <TextBlock Text="{DynamicResource floating.opacity}" FontSize="12" />
+    <Slider Minimum="0.2" Maximum="1" Value="{Binding Floating.Opacity}" SmallChange="0.05" AutomationProperties.Name="{DynamicResource floating.opacity}" />
+    <Grid ColumnDefinitions="*,130"><TextBlock Text="{DynamicResource floating.offset}" FontSize="12" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding Floating.OffsetMs}" /></Grid>
+    <Button Content="{DynamicResource floating.reset}" Command="{Binding Floating.ResetPositionCommand}" />
+    <TextBlock Text="{DynamicResource floating.unlockHint}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Floating.Diagnostic}" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Floating.Diagnostic, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

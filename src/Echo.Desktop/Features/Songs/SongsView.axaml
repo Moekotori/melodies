@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Songs" xmlns:library="using:Echo.Contracts.Library"
+             xmlns:filters="using:Echo.Desktop.Features.LibraryDetails" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Songs.SongsView" x:DataType="local:SongsViewModel">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="12">
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBlock Text="{DynamicResource navigation.songs}" Classes="heading" FontSize="30" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><Button Content="{DynamicResource query.import}" Click="OnImport" /><Button Content="{DynamicResource query.refresh}" Command="{Binding RefreshCommand}" /></StackPanel>
+    </Grid>
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+      <Grid><TextBox Name="SearchField" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource query.searchHint}" KeyDown="OnSearchKey" Padding="12,10,40,10" />
+        <Button Content="×" Command="{Binding ClearSearchCommand}" Classes="icon" HorizontalAlignment="Right" Margin="4" ToolTip.Tip="{DynamicResource query.clear}" />
+      </Grid>
+      <Button Name="FilterButton" Grid.Column="1"><StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{DynamicResource query.filters}" /><TextBlock Text="{Binding Filters.ActiveCount}" Classes="muted" /></StackPanel>
+        <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight"><filters:LibraryFilterView DataContext="{Binding Filters}" /></Flyout></Button.Flyout>
+      </Button>
+      <Button Name="SortButton" Grid.Column="2" Content="{DynamicResource query.sort}">
+        <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight"><StackPanel Width="280" Spacing="12">
+          <TextBlock Text="{DynamicResource query.primary}" Classes="muted" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><ComboBox ItemsSource="{Binding SortChoices}" SelectedIndex="{Binding SortIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" /><ToggleButton Grid.Column="1" Content="↓" IsChecked="{Binding Descending, Mode=TwoWay}" ToolTip.Tip="{DynamicResource query.desc}" /></Grid>
+          <TextBlock Text="{DynamicResource query.secondary}" Classes="muted" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><ComboBox ItemsSource="{Binding AdditionalSortChoices}" SelectedIndex="{Binding SecondaryIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" /><ToggleButton Grid.Column="1" Content="↓" IsChecked="{Binding SecondaryDescending, Mode=TwoWay}" ToolTip.Tip="{DynamicResource query.desc}" /></Grid>
+          <TextBlock Text="{DynamicResource query.tertiary}" Classes="muted" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><ComboBox ItemsSource="{Binding AdditionalSortChoices}" SelectedIndex="{Binding TertiaryIndex, Mode=TwoWay}" HorizontalAlignment="Stretch" /><ToggleButton Grid.Column="1" Content="↓" IsChecked="{Binding TertiaryDescending, Mode=TwoWay}" ToolTip.Tip="{DynamicResource query.desc}" /></Grid>
+        </StackPanel></Flyout></Button.Flyout>
+      </Button>
+    </Grid>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{DynamicResource query.commandHint}" FontSize="12" Classes="muted" TextWrapping="Wrap" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><Button Content="{DynamicResource query.play}" Command="{Binding PlayCommand}" /><Button Content="{DynamicResource query.nextUp}" Command="{Binding PlayNextCommand}" /><Button Content="{DynamicResource query.add}" Command="{Binding AddCommand}" /><Button Content="♡" Command="{Binding FavoriteCommand}" ToolTip.Tip="{DynamicResource query.favorite}" /></StackPanel>
+    </Grid>
+    <StackPanel Grid.Row="3" Spacing="4"><TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /><TextBlock Name="ImportStatus" Classes="muted" TextWrapping="Wrap" /><Button Name="CancelImport" Content="{DynamicResource query.cancel}" Click="OnCancelImport" IsVisible="False" HorizontalAlignment="Left" /></StackPanel>
+    <Grid Grid.Row="4" RowDefinitions="Auto,*">
+      <Grid ColumnDefinitions="3*,2*,2*,100,70" Margin="12,0,12,8"><TextBlock Text="{DynamicResource query.sort.Title}" Classes="muted" /><TextBlock Grid.Column="1" Text="{DynamicResource query.sort.Artist}" Classes="muted" /><TextBlock Grid.Column="2" Text="{DynamicResource query.sort.Album}" Classes="muted" /><TextBlock Grid.Column="3" Text="{DynamicResource query.format}" Classes="muted" /><TextBlock Grid.Column="4" Text="{DynamicResource query.sort.Duration}" Classes="muted" /></Grid>
+      <ListBox Name="TrackList" Grid.Row="1" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected, Mode=TwoWay}" DoubleTapped="OnDoubleTapped" Background="Transparent" BorderThickness="0">
+        <ListBox.ItemTemplate><DataTemplate x:DataType="library:TrackRow"><Grid ColumnDefinitions="3*,2*,2*,100,70" ColumnSpacing="8" Height="44" ToolTip.Tip="{Binding Path}">
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><TextBlock Text="♥" IsVisible="{Binding Favorite}" Foreground="{DynamicResource EchoAccentText}" /><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" /></StackPanel>
+          <TextBlock Grid.Column="1" Text="{Binding Artist}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="muted" /><TextBlock Grid.Column="2" Text="{Binding Album}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="muted" /><TextBlock Grid.Column="3" Text="{Binding Codec}" VerticalAlignment="Center" FontSize="12" Classes="muted" /><TextBlock Grid.Column="4" Text="{Binding DurationSeconds, StringFormat={}{0:0}s}" VerticalAlignment="Center" FontSize="12" Classes="muted" />
+        </Grid></DataTemplate></ListBox.ItemTemplate>
+      </ListBox>
+      <TextBlock Grid.Row="1" Text="{DynamicResource query.empty}" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="muted" />
+      <ProgressBar Grid.Row="1" IsIndeterminate="True" IsVisible="{Binding IsLoading}" Height="2" VerticalAlignment="Top" />
+    </Grid>
+    <Grid Grid.Row="5" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+      <TextBlock Text="{Binding PageText}" Classes="muted" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{DynamicResource query.previous}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" /><Button Grid.Column="2" Content="{DynamicResource query.next}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" />
+    </Grid>
+  </Grid>
+</UserControl>

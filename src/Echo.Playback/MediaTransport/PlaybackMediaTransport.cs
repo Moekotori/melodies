@@ -11,25 +11,40 @@ public sealed class PlaybackMediaTransport : IAsyncDisposable
     private readonly Channel<MediaTransportCommand> commands = Channel.CreateBounded<MediaTransportCommand>(
         new BoundedChannelOptions(16) { SingleReader = true, FullMode = BoundedChannelFullMode.Wait });
     private readonly Task worker;
+    private readonly Task publisher;
+    private readonly PlaybackStateSubscription subscription;
     private int disposed;
 
     public PlaybackMediaTransport(PlaybackSessionCoordinator session, IMediaTransport transport)
     {
         this.session = session;
         this.transport = transport;
-        session.Changed += Publish;
-        session.QueueChanged += QueueChanged;
+        subscription = session.Subscribe(PlaybackStateChanges.Playback | PlaybackStateChanges.Queue | PlaybackStateChanges.Clock);
         transport.Command += OnCommand;
         worker = Task.Run(RunAsync);
-        Publish(session.Snapshot);
+        Publish(subscription.Initial);
+        publisher = Task.Run(PublishStatesAsync);
     }
 
     public void Retry() => transport.Retry();
-    private void Publish(PlaybackSnapshot snapshot)
+    private void Publish(PlaybackStateSnapshot snapshot)
     {
-        if (Volatile.Read(ref disposed) == 0) transport.Publish(MediaTransportMapping.Create(snapshot, session.Queue, session.Repeat, session.QueueState));
+        if (Volatile.Read(ref disposed) == 0)
+            transport.Publish(MediaTransportMapping.Create(snapshot.Playback, snapshot.Queue.Items, snapshot.Repeat, snapshot.Queue));
     }
-    private void QueueChanged(QueueSnapshot _) => Publish(session.Snapshot);
+    private async Task PublishStatesAsync()
+    {
+        try
+        {
+            while (true)
+            {
+                var update = await subscription.ReadAsync(lifetime.Token).ConfigureAwait(false);
+                try { Publish(update.State); } catch (Exception) { /* A platform publication cannot block the session owner. */ }
+            }
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (ChannelClosedException) { }
+    }
     private void OnCommand(MediaTransportCommand command)
     {
         if (Volatile.Read(ref disposed) == 0) commands.Writer.TryWrite(command);
@@ -62,7 +77,7 @@ public sealed class PlaybackMediaTransport : IAsyncDisposable
                 }
                 catch (Exception) when (!lifetime.IsCancellationRequested) { /* Session publishes playback failures. */ }
                 // Unsupported shuffle requests are reset to the confirmed mode.
-                Publish(session.Snapshot);
+                Publish(session.State);
             }
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
@@ -71,12 +86,12 @@ public sealed class PlaybackMediaTransport : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
-        session.Changed -= Publish;
-        session.QueueChanged -= QueueChanged;
+        subscription.Dispose();
         transport.Command -= OnCommand;
         commands.Writer.TryComplete();
         await lifetime.CancelAsync().ConfigureAwait(false);
         await worker.ConfigureAwait(false);
+        await publisher.ConfigureAwait(false);
         await transport.DisposeAsync().ConfigureAwait(false);
         lifetime.Dispose();
     }

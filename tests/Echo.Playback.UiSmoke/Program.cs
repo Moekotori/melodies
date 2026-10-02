@@ -23,6 +23,11 @@ try
 {
 Pump(runtime.StartAsync());
 var session = runtime.LocalZone.Session;
+var admission = Enumerable.Range(0, 31).Select(_ => session.Subscribe()).ToArray();
+try { _ = new PlayerViewModel(runtime.LocalZone); throw new Exception("control admission unexpectedly exceeded capacity"); }
+catch (InvalidOperationException) { }
+using (var capacityRecovered = session.Subscribe()) { }
+foreach (var subscription in admission) subscription.Dispose();
 var player = new PlayerViewModel(runtime.LocalZone);
 var shell = new ShellViewModel(); shell.AttachPlayback(player);
 shell.Motion.SelectedChoice = shell.Motion.Choices.First(x => x.Mode == Echo.Desktop.Motion.MotionMode.Off);
@@ -91,6 +96,7 @@ Pump(storage);
 player.Detach(); window.Close();
 if (native.ProcessId is null) throw new Exception("Closing a view disposed the application-owned audio host");
 var sharedWindow = DesktopComposition.CreateWindow(false, false, playback: runtime);
+((ShellViewModel)sharedWindow.DataContext!).Motion.SelectedChoice = ((ShellViewModel)sharedWindow.DataContext!).Motion.Choices.First(x => x.Mode == Echo.Desktop.Motion.MotionMode.Off);
 sharedWindow.Show(); Dispatcher.UIThread.RunJobs();
 sharedWindow.Close();
 while (sharedWindow.IsVisible) { limit.Token.ThrowIfCancellationRequested(); Dispatcher.UIThread.RunJobs(); Thread.Sleep(2); }

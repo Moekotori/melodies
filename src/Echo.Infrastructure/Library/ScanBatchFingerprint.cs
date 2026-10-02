@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using Echo.Contracts.Library;
+using Echo.Infrastructure.Metadata;
 
 namespace Echo.Infrastructure.Library;
 
@@ -27,6 +28,8 @@ internal static class ScanBatchFingerprint
             foreach (var entry in entries)
             {
                 Text(entry.File.Path); Text(entry.File.PathKey); Text(entry.ExistingId); Text(entry.ErrorCode);
+                if (TrackSourceJson.Encode(entry.File.Source) is { } source)
+                    foreach (var segment in source.Chunk(4096)) Text(new string(segment));
                 BinaryPrimitives.WriteInt64LittleEndian(buffer, entry.File.SizeBytes);
                 BinaryPrimitives.WriteInt64LittleEndian(buffer.AsSpan(8), entry.File.ModifiedTicks);
                 BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(16), (int)entry.Kind);

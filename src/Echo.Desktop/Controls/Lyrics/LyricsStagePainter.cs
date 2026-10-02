@@ -39,10 +39,10 @@ internal sealed class LyricsStagePainter
         if (style is null || look is null) return;
         var layout = style.Layout; var w = bounds.Width; var h = bounds.Height;
         dc.DrawRectangle(background, null, bounds);
-        if (artwork is not null && layout is not (LyricsLayout.Editorial or LyricsLayout.Afterglow or LyricsLayout.Reading))
+        if (artwork is not null && layout is not (LyricsLayout.Editorial or LyricsLayout.Afterglow))
         {
-            using (dc.PushOpacity(layout == LyricsLayout.CoverLeft ? 0.12 : 0.26)) Image(dc, artwork, bounds);
-            dc.DrawRectangle(scrim, null, bounds);
+            using (dc.PushOpacity(layout == LyricsLayout.Reading ? 0.10 : layout == LyricsLayout.CoverLeft ? 0.12 : 0.22)) Image(dc, artwork, bounds);
+            if (layout != LyricsLayout.Reading) dc.DrawRectangle(scrim, null, bounds);
         }
         if (layout is not (LyricsLayout.Reading or LyricsLayout.Editorial))
         { dc.DrawRectangle(glow, null, bounds); dc.DrawRectangle(secondGlow, null, bounds); }
@@ -54,18 +54,28 @@ internal sealed class LyricsStagePainter
                     dc.DrawRectangle(beam, null, new Rect(0, 0, w * 0.34, h * 1.6));
                 using (dc.PushTransform(Matrix.CreateRotation(0.22) * Matrix.CreateTranslation(w * 0.78 - phase, -h * 0.15)))
                     dc.DrawRectangle(beam, null, new Rect(0, 0, w * 0.20, h * 1.6));
+                if (artwork is not null) Image(dc, artwork, new Rect(Math.Clamp(w * 0.07, 54, 148), h - Math.Clamp(h * 0.13, 96, 140) - 50, 54, 54));
                 break;
             case LyricsLayout.CoverLeft:
-                var square = Math.Min(w * 0.32, h * 0.60);
+                var square = Math.Min(w * 0.36, h * 0.57);
                 if (w >= 780)
                 {
-                    var cover = new Rect(w * 0.06, h * 0.48 - square / 2, square, square);
+                    var cover = new Rect(Math.Clamp(w * 0.048, 36, 86), h * 0.45 - square / 2, square, square);
                     using (dc.PushOpacity(0.2)) DrawCover(dc, artwork, cover.Translate(new Vector(18, 16)));
                     DrawCover(dc, artwork, cover);
                 }
                 break;
             case LyricsLayout.CoverRight:
-                if (w >= 780) DrawCover(dc, artwork, new Rect(w * 0.62, h * 0.1, w * 0.38, h * 0.80));
+                if (w >= 780)
+                {
+                    DrawCover(dc, artwork, new Rect(0, 0, w * 0.58, h));
+                    var fade = new LinearGradientBrush
+                    {
+                        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
+                        GradientStops = [new(Color.Parse("#0016181E"), 0), new(Color.Parse("#16181E"), 1)]
+                    };
+                    dc.DrawRectangle(fade, null, new Rect(w * 0.38, 0, w * 0.25, h));
+                }
                 break;
             case LyricsLayout.Vinyl:
                 if (w >= 780)
@@ -92,8 +102,12 @@ internal sealed class LyricsStagePainter
                 break;
             case LyricsLayout.Poster:
                 var bar = Brush(style.Accent);
-                dc.DrawRectangle(bar, null, new Rect(w * 0.065, h * 0.20, 5, h * 0.57));
-                using (dc.PushOpacity(0.18)) Label(dc, "ECHO", w * 0.66, h * 0.1, Math.Min(110, w * 0.1), bar);
+                using (dc.PushOpacity(0.45))
+                {
+                    foreach (var point in new[] { new Point(24, 84), new Point(w - 48, 84), new Point(24, h - 150), new Point(w - 48, h - 150) })
+                    { dc.DrawLine(new Pen(bar), point, point + new Vector(24, 0)); dc.DrawLine(new Pen(bar), point, point + new Vector(0, 24)); }
+                    Label(dc, "ECHO", 26, h - 183, 18, bar);
+                }
                 break;
             case LyricsLayout.Slices:
                 if (artwork is not null)
@@ -108,16 +122,21 @@ internal sealed class LyricsStagePainter
                 dc.DrawLine(edge, new(0, h * 0.82), new(w, h * 0.82));
                 break;
             case LyricsLayout.Editorial:
-                var rule = new Pen(Brush("#25122039"));
-                dc.DrawLine(rule, new(w * 0.18, h * 0.16), new(w * 0.18, h * 0.86));
-                Label(dc, "LYRICS", w * 0.055, h * 0.19, 11, Brush("#8590A6"));
-                Label(dc, $"{Math.Max(1, line + 1):00}", w * 0.055, h * 0.24, 28, Brush("#4046F2"));
+                if (w >= 780)
+                {
+                    var paperCover = Math.Clamp(w * 0.21, 250, 312);
+                    DrawCover(dc, artwork, new Rect(Math.Clamp(w * 0.031, 40, 56), h * 0.25, paperCover, paperCover));
+                }
                 break;
         }
     }
     private void DrawCover(DrawingContext dc, Bitmap? image, Rect rect)
     {
-        if (image is not null) { Image(dc, image, rect); return; }
+        if (image is not null)
+        {
+            using (dc.PushClip(new RoundedRect(rect, style?.Layout is LyricsLayout.CoverLeft or LyricsLayout.Editorial ? 12 : 0))) Image(dc, image, rect);
+            return;
+        }
         dc.DrawRectangle(glow, edge, rect);
         Label(dc, "ECHO", rect.X + rect.Width * 0.16, rect.Y + rect.Height * 0.43, Math.Min(34, rect.Width * 0.17), ivory);
     }

@@ -52,7 +52,7 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
             {
                 var batch = new List<FileSnapshot>(request.BatchSize);
                 var characters = 0;
-                foreach (var file in discovery.Enumerate(request.Root, request.DetectMissing, stop.Token))
+                foreach (var file in discovery.Enumerate(request.Root, request.DetectMissing, stop.Token, request.Force))
                 {
                     var size = file.Path.Length + file.PathKey.Length;
                     if (batch.Count != 0 && (batch.Count == request.BatchSize || characters + size > 256 * 1024))
@@ -81,10 +81,13 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
                     stop.Token.ThrowIfCancellationRequested();
                     known.TryGetValue(file.PathKey, out var existing);
                     ScanEntry entry;
-                    if (file.Unavailable)
+                    if (file.Issue is { } issue)
+                        entry = new(file, ScanEntryKind.Error, ExistingId: existing?.Id, ErrorCode: issue);
+                    else if (file.Unavailable)
                         entry = new(file, ScanEntryKind.Error, ExistingId: existing?.Id, ErrorCode: "cloud_file_unavailable");
                     else if (!request.Force && existing is { Missing: false, ParserVersion: TrackMetadata.ParserVersion } &&
                         StringComparer.Ordinal.Equals(existing.Path, file.Path) &&
+                        existing.DependencyStamp == file.Source?.Stamp &&
                         existing.SizeBytes == file.SizeBytes && existing.ModifiedTicks == file.ModifiedTicks)
                         entry = new(file, ScanEntryKind.Unchanged, ExistingId: existing.Id);
                     else
@@ -134,9 +137,16 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
         {
             var metadata = await reader.ReadAsync(file, cancellation).ConfigureAwait(false);
             // A tag/file changing mid-read cannot produce a falsely up-to-date fingerprint.
-            var after = new FileInfo(file.Path);
-            if (!after.Exists || after.Length != file.SizeBytes || after.LastWriteTimeUtc.Ticks != file.ModifiedTicks)
+            var after = new FileInfo(file.Source?.AudioPath ?? file.Path);
+            if (!after.Exists || after.Length != (file.Source?.AudioSize ?? file.SizeBytes) ||
+                after.LastWriteTimeUtc.Ticks != (file.Source?.AudioTicks ?? file.ModifiedTicks))
                 return new(file, ScanEntryKind.Error, ExistingId: existingId, ErrorCode: "file_changed_during_scan");
+            if (file.Source is { } source)
+            {
+                var definition = new FileInfo(source.DefinitionPath);
+                if (!definition.Exists || definition.Length != source.DefinitionSize || definition.LastWriteTimeUtc.Ticks != source.DefinitionTicks)
+                    return new(file, ScanEntryKind.Error, ExistingId: existingId, ErrorCode: "source_changed_during_scan");
+            }
             return new(file, ScanEntryKind.Metadata, metadata, existingId);
         }
         catch (MetadataReadException error) { return new(file, ScanEntryKind.Error, ExistingId: existingId, ErrorCode: error.Code); }

@@ -57,6 +57,7 @@ internal sealed class SqliteLane : IAsyncDisposable
             };
             using var connection = new SqliteConnection(settings.ToString());
             connection.Open();
+            connection.CreateFunction<string, string>("echo_fold", Echo.Infrastructure.Search.LibrarySearchSchema.Fold, isDeterministic: true);
             initialize?.Invoke(connection);
             using (var command = connection.CreateCommand())
             {
@@ -145,6 +146,8 @@ internal sealed class SqliteLane : IAsyncDisposable
                 _result.TrySetResult(_action(connection));
             }
             catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
+            { _result.TrySetCanceled(_cancellation); }
+            catch (SqliteException) when (_cancellation.IsCancellationRequested)
             { _result.TrySetCanceled(_cancellation); }
             catch (Exception error) { _result.TrySetException(error); }
             finally { _registration.Dispose(); }

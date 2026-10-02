@@ -57,7 +57,7 @@ public sealed class MotionFeedback : AvaloniaObject
                     new DoubleTransition { Property = Canvas.LeftProperty, Duration = MotionTokens.Feedback, Easing = MotionTokens.EnterEasing }
                 } : new Transitions();
             if (_policy?.CanAnimate != true) return;
-            var duration = _policy.UseSpatialMotion ? MotionTokens.Feedback : MotionTokens.Reduced;
+            var duration = _policy.Duration(_policy.UseSpatialMotion ? MotionTokens.Feedback : MotionTokens.Reduced);
             var transitions = new Transitions
             {
                 new DoubleTransition { Property = Visual.OpacityProperty, Duration = duration, Easing = MotionTokens.EnterEasing },

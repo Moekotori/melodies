@@ -66,10 +66,7 @@ public sealed partial class PlaybackSessionCoordinator
         {
             if (!previous.RemoveAfterPlay && queue.Any(x => x.ItemId == previous.ItemId)) history = history.Append(previous).TakeLast(500).ToArray();
             // Keep only a bounded metadata history, even for long path/title strings.
-            while (history.Length > 0 && history.Sum(x => x.FilePath.Length + x.ItemId.Length + x.TrackId.Length + (x.Source?.Uri.Length ?? 0)
-                + (x.Metadata?.Sum(p => p.Key.Length + (p.Value?.Length ?? 0)) ?? 0)
-                + (x.Source?.Headers?.Sum(p => p.Key.Length + p.Value.Length) ?? 0)) > 32768)
-                history = history[1..];
+            TrimHistory();
             SetQueueItems(RemoveCompleted(queue, previous, next));
             undo = null;
         }
@@ -78,12 +75,11 @@ public sealed partial class PlaybackSessionCoordinator
     public Task SetQueueModeAsync(QueuePlaybackMode mode, CancellationToken token = default) => Command(async () =>
     {
         if (!Enum.IsDefined(mode)) throw new ArgumentOutOfRangeException(nameof(mode));
-        await EnsureStartedAsync().ConfigureAwait(false);
         var oldShuffle = shuffle; var oldOrder = shuffleOrder;
         shuffle = mode == QueuePlaybackMode.Shuffle;
         if (shuffle && !oldShuffle) shuffleOrder = CreateShuffleOrder(queue, snapshot.Current?.ItemId);
         var nextRepeat = mode == QueuePlaybackMode.RepeatOne ? RepeatMode.One : mode == QueuePlaybackMode.RepeatAll ? RepeatMode.All : RepeatMode.Off;
-        try { await SendQueueAsync(queue, snapshot.Current?.ItemId, nextRepeat).ConfigureAwait(false); }
+        try { if (initialized) await SendQueueAsync(queue, snapshot.Current?.ItemId, nextRepeat).ConfigureAwait(false); }
         catch { shuffle = oldShuffle; shuffleOrder = oldOrder; throw; }
         repeat = nextRepeat;
         PublishQueue(); Publish(snapshot);

@@ -25,6 +25,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
     public PlaybackSessionCoordinator(INativeAudio native)
     {
         this.native = native;
+        InitializeState();
         native.Notification += OnNotification;
         native.Failed += OnFailed;
     }
@@ -112,7 +113,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
 
     public Task ResumeAsync(CancellationToken token = default) => Command(async () =>
     {
-        if ((snapshot.Status == PlaybackStatus.Ended || snapshot.OperationId == 0) && (snapshot.Current ?? queue.FirstOrDefault()) is { } track)
+        if ((snapshot.Status == PlaybackStatus.Ended || snapshot.OperationId == 0) && (snapshot.Current ?? ResolveNext()) is { } track)
         {
             await EnsureStartedAsync().ConfigureAwait(false);
             await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
@@ -167,7 +168,9 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
     {
         var previousItem = snapshot.Current?.ItemId;
         Volatile.Write(ref snapshot, state with { Version = snapshot.Version + 1 });
-        if (previousItem != state.Current?.ItemId) PublishQueue();
+        if (previousItem != state.Current?.ItemId || !ReferenceEquals(queueSnapshot.Items, queueView)
+            || queueSnapshot.Mode != QueueMode) PublishQueue();
+        else PublishState();
         if (Changed is { } handlers)
             foreach (Action<PlaybackSnapshot> handler in handlers.GetInvocationList()) try { handler(snapshot); } catch (Exception) { /* A UI subscriber cannot stop audio. */ }
     }
@@ -181,8 +184,18 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
             await lane.InvokeAsync(async () =>
             {
                 disposed = true;
-                await native.DisposeAsync().ConfigureAwait(false);
-                Publish(snapshot with { Status = PlaybackStatus.Stopped, OperationId = 0, Output = null, Processing = null });
+                PublishState();
+                try
+                {
+                    await native.DisposeAsync().ConfigureAwait(false);
+                    Publish(snapshot with { Status = PlaybackStatus.Stopped, OperationId = 0, Output = null, Processing = null });
+                }
+                catch
+                {
+                    Publish(snapshot with { Status = PlaybackStatus.Faulted, OperationId = 0, Output = null, Processing = null,
+                        Error = "音频核心释放失败" });
+                    throw;
+                }
             }).ConfigureAwait(false);
         }
         finally
@@ -190,6 +203,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
             await lane.DisposeAsync().ConfigureAwait(false);
             Changed = null;
             QueueChanged = null;
+            CloseStateSubscriptions();
         }
     }
 }

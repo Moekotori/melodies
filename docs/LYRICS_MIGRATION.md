@@ -2,6 +2,8 @@
 
 日期：2026-10-02。入口：播放栏「歌词」。所有内置样式 ID 保持与旧版注册表一致。
 
+歌词使用独立的窗口内容宿主，覆盖整个客户区；不进入普通页面的侧栏 / 播放栏 / 滚动容器。透明的角落控制与悬浮播放控制叠放在舞台上；Esc / 返回恢复先前页面及窗口状态，F11 或角落按钮切换系统全屏。底栏支持完整 / 迷你、鼠标离开仅进度与播放时自动隐藏；暂停、键盘或鼠标操作恢复，弹层和抽屉打开时保持可操作。详见 [歌词底栏迁移](LYRICS_PLAYER_BAR_MIGRATION.md)。普通页面的 UI 缩放和侧栏偏好不被歌词修改。
+
 ## 可运行能力
 
 | 样式 ID | 名称 | 原生呈现 |
@@ -10,12 +12,12 @@
 | luminous | 浮光 | 暗色舞台、柔和光束，播放时光束最多 30 fps |
 | afterglow | 余音 | 放大的当前句、当前词轻微抬升、下一句 |
 | afterglowCover | 余晖 | 左侧封面、暖色底与右侧阅读列 |
-| editorial | 纸笺 | 纸张底色、衬线字、行号边栏 |
+| editorial | 纸笺 | 纸张底色、衬线歌词、左侧封面与歌曲信息 |
 | folded | 折光 | 青紫光场、折射几何与阅读列 |
 | roseVinyl | 留声 | 唱片、封面标签与歌词 |
 | cinemaStage | 映幕 | 银幕遮罩、居中字幕构图 |
-| kineticPoster | 跃字 | 大字、海报字体、轻微倾斜 |
-| coverStage | 画境 | 封面铺陈与左侧阅读列 |
+| kineticPoster | 跃字 | 大字海报、已唱 / 当前 / 未唱词三栏 |
+| coverStage | 画境 | 左侧大封面、右侧歌曲信息与歌词 |
 | cutBoard | 切影 | 斜切封面、切片与底部边线；原隐藏样式也可选 |
 | jizura | Afterglow | 独立主题场景、当前句与逐词绘制 |
 
@@ -35,9 +37,12 @@ Afterglow 保留 22 个主题 ID 及主要色板：mist、night、dusk、paper�
 - `Echo.Application/Lyrics`：纯解析及标准化；后台调用，支持取消。
 - `Echo.Infrastructure/Lyrics`：一个读取准入器，最多 1 MiB 文件 / 512 KiB 文本；设置使用容量 1 的最新值队列和单写入者。
 - `LyricsViewModel`：只持有当前文档、一次可取消加载、合并后的最新播放快照和一个共享封面租约。退出、换曲或新请求使旧结果失效。
+- 独立歌词舞台通过原有封面 owner 申请最长边 768 像素的租约，按分辨率隔离缓存键；普通曲库缩略图仍为 320。两者共用固定工作器及 32 MiB 硬预算，不另建封面读取队列或缓存 owner。
 - `LyricsAppearance` / `LyricsSelection`：窗口所属的显示偏好及两个路径组成的当前导入选择，无全文或全库缓存。
 - `LyricsViewportControl`：当前行附近绘制、点击命中、浏览与字体排版缓存；无逐词控件。排版缓存最多 18 项，估算上限 4 MiB，字体/宽度/DPI/曲目变化失效。
 - `LyricsBackdropControl`：独立保留背景层；词帧不重建封面或场景。`LyricsStagePainter` 与 `AfterglowScenePainter` 分别维护普通样式和 Afterglow 意象。
+- `MainWindow.Lyrics`：独立内容宿主与正常页面恢复。`LyricsView.Chrome`：透明角落控制、窗口操作及一个可取消的闲置淡出；`LyricsTransportView`：调用现有会话的播放 / 跳转控制。
+- `KineticPosterLayout`：按旧版三栏结构排版，在词边界重排而非每帧生成字符串，仅保留一组文字布局。
 - `LyricsFrameController`：一个可见场景仅一个时钟驱动，上限 60 fps，失焦 30 fps；暂停、隐藏、关闭动画、时钟过期与 detach 停止。减少动画保留准确高亮，关闭抬升及滚动位移。
 
 播放会话仍为事实 owner。收到的原生位置用于显示；短时速度从连续确认位置估计，最多外推 250 ms，seek / 状态 / operation 变化清零。不根据 UI 时钟推进队列、确认 EOF 或推断设备事实。
@@ -45,6 +50,8 @@ Afterglow 保留 22 个主题 ID 及主要色板：mist、night、dusk、paper�
 ## 验证与边界
 
 短测程序：`tests/Echo.Lyrics.Smoke`。使用真实文件读取、设置文件、实际 Avalonia 控件与 Skia 渲染；音频命令由测试 Host 提供确认，不调用真实设备或旧曲库。输出在 `misc/lyrics-migration/`。
+
+独立界面修订另通过 `misc/lyrics-migration/Echo.Lyrics.NativePreview.csproj` 检查当前歌词 C# 和 XAML。该隔离预览用于工作区其他模块尚在改动、整项目编译不稳定的阶段；仅把 XAML 的歌词类型限定到预览程序集，布局内容不变。数据依赖使用最近一次成功编译的程序集。它验证当前舞台自身，不证明当前整应用装配已经通过。截图及 `native-preview.out.log` 记录此来源。构建的一条 AVLN3001 提示来自 View 必须注入 owner、没有参数为空的运行时加载构造函数；View 由装配代码直接构造，已实际完成渲染。
 
 已覆盖：格式时间线、词时间、译文/罗马音、文本数量限制与取消、真实 sidecar / 封面租约、全部 12 个样式与 22 个主题的截图、窄窗口 / 深色 / 纯文本 / 错误恢复、点击使用的跳转接口与双偏移、手动浏览、跨页面偏好与导入保留、最后一次设置写入、迟到结果丢弃及退出释放。帧驱动检查使用 UI 事件循环确认新位置启动、隐藏停止、过期停止及暂停停止。
 

@@ -15,6 +15,8 @@ try
     {
         Console.WriteLine("scan --db FILE --root DIRECTORY [--native-scanner FILE] [--workers 2] [--batch 128] [--force] [--detect-missing]");
         Console.WriteLine("list --db FILE [--search TEXT] [--limit 100]\nstats --db FILE\nissues --db FILE --job ID [--limit 16]");
+        Console.WriteLine("albums --db FILE [--search TEXT] [--limit 100]\nalbum-metadata --db FILE --id ID");
+        Console.WriteLine("set-album-metadata --db FILE --id ID --field title|artist --source user|online --value TEXT\nclear-album-metadata --db FILE --id ID --field title|artist --source user|online");
         return 0;
     }
     var command = args[0];
@@ -27,11 +29,15 @@ try
             ++i < args.Length ? args[i] : throw new ArgumentException("Option requires a value.")))
             throw new ArgumentException("Duplicate option.");
     }
-    if (command is not ("scan" or "list" or "stats" or "issues")) throw new ArgumentException("Unknown command.");
+    if (command is not ("scan" or "list" or "stats" or "issues" or "albums" or "album-metadata" or "set-album-metadata" or "clear-album-metadata")) throw new ArgumentException("Unknown command.");
     var allowed = command switch
     {
         "scan" => new[] { "db", "root", "native-scanner", "workers", "batch", "force", "detect-missing" },
         "list" => ["db", "search", "limit"],
+        "albums" => ["db", "search", "limit"],
+        "album-metadata" => ["db", "id"],
+        "set-album-metadata" => ["db", "id", "field", "source", "value"],
+        "clear-album-metadata" => ["db", "id", "field", "source"],
         "issues" => ["db", "job", "limit"],
         _ => ["db"]
     };
@@ -39,10 +45,28 @@ try
     string Required(string key) => options.TryGetValue(key, out var value) ? value : throw new ArgumentException("Missing --" + key);
     int Number(string key, int fallback) => options.TryGetValue(key, out var value) ? int.Parse(value, System.Globalization.CultureInfo.InvariantCulture) : fallback;
     await using var database = await LibraryDatabase.OpenAsync(Required("db"), cancellation.Token);
+    if (command is "album-metadata" or "set-album-metadata" or "clear-album-metadata")
+    {
+        IAlbumMetadata metadata = database;
+        if (command != "album-metadata")
+        {
+            var field = Enum.Parse<AlbumMetadataField>(Required("field"), true);
+            var source = Enum.Parse<MetadataSource>(Required("source"), true);
+            await metadata.SetAlbumMetadataAsync(Required("id"), field, source, command == "set-album-metadata" ? Required("value") : null, cancellation.Token);
+        }
+        Console.WriteLine(JsonSerializer.Serialize(await metadata.GetAlbumMetadataAsync(Required("id"), cancellation.Token), CliJson.Default.AlbumMetadataSnapshot));
+        return 0;
+    }
+    if (command == "albums")
+    {
+        options.TryGetValue("search", out var search);
+        Console.WriteLine(JsonSerializer.Serialize(await database.GetAlbumsAsync(new(Limit: Number("limit", 100), Search: search), cancellation.Token), CliJson.Default.AlbumPage));
+        return 0;
+    }
     if (command == "scan")
     {
         options.TryGetValue("native-scanner", out var native);
-        var scanner = new ScanCoordinator(database, new DirectoryDiscovery(), () => new LocalMetadataReader(native));
+        var scanner = new ScanCoordinator(database, new LegacyFolderDiscovery(database), () => new LocalMetadataReader(native));
         var result = await scanner.ScanAsync(new(Required("root"), Number("workers", 2), Number("batch", 128),
             options.ContainsKey("force"), options.ContainsKey("detect-missing")), cancellation: cancellation.Token);
         Console.WriteLine(JsonSerializer.Serialize(result, CliJson.Default.ScanReport));
@@ -69,5 +93,7 @@ catch (Exception error) { Console.Error.WriteLine(error.Message); return 1; }
 [JsonSerializable(typeof(ScanReport))]
 [JsonSerializable(typeof(TrackPage))]
 [JsonSerializable(typeof(LibraryStats))]
+[JsonSerializable(typeof(AlbumMetadataSnapshot))]
+[JsonSerializable(typeof(AlbumPage))]
 [JsonSerializable(typeof(IReadOnlyList<ScanIssue>), TypeInfoPropertyName = "ScanIssues")]
 internal partial class CliJson : JsonSerializerContext;

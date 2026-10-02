@@ -58,13 +58,24 @@ public sealed partial class PlaybackSessionCoordinator
             || string.IsNullOrWhiteSpace(x.FilePath) || x.Metadata is { Count: > 24 })
             || items.Select(x => x.ItemId).Distinct(StringComparer.Ordinal).Count() != items.Length)
             throw new ArgumentException("队列项必须有唯一 itemId 和有效音源");
-        if (items.Sum(x => (long)x.FilePath.Length + x.TrackId.Length + x.ItemId.Length + (x.Source?.Uri.Length ?? 0)
-            + (x.Metadata?.Sum(p => (long)p.Key.Length + (p.Value?.Length ?? 0)) ?? 0)
-            + (x.Source?.Headers?.Sum(p => (long)p.Key.Length + p.Value.Length) ?? 0)
-            + (x.Origin?.Label.Length ?? 0) + (x.Origin?.Id?.Length ?? 0)) > 256 * 1024)
+        if (items.Sum(TrackTextLength) > 256 * 1024)
             throw new ArgumentException("队列内容超过内存预算，请减少曲目或附带信息");
         if (JsonSerializer.SerializeToUtf8Bytes(new NativeQueue(0, null, "off", items), PlaybackJsonContext.Default.NativeQueue).Length > 384 * 1024)
             throw new ArgumentException("队列内容超过内存预算，请减少曲目或附带信息");
+    }
+
+    private static long TrackTextLength(QueueTrack x) => (long)x.FilePath.Length + x.TrackId.Length + x.ItemId.Length
+        + (x.Source?.Uri.Length ?? 0) + (x.Source?.Kind.Length ?? 0)
+        + (x.Metadata?.Sum(p => (long)p.Key.Length + (p.Value?.Length ?? 0)) ?? 0)
+        + (x.Source?.Headers?.Sum(p => (long)p.Key.Length + p.Value.Length) ?? 0)
+        + (x.Origin?.Kind.Length ?? 0) + (x.Origin?.Label.Length ?? 0) + (x.Origin?.Id?.Length ?? 0);
+
+    private void TrimHistory()
+    {
+        var length = history.Sum(TrackTextLength);
+        var remove = 0;
+        while (length > 32768 && remove < history.Length) length -= TrackTextLength(history[remove++]);
+        if (remove > 0) history = history[remove..];
     }
 
     private void SetQueueItems(QueueTrack[] items)
@@ -126,6 +137,7 @@ public sealed partial class PlaybackSessionCoordinator
         var state = new QueueSnapshot(++queueVersion, Queue, Array.AsReadOnly(history), snapshot.Current?.ItemId,
             repeat == RepeatMode.One ? null : ResolveNext(), QueueMode);
         Volatile.Write(ref queueSnapshot, state);
+        PublishState();
         if (QueueChanged is { } handlers)
             foreach (Action<QueueSnapshot> handler in handlers.GetInvocationList()) try { handler(state); } catch (Exception) { }
     }

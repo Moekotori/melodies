@@ -1,0 +1,17 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light"><SolidColorBrush x:Key="EchoQueueHero">#f0f0f7</SolidColorBrush><SolidColorBrush x:Key="EchoQueueActive">#ededfa</SolidColorBrush><SolidColorBrush x:Key="EchoQueueChip">#e8e7f6</SolidColorBrush></ResourceDictionary>
+        <ResourceDictionary x:Key="Dark"><SolidColorBrush x:Key="EchoQueueHero">#1b1c22</SolidColorBrush><SolidColorBrush x:Key="EchoQueueActive">#232430</SolidColorBrush><SolidColorBrush x:Key="EchoQueueChip">#2b2b3c</SolidColorBrush></ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+  <Style Selector="Button.queue-tool"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="12,0" /><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="34" /></Style>
+  <Style Selector="Button.queue-mode"><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="10,0" /><Setter Property="MinHeight" Value="38" /><Setter Property="CornerRadius" Value="0" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="0,0,0,1" /></Style>
+  <Style Selector="Button.queue-mode.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+  <Style Selector="Button.queue-mode.active TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Button.queue-mode.active icon|GlyphIcon.mode-icon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="TextBox.queue-search"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="6" /><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="34" /></Style>
+  <Style Selector="Border.queue-chip"><Setter Property="Background" Value="{DynamicResource EchoQueueChip}" /><Setter Property="CornerRadius" Value="4" /><Setter Property="Padding" Value="7,2" /></Style>
+</Styles>

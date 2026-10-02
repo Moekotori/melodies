@@ -17,6 +17,8 @@
     <AvaloniaResource Include="Resources/Icons/**" />
     <AvaloniaResource Include="Resources/Fonts/**" />
     <AvaloniaResource Include="Resources/Artwork/**" />
+    <EmbeddedResource Include="Resources/Languages/*.json" LogicalName="Echo.Desktop.Languages.%(Filename).json" />
+    <EmbeddedResource Include="Resources/Themes/LegacyPresets.json" LogicalName="Echo.Desktop.LegacyPresets.json" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <PackageReference Include="Avalonia.Markup.Xaml.Loader" PrivateAssets="All" Publish="True" />

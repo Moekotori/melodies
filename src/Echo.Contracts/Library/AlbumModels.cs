@@ -6,9 +6,11 @@ public sealed record AlbumRow(string Id, string Title, string Artist, int TrackC
     bool Favorite = false, int Rating = 0);
 public sealed record AlbumQuery(int Offset = 0, int Limit = 200, string? Search = null,
     AlbumSort Sort = AlbumSort.Title, bool Descending = false, bool LosslessOnly = false,
-    long? Revision = null);
+    long? Revision = null, LibraryFilter? Filter = null);
 public sealed record AlbumPage(IReadOnlyList<AlbumRow> Items, int Total, long Revision);
-public sealed record AlbumTrackQuery(string AlbumId, int Offset = 0, int Limit = 200, long? Revision = null);
+public enum DetailTrackSort { Order, Title, Duration, Quality }
+public sealed record AlbumTrackQuery(string AlbumId, int Offset = 0, int Limit = 200, long? Revision = null,
+    DetailTrackSort Sort = DetailTrackSort.Order, bool Descending = false);
 
 // This is a read boundary, separate from the scan/write owner.
 public interface IAlbumLibrary

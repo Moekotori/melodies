@@ -1,0 +1,26 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="PlayerWaveformRail" TargetType="icon:PlayerWaveformSlider">
+      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+          <Grid>
+            <icon:PlayerWaveform Seed="{TemplateBinding Seed}" Value="{TemplateBinding Value}" Maximum="{TemplateBinding Maximum}"
+                                 PlayedBrush="{DynamicResource EchoAccent}" BarBrush="{DynamicResource EchoMuted}" IsHitTestVisible="False" />
+            <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}" Orientation="Horizontal" IsHitTestVisible="False">
+              <Thumb Width="0" Height="24" Opacity="0" />
+            </Track>
+          </Grid>
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="icon|PlayerWaveformSlider"><Setter Property="Theme" Value="{StaticResource PlayerWaveformRail}" /></Style>
+  <Style Selector="icon|SignalPathStateIcon"><Setter Property="Brush" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="icon|SignalPathStateIcon[State=bit-perfect]"><Setter Property="Brush" Value="{DynamicResource EchoSignalBitPerfect}" /></Style>
+  <Style Selector="icon|SignalPathStateIcon[State=modified]"><Setter Property="Brush" Value="{DynamicResource EchoSignalModified}" /></Style>
+  <Style Selector="icon|SignalPathStateIcon[State=dsp]"><Setter Property="Brush" Value="{DynamicResource EchoSignalDsp}" /></Style>
+  <Style Selector="icon|SignalPathStateIcon[State=streaming]"><Setter Property="Brush" Value="{DynamicResource EchoSignalStreaming}" /></Style>
+</Styles>
+

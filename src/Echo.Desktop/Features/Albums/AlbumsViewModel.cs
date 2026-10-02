@@ -1,10 +1,25 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Echo.Contracts.Library;
+using Echo.Contracts.Settings;
+using Echo.Desktop.Features.LibraryDetails;
+using Echo.Desktop.Localization;
 
 namespace Echo.Desktop.Features.Albums;
 
-public sealed partial class AlbumsViewModel(IAlbumLibrary library) : ObservableObject, IDisposable
+public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
 {
+    private readonly IAlbumLibrary library;
+    private readonly ArtistRow? artist;
+    private readonly LocalizationService Text;
+    public AlbumsViewModel(IAlbumLibrary library, ArtistRow? artist = null, LocalizationService? text = null, LibraryViewPreferences? preference = null)
+    { this.library = library; this.artist = artist;
+        if (preference is not null) { sortIndex = Math.Clamp(preference.SortIndex,0,5); descending = preference.Descending; Filters.Restore(preference.Filter); }
+        Text = text ?? new(); Text.Changed += NotifyStatus; Filters.Changed += OnFiltersChanged; }
+    public LibraryFilterViewModel Filters { get; } = new();
+    public event Action? PreferenceChanged;
+    public LibraryViewPreferences Preference => new("albums", SortIndex, Descending, Filter: Filters.Snapshot() with { LosslessOnly = LosslessOnly || Filters.LosslessOnly });
+    private void OnFiltersChanged() { PreferenceChanged?.Invoke(); _ = RefreshAsync(debounce: true); }
+    private void OnOptions() { PreferenceChanged?.Invoke(); _ = RefreshAsync(); }
     public const int PageSize = 200;
     private readonly Dictionary<int, AlbumPage> _pages = [];
     private CancellationTokenSource? _request;
@@ -19,21 +34,24 @@ public sealed partial class AlbumsViewModel(IAlbumLibrary library) : ObservableO
     [ObservableProperty] private bool isLoading;
     public long? Revision { get; private set; }
     public int ResidentAlbums => _pages.Values.Sum(page => page.Items.Count);
-    public string CountText => IsLoading && Revision is null ? "正在读取专辑…" : $"共 {Total:N0} 张专辑";
+    public string CountText => IsLoading && Revision is null ? Text.Translate("正在读取专辑…") : Text.Format("albums.count", Total);
     public bool IsEmpty => Revision is not null && Total == 0 && !IsLoading && Error.Length == 0;
     public event Action<bool>? Changed;
 
     partial void OnSearchChanged(string value) => _ = RefreshAsync(debounce: true);
-    partial void OnSortIndexChanged(int value) => _ = RefreshAsync();
-    partial void OnDescendingChanged(bool value) => _ = RefreshAsync();
-    partial void OnLosslessOnlyChanged(bool value) => _ = RefreshAsync();
+    partial void OnSortIndexChanged(int value) => OnOptions();
+    partial void OnDescendingChanged(bool value) => OnOptions();
+    partial void OnLosslessOnlyChanged(bool value) => OnOptions();
     partial void OnTotalChanged(int value) => NotifyStatus();
     partial void OnIsLoadingChanged(bool value) => NotifyStatus();
     partial void OnErrorChanged(string value) => NotifyStatus();
     private void NotifyStatus() { OnPropertyChanged(nameof(CountText)); OnPropertyChanged(nameof(IsEmpty)); }
 
     private AlbumQuery Query(int offset, long? revision) => new(offset, PageSize,
-        Search, (AlbumSort)Math.Clamp(SortIndex, 0, 5), Descending, LosslessOnly, revision);
+        Search, (AlbumSort)Math.Clamp(SortIndex, 0, 5), Descending, LosslessOnly, revision, Filters.Snapshot());
+
+    private Task<AlbumPage> ReadAsync(AlbumQuery query, CancellationToken token) => artist is not null && library is IArtistLibrary artists
+        ? artists.GetArtistAlbumsAsync(artist.Id, artist.Grouping, query, token) : library.GetAlbumsAsync(query, token);
 
     private (CancellationTokenSource Request, int Generation) Start()
     {
@@ -51,7 +69,7 @@ public sealed partial class AlbumsViewModel(IAlbumLibrary library) : ObservableO
         try
         {
             if (debounce) await Task.Delay(120, request.Token);
-            var page = await library.GetAlbumsAsync(Query(0, null), request.Token);
+            var page = await ReadAsync(Query(0, null), request.Token);
             if (_closed || generation != _generation) return;
             _pages.Clear(); _pages[0] = page;
             Revision = page.Revision; Total = page.Total;
@@ -60,7 +78,7 @@ public sealed partial class AlbumsViewModel(IAlbumLibrary library) : ObservableO
         }
         catch (OperationCanceledException) { }
         catch (Exception)
-        { if (generation == _generation && !_closed) Error = "专辑读取失败。请确认曲库可用，再点击刷新。"; }
+        { if (generation == _generation && !_closed) Error = Text.Translate("专辑读取失败。请确认曲库可用，再点击刷新。"); }
         finally
         {
             if (generation == _generation) { IsLoading = false; _request = null; }
@@ -84,7 +102,7 @@ public sealed partial class AlbumsViewModel(IAlbumLibrary library) : ObservableO
             for (var pageIndex = first; pageIndex <= last; pageIndex++)
             {
                 if (_pages.ContainsKey(pageIndex)) continue;
-                var page = await library.GetAlbumsAsync(Query(pageIndex * PageSize, Revision), request.Token);
+                var page = await ReadAsync(Query(pageIndex * PageSize, Revision), request.Token);
                 if (_closed || generation != _generation) return;
                 while (_pages.Count >= 3)
                 {
@@ -98,7 +116,7 @@ public sealed partial class AlbumsViewModel(IAlbumLibrary library) : ObservableO
         catch (OperationCanceledException) { }
         catch (LibraryChangedException) { if (generation == _generation) await RefreshAsync(); }
         catch (Exception)
-        { if (generation == _generation && !_closed) Error = "这一页读取失败，点击刷新重试。"; }
+        { if (generation == _generation && !_closed) Error = Text.Translate("这一页读取失败，点击刷新重试。"); }
         finally { if (generation == _generation) _request = null; request.Dispose(); }
     }
 
@@ -114,5 +132,5 @@ public sealed partial class AlbumsViewModel(IAlbumLibrary library) : ObservableO
     }
 
     public void Dispose()
-    { _closed = true; ++_generation; _request?.Cancel(); _request = null; _pages.Clear(); Changed = null; }
+    { PreferenceChanged = null; Filters.Changed -= OnFiltersChanged; Text.Changed -= NotifyStatus; _closed = true; ++_generation; _request?.Cancel(); _request = null; _pages.Clear(); Changed = null; }
 }

@@ -11,11 +11,13 @@ internal sealed class PlayerSliderInteraction
     private readonly Slider slider;
     private readonly Func<PlayerViewModel?> resolvePlayer;
     private readonly bool seek;
+    private readonly Action? previewEnded;
     private PlayerViewModel? active;
     private string path = "";
-    public PlayerSliderInteraction(Slider slider, Func<PlayerViewModel?> player, bool seek)
+    private long operationId;
+    public PlayerSliderInteraction(Slider slider, Func<PlayerViewModel?> player, bool seek, Action? previewEnded = null)
     {
-        this.slider = slider; resolvePlayer = player; this.seek = seek;
+        this.slider = slider; resolvePlayer = player; this.seek = seek; this.previewEnded = previewEnded;
         slider.AddHandler(InputElement.PointerPressedEvent, (_, e) =>
         { if (e.GetCurrentPoint(slider).Properties.IsLeftButtonPressed) Begin(); }, RoutingStrategies.Tunnel, true);
         slider.AddHandler(InputElement.PointerReleasedEvent, async (_, _) => await CommitAsync(), RoutingStrategies.Bubble, true);
@@ -28,7 +30,7 @@ internal sealed class PlayerSliderInteraction
     private void Begin()
     {
         if (active is not null || !slider.IsEnabled || resolvePlayer() is not { } player) return;
-        active = player; path = player.CurrentFilePath;
+        active = player; path = player.CurrentFilePath; operationId = player.Session.Snapshot.OperationId;
         if (seek) player.IsSeeking = true; else player.IsChangingVolume = true;
     }
     private async Task CommitAsync()
@@ -38,20 +40,22 @@ internal sealed class PlayerSliderInteraction
         active = null;
         try
         {
-            if (resolvePlayer() == player && (!seek || player.CurrentFilePath == path))
+            if (resolvePlayer() == player && (!seek || (player.CurrentFilePath == path && player.Session.Snapshot.OperationId == operationId)))
             { if (seek) await player.SeekToAsync(value); else await player.ChangeVolumeAsync(value); }
         }
         finally
         {
-            if (seek) { player.IsSeeking = false; slider.Value = player.Position; }
-            else { player.IsChangingVolume = false; slider.Value = player.Volume; }
+            if (seek) { player.IsSeeking = false; slider.SetCurrentValue(Slider.ValueProperty, player.Position); }
+            else { player.IsChangingVolume = false; slider.SetCurrentValue(Slider.ValueProperty, player.Volume); }
+            previewEnded?.Invoke();
         }
     }
     public void Cancel()
     {
         if (active is not { } player) return;
         active = null;
-        if (seek) { player.IsSeeking = false; slider.Value = player.Position; }
-        else { player.IsChangingVolume = false; slider.Value = player.Volume; }
+        if (seek) { player.IsSeeking = false; slider.SetCurrentValue(Slider.ValueProperty, player.Position); }
+        else { player.IsChangingVolume = false; slider.SetCurrentValue(Slider.ValueProperty, player.Volume); }
+        previewEnded?.Invoke();
     }
 }

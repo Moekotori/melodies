@@ -18,7 +18,9 @@ public sealed class PlaybackZone
         Id = id; Name = name; Session = session;
     }
 
-    public PlaybackOutputState Output => PlaybackOutputState.From(Session.Snapshot, Session.RequestedOutput);
+    public ZoneSnapshot Snapshot => new(Id, Name, Session.State);
+    public PlaybackStateSubscription Subscribe(PlaybackStateChanges interests = PlaybackStateChanges.All) => Session.Subscribe(interests);
+    public PlaybackOutputState Output => Session.State.Output;
 }
 
 /// <summary>Device facts are separate from requested settings and the zone's queue/session.</summary>

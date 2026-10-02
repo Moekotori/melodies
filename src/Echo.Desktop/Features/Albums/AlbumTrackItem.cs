@@ -18,7 +18,8 @@ public sealed partial class AlbumTrackItem : ObservableObject
         Row.SampleRate > 0 ? $"{Row.SampleRate / 1000d:0.##} kHz" : "" }.Where(s => s.Length > 0));
     public bool CanFavorite => _state is not null;
     public string Heart => Favorite ? "♥" : "♡";
-    partial void OnFavoriteChanged(bool value) => OnPropertyChanged(nameof(Heart));
+    public string HeartIcon => Favorite ? "heart-filled" : "heart";
+    partial void OnFavoriteChanged(bool value) { OnPropertyChanged(nameof(Heart)); OnPropertyChanged(nameof(HeartIcon)); }
     public AlbumTrackItem(TrackRow row, int index, IAlbumPersonalState? state, CancellationToken cancellation, Action<string> reportError)
     {
         Row = row; _state = state; _cancellation = cancellation; _reportError = reportError;

@@ -2,10 +2,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Echo.Desktop.Shell;
 
-public sealed partial class NavigationItem(string id, string label, string group) : ObservableObject
+public sealed partial class NavigationItem(string id, string sourceLabel, string group) : ObservableObject
 {
     public string Id { get; } = id;
-    public string Label { get; } = label;
+    [ObservableProperty] private string label = sourceLabel;
+    public string SourceLabel { get; } = sourceLabel;
     public string Group { get; } = group;
     [ObservableProperty] private bool isActive;
 }

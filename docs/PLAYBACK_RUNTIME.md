@@ -2,6 +2,8 @@
 
 日期：2026-10-02。
 
+后续统一状态与分类订阅见 [ZONE_STATE_SUBSCRIPTIONS.md](ZONE_STATE_SUBSCRIPTIONS.md)，专辑身份与来源见 [ALBUM_METADATA_IDENTITY.md](ALBUM_METADATA_IDENTITY.md)。
+
 ## 当前职责
 
 `Echo.Application/Playback/PlaybackRuntime` 不引用 Avalonia。它是本机 Zone、播放状态存储和系统媒体控制的唯一生命周期 owner。桌面应用和独立 `Echo.Player` 都调用这个核心；各进程拥有独立实例，目前没有跨进程或手机遥控协议。

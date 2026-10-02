@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Threading;
 
 namespace Echo.Desktop.Localization;
@@ -16,6 +17,7 @@ internal sealed class WindowLocalizationBinding : IDisposable
     private void Apply()
     {
         Dispatcher.UIThread.VerifyAccess();
+        _window.FlowDirection = _text.Current.Culture.TextInfo.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
         var next = new ResourceDictionary();
         foreach (var key in _text.Catalog.Fallback.Strings.Keys) next.Add(key, _text[key]);
         // Replace once, rather than publishing a resource-change event per string.

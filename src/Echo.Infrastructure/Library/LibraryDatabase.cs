@@ -4,7 +4,7 @@ using Echo.Infrastructure.Files;
 
 namespace Echo.Infrastructure.Library;
 
-public sealed partial class LibraryDatabase : ILibraryStore, Echo.Contracts.Library.IAlbumLibrary, Echo.Contracts.Library.IAlbumPersonalState, Echo.Contracts.Library.IArtistLibrary
+public sealed partial class LibraryDatabase : ILibraryStore, ITrackLibrary, Echo.Contracts.Library.IAlbumLibrary, Echo.Contracts.Library.IAlbumPersonalState, Echo.Contracts.Library.IArtistLibrary
 {
     private readonly FileStream _ownership;
     private readonly SqliteLane _writer;

@@ -22,15 +22,17 @@ public sealed class AlbumArtworkCache : IAsyncDisposable
     public AlbumArtworkCache(IAlbumArtwork source)
     { _source = source; _worker = Task.Run(WorkAsync); }
 
-    public Task<Lease?> AcquireAsync(string path, CancellationToken cancellation) => AcquireAsync(path, false, cancellation);
-    public Task<Lease?> AcquireArtistAsync(string path, CancellationToken cancellation) => AcquireAsync(path, true, cancellation);
-    private async Task<Lease?> AcquireAsync(string path, bool artist, CancellationToken cancellation)
+    public Task<Lease?> AcquireAsync(string path, CancellationToken cancellation) => AcquireAsync(path, false, 320, cancellation);
+    public Task<Lease?> AcquireAsync(string path, CancellationToken cancellation, int maxEdge) => AcquireAsync(path, false, Math.Clamp(maxEdge, 64, 1024), cancellation);
+    public Task<Lease?> AcquireArtistAsync(string path, CancellationToken cancellation) => AcquireAsync(path, true, 320, cancellation);
+    private async Task<Lease?> AcquireAsync(string path, bool artist, int maxEdge, CancellationToken cancellation)
     {
         var key = artist ? "artist:" + path : path;
+        if (maxEdge != 320) key += "\0" + maxEdge;
         if (_closed || cancellation.IsCancellationRequested) return null;
         if (_cache.TryGetValue(key, out var cached)) return Rent(key, cached);
         var completion = new TaskCompletionSource<Bitmap?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (!_requests.Writer.TryWrite(new(path, artist, cancellation, completion))) return null;
+        if (!_requests.Writer.TryWrite(new(path, artist, maxEdge, cancellation, completion))) return null;
         var bitmap = await completion.Task;
         if (_closed || cancellation.IsCancellationRequested) { bitmap?.Dispose(); return null; }
         if (_cache.TryGetValue(key, out cached)) { bitmap?.Dispose(); return Rent(key, cached); }
@@ -94,8 +96,8 @@ public sealed class AlbumArtworkCache : IAsyncDisposable
                     {
                         using var stream = new MemoryStream(bytes, writable: false);
                         bitmap = codec.Info.Width >= codec.Info.Height
-                            ? Bitmap.DecodeToWidth(stream, Math.Min(320, codec.Info.Width))
-                            : Bitmap.DecodeToHeight(stream, Math.Min(320, codec.Info.Height));
+                            ? Bitmap.DecodeToWidth(stream, Math.Min(request.MaxEdge, codec.Info.Width))
+                            : Bitmap.DecodeToHeight(stream, Math.Min(request.MaxEdge, codec.Info.Height));
                     }
                 }
                 if (cancellation.IsCancellationRequested) { bitmap?.Dispose(); bitmap = null; }
@@ -114,7 +116,7 @@ public sealed class AlbumArtworkCache : IAsyncDisposable
         Trim(); _stop.Dispose();
     }
 
-    private sealed record Request(string Path, bool Artist, CancellationToken Cancellation, TaskCompletionSource<Bitmap?> Completion);
+    private sealed record Request(string Path, bool Artist, int MaxEdge, CancellationToken Cancellation, TaskCompletionSource<Bitmap?> Completion);
     private sealed class Entry(Bitmap? image, long bytes)
     { public Bitmap? Image { get; } = image; public long Bytes { get; } = bytes; public int References; public long Access; }
 

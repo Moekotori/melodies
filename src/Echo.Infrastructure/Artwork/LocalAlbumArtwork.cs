@@ -11,6 +11,12 @@ public sealed partial class LocalAlbumArtwork : IAlbumArtwork, IArtistArtwork
 
     public async Task<byte[]?> ReadAsync(string samplePath, CancellationToken cancellation)
     {
+        if (Path.GetExtension(samplePath).ToLowerInvariant() is ".jpg" or ".jpeg" or ".png" or ".webp")
+        {
+            await using var image = Open(samplePath);
+            if (image.Length is <= 0 or > MaxBytes) return null;
+            var bytes = new byte[(int)image.Length]; await image.ReadExactlyAsync(bytes, cancellation).ConfigureAwait(false); return bytes;
+        }
         var directory = Path.GetDirectoryName(samplePath);
         if (directory is null) return null;
         foreach (var name in Names)

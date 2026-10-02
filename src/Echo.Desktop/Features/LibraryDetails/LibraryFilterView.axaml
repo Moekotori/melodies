@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.LibraryDetails" x:Class="Echo.Desktop.Features.LibraryDetails.LibraryFilterView"
+             x:DataType="local:LibraryFilterViewModel">
+  <StackPanel Spacing="12" Width="300">
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{DynamicResource query.filters}" FontWeight="SemiBold" /><TextBlock Text="{Binding ActiveCount}" Classes="muted" /></StackPanel>
+      <Button Grid.Column="1" Content="{DynamicResource query.reset}" Command="{Binding ResetCommand}" Padding="8,3" />
+    </Grid>
+    <Border Height="1" Background="{DynamicResource EchoDivider}" />
+    <TextBlock Text="{DynamicResource query.source}" Classes="muted" FontSize="12" />
+    <ComboBox SelectedIndex="{Binding SourceIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
+      <ComboBoxItem Content="{DynamicResource query.allLocal}" /><ComboBoxItem Content="{DynamicResource query.files}" /><ComboBoxItem Content="CUE" /><ComboBoxItem Content="osu!" />
+    </ComboBox>
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+      <StackPanel Spacing="5"><TextBlock Text="{DynamicResource query.format}" Classes="muted" FontSize="12" />
+        <ComboBox SelectedIndex="{Binding FormatIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
+          <ComboBoxItem Content="{DynamicResource query.all}" /><ComboBoxItem Content="FLAC" /><ComboBoxItem Content="WAV" /><ComboBoxItem Content="AIFF" /><ComboBoxItem Content="ALAC" /><ComboBoxItem Content="DSD" /><ComboBoxItem Content="MP3" /><ComboBoxItem Content="AAC" /><ComboBoxItem Content="OGG" /><ComboBoxItem Content="Opus" /><ComboBoxItem Content="{DynamicResource query.other}" />
+        </ComboBox>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{DynamicResource query.rate}" Classes="muted" FontSize="12" />
+        <ComboBox SelectedIndex="{Binding RateIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
+          <ComboBoxItem Content="{DynamicResource query.all}" /><ComboBoxItem Content="44.1 kHz" /><ComboBoxItem Content="48 kHz" /><ComboBoxItem Content="88.2 kHz" /><ComboBoxItem Content="96 kHz" /><ComboBoxItem Content="176.4 kHz" /><ComboBoxItem Content="192 kHz" /><ComboBoxItem Content="352.8 kHz" /><ComboBoxItem Content="384 kHz" /><ComboBoxItem Content="DSD" /><ComboBoxItem Content="{DynamicResource query.other}" />
+        </ComboBox>
+      </StackPanel>
+    </Grid>
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+      <StackPanel Spacing="5"><TextBlock Text="{DynamicResource query.depth}" Classes="muted" FontSize="12" /><ComboBox SelectedIndex="{Binding DepthIndex, Mode=TwoWay}" HorizontalAlignment="Stretch"><ComboBoxItem Content="{DynamicResource query.all}" /><ComboBoxItem Content="16 bit" /><ComboBoxItem Content="24 bit" /><ComboBoxItem Content="32 bit" /></ComboBox></StackPanel>
+      <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{DynamicResource query.year}" Classes="muted" FontSize="12" /><TextBox Text="{Binding Year, Mode=TwoWay}" MaxLength="4" PlaceholderText="2026" /></StackPanel>
+    </Grid>
+    <TextBox Text="{Binding Genre, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource query.genre}" />
+    <TextBox Text="{Binding Folder, Mode=TwoWay}" MaxLength="1024" PlaceholderText="{DynamicResource query.folder}" />
+    <StackPanel Orientation="Horizontal" Spacing="14"><CheckBox Content="{DynamicResource query.favorite}" IsChecked="{Binding FavoriteOnly, Mode=TwoWay}" /><CheckBox Content="{DynamicResource query.lossless}" IsChecked="{Binding LosslessOnly, Mode=TwoWay}" /></StackPanel>
+  </StackPanel>
+</UserControl>

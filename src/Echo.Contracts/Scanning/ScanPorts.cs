@@ -4,7 +4,7 @@ namespace Echo.Contracts.Scanning;
 
 public interface IFileDiscovery
 {
-    IEnumerable<FileSnapshot> Enumerate(string root, bool requireFullCoverage, CancellationToken cancellation);
+    IEnumerable<FileSnapshot> Enumerate(string root, bool requireFullCoverage, CancellationToken cancellation, bool force = false);
 }
 public interface IMetadataReader : IAsyncDisposable
 {
@@ -23,4 +23,7 @@ public interface ILibraryStore : IAsyncDisposable
     Task<LibraryStats> GetStatsAsync(CancellationToken cancellation = default);
     Task<IReadOnlyList<ScanIssue>> GetScanIssuesAsync(string jobId, int limit = 16,
         CancellationToken cancellation = default);
+    Task<IReadOnlyDictionary<string, SourceCacheItem>> ReadSourceCacheAsync(
+        IReadOnlyList<FileSnapshot> files, CancellationToken cancellation);
+    Task StoreSourceCacheAsync(IReadOnlyList<SourceCacheItem> items, CancellationToken cancellation);
 }

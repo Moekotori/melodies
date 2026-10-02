@@ -7,7 +7,6 @@ public sealed partial class ShellViewModel
     [ObservableProperty] private bool isQueueDrawerOpen;
     [RelayCommand] private void ToggleQueueDrawer()
     {
-        Player.Queue.ShowHistory = false;
         IsQueueDrawerOpen = !IsQueueDrawerOpen;
     }
     [RelayCommand] private void CloseQueueDrawer() => IsQueueDrawerOpen = false;

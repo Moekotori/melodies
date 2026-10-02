@@ -1,0 +1,32 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="LyricsRailButton" TargetType="RepeatButton">
+      <Setter Property="Template"><ControlTemplate><Grid Background="Transparent"><Border Background="{TemplateBinding Background}" Height="3" CornerRadius="2" VerticalAlignment="Center" /></Grid></ControlTemplate></Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="LyricsRailThumb" TargetType="Thumb">
+      <Setter Property="Template"><ControlTemplate><Border Background="{DynamicResource LyricsInk}" CornerRadius="5" /></ControlTemplate></Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="LyricsRailTheme" TargetType="Slider">
+      <Setter Property="MinHeight" Value="22" />
+      <Setter Property="Template"><ControlTemplate><Border Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+        <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}" Orientation="Horizontal">
+          <Track.DecreaseButton><RepeatButton Name="PART_DecreaseButton" Theme="{StaticResource LyricsRailButton}" Background="{DynamicResource LyricsInk}" Focusable="False" /></Track.DecreaseButton>
+          <Track.IncreaseButton><RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource LyricsRailButton}" Background="{DynamicResource LyricsRail}" Focusable="False" /></Track.IncreaseButton>
+          <Thumb Name="thumb" Width="9" Height="9" Theme="{StaticResource LyricsRailThumb}" />
+        </Track>
+      </Border></ControlTemplate></Setter>
+      <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource LyricsInk}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="Border.lyric-player"><Setter Property="Background" Value="{DynamicResource LyricsSurface}" /><Setter Property="BorderBrush" Value="{DynamicResource LyricsEdge}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="BoxShadow" Value="0 8 28 0 #20000000" /></Style>
+  <Style Selector="TextBlock"><Setter Property="Foreground" Value="{DynamicResource LyricsInk}" /></Style>
+  <Style Selector="TextBlock.lyric-time"><Setter Property="FontFamily" Value="Bahnschrift, Segoe UI" /><Setter Property="FontSize" Value="10" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="Opacity" Value="0.8" /></Style>
+  <Style Selector="Slider.lyric-rail"><Setter Property="Theme" Value="{StaticResource LyricsRailTheme}" /></Style>
+  <Style Selector="Button.lyric-control"><Setter Property="Width" Value="34" /><Setter Property="Height" Value="34" /><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /><Setter Property="CornerRadius" Value="9" /><Setter Property="Foreground" Value="{DynamicResource LyricsInk}" /></Style>
+  <Style Selector="Button.lyric-control:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource LyricsHover}" /></Style>
+  <Style Selector="Button.lyric-control:focus-visible /template/ ContentPresenter"><Setter Property="BorderBrush" Value="{DynamicResource LyricsInk}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="Button.lyric-play"><Setter Property="Width" Value="44" /><Setter Property="Height" Value="44" /><Setter Property="CornerRadius" Value="22" /><Setter Property="Background" Value="{DynamicResource LyricsHover}" /></Style>
+  <Style Selector="icon|EchoIcon"><Setter Property="BaseBrush" Value="{DynamicResource LyricsInk}" /><Setter Property="AccentBrush" Value="{DynamicResource LyricsInk}" /></Style>
+  <Style Selector="icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource LyricsInk}" /></Style>
+  <Style Selector="Button.active"><Setter Property="Background" Value="{DynamicResource LyricsHover}" /></Style>
+</Styles>

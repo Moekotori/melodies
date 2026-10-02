@@ -9,17 +9,17 @@
           <Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
         </Border>
         <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Top">
-          <TextBlock Text="从你的音乐库开始播放。" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource ui.HomeView.b6c63051b13c}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="SemiBold" />
           <StackPanel Spacing="6">
-            <TextBlock Text="暂无播放" Classes="heading" FontSize="35.6" LineHeight="41.3" />
-            <TextBlock Text="曲库准备好后会显示最近内容" Classes="muted" FontSize="14" />
+            <TextBlock Text="{DynamicResource ui.HomeView.a1103eb9f8ec}" Classes="heading" FontSize="35.6" LineHeight="41.3" />
+            <TextBlock Text="{DynamicResource ui.HomeView.fabc693887a2}" Classes="muted" FontSize="14" />
           </StackPanel>
-          <TextBlock Text="导入音乐后，这里会变成你的曲库入口、最近播放和本周聆听脉冲。" FontSize="13" Classes="muted" LineHeight="22" TextWrapping="Wrap" />
+          <TextBlock Text="{DynamicResource ui.HomeView.5550d47bf79d}" FontSize="13" Classes="muted" LineHeight="22" TextWrapping="Wrap" />
           <WrapPanel Orientation="Horizontal">
-            <Button Classes="primary" IsEnabled="False" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="play" Width="17" Height="17" Stroke="White" /><TextBlock Text="继续播放" /></StackPanel></Button>
-            <Button Command="{Binding NavigateCommand}" CommandParameter="queue" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="queue" Width="17" Height="17" /><TextBlock Classes="muted" Text="查看队列" FontSize="13" /></StackPanel></Button>
-            <Button Command="{Binding ShowPendingCommand}" CommandParameter="曲库刷新" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="17" Height="17" /><TextBlock Classes="muted" Text="刷新" FontSize="13" /></StackPanel></Button>
-            <Button IsEnabled="False" Margin="0,8,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="shuffle" Width="17" Height="17" /><TextBlock Classes="muted" Text="生成随机队列" FontSize="13" /></StackPanel></Button>
+            <Button Classes="primary" IsEnabled="False" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="play" Width="17" Height="17" Stroke="White" /><TextBlock Text="{DynamicResource ui.HomeView.11a6c8e68b59}" /></StackPanel></Button>
+            <Button Command="{Binding NavigateCommand}" CommandParameter="queue" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="queue" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.f9c57473d6a0}" FontSize="13" /></StackPanel></Button>
+            <Button Command="{Binding ShowPendingCommand}" CommandParameter="{DynamicResource ui.HomeView.f86c65b36544}" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.aee887434131}" FontSize="13" /></StackPanel></Button>
+            <Button IsEnabled="False" Margin="0,8,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="shuffle" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.41fd818df70c}" FontSize="13" /></StackPanel></Button>
           </WrapPanel>
         </StackPanel>
       </Grid>
@@ -30,30 +30,30 @@
         <StackPanel Spacing="16">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="20" VerticalAlignment="Center">
-              <TextBlock Text="最近活动" Classes="heading" FontSize="18" VerticalAlignment="Center" />
+              <TextBlock Text="{DynamicResource ui.HomeView.41f5cada11ed}" Classes="heading" FontSize="18" VerticalAlignment="Center" />
               <StackPanel Orientation="Horizontal" Spacing="4">
-                <Button Classes="tab" Name="PlayedTab" Content="已播放" FontSize="13.5" Command="{Binding SetRecentTabCommand}" CommandParameter="played" />
-                <Button Classes="tab" Name="AddedTab" Content="添加于" FontSize="13.5" Command="{Binding SetRecentTabCommand}" CommandParameter="added" />
+                <Button Classes="tab" Name="PlayedTab" Content="{DynamicResource ui.HomeView.29487acd3e7a}" FontSize="13.5" Command="{Binding SetRecentTabCommand}" CommandParameter="played" />
+                <Button Classes="tab" Name="AddedTab" Content="{DynamicResource ui.AlbumDetailView.76d76ed548a8}" FontSize="13.5" Command="{Binding SetRecentTabCommand}" CommandParameter="added" />
               </StackPanel>
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
               <Button Classes="icon" IsEnabled="False"><icon:GlyphIcon Kind="chevron-left" Width="15" Height="15" /></Button>
               <Button Classes="icon" IsEnabled="False"><icon:GlyphIcon Kind="chevron-right" Width="15" Height="15" /></Button>
-              <Button Classes="icon" Command="{Binding ShowPendingCommand}" CommandParameter="最近播放刷新" ToolTip.Tip="刷新"><icon:GlyphIcon Kind="refresh" Width="15" Height="15" /></Button>
+              <Button Classes="icon" Command="{Binding ShowPendingCommand}" CommandParameter="{DynamicResource ui.HomeView.a6ef57e2cccc}" ToolTip.Tip="{DynamicResource ui.HomeView.aee887434131}"><icon:GlyphIcon Kind="refresh" Width="15" Height="15" /></Button>
             </StackPanel>
           </Grid>
           <motion:MotionPresenter Name="RecentHost" MinHeight="160" />
         </StackPanel>
         <StackPanel Spacing="16">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="为你推荐" Classes="heading" FontSize="18" VerticalAlignment="Center" />
-            <Button Grid.Column="1" IsEnabled="False"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="15" Height="15" /><TextBlock Text="刷新" Classes="muted" FontSize="13" /></StackPanel></Button>
+            <TextBlock Text="{DynamicResource ui.HomeView.1795a8edfa43}" Classes="heading" FontSize="18" VerticalAlignment="Center" />
+            <Button Grid.Column="1" IsEnabled="False"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="15" Height="15" /><TextBlock Text="{DynamicResource ui.HomeView.aee887434131}" Classes="muted" FontSize="13" /></StackPanel></Button>
           </Grid>
           <Border MinHeight="132" Padding="24">
             <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
               <icon:GlyphIcon Kind="album" Width="24" Height="24" HorizontalAlignment="Center" />
-              <TextBlock Text="还没有可推荐专辑" Classes="heading" FontSize="15" FontWeight="Medium" HorizontalAlignment="Center" />
-              <TextBlock Text="导入专辑后，这里会直接铺满你的专辑。" Classes="muted" FontSize="13" TextAlignment="Center" />
+              <TextBlock Text="{DynamicResource ui.HomeView.a26215fe57b5}" Classes="heading" FontSize="15" FontWeight="Medium" HorizontalAlignment="Center" />
+              <TextBlock Text="{DynamicResource ui.HomeView.33f422ff5afb}" Classes="muted" FontSize="13" TextAlignment="Center" />
             </StackPanel>
           </Border>
         </StackPanel>

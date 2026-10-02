@@ -67,12 +67,14 @@ public partial class SidebarHost : UserControl
         var transform = _wasOpen || _motion.IsRunning ? MotionLane.Current(NavigationPanel) : MotionLane.At(x: -220);
         _motion.Cancel(); _wasOpen = opening;
         Width = 220; NavigationPanel.Width = 220; NavigationPanel.IsVisible = true;
-        NavigationPanel.IsHitTestVisible = opening; NavigationPanel.IsEnabled = opening;
+        NavigationPanel.IsHitTestVisible = opening; NavigationPanel.IsEnabled = true;
+        KeyboardNavigation.SetTabNavigation(NavigationPanel, opening ? KeyboardNavigationMode.Cycle : KeyboardNavigationMode.None);
+        if (!opening && NavigationPanel.IsKeyboardFocusWithin) _window?.FocusManager?.Focus(null);
         EdgeReveal.IsVisible = false;
         await _motion.PlayAsync(NavigationPanel, opacity, opening ? 1 : 0,
             _model.Motion.UseSpatialMotion ? transform : MotionLane.At(),
             MotionLane.At(x: !opening && _model.Motion.UseSpatialMotion ? -220 : 0),
-            _model.Motion.UseSpatialMotion ? opening ? MotionTokens.Reveal : MotionTokens.Exit : MotionTokens.Reduced);
+            _model.Motion.UseSpatialMotion ? opening ? MotionTokens.Reveal : MotionTokens.Exit : MotionTokens.Reduced, preserveGeometry: true);
         if (generation == _generation) Settle();
     }
     private void Settle()
@@ -113,6 +115,7 @@ public partial class SidebarHost : UserControl
     }
     private void OnWindowKey(object? sender, KeyEventArgs e)
     {
+        if (e.Handled || _model?.Shortcuts.IsRecording == true) return;
         if (_model?.IsSidebarDrawerMode != true) return;
         if (e.Key == Key.Escape && _model.IsSidebarDrawerOpen) { CloseAndRestoreFocus(); e.Handled = true; }
         if (e.Key == Key.B && e.KeyModifiers.HasFlag(KeyModifiers.Control)) { ToggleFromKeyboard(); e.Handled = true; }

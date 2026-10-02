@@ -6,9 +6,9 @@
     <Border Height="1" Background="{DynamicResource EchoDivider}" />
     <StackPanel Spacing="12" Margin="0,90" HorizontalAlignment="Center" MaxWidth="440">
       <icon:EchoIcon Name="PageIcon" Width="48" Height="48" HorizontalAlignment="Center" />
-      <TextBlock Text="此页面正在迁移" Classes="heading" FontSize="18" HorizontalAlignment="Center" />
-      <TextBlock Text="将按原版 ECHO 的布局、控件和交互逐项接入。" Classes="muted" TextWrapping="Wrap" HorizontalAlignment="Center" />
-      <Button Content="返回主页" Command="{Binding NavigateCommand}" CommandParameter="home" HorizontalAlignment="Center" />
+      <TextBlock Text="{DynamicResource ui.PendingPage.04e3e69995dd}" Classes="heading" FontSize="18" HorizontalAlignment="Center" />
+      <TextBlock Text="{DynamicResource ui.PendingPage.c4e5f4e7f578}" Classes="muted" TextWrapping="Wrap" HorizontalAlignment="Center" />
+      <Button Content="{DynamicResource ui.PendingPage.5ff221f046f0}" Command="{Binding NavigateCommand}" CommandParameter="home" HorizontalAlignment="Center" />
     </StackPanel>
   </StackPanel>
 </UserControl>

@@ -9,7 +9,10 @@ public partial class SettingsSectionView : UserControl
     {
         DataContext = model;
         if (model.IsAppearance)
+        {
+            ThemeContent.Content = new ThemeSettingsView { DataContext = model.Shell.Theme };
             ExtraContent.Content = new Expander { Header = "动效预览", Content = new MotionSettingsView { DataContext = model.Shell }, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+        }
         if (model.IsPlayback)
             ExtraContent.Content = new PlaybackSettingsView { DataContext = model.Shell };
     }

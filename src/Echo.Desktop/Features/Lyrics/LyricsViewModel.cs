@@ -37,6 +37,13 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool hasLyrics;
     [ObservableProperty] private bool hasTrack;
     [ObservableProperty] private Bitmap? cover;
+    public string MessageDisplay => player.Text.Translate(Message);
+    partial void OnMessageChanged(string value) => OnPropertyChanged(nameof(MessageDisplay));
+    private void RefreshLanguage()
+    {
+        if (snapshot?.Current is null) Title = player.Text.Translate("暂无播放");
+        OnPropertyChanged(nameof(MessageDisplay)); Changed?.Invoke();
+    }
     public LyricsAppearance Appearance { get; }
     public PlayerViewModel Player => player;
     public LyricsDocument Document { get; private set; } = LyricsDocument.Empty;
@@ -47,6 +54,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
     {
         this.player = player; this.source = source; this.artwork = artwork; Appearance = appearance;
         this.selection = selection ?? new();
+        player.Text.Changed += RefreshLanguage; RefreshLanguage();
         player.Session.Changed += OnSnapshot;
         OnSnapshot(player.Session.Snapshot);
     }
@@ -77,7 +85,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
         }
         snapshot = state;
         HasTrack = state.Current is not null;
-        Title = state.Current?.Metadata?.GetValueOrDefault("title") ?? (state.Current is null ? "暂无播放" : Path.GetFileNameWithoutExtension(state.Current.FilePath));
+        Title = state.Current?.Metadata?.GetValueOrDefault("title") ?? (state.Current is null ? player.Text.Translate("暂无播放") : Path.GetFileNameWithoutExtension(state.Current.FilePath));
         Artist = state.Current?.Metadata?.GetValueOrDefault("artist") ?? "";
         Album = state.Current?.Metadata?.GetValueOrDefault("album") ?? "";
         if (trackChanged) { trackKey = key; _ = LoadAsync(null); }
@@ -115,7 +123,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
             Changed?.Invoke();
             if (artwork is not null && track is not null)
             {
-                var lease = await artwork.AcquireAsync(track.FilePath, cancellation.Token);
+                var lease = await artwork.AcquireAsync(track.FilePath, cancellation.Token, 768);
                 if (closed || request != generation) { lease?.Dispose(); return; }
                 coverLease = lease; Cover = lease?.Image;
             }
@@ -134,7 +142,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         if (closed) return; closed = true; generation++; load?.Cancel();
-        player.Session.Changed -= OnSnapshot; coverLease?.Dispose(); coverLease = null; Cover = null;
+        player.Text.Changed -= RefreshLanguage; player.Session.Changed -= OnSnapshot; coverLease?.Dispose(); coverLease = null; Cover = null;
         Document = LyricsDocument.Empty; Changed = null;
     }
     private sealed record Receipt(PlaybackSnapshot State, long Time);

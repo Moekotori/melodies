@@ -9,7 +9,7 @@
     <Grid Name="EdgeReveal" Background="Transparent" PointerEntered="OnEdgeEntered">
       <Button Name="RevealButton" Width="22" Height="64" MinHeight="64" Padding="0" VerticalAlignment="Center"
               Background="{DynamicResource EchoSidebar}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,1,1"
-              CornerRadius="0,6,6,0" Click="OnRevealClicked" ToolTip.Tip="展开侧栏（Ctrl+B）" AutomationProperties.Name="展开侧栏">
+              CornerRadius="0,6,6,0" Click="OnRevealClicked" ToolTip.Tip="{DynamicResource ui.SidebarHost.f5a2e8aeefd1}" AutomationProperties.Name="{DynamicResource ui.SidebarHost.658ff1eade42}">
         <icon:GlyphIcon Kind="chevron-right" Width="14" Height="14" />
       </Button>
     </Grid>

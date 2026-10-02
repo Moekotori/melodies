@@ -1,0 +1,67 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light"><SolidColorBrush x:Key="DrawerGroupSurface">#b3fafafd</SolidColorBrush><SolidColorBrush x:Key="DrawerSelectedSurface">#eeeef3</SolidColorBrush><SolidColorBrush x:Key="DrawerToggleTrack">#d9dbe1</SolidColorBrush></ResourceDictionary>
+        <ResourceDictionary x:Key="Dark"><SolidColorBrush x:Key="DrawerGroupSurface">#b3202127</SolidColorBrush><SolidColorBrush x:Key="DrawerSelectedSurface">#292b34</SolidColorBrush><SolidColorBrush x:Key="DrawerToggleTrack">#454955</SolidColorBrush></ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <ControlTheme x:Key="DrawerTabsTheme" TargetType="TabControl">
+        <Setter Property="ItemsPanel"><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></Setter>
+        <Setter Property="Template"><ControlTemplate>
+          <Grid RowDefinitions="42,*"><Border Background="{DynamicResource EchoPanelMuted}" CornerRadius="10" Padding="3"><ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" /></Border>
+            <ContentPresenter Name="PART_SelectedContentHost" Grid.Row="1" Content="{TemplateBinding SelectedContent}" ContentTemplate="{TemplateBinding SelectedContentTemplate}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+          </Grid>
+        </ControlTemplate></Setter>
+      </ControlTheme>
+      <ControlTheme x:Key="DrawerTabTheme" TargetType="TabItem">
+        <Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="Padding" Value="4,6" />
+        <Setter Property="Template"><ControlTemplate><Border Name="TabBackground" Background="Transparent" CornerRadius="7" Margin="1,0" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Header}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" /></Border></ControlTemplate></Setter>
+        <Style Selector="^:selected"><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+        <Style Selector="^:selected /template/ Border#TabBackground"><Setter Property="Background" Value="{DynamicResource EchoField}" /></Style>
+        <Style Selector="^:pointerover:not(:selected) /template/ Border#TabBackground"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+        <Style Selector="^:focus-visible /template/ Border#TabBackground"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+      </ControlTheme>
+      <ControlTheme x:Key="DrawerSwitchTheme" TargetType="CheckBox">
+        <Setter Property="Width" Value="38" /><Setter Property="Height" Value="22" /><Setter Property="MinHeight" Value="22" /><Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template"><ControlTemplate><Border Name="SwitchTrack" Background="{DynamicResource DrawerToggleTrack}" CornerRadius="11" Padding="3"><Border Name="SwitchKnob" Width="16" Height="16" CornerRadius="8" Background="White" HorizontalAlignment="Left" /></Border></ControlTemplate></Setter>
+        <Style Selector="^:checked /template/ Border#SwitchTrack"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /></Style>
+        <Style Selector="^:checked /template/ Border#SwitchKnob"><Setter Property="HorizontalAlignment" Value="Right" /></Style>
+        <Style Selector="^:focus-visible /template/ Border#SwitchTrack"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccentText}" /><Setter Property="BorderThickness" Value="1" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+      </ControlTheme>
+      <ControlTheme x:Key="DrawerModeTheme" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="4,6" /><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="Template"><ControlTemplate><Border Name="ModeBackground" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}" Margin="1,0"><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" /></Border></ControlTemplate></Setter>
+        <Style Selector="^:selected"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+        <Style Selector="^:selected /template/ Border#ModeBackground"><Setter Property="Background" Value="{DynamicResource EchoField}" /></Style>
+        <Style Selector="^:pointerover:not(:selected) /template/ Border#ModeBackground"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      </ControlTheme>
+      <ControlTheme x:Key="DrawerDeviceTheme" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="9,10" /><Setter Property="MinHeight" Value="62" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template"><ControlTemplate><Border Name="DeviceBackground" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" /></Border></ControlTemplate></Setter>
+        <Style Selector="^:selected /template/ Border#DeviceBackground"><Setter Property="Background" Value="{DynamicResource DrawerSelectedSurface}" /></Style>
+        <Style Selector="^:pointerover /template/ Border#DeviceBackground"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+        <Style Selector="^:focus-visible /template/ Border#DeviceBackground"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+      </ControlTheme>
+    </ResourceDictionary>
+  </Styles.Resources>
+  <Style Selector="TabControl.drawer-tabs"><Setter Property="Theme" Value="{DynamicResource DrawerTabsTheme}" /></Style>
+  <Style Selector="TabControl.drawer-tabs TabItem"><Setter Property="Theme" Value="{DynamicResource DrawerTabTheme}" /></Style>
+  <Style Selector="CheckBox.drawer-switch"><Setter Property="Theme" Value="{DynamicResource DrawerSwitchTheme}" /></Style>
+  <Style Selector="ListBox.drawer-modes ListBoxItem"><Setter Property="Theme" Value="{DynamicResource DrawerModeTheme}" /></Style>
+  <Style Selector="ListBox.drawer-devices ListBoxItem"><Setter Property="Theme" Value="{DynamicResource DrawerDeviceTheme}" /></Style>
+  <Style Selector="ListBox.drawer-modes"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="3" /><Setter Property="Height" Value="40" /></Style>
+  <Style Selector="ListBox.drawer-devices"><Setter Property="Background" Value="{DynamicResource DrawerGroupSurface}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="12" /><Setter Property="Padding" Value="4" /></Style>
+  <Style Selector="TextBlock.drawer-section"><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+  <Style Selector="Border.drawer-row"><Setter Property="MinHeight" Value="44" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="0,0,0,1" /><Setter Property="Padding" Value="0,8" /></Style>
+  <Style Selector="Button.drawer-help"><Setter Property="Width" Value="22" /><Setter Property="Height" Value="26" /><Setter Property="MinHeight" Value="26" /><Setter Property="Padding" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.drawer-action"><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="32" /><Setter Property="Padding" Value="12,6" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="ComboBox"><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="34" /><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /><Setter Property="CornerRadius" Value="8" /></Style>
+  <Style Selector="NumericUpDown"><Setter Property="FontSize" Value="12" /><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="TextBox.drawer-search"><Setter Property="FontSize" Value="12" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+  <Style Selector="TemplatedControl.drawer-match"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Slider"><Setter Property="Foreground" Value="{DynamicResource EchoAccent}" /><Setter Property="Background" Value="{DynamicResource DrawerToggleTrack}" /></Style>
+  <Style Selector="Slider /template/ Thumb, Slider:pointerover /template/ Thumb, Slider:pressed /template/ Thumb"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Width" Value="16" /><Setter Property="Height" Value="16" /></Style>
+  <Style Selector="Slider /template/ RepeatButton#PART_DecreaseButton"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /></Style>
+  <Style Selector="Slider /template/ RepeatButton#PART_IncreaseButton"><Setter Property="Background" Value="{DynamicResource DrawerToggleTrack}" /></Style>
+</Styles>

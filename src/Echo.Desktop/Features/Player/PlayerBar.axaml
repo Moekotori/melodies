@@ -1,75 +1,79 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
              xmlns:queue="using:Echo.Desktop.Features.Queue" xmlns:motion="using:Echo.Desktop.Motion"
-             xmlns:player="using:Echo.Desktop.Features.Player"
+             xmlns:player="using:Echo.Desktop.Features.Player" xmlns:floating="using:Echo.Desktop.Features.Floating"
              x:Class="Echo.Desktop.Features.Player.PlayerBar" x:DataType="shell:ShellViewModel">
   <UserControl.Styles><StyleInclude Source="PlayerBarStyles.axaml" /></UserControl.Styles>
   <Border Name="BarSurface" Background="{DynamicResource EchoPlayer}" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource EchoBorder}" Padding="28,6">
     <Grid ColumnDefinitions="*,691.2,*" ColumnSpacing="16" Name="PlayerLayout">
       <Grid Name="NowPlaying" ColumnDefinitions="84,*" ColumnSpacing="14" VerticalAlignment="Center" ClipToBounds="True">
         <Button Name="CoverButton" Classes="player-cover" Width="84" Height="84" Padding="0"
-                Command="{Binding NavigateCommand}" CommandParameter="lyrics" ToolTip.Tip="打开歌词" AutomationProperties.Name="打开歌词">
+                Command="{Binding NavigateCommand}" CommandParameter="lyrics" ToolTip.Tip="{DynamicResource ui.PlayerBar.e63af6420456}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.e63af6420456}">
           <queue:QueueArtwork Name="CoverArtwork" Width="84" Height="84" CornerRadius="11" Cache="{Binding AlbumArtwork}" FilePath="{Binding Player.CurrentFilePath}" />
         </Button>
         <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center" ClipToBounds="True">
           <TextBlock Text="{Binding Player.Details.Title}" Classes="heading" FontSize="17" FontWeight="ExtraBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.Details.Title}" />
-          <TextBlock Text="{Binding Player.Details.Artist}" Classes="muted" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.ArtistAlbum}" />
+          <TextBlock Text="{Binding Player.Details.Artist}" Classes="muted" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.Details.ArtistAlbum}" />
           <StackPanel Orientation="Horizontal" Spacing="6" Height="20">
-            <Border Classes="player-chip"><Grid><TextBlock Text="{Binding Player.Subtitle}" IsVisible="{Binding Player.HasTrack}" /><TextBlock Text="就绪" IsVisible="{Binding !Player.HasTrack}" /></Grid></Border>
+            <Border Classes="player-chip"><Grid><TextBlock Text="{Binding Player.Subtitle}" IsVisible="{Binding Player.HasTrack}" /><TextBlock Text="{DynamicResource ui.PlayerBar.b073db9c0bd6}" IsVisible="{Binding !Player.HasTrack}" /></Grid></Border>
             <Border Classes="player-chip format" IsVisible="{Binding Player.Details.HasFormat}"><TextBlock Text="{Binding Player.Details.Format}" /></Border>
           </StackPanel>
+          <TextBlock Text="{Binding Player.Error}" IsVisible="{Binding Player.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" FontSize="10" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.Error}" />
+          <TextBlock Text="{Binding Player.Details.Message}" IsVisible="{Binding Player.Details.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" FontSize="10" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.Details.Message}" />
         </StackPanel>
       </Grid>
       <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
         <StackPanel Name="Transport" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-          <Button Name="SignalPathButton" Classes="transport" ToolTip.Tip="信号路径" AutomationProperties.Name="信号路径">
-            <icon:EchoIcon Scope="player" Kind="signal-path" Width="22" Height="22" />
+          <Button Name="SignalPathButton" Classes="transport" ToolTip.Tip="{DynamicResource ui.PlayerBar.a8cc3c4658a5}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.a8cc3c4658a5}">
+            <icon:SignalPathStateIcon State="{Binding Player.SignalIconState}" Width="28" Height="28" />
             <Button.Flyout><motion:MotionFlyout Placement="Top"><StackPanel Width="320" Spacing="12">
-              <TextBlock Text="信号路径" Classes="heading" FontSize="16" />
+              <TextBlock Text="{DynamicResource ui.PlayerBar.a8cc3c4658a5}" Classes="heading" FontSize="16" />
               <TextBlock Text="{Binding Player.ZoneName}" Classes="muted" />
               <TextBlock Text="{Binding Player.SignalPath}" TextWrapping="Wrap" />
-              <Button Content="输出设备与音效" Click="OpenOutputSettings" HorizontalAlignment="Stretch" />
+              <Button Content="{DynamicResource ui.PlayerBar.ff71ead6e0d9}" Click="OpenOutputSettings" HorizontalAlignment="Stretch" />
             </StackPanel></motion:MotionFlyout></Button.Flyout>
           </Button>
           <Button Name="FavoriteButton" Classes="transport" Classes.active="{Binding Player.Details.IsFavorite}" IsEnabled="{Binding Player.Details.CanFavorite}"
                   Command="{Binding Player.Details.ToggleFavoriteCommand}" ToolTip.Tip="{Binding Player.Details.FavoriteLabel}" AutomationProperties.Name="{Binding Player.Details.FavoriteLabel}">
             <icon:GlyphIcon Kind="{Binding Player.Details.HeartIcon}" Width="23" Height="23" StrokeWidth="1.8" />
           </Button>
-          <Button Name="PreviousButton" Classes="transport" IsEnabled="{Binding Player.HasTrack}" Command="{Binding Player.PreviousCommand}" ToolTip.Tip="上一首" AutomationProperties.Name="上一首"><icon:EchoIcon Scope="player" Kind="previous" Width="22" Height="22" /></Button>
-          <Button Name="PlayButton" Classes="transport play" IsEnabled="{Binding Player.HasTrack}" Command="{Binding Player.ToggleCommand}" ToolTip.Tip="播放 / 暂停" AutomationProperties.Name="播放 / 暂停"><icon:EchoIcon Scope="player" Kind="{Binding Player.PlayIcon}" Width="35" Height="35" /></Button>
-          <Button Name="NextButton" Classes="transport" IsEnabled="{Binding Player.HasTrack}" Command="{Binding Player.NextCommand}" ToolTip.Tip="下一首" AutomationProperties.Name="下一首"><icon:EchoIcon Scope="player" Kind="next" Width="22" Height="22" /></Button>
+          <Button Name="PreviousButton" Classes="transport" IsEnabled="{Binding Player.CanControl}" Command="{Binding Player.PreviousCommand}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.8c747908bf69}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.8c747908bf69}"><icon:EchoIcon Scope="player" Kind="previous" Width="22" Height="22" /></Button>
+          <Button Name="PlayButton" Classes="transport play" IsEnabled="{Binding Player.CanStartPlayback}" Command="{Binding Player.ToggleCommand}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}"><icon:EchoIcon Scope="player" Kind="{Binding Player.PlayIcon}" Width="35" Height="35" /></Button>
+          <Button Name="NextButton" Classes="transport" IsEnabled="{Binding Player.CanControl}" Command="{Binding Player.NextCommand}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.486e42475adb}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.486e42475adb}"><icon:EchoIcon Scope="player" Kind="next" Width="22" Height="22" /></Button>
           <Button Name="ModeButton" Classes="transport" Classes.active="{Binding Player.IsSpecialMode}" Command="{Binding Player.CycleRepeatCommand}" ToolTip.Tip="{Binding Player.RepeatText}" AutomationProperties.Name="{Binding Player.RepeatText}">
             <Grid><icon:GlyphIcon Kind="{Binding Player.ModeIcon}" Width="22" Height="22" StrokeWidth="1.8" /><Border Width="12" Height="2" Background="{DynamicResource EchoAccentText}" VerticalAlignment="Bottom" Margin="0,0,0,-5" IsVisible="{Binding Player.IsSpecialMode}" /></Grid>
           </Button>
-          <Button Name="LyricsButton" Classes="transport" Command="{Binding NavigateCommand}" CommandParameter="lyrics" ToolTip.Tip="歌词" AutomationProperties.Name="歌词"><icon:EchoIcon Scope="player" Kind="lyrics" Width="20" Height="20" /></Button>
+          <Button Name="LyricsButton" Classes="transport" Command="{Binding NavigateCommand}" CommandParameter="lyrics" ToolTip.Tip="{DynamicResource ui.PlayerBar.9dbfa9b42bb3}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.9dbfa9b42bb3}"><icon:EchoIcon Scope="player" Kind="lyrics" Width="20" Height="20" /></Button>
         </StackPanel>
         <Grid ColumnDefinitions="48,*,48" ColumnSpacing="10" Height="24">
           <TextBlock Name="ElapsedText" Text="{Binding Player.PositionText}" FontSize="12" Classes="muted" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center" />
-          <icon:PlayerWaveform Grid.Column="1" Height="24" IsVisible="{Binding !Player.HasTrack}" />
-          <Slider Name="SeekSlider" Classes="player-rail" Grid.Column="1" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position, Mode=OneWay}"
-                  IsEnabled="{Binding Player.HasTrack}" IsVisible="{Binding Player.HasTrack}" IsMoveToPointEnabled="True" SmallChange="5" LargeChange="10" AutomationProperties.Name="播放进度" />
+          <icon:PlayerWaveformSlider Name="SeekSlider" Grid.Column="1" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position, Mode=OneWay}"
+                  Seed="{Binding Player.CurrentFilePath}" IsEnabled="{Binding Player.CanControl}" SmallChange="5" LargeChange="10" AutomationProperties.Name="{DynamicResource ui.PlayerBar.fc16e2a0fca6}" />
           <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" FontSize="12" Classes="muted" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center" />
         </Grid>
       </StackPanel>
       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" HorizontalAlignment="Right">
-        <Button Name="QueueButton" Classes="transport" Command="{Binding ToggleQueueDrawerCommand}" ToolTip.Tip="播放队列（Ctrl+Q）" AutomationProperties.Name="播放队列"><icon:GlyphIcon Kind="queue" Width="22" Height="22" /></Button>
-        <Button Name="OutputSettingsButton" Classes="transport" ToolTip.Tip="更多" AutomationProperties.Name="更多">
+        <Button Name="QueueButton" Classes="transport" Command="{Binding ToggleQueueDrawerCommand}" ToolTip.Tip="{DynamicResource ui.PlayerBar.6edf6b969da4}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.f01b6815d826}"><icon:GlyphIcon Kind="queue" Width="22" Height="22" /></Button>
+        <Button Name="OutputSettingsButton" Classes="transport" ToolTip.Tip="{DynamicResource ui.PlayerBar.38844b135cf7}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.38844b135cf7}">
           <icon:EchoIcon Scope="player" Kind="more" Width="22" Height="22" />
           <Button.Flyout><motion:MotionFlyout Placement="Top"><StackPanel Width="320" Spacing="8">
             <TextBlock Text="{Binding Player.Details.Title}" Classes="heading" FontSize="16" TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding Player.ArtistAlbum}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Player.Details.ArtistAlbum}" Classes="muted" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Player.Details.Specifications}" IsVisible="{Binding Player.Details.HasSpecifications}" Classes="muted" />
             <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,4" />
-            <Button Content="打开音频文件" Click="OpenFiles" HorizontalAlignment="Stretch" />
-            <Button Content="打开歌词" Click="OpenLyrics" HorizontalAlignment="Stretch" />
-            <Button Content="播放队列" Click="OpenQueue" HorizontalAlignment="Stretch" />
-            <Button Content="输出设备与音效" Click="OpenOutputSettings" HorizontalAlignment="Stretch" />
-            <Button Content="重试播放" Command="{Binding Player.RecoverCommand}" IsEnabled="{Binding Player.HasTrack}" HorizontalAlignment="Stretch" />
+            <Button Content="{DynamicResource ui.PlayerBar.2274070f191c}" Click="OpenFiles" HorizontalAlignment="Stretch" />
+            <Button Content="{DynamicResource ui.PlayerBar.e63af6420456}" Click="OpenLyrics" HorizontalAlignment="Stretch" />
+            <Button Name="MiniPlayerToggle" Content="{DynamicResource floating.mini}" Command="{Binding Floating.ToggleMiniCommand}" HorizontalAlignment="Stretch" />
+            <Button Name="DesktopLyricsToggle" Content="{DynamicResource floating.lyrics}" Command="{Binding Floating.ToggleLyricsCommand}" HorizontalAlignment="Stretch" />
+            <Expander Header="{DynamicResource floating.title}" HorizontalAlignment="Stretch"><ScrollViewer MaxHeight="480" VerticalScrollBarVisibility="Auto"><floating:FloatingSettingsView Margin="0,10,0,0" /></ScrollViewer></Expander>
+            <Button Content="{DynamicResource ui.PlayerBar.f01b6815d826}" Click="OpenQueue" HorizontalAlignment="Stretch" />
+            <Button Content="{DynamicResource ui.PlayerBar.ff71ead6e0d9}" Click="OpenOutputSettings" HorizontalAlignment="Stretch" />
+            <Button Content="{DynamicResource ui.PlayerBar.f867a4c836db}" Command="{Binding Player.RecoverCommand}" IsEnabled="{Binding Player.CanControl}" HorizontalAlignment="Stretch" />
             <TextBlock Text="{Binding Player.Error}" IsVisible="{Binding Player.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" FontSize="12" />
             <TextBlock Text="{Binding Player.Details.Message}" IsVisible="{Binding Player.Details.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" FontSize="12" />
           </StackPanel></motion:MotionFlyout></Button.Flyout>
         </Button>
-        <Button Name="VolumeButton" Classes="transport" ToolTip.Tip="{Binding Player.VolumeText}" AutomationProperties.Name="音量">
+        <Button Name="VolumeButton" Classes="transport" ToolTip.Tip="{Binding Player.VolumeText}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.8bf8b9780d34}">
           <icon:EchoIcon Scope="player" Kind="volume" Width="21" Height="21" />
           <Button.Flyout><motion:MotionFlyout Placement="Top"><player:PlayerVolumePanel /></motion:MotionFlyout></Button.Flyout>
         </Button>

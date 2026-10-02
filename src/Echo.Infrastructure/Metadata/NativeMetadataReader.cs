@@ -20,6 +20,8 @@ public sealed class NativeMetadataReader(string scannerPath) : IMetadataReader
     { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
     public async ValueTask<TrackMetadata> ReadAsync(FileSnapshot file, CancellationToken cancellation)
+        => await ReadAsync(file, cancellation, false).ConfigureAwait(false);
+    internal async ValueTask<TrackMetadata> ReadAsync(FileSnapshot file, CancellationToken cancellation, bool allowUntaggedMp3)
     {
         if (_consecutiveTransportFailures >= 3) throw new MetadataReadException("native_circuit_open");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
@@ -30,7 +32,7 @@ public sealed class NativeMetadataReader(string scannerPath) : IMetadataReader
             var process = _process!;
             using var stop = deadline.Token.Register(() => Kill(process));
             var id = (++_sequence).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var message = JsonSerializer.Serialize(new NativeRequest("metadata", id, file.Path, false, true), Json.NativeRequest);
+            var message = JsonSerializer.Serialize(new NativeRequest("metadata", id, file.Path, false, allowUntaggedMp3), Json.NativeRequest);
             await process.StandardInput.WriteLineAsync(message.AsMemory(), deadline.Token).ConfigureAwait(false);
             await process.StandardInput.FlushAsync(deadline.Token).ConfigureAwait(false);
             using var parsed = JsonDocument.Parse(await _lines!.ReadAsync(deadline.Token).ConfigureAwait(false));

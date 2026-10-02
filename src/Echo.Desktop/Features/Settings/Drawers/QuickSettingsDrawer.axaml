@@ -1,20 +1,31 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Settings.Drawers.QuickSettingsDrawer" x:DataType="shell:ShellViewModel">
+  <UserControl.Styles><StyleInclude Source="DrawerStyles.axaml" /></UserControl.Styles>
   <Grid ClipToBounds="True">
-    <Border Name="Scrim" Background="#260F1628" PointerPressed="OnScrimPressed" />
+    <Border Name="Scrim" Background="#38181a20" PointerPressed="OnScrimPressed" />
     <Border Name="DrawerPanel" Width="440" HorizontalAlignment="Right" Background="{DynamicResource EchoPage}"
-            BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1,0,0,0" CornerRadius="20,0,0,20" ClipToBounds="True">
-      <Grid RowDefinitions="Auto,*">
-        <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="22,20,14,18">
-          <Grid ColumnDefinitions="*,32">
-            <StackPanel Spacing="5"><TextBlock Text="{Binding QuickSettingsTitle}" FontSize="21" FontWeight="Bold" Classes="heading" />
-              <TextBlock Text="调整当前播放器" FontSize="12" Classes="muted" /></StackPanel>
-            <Button Name="CloseDrawerButton" Grid.Column="1" Width="32" Height="32" MinHeight="32" Padding="0" VerticalAlignment="Top"
-                    Click="OnCloseClicked" ToolTip.Tip="关闭（Esc）" AutomationProperties.Name="关闭设置抽屉"><icon:GlyphIcon Kind="close" Width="18" Height="18" /></Button>
+            BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1,0,0,0" CornerRadius="20,0,0,20" BoxShadow="-12 0 40 0 #38181a20">
+      <Grid RowDefinitions="Auto,Auto,*">
+        <Border Padding="22,24,22,0">
+          <Grid ColumnDefinitions="20,*,32" ColumnSpacing="10" Height="32">
+            <icon:GlyphIcon Kind="sliders" Width="20" Height="20" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding QuickSettingsTitle}" FontSize="21" FontWeight="Bold" Classes="heading" VerticalAlignment="Center" />
+            <Button Name="CloseDrawerButton" Grid.Column="2" Width="32" Height="32" MinHeight="32" Padding="0" VerticalAlignment="Top"
+                    Click="OnCloseClicked" ToolTip.Tip="{DynamicResource ui.QuickSettingsDrawer.240d2127ad8d}" AutomationProperties.Name="{DynamicResource ui.QuickSettingsDrawer.6a1aca397230}"><icon:GlyphIcon Kind="close" Width="18" Height="18" /></Button>
           </Grid>
         </Border>
-        <ContentControl Name="DrawerContent" Grid.Row="1" />
+        <StackPanel Grid.Row="1" Margin="22,22,22,0" Spacing="6">
+          <Border Height="40" CornerRadius="10" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" Background="{DynamicResource EchoField}" Padding="12,0">
+            <Grid ColumnDefinitions="16,*,Auto" ColumnSpacing="10">
+              <icon:GlyphIcon Kind="search" Width="16" Height="16" VerticalAlignment="Center" />
+              <TextBox Name="DrawerSearchInput" Grid.Column="1" Classes="drawer-search" PlaceholderText="搜索设置" MaxLength="100" TextChanged="OnSearchChanged" AutomationProperties.Name="搜索侧栏内容" />
+              <Border Grid.Column="2" Background="{DynamicResource EchoPanelMuted}" CornerRadius="4" Padding="6,3" VerticalAlignment="Center"><TextBlock Text="Ctrl F" FontSize="9" FontWeight="SemiBold" Classes="muted" /></Border>
+            </Grid>
+          </Border>
+          <TextBlock Name="SearchFeedback" FontSize="11" Classes="muted" IsVisible="False" />
+        </StackPanel>
+        <ContentControl Name="DrawerContent" Grid.Row="2" />
       </Grid>
     </Border>
   </Grid>

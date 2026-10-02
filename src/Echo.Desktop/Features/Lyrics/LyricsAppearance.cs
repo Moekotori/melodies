@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Echo.Contracts.Lyrics;
+using Echo.Desktop.Localization;
 
 namespace Echo.Desktop.Features.Lyrics;
 
@@ -23,14 +24,24 @@ public sealed partial class LyricsAppearance : ObservableObject
     [ObservableProperty] private string alignment = "跟随样式";
     [ObservableProperty] private string font = "跟随样式";
     [ObservableProperty] private double offsetMs;
+    [ObservableProperty] private bool miniPlayer = true;
+    [ObservableProperty] private bool playerAutoHide = true;
+    [ObservableProperty] private bool playerCompact = true;
     public bool IsAfterglow => SelectedStyle.Layout == LyricsLayout.Afterglow;
-    public LyricsAppearance(ILyricsPreferencesStore? store = null)
+    public LyricsAppearance(ILyricsPreferencesStore? store = null, LocalizationService? text = null)
     {
         this.store = store;
+        Text = text ?? new(); RefreshLanguage(); Text.Changed += RefreshLanguage;
         PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SelectedStyle)) OnPropertyChanged(nameof(IsAfterglow));
-            if (restoring || e.PropertyName == nameof(IsAfterglow)) return;
+            if (e.PropertyName == nameof(SelectedStyle))
+            { OnPropertyChanged(nameof(IsAfterglow)); OnPropertyChanged(nameof(StyleChoice)); OnPropertyChanged(nameof(StyleDescription)); }
+            if (e.PropertyName == nameof(SelectedLook)) OnPropertyChanged(nameof(LookChoice));
+            if (e.PropertyName == nameof(Font)) OnPropertyChanged(nameof(FontChoice));
+            if (e.PropertyName == nameof(Alignment)) OnPropertyChanged(nameof(AlignmentChoice));
+            if (restoring || e.PropertyName is not (nameof(SelectedStyle) or nameof(SelectedLook) or nameof(FontSize) or nameof(SecondarySize)
+                or nameof(Translation) or nameof(Romanization) or nameof(WordHighlight) or nameof(Context) or nameof(Alignment) or nameof(Font) or nameof(OffsetMs)
+                or nameof(MiniPlayer) or nameof(PlayerAutoHide) or nameof(PlayerCompact))) return;
             edits++; store?.Save(Snapshot());
         };
     }
@@ -47,12 +58,13 @@ public sealed partial class LyricsAppearance : ObservableObject
             FontSize = Valid(saved.FontSize, 18, 72, 36); SecondarySize = Valid(saved.SecondarySize, 10, 32, 18);
             Translation = saved.Translation; Romanization = saved.Romanization; WordHighlight = saved.WordHighlight;
             Context = saved.Context; OffsetMs = Valid(saved.OffsetMs, -10000, 10000, 0);
+            MiniPlayer = saved.MiniPlayer; PlayerAutoHide = saved.PlayerAutoHide; PlayerCompact = saved.PlayerCompact;
             Alignment = Alignments.Contains(saved.Alignment) ? saved.Alignment : Alignments[0];
             Font = Fonts.Contains(saved.Font) ? saved.Font : Fonts[0];
         }
         finally { restoring = false; }
     }
     public LyricsPreferences Snapshot() => new(SelectedStyle.Id, SelectedLook.Id, FontSize, SecondarySize,
-        Translation, Romanization, WordHighlight, Alignment, Font, OffsetMs, Context);
+        Translation, Romanization, WordHighlight, Alignment, Font, OffsetMs, Context, MiniPlayer, PlayerAutoHide, PlayerCompact);
     private static double Valid(double value, double min, double max, double fallback) => double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
 }

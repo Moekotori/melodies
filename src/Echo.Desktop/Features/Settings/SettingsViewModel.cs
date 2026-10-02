@@ -13,8 +13,8 @@ namespace Echo.Desktop.Features.Settings;
 public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 {
     public ShellViewModel Shell { get; }
-    public IReadOnlyList<SettingsNavigationGroup> NavigationGroups { get; }
-    private readonly SettingsCategoryItem[] _categories;
+    public IReadOnlyList<SettingsNavigationGroup> NavigationGroups { get; private set; }
+    private SettingsCategoryItem[] _categories;
     private LyricsAppearance? _lyrics;
     [ObservableProperty] private SettingsCategoryItem activeCategory;
     [ObservableProperty] private IReadOnlyList<SettingsSectionViewModel> sections = [];
@@ -35,7 +35,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         activeCategory = _categories[0]; activeCategory.IsActive = true;
         NavigationGroups = _categories.GroupBy(category => category.Definition.Group).Select(group => new SettingsNavigationGroup(group.Key, group.ToArray())).ToArray();
         Shell.PropertyChanged += OnShellChanged; Shell.Motion.PropertyChanged += OnMotionChanged;
-        BuildSections();
+        Shell.Text.Changed += RefreshLanguage; RefreshLanguage();
     }
     [RelayCommand] private void SelectCategory(string? id)
     {
@@ -52,15 +52,16 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         if (result is null) return;
         SelectCategory(result.CategoryId); Query = "";
+        if (result.CategoryId == "shortcuts" && result.RowId.StartsWith("shortcut-", StringComparison.Ordinal))
+            Shell.Shortcuts.Query = result.RowId["shortcut-".Length..];
         foreach (var row in Sections.SelectMany(section => section.Rows)) row.IsHighlighted = row.Id == result.RowId;
         SectionVersion++;
     }
     partial void OnQueryChanged(string value)
     {
         var terms = value.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        SearchResults = terms.Length == 0 ? [] : SettingsCatalog.Categories.SelectMany(category => category.Sections.SelectMany(section =>
-            section.Rows.Where(row => terms.All(term => $"{row.Title} {row.Help} {section.Title} {category.Title} {string.Join(' ', row.Options ?? [])}".Contains(term, StringComparison.OrdinalIgnoreCase)))
-                .Select(row => new SettingsSearchResult(category.Id, row.Id, row.Title, category.Title)))).Take(18).ToArray();
+        SearchResults = terms.Length == 0 ? [] : _searchEntries.Where(entry => terms.All(term => entry.Text.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            .Take(18).Select(entry => new SettingsSearchResult(entry.CategoryId, entry.RowId, entry.Title, entry.CategoryTitle)).ToArray();
         ActiveSearchIndex = 0;
         UpdateSearchSelection();
         OnPropertyChanged(nameof(HasSearchResults)); OnPropertyChanged(nameof(HasNoSearchResults));
@@ -75,25 +76,31 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged;
             _lyrics = Shell.LyricsAppearance; _lyrics.PropertyChanged += OnLyricsChanged;
         }
-        Sections = ActiveCategory.Definition.Sections.Select(section => new SettingsSectionViewModel(section.Title, section.Rows.Select(CreateRow).ToArray())).ToArray();
+        var migrated = new[] { "theme", "theme-schedule", "invert-mode", "theme-preset", "theme-custom", "wallpaper", "appearance-typography", "font-chinese", "font-fallback", "appearance-reset", "page-text-color" };
+        Sections = ActiveCategory.Definition.Sections.Select(section => new SettingsSectionViewModel(Shell.Text.Translate(section.Title),
+            section.Rows.Where(row => !IsAppearance || !migrated.Contains(row.Id)).Select(CreateRow).ToArray())).Where(section => section.Rows.Count > 0).ToArray();
     }
 
     private SettingRowViewModel CreateRow(SettingDefinition definition)
     {
-        var supported = definition.Id is "ui-scale" or "sidebar-auto-hide" or "sidebar-icon-only" or "settings-hide-sidebar" or "remember-window-size"
+        var supported = _runtime?.CanHandle(definition.Id) == true || definition.Id is "language" or "ui-scale" or "sidebar-auto-hide" or "sidebar-icon-only" or "settings-hide-sidebar" or "remember-window-size"
             or "theme" or "disable-all-animations" or "appearance-reset" or "smtc" or "about-community"
             or "lyrics-font-size" or "lyrics-secondary-size" or "lyrics-translation" or "lyrics-romanization"
             or "lyrics-context" or "lyrics-word-highlight" or "lyrics-font" or "lyrics-page-style";
+        if (definition.Id == "language") definition = definition with { Options = Shell.Text.Languages.Select(language => language.Code).ToArray(), Value = Shell.Text.Preference };
         if (definition.Id == "lyrics-font") definition = definition with { Options = Shell.LyricsAppearance.Fonts.ToArray(), Value = Shell.LyricsAppearance.Font };
         if (definition.Id == "lyrics-page-style") definition = definition with { Options = Shell.LyricsAppearance.Styles.Select(style => style.Label).ToArray(), Value = Shell.LyricsAppearance.SelectedStyle.Label };
         var row = new SettingRowViewModel(definition, supported, Changed, label => Invoke(definition.Id, label),
-            definition.Id == "theme" ? label => label is "浅色" or "深色" : null);
+            definition.Id == "theme" ? label => label is "浅色" or "深色" : null, Shell.Text,
+            definition.Id == "language" ? code => Shell.Text.Languages.First(language => language.Code == code).Label : null);
         Synchronize(row); return row;
     }
     private void Changed(SettingRowViewModel row)
     {
+        if (_runtime?.CanHandle(row.Id) == true) { _ = _runtime.ChangeAsync(row); return; }
         switch (row.Id)
         {
+            case "language": Shell.Text.SetLanguage(row.SelectedValue); break;
             case "sidebar-auto-hide": Shell.SidebarAutoHideEnabled = row.BoolValue; break;
             case "ui-scale": Shell.UiScalePercent = Math.Clamp((int)row.NumberValue, 75, 150); break;
             case "sidebar-icon-only": Shell.IsSidebarExpanded = !row.BoolValue; break;
@@ -113,6 +120,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     }
     private void Invoke(string id, string action)
     {
+        if (_runtime?.CanHandle(id) == true) { _ = _runtime.InvokeAsync(id, action); return; }
         switch (id)
         {
             case "sidebar-layout":
@@ -122,14 +130,16 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             case "appearance-reset": Shell.IsDark = false; Shell.UiScalePercent = 100; Shell.SidebarAutoHideEnabled = false; Shell.IsSidebarExpanded = true; break;
             case "smtc": Shell.RetryMediaTransportCommand.Execute(null); break;
             case "about-community": ExternalLinkRequested?.Invoke(action); break;
-            default: Feedback = "此功能暂未接入。"; break;
+            default: Feedback = Shell.Text.Translate("此功能暂未接入。"); break;
         }
     }
     public event Action<string>? ExternalLinkRequested;
     private void Synchronize(SettingRowViewModel row)
     {
+        if (_runtime?.CanHandle(row.Id) == true) { SynchronizeFeature(row); return; }
         switch (row.Id)
         {
+            case "language": row.Synchronize(selection: Shell.Text.Preference); break;
             case "sidebar-auto-hide": row.Synchronize(toggle: Shell.SidebarAutoHideEnabled); break;
             case "ui-scale": row.Synchronize(number: Shell.UiScalePercent); break;
             case "sidebar-icon-only": row.Synchronize(toggle: !Shell.IsSidebarExpanded); break;
@@ -160,5 +170,5 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     }
     private void OnLyricsChanged(object? sender, PropertyChangedEventArgs e)
     { foreach (var row in Sections.SelectMany(section => section.Rows).Where(row => row.Id.StartsWith("lyrics-", StringComparison.Ordinal))) Synchronize(row); }
-    public void Dispose() { Shell.PropertyChanged -= OnShellChanged; Shell.Motion.PropertyChanged -= OnMotionChanged; if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged; ExternalLinkRequested = null; }
+    public void Dispose() { DetachRuntime(); Shell.Text.Changed -= RefreshLanguage; Shell.PropertyChanged -= OnShellChanged; Shell.Motion.PropertyChanged -= OnMotionChanged; if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged; ExternalLinkRequested = null; }
 }

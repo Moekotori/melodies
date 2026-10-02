@@ -6,69 +6,78 @@
     <Style Selector="Button.detail-tab.active"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
     <Style Selector="Button.rate"><Setter Property="Padding" Value="0" /><Setter Property="Width" Value="22" /><Setter Property="Height" Value="24" /><Setter Property="FontSize" Value="21" /></Style>
     <Style Selector="Button.rate.selected"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button.rate.selected icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button.album-liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
     <Style Selector="ListBoxItem"><Setter Property="Padding" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Template"><ControlTemplate><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" /></ControlTemplate></Setter></Style>
   </UserControl.Styles>
   <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12" Margin="0,0,0,18">
-    <Button Content="‹  返回专辑" Click="OnBack" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" FontSize="12" Height="24" ZIndex="1" />
-    <Grid Name="Hero" ColumnDefinitions="280,*,200" ColumnSpacing="40" Margin="0,28,0,8">
-      <Border Name="CoverFrame" Width="280" Height="280" CornerRadius="4" ClipToBounds="True" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" VerticalAlignment="Center">
-        <Grid><Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" /><Image Name="Cover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" /></Grid>
-      </Border>
+    <Button Content="{DynamicResource ui.AlbumDetailView.a3490fb9b609}" Click="OnBack" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" FontSize="12" Height="24" ZIndex="1" />
+    <Grid Name="Hero" RowDefinitions="Auto,Auto" ColumnDefinitions="280,*,200" ColumnSpacing="40" RowSpacing="16" Margin="0,34,0,14">
+      <Button Name="CoverButton" Click="OnPreviewCover" IsEnabled="False" Padding="0" CornerRadius="4" VerticalAlignment="Center" HorizontalAlignment="Left" ToolTip.Tip="{DynamicResource detail.cover.preview}" AutomationProperties.Name="{DynamicResource detail.cover.preview}">
+       <Border Name="CoverFrame" Width="280" Height="280" CornerRadius="4" ClipToBounds="True" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1">
+        <Grid><icon:GlyphIcon Name="CoverPlaceholder" Kind="disc" Width="58" Height="58" Stroke="{DynamicResource EchoSubtle}" StrokeWidth="1.25" /><Image Name="Cover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" /></Grid>
+       </Border>
+      </Button>
       <StackPanel Grid.Column="1" Spacing="24" VerticalAlignment="Center">
         <StackPanel Spacing="14">
-          <TextBlock Text="音乐库" Classes="muted" FontSize="13" />
+          <TextBlock Text="{DynamicResource ui.AlbumDetailView.ab183d3ae888}" Classes="muted" FontSize="13" />
           <TextBlock Name="AlbumTitle" Text="{Binding Album.Title}" Foreground="{DynamicResource EchoHeading}" FontSize="54" FontWeight="Medium" FontStyle="Normal" LineHeight="60" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
-          <TextBlock Text="{Binding Album.Artist}" Foreground="{DynamicResource EchoHeading}" FontSize="22" TextWrapping="Wrap" />
+          <Button Name="ArtistLink" Click="OnArtist" HorizontalAlignment="Left" HorizontalContentAlignment="Left" Padding="0" Foreground="{DynamicResource EchoHeading}" FontSize="22" ToolTip.Tip="{DynamicResource ui.AlbumDetailView.5cec7079b8ac}"><TextBlock Text="{Binding Album.Artist}" Foreground="{DynamicResource EchoHeading}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" /></Button>
           <TextBlock Text="{Binding Meta}" Classes="muted" FontSize="15" TextWrapping="Wrap" />
           <TextBlock Text="{Binding Quality}" Classes="muted" FontSize="12" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding !IsBusy}">
-          <Button Command="{Binding PlayCommand}" Classes="primary" Height="40" CornerRadius="20" Padding="16,0,18,0">
-            <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="play" Width="15" Height="15" Stroke="White" /><TextBlock Text="播放" FontSize="14" /></StackPanel>
+          <Button Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}" Classes="primary" Height="40" CornerRadius="20" Padding="16,0,18,0">
+            <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="play" Width="15" Height="15" Stroke="White" /><TextBlock Text="{DynamicResource ui.AlbumDetailView.c3396195e91c}" FontSize="14" /></StackPanel>
           </Button>
-          <Button Classes="icon" Content="{Binding Heart}" FontSize="25" Width="40" Height="40" CornerRadius="20" Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanPersonalState}" ToolTip.Tip="{Binding FavoriteAction}" />
-          <Button Classes="icon" Content="···" FontSize="24" Width="40" Height="40" CornerRadius="20" ToolTip.Tip="更多操作">
-            <Button.Flyout><Flyout><StackPanel Spacing="8" Width="160"><Button Content="下一首播放" Command="{Binding PlayNextCommand}" /><Button Content="添加到队列" Command="{Binding AddToQueueCommand}" /><Button Content="复制专辑信息" Click="OnCopyInfo" /><Button Content="复制文件夹路径" Click="OnCopyFolder" /></StackPanel></Flyout></Button.Flyout>
+          <Button Name="AlbumFavoriteButton" Classes="icon" Classes.album-liked="{Binding Favorite}" Width="40" Height="40" CornerRadius="20" Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanPersonalState}" ToolTip.Tip="{Binding FavoriteAction}" AutomationProperties.Name="{Binding FavoriteAction}"><icon:GlyphIcon Kind="{Binding HeartIcon}" Width="20" Height="20" StrokeWidth="1.75" /></Button>
+          <Button Classes="icon" Width="40" Height="40" CornerRadius="20" ToolTip.Tip="{DynamicResource ui.AlbumDetailView.9f07d2ce4115}" AutomationProperties.Name="{DynamicResource ui.AlbumDetailView.9f07d2ce4115}">
+            <icon:GlyphIcon Kind="more" Width="20" Height="20" />
+            <Button.Flyout><Flyout><StackPanel Spacing="8" Width="160"><Button Content="{DynamicResource ui.AlbumDetailView.94ca0a7bf933}" Command="{Binding PlayNextCommand}" /><Button Content="{DynamicResource ui.AlbumDetailView.fa5f222e10c4}" Command="{Binding AddToQueueCommand}" /><Button Content="{DynamicResource ui.AlbumDetailView.1a16eb9d31ba}" Click="OnCopyInfo" /><Button Content="{DynamicResource ui.AlbumDetailView.640ae0a58455}" Click="OnCopyFolder" /></StackPanel></Flyout></Button.Flyout>
           </Button>
         </StackPanel>
       </StackPanel>
       <Border Name="Facts" Grid.Column="2" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1,0,0,0" Padding="24,4,0,4" VerticalAlignment="Center">
-        <StackPanel Spacing="13">
-          <StackPanel Spacing="5"><TextBlock Text="我的评分" Classes="muted" FontSize="12" /><StackPanel Orientation="Horizontal" Spacing="2" IsEnabled="{Binding CanPersonalState}">
-            <Button Name="Rate1" Classes="rate" Content="☆" Tag="1" Click="OnRating" /><Button Name="Rate2" Classes="rate" Content="☆" Tag="2" Click="OnRating" /><Button Name="Rate3" Classes="rate" Content="☆" Tag="3" Click="OnRating" /><Button Name="Rate4" Classes="rate" Content="☆" Tag="4" Click="OnRating" /><Button Name="Rate5" Classes="rate" Content="☆" Tag="5" Click="OnRating" />
+        <StackPanel Name="FactsPanel" Spacing="13">
+          <StackPanel Spacing="5"><TextBlock Text="{DynamicResource ui.AlbumDetailView.e64b98e1e4da}" Classes="muted" FontSize="12" /><StackPanel Orientation="Horizontal" Spacing="2" IsEnabled="{Binding CanPersonalState}">
+            <Button Name="Rate1" Classes="rate" Tag="1" Click="OnRating"><icon:GlyphIcon Kind="star" Width="18" Height="18" StrokeWidth="1.5" /></Button><Button Name="Rate2" Classes="rate" Tag="2" Click="OnRating"><icon:GlyphIcon Kind="star" Width="18" Height="18" StrokeWidth="1.5" /></Button><Button Name="Rate3" Classes="rate" Tag="3" Click="OnRating"><icon:GlyphIcon Kind="star" Width="18" Height="18" StrokeWidth="1.5" /></Button><Button Name="Rate4" Classes="rate" Tag="4" Click="OnRating"><icon:GlyphIcon Kind="star" Width="18" Height="18" StrokeWidth="1.5" /></Button><Button Name="Rate5" Classes="rate" Tag="5" Click="OnRating"><icon:GlyphIcon Kind="star" Width="18" Height="18" StrokeWidth="1.5" /></Button>
           </StackPanel></StackPanel>
-          <StackPanel Spacing="5"><TextBlock Text="添加于" Classes="muted" FontSize="12" /><TextBlock Text="{Binding AddedDate}" FontSize="13" /></StackPanel>
-          <StackPanel Spacing="5"><TextBlock Text="来源" Classes="muted" FontSize="12" /><TextBlock Text="音乐库" FontSize="13" /></StackPanel>
-          <StackPanel Spacing="5"><TextBlock Text="曲目" Classes="muted" FontSize="12" /><TextBlock Text="{Binding Album.TrackCount}" FontSize="13" /></StackPanel>
+          <StackPanel Spacing="5"><TextBlock Text="{DynamicResource ui.AlbumDetailView.76d76ed548a8}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding AddedDate}" FontSize="13" /></StackPanel>
+          <StackPanel Spacing="5"><TextBlock Text="{DynamicResource ui.Sidebar.a488e93d69cc}" Classes="muted" FontSize="12" /><TextBlock Text="{DynamicResource ui.AlbumDetailView.ab183d3ae888}" FontSize="13" /></StackPanel>
+          <StackPanel Spacing="5"><TextBlock Text="{DynamicResource ui.AlbumDetailView.739ed1896dcd}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding Album.TrackCount}" FontSize="13" /></StackPanel>
         </StackPanel>
       </Border>
     </Grid>
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="34" HorizontalAlignment="Center" Height="46" VerticalAlignment="Bottom">
-      <Button Classes="detail-tab" Classes.active="{Binding IsTracks}" Content="曲目" Tag="0" Click="OnTab" VerticalAlignment="Bottom" />
-      <Button Classes="detail-tab" Classes.active="{Binding IsGallery}" Content="附件" Tag="1" Click="OnTab" VerticalAlignment="Bottom" />
-      <Button Classes="detail-tab" Classes.active="{Binding IsSources}" Content="来源" Tag="2" Click="OnTab" VerticalAlignment="Bottom" />
-      <Button Classes="detail-tab" Classes.active="{Binding IsVersions}" Content="发行版本" Tag="3" Click="OnTab" VerticalAlignment="Bottom" />
-      <Button Classes="detail-tab" Classes.active="{Binding IsInformation}" Content="介绍" Tag="4" Click="OnTab" VerticalAlignment="Bottom" />
+      <Button Classes="detail-tab" Classes.active="{Binding IsTracks}" Content="{DynamicResource ui.AlbumDetailView.739ed1896dcd}" Tag="0" Click="OnTab" VerticalAlignment="Bottom" />
+      <Button Classes="detail-tab" Classes.active="{Binding IsGallery}" Content="{DynamicResource ui.AlbumDetailView.c7225dbf105e}" Tag="1" Click="OnTab" VerticalAlignment="Bottom" />
+      <Button Classes="detail-tab" Classes.active="{Binding IsSources}" Content="{DynamicResource ui.Sidebar.a488e93d69cc}" Tag="2" Click="OnTab" VerticalAlignment="Bottom" />
+      <Button Classes="detail-tab" Classes.active="{Binding IsVersions}" Content="{DynamicResource ui.AlbumDetailView.2ad48b20af41}" Tag="3" Click="OnTab" VerticalAlignment="Bottom" />
+      <Button Classes="detail-tab" Classes.active="{Binding IsInformation}" Content="{DynamicResource ui.AlbumDetailView.66a66f52a2b1}" Tag="4" Click="OnTab" VerticalAlignment="Bottom" />
     </StackPanel>
     <Grid Grid.Row="2" ColumnDefinitions="*,Auto" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" VerticalAlignment="Center" /><Button Grid.Column="1" Content="重试" Command="{Binding RetryCommand}" />
+      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{DynamicResource ui.AlbumDetailView.b8784c8dd563}" Command="{Binding RetryCommand}" />
     </Grid>
     <Grid Grid.Row="3">
       <Grid IsVisible="{Binding IsTracks}" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
-        <TextBlock Text="{Binding Summary}" Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" />
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8"><TextBlock Text="{Binding Summary}" Classes="muted" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" /><ComboBox Grid.Column="1" SelectedIndex="{Binding SortIndex, Mode=TwoWay}"><ComboBoxItem Content="{DynamicResource ui.AlbumDetailView.78253864e57b}" /><ComboBoxItem Content="{DynamicResource ui.AlbumDetailView.d44e9b3d3b31}" /><ComboBoxItem Content="{DynamicResource ui.AlbumDetailView.04a95e0654d3}" /><ComboBoxItem Content="{DynamicResource ui.AlbumDetailView.eb11dd93ee99}" /></ComboBox><ToggleButton Grid.Column="2" Content="↓" IsChecked="{Binding Descending, Mode=TwoWay}" ToolTip.Tip="{DynamicResource ui.AlbumsView.b40514e8597f}" /></Grid>
         <Grid Name="TrackHeader" Grid.Row="1" ColumnDefinitions="46,*,230,68,34" ColumnSpacing="18" Height="30">
-          <TextBlock Text="#" Classes="muted" FontSize="11" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="曲目" Classes="muted" FontSize="11" VerticalAlignment="Center" />
-          <TextBlock Name="SignalHeader" Grid.Column="2" Text="音质" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" /><TextBlock Grid.Column="3" Text="时长" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+          <TextBlock Text="#" Classes="muted" FontSize="11" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.AlbumDetailView.739ed1896dcd}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+          <TextBlock Name="SignalHeader" Grid.Column="2" Text="{DynamicResource ui.AlbumDetailView.eb11dd93ee99}" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" /><TextBlock Grid.Column="3" Text="{DynamicResource ui.AlbumDetailView.04a95e0654d3}" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
         </Grid>
-        <ListBox Grid.Row="2" ItemsSource="{Binding Tracks}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox Name="TrackList" Grid.Row="2" ItemsSource="{Binding Tracks}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
           <ListBox.ItemTemplate><DataTemplate x:DataType="albums:AlbumTrackItem"><albums:AlbumTrackRow PlayRequested="OnTrackPlay" NextRequested="OnMenuNext" AddRequested="OnMenuAdd" /></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" IsVisible="{Binding HasMultiplePages}"><Button Content="上一页" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" /><TextBlock Text="{Binding PageText}" Classes="muted" VerticalAlignment="Center" /><Button Content="下一页" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" /></StackPanel>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" IsVisible="{Binding HasMultiplePages}"><Button Content="{DynamicResource ui.AlbumDetailView.c9b9ae7a6144}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" /><TextBlock Text="{Binding PageText}" Classes="muted" VerticalAlignment="Center" /><Button Content="{DynamicResource ui.AlbumDetailView.8a8542f69648}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" /></StackPanel>
       </Grid>
-      <ScrollViewer IsVisible="{Binding IsGallery}"><StackPanel Spacing="16" Margin="0,12"><TextBlock Text="专辑封面" FontWeight="SemiBold" /><Image Name="GalleryCover" Width="280" Height="280" Stretch="UniformToFill" HorizontalAlignment="Left" /></StackPanel></ScrollViewer>
-      <ScrollViewer IsVisible="{Binding IsSources}"><StackPanel Spacing="16" Margin="0,12"><TextBlock Text="本地音乐库" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{Binding Folder}" Classes="muted" TextWrapping="Wrap" /><Button Content="复制文件夹路径" Click="OnCopyFolder" HorizontalAlignment="Left" /></StackPanel></ScrollViewer>
-      <ScrollViewer IsVisible="{Binding IsVersions}"><StackPanel Spacing="12" Margin="0,12"><TextBlock Text="当前版本" Classes="muted" FontSize="12" /><TextBlock Text="{Binding Album.Title}" FontSize="22" FontWeight="Medium" /><TextBlock Text="{Binding Meta}" Classes="muted" /><TextBlock Text="{Binding Quality}" Classes="muted" /><TextBlock Text="本地音乐库" Classes="muted" /></StackPanel></ScrollViewer>
-      <ScrollViewer IsVisible="{Binding IsInformation}"><StackPanel Spacing="16" Margin="0,12"><TextBlock Text="专辑信息" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{Binding Album.Title}" FontSize="22" /><TextBlock Text="{Binding Album.Artist}" /><TextBlock Text="{Binding Meta}" Classes="muted" /><TextBlock Text="{Binding DurationLabel}" Classes="muted" /><Button Content="复制专辑信息" Click="OnCopyInfo" HorizontalAlignment="Left" /></StackPanel></ScrollViewer>
+      <ScrollViewer IsVisible="{Binding IsGallery}"><StackPanel Spacing="16" Margin="0,12"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource ui.AlbumDetailView.259e0a7bedb5}" FontWeight="SemiBold" /><Button Grid.Column="1" Content="{DynamicResource ui.AlbumDetailView.18c937c42732}" Click="OnRefreshPanel" /></Grid><Image Name="GalleryCover" Width="200" Height="200" Stretch="UniformToFill" HorizontalAlignment="Left" /><TextBlock Name="GalleryStatus" Classes="muted" TextWrapping="Wrap" /><WrapPanel Name="Attachments" ItemWidth="190" ItemHeight="220" /></StackPanel></ScrollViewer>
+      <ScrollViewer IsVisible="{Binding IsSources}"><StackPanel Spacing="16" Margin="0,12"><TextBlock Text="{DynamicResource ui.AlbumDetailView.475872ed7801}" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{Binding Folder}" Classes="muted" TextWrapping="Wrap" /><TextBlock Text="{Binding Summary}" Classes="muted" TextWrapping="Wrap" /><StackPanel Orientation="Horizontal" Spacing="10"><Button Content="{DynamicResource ui.AlbumDetailView.fcf8b4bff0df}" Click="OnOpenFolder" /><Button Content="{DynamicResource ui.AlbumDetailView.640ae0a58455}" Click="OnCopyFolder" /></StackPanel></StackPanel></ScrollViewer>
+      <ScrollViewer IsVisible="{Binding IsVersions}"><StackPanel Spacing="12" Margin="0,12"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource ui.AlbumDetailView.cbd6a6947224}" Classes="muted" FontSize="12" /><Button Grid.Column="1" Content="{DynamicResource ui.AlbumDetailView.9b56266bdb85}" Click="OnRefreshPanel" /></Grid><TextBlock Text="{Binding Album.Title}" FontSize="22" FontWeight="Medium" /><TextBlock Text="{Binding Meta}" Classes="muted" /><TextBlock Text="{Binding Quality}" Classes="muted" /><TextBlock Name="VersionsStatus" Classes="muted" TextWrapping="Wrap" /><StackPanel Name="Versions" Spacing="8" /></StackPanel></ScrollViewer>
+      <ScrollViewer IsVisible="{Binding IsInformation}"><StackPanel Spacing="16" Margin="0,12"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource ui.AlbumDetailView.1a3ae4748c96}" FontSize="18" FontWeight="SemiBold" /><Button Grid.Column="1" Content="{DynamicResource ui.AlbumDetailView.5db468b4ed9f}" Click="OnRefreshPanel" /></Grid><TextBlock Text="{Binding Album.Title}" FontSize="22" /><TextBlock Text="{Binding Album.Artist}" /><TextBlock Text="{Binding Meta}" Classes="muted" /><TextBlock Text="{Binding DurationLabel}" Classes="muted" /><TextBlock Name="Description" TextWrapping="Wrap" MaxWidth="840" HorizontalAlignment="Left" LineHeight="26" /><Button Content="{DynamicResource ui.AlbumDetailView.1a16eb9d31ba}" Click="OnCopyInfo" HorizontalAlignment="Left" /></StackPanel></ScrollViewer>
+    </Grid>
+    <Grid Name="CoverPreview" Grid.RowSpan="4" ZIndex="20" IsVisible="False" Background="#eb05070d" Margin="-8" PointerPressed="OnPreviewScrim" KeyDown="OnPreviewKey">
+      <Image Name="PreviewImage" Margin="32" MaxWidth="680" MaxHeight="680" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="HighQuality" />
+      <Button Name="PreviewClose" Classes="icon" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12" Width="36" Height="36" CornerRadius="18" Click="OnClosePreview" ToolTip.Tip="{DynamicResource detail.cover.close}" AutomationProperties.Name="{DynamicResource detail.cover.close}"><icon:GlyphIcon Kind="close" Width="18" Height="18" Stroke="White" /></Button>
     </Grid>
   </Grid>
 </UserControl>

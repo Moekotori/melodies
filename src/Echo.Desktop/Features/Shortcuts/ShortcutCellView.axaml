@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:Echo.Desktop.Features.Shortcuts" x:Class="Echo.Desktop.Features.Shortcuts.ShortcutCellView" x:DataType="s:ShortcutCellViewModel">
+  <StackPanel Spacing="5" ToolTip.Tip="{Binding Status}">
+    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="5" IsEnabled="{Binding CanEdit}">
+      <Button Content="{Binding KeyLabel}" Command="{Binding RecordCommand}" Classes="shortcut-key" Classes.recording="{Binding IsRecording}" AutomationProperties.Name="{Binding AccessibleName}" />
+      <ToggleButton Grid.Column="1" Content="{Binding EnabledLabel}" IsChecked="{Binding Enabled, Mode=OneWay}" Command="{Binding ToggleCommand}" Classes="shortcut-toggle" AutomationProperties.Name="{Binding AccessibleName}" />
+      <Button Grid.Column="2" Content="×" Command="{Binding ClearCommand}" Classes="shortcut-clear" ToolTip.Tip="{DynamicResource shortcuts.clear}" AutomationProperties.Name="{DynamicResource shortcuts.clear}" />
+    </Grid>
+    <TextBlock Text="{Binding Status}" FontSize="10" Classes="muted" TextWrapping="Wrap" />
+  </StackPanel>
+</UserControl>

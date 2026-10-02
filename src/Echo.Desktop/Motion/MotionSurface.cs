@@ -5,15 +5,23 @@ using Avalonia.VisualTree;
 
 namespace Echo.Desktop.Motion;
 
+public enum MotionAxis { Vertical, Horizontal }
+
 // A small retained surface for notices and expandable groups, with real exit animation.
 public sealed class MotionSurface : Decorator
 {
     public static readonly StyledProperty<bool> IsOpenProperty =
         AvaloniaProperty.Register<MotionSurface, bool>(nameof(IsOpen));
+    public static readonly StyledProperty<MotionAxis> AxisProperty =
+        AvaloniaProperty.Register<MotionSurface, MotionAxis>(nameof(Axis));
+    public static readonly StyledProperty<double> TravelProperty =
+        AvaloniaProperty.Register<MotionSurface, double>(nameof(Travel), MotionTokens.SurfaceTravel);
     private readonly MotionLane _lane = new();
     private MotionPolicy? _policy;
     private int _generation;
     public bool IsOpen { get => GetValue(IsOpenProperty); set => SetValue(IsOpenProperty, value); }
+    public MotionAxis Axis { get => GetValue(AxisProperty); set => SetValue(AxisProperty, value); }
+    public double Travel { get => GetValue(TravelProperty); set => SetValue(TravelProperty, value); }
     public bool IsTransitioning => _lane.IsRunning;
 
     public MotionSurface()
@@ -32,18 +40,19 @@ public sealed class MotionSurface : Decorator
     {
         var generation = ++_generation;
         var opacity = IsVisible ? MotionLane.CurrentOpacity(this) : 0;
-        var transform = IsVisible ? MotionLane.Current(this) : MotionLane.At(MotionTokens.SurfaceTravel);
+        var transform = IsVisible ? MotionLane.Current(this) : HiddenTransform();
         _lane.Cancel();
         IsHitTestVisible = IsOpen;
-        IsEnabled = IsOpen;
+        if (!IsOpen && IsKeyboardFocusWithin) TopLevel.GetTopLevel(this)?.FocusManager?.Focus(null);
+        Avalonia.Input.KeyboardNavigation.SetTabNavigation(this, IsOpen ? Avalonia.Input.KeyboardNavigationMode.Continue : Avalonia.Input.KeyboardNavigationMode.None);
         var policy = MotionScope.GetPolicy(this);
         if (!this.IsAttachedToVisualTree() || policy is not { CanAnimate: true }) { Settle(); return; }
         IsVisible = true;
         var spatial = policy.UseSpatialMotion;
         await _lane.PlayAsync(this, opacity, IsOpen ? 1 : 0,
-            spatial ? transform : MotionLane.At(), MotionLane.At(!IsOpen && spatial ? MotionTokens.SurfaceTravel : 0),
+            spatial ? transform : MotionLane.At(), !IsOpen && spatial ? HiddenTransform() : MotionLane.At(),
             spatial ? IsOpen ? MotionTokens.Reveal : MotionTokens.Exit : MotionTokens.Reduced,
-            IsOpen ? MotionTokens.EnterEasing : MotionTokens.ExitEasing);
+            IsOpen ? MotionTokens.EnterEasing : MotionTokens.ExitEasing, preserveGeometry: Axis == MotionAxis.Horizontal);
         if (generation == _generation) Settle();
     }
     public void Settle()
@@ -52,9 +61,13 @@ public sealed class MotionSurface : Decorator
         _lane.Cancel();
         IsVisible = IsOpen;
         IsHitTestVisible = IsOpen;
-        IsEnabled = IsOpen;
         Opacity = 1;
         RenderTransform = MotionLane.At();
+    }
+    private Avalonia.Media.Transformation.TransformOperations HiddenTransform()
+    {
+        var distance = double.IsFinite(Travel) ? Math.Clamp(Travel, -600, 600) : MotionTokens.SurfaceTravel;
+        return Axis == MotionAxis.Horizontal ? MotionLane.At(x: distance) : MotionLane.At(distance);
     }
     private void ObservePolicy()
     {

@@ -4,6 +4,13 @@ namespace Echo.Infrastructure.Library;
 
 internal static class ArtistSchema
 {
+    public static void Backup(SqliteConnection connection)
+    {
+        var path = Path.GetFullPath(connection.DataSource) + ".before-v4-" + Guid.NewGuid().ToString("N") + ".sqlite";
+        using var backup = new SqliteConnection(new SqliteConnectionStringBuilder
+            { DataSource = path, Mode = SqliteOpenMode.ReadWriteCreate, Pooling = false }.ToString());
+        backup.Open(); connection.BackupDatabase(backup);
+    }
     public static void Migrate(SqliteConnection connection)
     {
         using var transaction = connection.BeginTransaction();

@@ -6,8 +6,8 @@ namespace Echo.Desktop.Shell;
 public sealed partial class ShellViewModel
 {
     public ILyricsSource? LyricsSource { get; private set; }
-    public LyricsAppearance LyricsAppearance { get; private set; } = new();
+    public LyricsAppearance LyricsAppearance { get; private set; }
     public LyricsSelection LyricsSelection { get; } = new();
     public void AttachLyrics(ILyricsSource source, LyricsAppearance appearance)
-    { LyricsSource = source; LyricsAppearance = appearance; }
+    { LyricsAppearance.ReleaseLocalization(); LyricsSource = source; LyricsAppearance = appearance; }
 }

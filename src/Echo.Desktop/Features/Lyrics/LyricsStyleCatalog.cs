@@ -17,7 +17,7 @@ public static class LyricsStyleCatalog
         new("folded", "折光", "青紫折射与透视层次", LyricsLayout.Folded, "#01060C", "#F1F5F7", "#78E4EE", 1.1),
         new("roseVinyl", "留声", "唱片、封面与一列歌词", LyricsLayout.Vinyl, "#1F171D", "#FFF2EB", "#EAB7C9"),
         new("cinemaStage", "映幕", "宽银幕构图与字幕焦点", LyricsLayout.Cinema, "#020407", "#F8FAFC", "#BEECE2", 1.18, true),
-        new("kineticPoster", "跃字", "大字海报与错落排版", LyricsLayout.Poster, "#07111F", "#FFF3D4", "#FF776D", 1.65),
+        new("kineticPoster", "跃字", "已唱、当前词与未唱词的三栏海报", LyricsLayout.Poster, "#07111F", "#FFF3D4", "#FF776D", 1.65, true),
         new("coverStage", "画境", "封面铺陈与并列歌词", LyricsLayout.CoverRight, "#16181E", "#F8F8F8", "#F8F8F8"),
         new("cutBoard", "切影", "斜切封面与歌词切片", LyricsLayout.Slices, "#080C11", "#FFF6E0", "#FF705E", 1.35),
         new("jizura", "Afterglow", "独立场景与动态文字", LyricsLayout.Afterglow, "#EAE4F6", "#3A2C5E", "#8E6FD6", 1.6, true)

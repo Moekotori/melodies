@@ -4,17 +4,17 @@
   <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1,0,0,0" Padding="20">
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" RowSpacing="14">
       <Grid ColumnDefinitions="*,Auto,Auto">
-        <StackPanel><TextBlock Text="播放队列" Classes="heading" FontSize="23" /><TextBlock Text="{Binding Player.Queue.CountText}" Classes="muted" FontSize="11" /></StackPanel>
-        <Button Grid.Column="1" Content="完整队列" Command="{Binding OpenQueuePageCommand}" />
-        <Button Grid.Column="2" Classes="icon" Content="×" Command="{Binding CloseQueueDrawerCommand}" ToolTip.Tip="关闭队列" />
+        <StackPanel><TextBlock Text="{DynamicResource ui.PlayerBar.f01b6815d826}" Classes="heading" FontSize="23" /><TextBlock Text="{Binding Player.Queue.CountText}" Classes="muted" FontSize="11" /></StackPanel>
+        <Button Grid.Column="1" Content="{DynamicResource ui.QueueDrawer.57cda4b4aca9}" Command="{Binding OpenQueuePageCommand}" />
+        <Button Grid.Column="2" Classes="icon" Content="×" Command="{Binding CloseQueueDrawerCommand}" ToolTip.Tip="{DynamicResource ui.MainWindow.40f65663b09a}" />
       </Grid>
       <queue:QueueModes Grid.Row="1" DataContext="{Binding Player.Queue}" />
-      <TextBox Grid.Row="2" PlaceholderText="搜索队列" Text="{Binding Player.Queue.Search, Mode=TwoWay}" />
+      <TextBox Grid.Row="2" PlaceholderText="{DynamicResource ui.QueueDrawer.cca246ededec}" Text="{Binding Player.Queue.Search, Mode=TwoWay}" />
       <queue:QueueList Grid.Row="3" Compact="True" DataContext="{Binding Player.Queue}" />
       <WrapPanel Grid.Row="4">
-        <Button Content="打开文件" Click="OnAdd" /><Button Content="播放历史" Command="{Binding OpenQueueHistoryCommand}" />
-        <Button Content="撤销" Command="{Binding Player.Queue.UndoCommand}" IsEnabled="{Binding Player.Queue.CanUndo}" />
-        <Button Content="清空队列" Command="{Binding Player.Queue.ClearCommand}" IsEnabled="{Binding !Player.Queue.IsBusy}" />
+        <Button Content="{DynamicResource ui.QueueDrawer.4c8a4e3da39e}" Click="OnAdd" /><Button Content="{DynamicResource ui.QueueDrawer.426744e26e7e}" Command="{Binding OpenQueueHistoryCommand}" />
+        <Button Content="{DynamicResource ui.QueueDrawer.926a50b98ece}" Command="{Binding Player.Queue.UndoCommand}" IsEnabled="{Binding Player.Queue.CanUndo}" />
+        <Button Content="{DynamicResource ui.QueueDrawer.d18e02739127}" Command="{Binding Player.Queue.ClearCommand}" IsEnabled="{Binding !Player.Queue.IsBusy}" />
       </WrapPanel>
       <TextBlock Grid.Row="5" Text="{Binding Player.Queue.Message}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
     </Grid>

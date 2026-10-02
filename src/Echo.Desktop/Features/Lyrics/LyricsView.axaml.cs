@@ -17,11 +17,13 @@ public partial class LyricsView : UserControl, IDisposable
         this.shell = shell; this.backRoute = backRoute;
         Model = new(shell.Player, shell.LyricsSource!, shell.LyricsAppearance, shell.AlbumArtwork, shell.LyricsSelection);
         InitializeComponent(); DataContext = Model;
+        Transport.Bind(shell); LyricsQueueOverlay.DataContext = shell;
         Viewport.Bind(Model, shell.Motion);
         Backdrop.Bind(Model);
         Viewport.FrameRequested += Backdrop.UpdateClock;
         Viewport.BrowseChanged += UpdateScroll;
         Model.Changed += OnChanged;
+        InitializeChrome();
         DetachedFromVisualTree += (_, _) => Dispose();
         UpdateScroll();
     }
@@ -47,17 +49,18 @@ public partial class LyricsView : UserControl, IDisposable
         {
             var files = await top.StorageProvider.OpenFilePickerAsync(new()
             {
-                Title = "导入歌词", AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType("歌词文件") { Patterns = ["*.lrc", "*.yrc", "*.ttml", "*.srt", "*.vtt", "*.txt"] }]
+                Title = shell.Text.Translate("导入歌词"), AllowMultiple = false,
+                FileTypeFilter = [new FilePickerFileType(shell.Text.Translate("歌词文件")) { Patterns = ["*.lrc", "*.yrc", "*.ttml", "*.srt", "*.vtt", "*.txt"] }]
             });
             if (!closed && files.Count > 0 && files[0].TryGetLocalPath() is { } path) await Model.ImportAsync(path);
         }
-        catch (Exception) { if (!closed) Model.Message = "无法导入歌词，请重新选择文件。"; }
+        catch (Exception) { if (!closed) Model.Message = shell.Text.Translate("无法导入歌词，请重新选择文件。"); }
     }
     public void SetFocused(bool focused) => Viewport.SetFocused(focused);
     public void Dispose()
     {
         if (closed) return; closed = true;
+        DisposeChrome();
         Viewport.FrameRequested -= Backdrop.UpdateClock;
         Viewport.BrowseChanged -= UpdateScroll; Model.Changed -= OnChanged; Viewport.Dispose(); Backdrop.Dispose(); Model.Dispose();
     }

@@ -8,7 +8,7 @@ using Avalonia.VisualTree;
 namespace Echo.Desktop.Motion;
 
 // Owns only the current view and one outgoing view. Superseded views detach immediately.
-public sealed class MotionPresenter : Grid
+public class MotionPresenter : Grid
 {
     public static readonly StyledProperty<Control?> ContentProperty =
         AvaloniaProperty.Register<MotionPresenter, Control?>(nameof(Content));
@@ -23,6 +23,7 @@ public sealed class MotionPresenter : Grid
     public Control? Content { get => GetValue(ContentProperty); set => SetValue(ContentProperty, value); }
     public IBrush? SurfaceBrush { get => GetValue(SurfaceBrushProperty); set => SetValue(SurfaceBrushProperty, value); }
     public bool IsTransitioning => _enter.IsRunning || _exit.IsRunning;
+    public event Action<Control>? ContentRetired;
 
     public MotionPresenter()
     {
@@ -42,6 +43,7 @@ public sealed class MotionPresenter : Grid
             if (_outgoing is not null) _outgoing.Background = SurfaceBrush;
         }
         if (change.Property == MotionScope.PolicyProperty) ObservePolicy();
+        if (change.Property == IsVisibleProperty && !IsVisible) Settle();
     }
     private async void ChangeContent()
     {
@@ -96,8 +98,10 @@ public sealed class MotionPresenter : Grid
     {
         if (_outgoing is null) return;
         Children.Remove(_outgoing);
+        var content = _outgoing.Child;
         _outgoing.Child = null;
         _outgoing = null;
+        if (content is not null) ContentRetired?.Invoke(content);
     }
     private void ObservePolicy()
     {

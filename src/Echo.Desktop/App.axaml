@@ -12,6 +12,7 @@
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="/Resources/Themes/EchoControls.axaml" />
+    <StyleInclude Source="/Features/Queue/QueueStyles.axaml" />
     <StyleInclude Source="/Features/Settings/SettingsStyles.axaml" />
     <StyleInclude Source="/Resources/Motion/EchoMotion.axaml" />
   </Application.Styles>

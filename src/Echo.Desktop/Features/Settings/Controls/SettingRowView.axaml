@@ -4,7 +4,9 @@
       <ToggleButton Theme="{StaticResource SettingsToggleTheme}" IsChecked="{Binding BoolValue, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Title}" />
     </DataTemplate>
     <DataTemplate x:Key="SelectEditor" x:DataType="models:SettingRowViewModel">
-      <ComboBox Classes="settings-select" ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedValue, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Title}" />
+      <ComboBox Classes="settings-select" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedOption, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Title}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="models:SettingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
     </DataTemplate>
     <DataTemplate x:Key="ChoiceEditor" x:DataType="models:SettingRowViewModel">
       <ItemsControl ItemsSource="{Binding Choices}">
@@ -15,7 +17,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:SettingChoice">
-            <Button Classes="settings-choice" Classes.selected="{Binding IsSelected}" Content="{Binding Label}" IsEnabled="{Binding IsEnabled}" Margin="6,3,0,3" Command="{Binding $parent[settings:SettingRowView].((models:SettingRowViewModel)DataContext).SelectCommand}" CommandParameter="{Binding Label}" />
+            <Button Classes="settings-choice" Classes.selected="{Binding IsSelected}" Content="{Binding Label}" IsEnabled="{Binding IsEnabled}" Margin="6,3,0,3" Command="{Binding $parent[settings:SettingRowView].((models:SettingRowViewModel)DataContext).SelectCommand}" CommandParameter="{Binding Value}" />
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
@@ -29,7 +31,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="models:SettingChoice">
-            <Button Classes="settings-control" Margin="6,3,0,3" IsEnabled="{Binding IsEnabled}" Command="{Binding $parent[settings:SettingRowView].((models:SettingRowViewModel)DataContext).InvokeCommand}" CommandParameter="{Binding Label}">
+            <Button Classes="settings-control" Margin="6,3,0,3" IsEnabled="{Binding IsEnabled}" Command="{Binding $parent[settings:SettingRowView].((models:SettingRowViewModel)DataContext).InvokeCommand}" CommandParameter="{Binding Value}">
               <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="{Binding Icon}" Width="15" Height="15" IsVisible="{Binding HasIcon}" /><TextBlock Text="{Binding Label}" FontSize="13" Foreground="{Binding $parent[Button].Foreground}" /></StackPanel>
             </Button>
           </DataTemplate>
@@ -40,18 +42,18 @@
       <StackPanel Orientation="Horizontal" Spacing="7" IsEnabled="{Binding IsEnabled}">
         <Border BorderThickness="1" BorderBrush="{DynamicResource SettingsBorder}" CornerRadius="6" Background="{DynamicResource EchoField}" ClipToBounds="True">
           <Grid ColumnDefinitions="38,70,38" Height="34">
-            <Button Command="{Binding DecreaseCommand}" Padding="0" ToolTip.Tip="缩小界面">
+            <Button Command="{Binding DecreaseCommand}" Padding="0" ToolTip.Tip="{DynamicResource ui.SettingRowView.a6878682a7b8}">
               <icon:GlyphIcon Kind="minus" Width="15" Height="15" />
             </Button>
             <Border Grid.Column="1" BorderThickness="1,0" BorderBrush="{DynamicResource SettingsBorder}">
               <TextBlock Text="{Binding ScaleLabel}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
-            <Button Grid.Column="2" Command="{Binding IncreaseCommand}" Padding="0" ToolTip.Tip="放大界面">
+            <Button Grid.Column="2" Command="{Binding IncreaseCommand}" Padding="0" ToolTip.Tip="{DynamicResource ui.SettingRowView.b7eaf4a368f3}">
               <icon:GlyphIcon Kind="plus" Width="15" Height="15" />
             </Button>
           </Grid>
         </Border>
-        <Button Classes="settings-control" Width="38" Padding="0" Command="{Binding ResetScaleCommand}" ToolTip.Tip="恢复默认">
+        <Button Classes="settings-control" Width="38" Padding="0" Command="{Binding ResetScaleCommand}" ToolTip.Tip="{DynamicResource ui.SettingRowView.ba2e93e73037}">
           <icon:GlyphIcon Kind="reset" Width="17" Height="17" />
         </Button>
       </StackPanel>
@@ -63,7 +65,7 @@
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="TextEditor" x:DataType="models:SettingRowViewModel">
-      <TextBlock Text="{Binding SelectedValue}" Classes="muted" FontSize="13" MaxWidth="420" TextWrapping="Wrap" VerticalAlignment="Center" />
+      <TextBlock Text="{Binding DisplayValue}" Classes="muted" FontSize="13" MaxWidth="420" TextWrapping="Wrap" VerticalAlignment="Center" />
     </DataTemplate>
     <DataTemplate x:Key="ShortcutEditor" x:DataType="models:SettingRowViewModel">
       <ItemsControl ItemsSource="{Binding Options}">

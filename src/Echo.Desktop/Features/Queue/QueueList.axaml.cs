@@ -54,6 +54,8 @@ public partial class QueueList : UserControl
     }
     private async void OnPlay(object? sender, TappedEventArgs args)
     { if (FindRow(args.Source) is { } row && model is not null) { args.Handled = true; await model.PlayAsync(row); } }
+    private async void OnRowPlay(object? sender, RoutedEventArgs args)
+    { if (sender is Button { DataContext: QueueRowViewModel row } && model is not null) { args.Handled = true; await model.PlayAsync(row); } }
     private async void OnKeyDown(object? sender, KeyEventArgs args)
     {
         if (model is null) return;
@@ -61,6 +63,7 @@ public partial class QueueList : UserControl
         if (args.Key == Key.Enter && Tracks.SelectedItem is QueueRowViewModel row) { args.Handled = true; await model.PlayAsync(row); }
         if (args.Key == Key.A && args.KeyModifiers.HasFlag(KeyModifiers.Control)) { args.Handled = true; Tracks.SelectAll(); }
         if (args.Key == Key.Z && args.KeyModifiers.HasFlag(KeyModifiers.Control)) { args.Handled = true; await model.UndoCommand.ExecuteAsync(null); }
+        if (args.Key == Key.N && args.KeyModifiers.HasFlag(KeyModifiers.Alt) && !model.ShowHistory) { args.Handled = true; await model.MoveNextCommand.ExecuteAsync(null); }
         if (args.KeyModifiers.HasFlag(KeyModifiers.Alt) && args.Key is Key.Up or Key.Down && Tracks.SelectedItem is QueueRowViewModel moving && !model.ShowHistory)
         { args.Handled = true; await model.MoveAsync(selected, moving.Index + (args.Key == Key.Up ? -1 : 2)); }
     }

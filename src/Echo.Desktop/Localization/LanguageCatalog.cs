@@ -25,8 +25,8 @@ public sealed class LanguageCatalog
         foreach (var pair in pack.Strings)
         {
             if (!Fallback.Strings.ContainsKey(pair.Key)) throw new InvalidDataException($"Unknown translation key: {pack.Code}/{pair.Key}");
-            var expected = Fallback.Formats.GetValueOrDefault(pair.Key)?.MinimumArgumentCount ?? 0;
-            var actual = pack.Formats.GetValueOrDefault(pair.Key)?.MinimumArgumentCount ?? 0;
+            var expected = Fallback.ArgumentSignatures.GetValueOrDefault(pair.Key) ?? "";
+            var actual = pack.ArgumentSignatures.GetValueOrDefault(pair.Key) ?? "";
             if (expected != actual) throw new InvalidDataException($"Translation arguments differ: {pack.Code}/{pair.Key}");
         }
     }

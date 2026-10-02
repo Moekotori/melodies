@@ -10,8 +10,9 @@ public sealed class DirectoryDiscovery : IFileDiscovery
         [".wav", ".flac", ".fla", ".mp3", ".aiff", ".aif", ".aifc", ".ogg", ".oga", ".opus",
          ".m4a", ".m4b", ".m4p", ".mp4", ".alac", ".aac", ".ape", ".wv", ".wma", ".dsf", ".dff",
          ".caf", ".ac3", ".dts", ".mka", ".tak", ".tta", ".cue", ".osu"];
+    internal static bool Supports(string extension) => Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
 
-    public IEnumerable<FileSnapshot> Enumerate(string root, bool requireFullCoverage, CancellationToken cancellation)
+    public IEnumerable<FileSnapshot> Enumerate(string root, bool requireFullCoverage, CancellationToken cancellation, bool force = false)
     {
         root = LibraryPath.Canonical(root);
         if (!Directory.Exists(root)) throw new DirectoryNotFoundException("Scan root is unavailable.");

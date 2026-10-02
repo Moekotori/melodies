@@ -8,12 +8,21 @@ using Echo.Infrastructure.Metadata;
 namespace Echo.Desktop.Bootstrap;
 
 // Lazy desktop lifetime: the same database instance owns reads and every imported scan.
-internal sealed class DesktopLibrary(string path) : IAlbumLibrary, IArtistLibrary, IAlbumPersonalState, IPlayerTrackLibrary, IAsyncDisposable
+internal sealed class DesktopLibrary(string path) : ITrackLibrary, IAlbumLibrary, IArtistLibrary, IFolderLibrary, IAlbumPersonalState, IPlayerTrackLibrary, IHomeLibrary, IAsyncDisposable
 {
     private readonly object _gate = new();
     private Task<LibraryDatabase>? _opening;
     private Task<ScanReport>? _scan;
     private bool _closed;
+
+    public async Task<HomeDashboard> GetHomeAsync(DateOnly today, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetHomeAsync(today, cancellation).ConfigureAwait(false);
+    public async Task<IReadOnlyList<TrackRow>> GetRandomTracksAsync(CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetRandomTracksAsync(cancellation).ConfigureAwait(false);
+    public async Task<AlbumRow?> GetTrackAlbumAsync(string path, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetTrackAlbumAsync(path, cancellation).ConfigureAwait(false);
+    public async Task RecordListeningAsync(ListeningEntry entry, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).RecordListeningAsync(entry, cancellation).ConfigureAwait(false);
 
     private Task<LibraryDatabase> Database()
     {
@@ -24,8 +33,16 @@ internal sealed class DesktopLibrary(string path) : IAlbumLibrary, IArtistLibrar
         }
     }
 
+    public async Task<TrackPage> GetTracksAsync(TrackQuery query, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetTracksAsync(query, cancellation).ConfigureAwait(false);
+
     public async Task<AlbumPage> GetAlbumsAsync(AlbumQuery query, CancellationToken cancellation = default)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetAlbumsAsync(query, cancellation).ConfigureAwait(false);
+
+    public async Task<FolderPage> GetFoldersAsync(FolderQuery query, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetFoldersAsync(query, cancellation).ConfigureAwait(false);
+    public async Task<FolderTrackPage> GetFolderTracksAsync(FolderTrackQuery query, CancellationToken cancellation = default)
+        => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetFolderTracksAsync(query, cancellation).ConfigureAwait(false);
 
     public async Task<ArtistPage> GetArtistsAsync(ArtistQuery query, CancellationToken cancellation = default)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetArtistsAsync(query, cancellation).ConfigureAwait(false);
@@ -59,7 +76,7 @@ internal sealed class DesktopLibrary(string path) : IAlbumLibrary, IArtistLibrar
     {
         var database = await Database().WaitAsync(cancellation).ConfigureAwait(false);
         var native = Environment.GetEnvironmentVariable("ECHO_METADATA_SCANNER");
-        var scan = new ScanCoordinator(database, new DirectoryDiscovery(), () => new LocalMetadataReader(native));
+        var scan = new ScanCoordinator(database, new LegacyFolderDiscovery(database), () => new LocalMetadataReader(native));
         return await scan.ScanAsync(new(folder), progress, cancellation).ConfigureAwait(false);
     }
 

@@ -9,5 +9,5 @@ public sealed class QueueColumnsGrid : Grid
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     { base.OnPropertyChanged(change); if (change.Property == CompactProperty) Apply(); }
     private void Apply()
-    { ColumnDefinitions = new(Compact ? "0,40,*,0,0,0,32" : "24,48,*,160,100,64,36"); ColumnSpacing = Compact ? 8 : 12; }
+    { ColumnDefinitions = new(Compact ? "0,0,40,*,0,0,0,64" : "18,24,48,*,150,120,58,64"); ColumnSpacing = Compact ? 8 : 11; }
 }

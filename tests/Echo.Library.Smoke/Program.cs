@@ -2,6 +2,25 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+if (args[0] == "v5-fixture") { MigrationFixture.CreateV5(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
+
+if (args[0] == "search")
+{
+    using var searchTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+    await SearchProbe.RunAsync(Path.GetFullPath(args[1]), searchTimeout.Token); return;
+}
+
+if (args[0] == "metadata")
+{
+    using var metadataTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    await MetadataProbe.RunAsync(Path.GetFullPath(args[1]), metadataTimeout.Token); return;
+}
+
+if (args[0] == "artists")
+{
+    using var artistTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(40));
+    await ArtistProbe.RunAsync(Path.GetFullPath(args[1]), artistTimeout.Token); return;
+}
 if (args[0] == "albums-query")
 {
     using var readTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));

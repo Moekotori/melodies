@@ -40,6 +40,7 @@ public sealed partial class PlaybackSessionCoordinator
         repeat = mode; deviceConfiguration = state.Device;
         shuffle = state.Shuffle;
         history = state.History?.Where(x => x.Source?.Headers is not { Count: > 0 }).ToArray() ?? [];
+        TrimHistory();
         shuffleOrder = state.ShuffleOrder?.Where(id => queue.Any(x => x.ItemId == id)).Distinct().ToArray() ?? CreateShuffleOrder(queue, state.CurrentItemId);
         foreach (var entry in state.Dsp)
         {

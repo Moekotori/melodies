@@ -14,8 +14,9 @@ internal static class SchemaMigrator
         var version = (long)probe.ExecuteScalar()!;
         probe.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'";
         var objects = (long)probe.ExecuteScalar()!;
-        if ((id != ApplicationId && (id != 0 || objects != 0)) || version > 4)
+        if ((id != ApplicationId && (id != 0 || objects != 0)) || version > 11)
             throw new InvalidOperationException("This is not a supported ECHO Avalonia database. Legacy databases require an explicit importer.");
+        if (version is > 0 and < 4) ArtistSchema.Backup(connection);
         if (version == 0)
         {
             using var transaction = connection.BeginTransaction();
@@ -39,6 +40,21 @@ internal static class SchemaMigrator
             state.ExecuteNonQuery(); transaction.Commit();
         }
         if (version < 4) ArtistSchema.Migrate(connection);
+        if (version < 5) VirtualSourceSchema.Migrate(connection);
+        if (version < 6)
+        {
+            if (version > 0) AlbumMetadataSchema.Backup(connection);
+            AlbumMetadataSchema.Migrate(connection);
+        }
+        if (version < 7) VirtualAudioIdentitySchema.Migrate(connection);
+        if (version < 8) Echo.Infrastructure.Search.LibrarySearchSchema.Migrate(connection);
+        if (version < 9) FolderSchema.Migrate(connection);
+        if (version < 10) ListeningSchema.Migrate(connection);
+        if (version < 11)
+        {
+            if (version > 0) AlbumMetadataSchema.Backup(connection);
+            PlaylistSchema.Migrate(connection);
+        }
         probe.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;";
         probe.ExecuteNonQuery();
         probe.CommandText = "UPDATE scan_jobs SET state='Interrupted', error_code='process_interrupted', finished_at=unixepoch() WHERE state='Running'; DELETE FROM scan_seen;";

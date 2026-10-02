@@ -9,6 +9,29 @@ using Echo.Desktop.Shell;
 
 // Native Avalonia render, no HTML recreation. This tool is not loaded by Desktop.
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions()).UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
+if (args.Length >= 2 && args[0] == "--shortcuts")
+{ ShortcutSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 3 && args[0] == "--queue-reference")
+{ QueueVisualCapture.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
+if (args.Length >= 2 && args[0] == "--motion-depth")
+{
+    Directory.CreateDirectory(args[1]);
+    try { CompositionSmoke.Run(args[1]); MotionDepthSmoke.Run(args[1]); }
+    catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; }
+    return;
+}
+if (args.Length >= 3 && args[0] == "--search")
+{ LibrarySearchUiSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
+if (args.Length >= 2 && args[0] == "--details")
+{ DetailUiSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--folders")
+{ FolderUiSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--i18n")
+{ LocalizationSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--playerbar")
+{ PlayerBarSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] == "--quick-settings")
+{ QuickSettingsSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--queue")
 { QueueUiSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--settings")
@@ -17,6 +40,8 @@ if (args.Length >= 2 && args[0] == "--sidebar")
 { SidebarDrawerSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 3 && args[0] == "--albums")
 { AlbumWallSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
+if (args.Length >= 3 && args[0] == "--artists")
+{ ArtistWallSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
 var output = Path.GetFullPath(args.Length > 0 ? args[0] : "artifacts/previews");
 Directory.CreateDirectory(output);
 using var windowLifetime = new PreviewLifetime();

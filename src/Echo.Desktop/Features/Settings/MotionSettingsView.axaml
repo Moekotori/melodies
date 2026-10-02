@@ -4,30 +4,30 @@
              x:Class="Echo.Desktop.Features.Settings.MotionSettingsView" x:DataType="shell:ShellViewModel">
   <StackPanel Spacing="26" Margin="12" MaxWidth="860" HorizontalAlignment="Stretch">
     <StackPanel Spacing="8">
-      <TextBlock Text="外观与动效" Classes="heading" FontSize="28" />
-      <TextBlock Text="让每次切换自然衔接，也让界面按你的习惯保持安静。" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{DynamicResource ui.MotionSettingsView.27ef4da3b68d}" Classes="heading" FontSize="28" />
+      <TextBlock Text="{DynamicResource ui.MotionSettingsView.452bab13c7ce}" Classes="muted" TextWrapping="Wrap" />
     </StackPanel>
     <Border Height="1" Background="{DynamicResource EchoDivider}" />
     <Grid ColumnDefinitions="*,220" ColumnSpacing="36">
       <StackPanel Spacing="8">
-        <TextBlock Text="动画效果" Classes="heading" FontSize="16" />
+        <TextBlock Text="{DynamicResource ui.MotionSettingsView.d1d1bedf6622}" Classes="heading" FontSize="16" />
         <TextBlock Text="{Binding Motion.Status}" Classes="muted" FontSize="13" TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left" />
       </StackPanel>
       <ComboBox Grid.Column="1" ItemsSource="{Binding Motion.Choices}" SelectedItem="{Binding Motion.SelectedChoice}"
-                HorizontalAlignment="Stretch" AutomationProperties.Name="动画效果">
+                HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource ui.MotionSettingsView.d1d1bedf6622}">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="motion:MotionChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
     </Grid>
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="36">
-      <StackPanel Spacing="8"><TextBlock Text="深色主题" Classes="heading" FontSize="16" /><TextBlock Text="切换主题时保留当前页面和操作状态。" Classes="muted" FontSize="13" /></StackPanel>
-      <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsDark}" OnContent="开启" OffContent="关闭" AutomationProperties.Name="深色主题" />
+      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource ui.MotionSettingsView.f7e761e280e1}" Classes="heading" FontSize="16" /><TextBlock Text="{DynamicResource ui.MotionSettingsView.65ad059e1fbb}" Classes="muted" FontSize="13" /></StackPanel>
+      <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsDark}" OnContent="{DynamicResource ui.MotionSettingsView.8da97ddda990}" OffContent="{DynamicResource ui.TitleBar.3fd47edce45b}" AutomationProperties.Name="{DynamicResource ui.MotionSettingsView.f7e761e280e1}" />
     </Grid>
     <Border Height="1" Background="{DynamicResource EchoDivider}" />
     <StackPanel Spacing="16">
-      <TextBlock Text="动效预览" Classes="heading" FontSize="18" />
-      <TextBlock Text="切换内容、展开说明或打开弹层，感受当前设置。" Classes="muted" FontSize="13" />
+      <TextBlock Text="{DynamicResource ui.MotionSettingsView.bbdd80ed21b4}" Classes="heading" FontSize="18" />
+      <TextBlock Text="{DynamicResource ui.MotionSettingsView.944824b76deb}" Classes="muted" FontSize="13" />
       <settings:MotionPreview />
     </StackPanel>
-    <TextBlock Text="当前选择在本次运行中生效。" Classes="subtle" FontSize="12" />
+    <TextBlock Text="{DynamicResource ui.MotionSettingsView.d7ec5b3c7db2}" Classes="subtle" FontSize="12" />
   </StackPanel>
 </UserControl>

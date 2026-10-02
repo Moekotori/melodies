@@ -26,7 +26,8 @@ public interface ILyricsSource
 }
 public sealed record LyricsPreferences(string Style = "default", string Look = "mist", double FontSize = 36,
     double SecondarySize = 18, bool Translation = true, bool Romanization = true, bool WordHighlight = true,
-    string Alignment = "left", string Font = "", double OffsetMs = 0, bool Context = true);
+    string Alignment = "left", string Font = "", double OffsetMs = 0, bool Context = true,
+    bool MiniPlayer = true, bool PlayerAutoHide = true, bool PlayerCompact = true);
 public interface ILyricsPreferencesStore
 {
     Task<LyricsPreferences> ReadAsync(CancellationToken cancellation);

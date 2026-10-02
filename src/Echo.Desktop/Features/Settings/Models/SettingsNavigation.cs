@@ -20,6 +20,7 @@ public sealed partial class SettingsNavigationGroup(string title, IReadOnlyList<
 public sealed record SettingsSectionViewModel(string Title, IReadOnlyList<SettingRowViewModel> Rows)
 {
     public bool HasTitle => Title.Length > 0;
+    public bool HasShortcuts => Rows.Any(row => row.Definition.Kind == SettingKind.Shortcut);
 }
 public sealed partial class SettingsSearchResult(string categoryId, string rowId, string title, string categoryTitle) : ObservableObject
 {

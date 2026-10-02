@@ -10,6 +10,13 @@ internal static class QueueScenarios
         var album = new QueueOrigin("album", "Album A", "album-a");
         var first = new QueueTrack("a", "a", a, Origin: album);
         var last = new QueueTrack("c", "c", a, Origin: album);
+        await session.SetQueueModeAsync(QueuePlaybackMode.Shuffle);
+        await session.EnqueueAsync([first, last]);
+        Check(native.Calls.Count == 0, "editing/mode selection initialized audio before playback");
+        var planned = session.QueueState.Upcoming!.ItemId;
+        await session.ResumeAsync();
+        Check(session.Snapshot.Current?.ItemId == planned, "play from an idle queue ignored the displayed upcoming order");
+        await session.SetQueueModeAsync(QueuePlaybackMode.Sequential);
         await session.SetQueueAsync([first, last], "a");
         await session.EnqueueAsync([new("b1", "b", b)], true);
         await session.EnqueueAsync([new("b2", "b", b)], true);

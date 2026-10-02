@@ -1,12 +1,10 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:queue="using:Echo.Desktop.Features.Queue" x:Class="Echo.Desktop.Features.Queue.QueueModes" x:DataType="queue:QueueViewModel">
-  <UserControl.Styles>
-    <Style Selector="Button.active"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
-  </UserControl.Styles>
+             xmlns:queue="using:Echo.Desktop.Features.Queue" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Queue.QueueModes" x:DataType="queue:QueueViewModel">
   <WrapPanel Orientation="Horizontal" IsEnabled="{Binding !IsBusy}">
-    <Button Content="顺序播放" Command="{Binding SequentialCommand}" Classes.active="{Binding IsSequential}" Padding="12,0" />
-    <Button Content="随机播放" Command="{Binding ShuffleCommand}" Classes.active="{Binding IsShuffle}" Padding="12,0" />
-    <Button Content="单曲循环" Command="{Binding RepeatOneCommand}" Classes.active="{Binding IsRepeatOne}" Padding="12,0" />
-    <Button Content="列表循环" Command="{Binding RepeatAllCommand}" Classes.active="{Binding IsRepeatAll}" Padding="12,0" />
+    <Button Classes="queue-mode" Command="{Binding SequentialCommand}" Classes.active="{Binding IsSequential}" AutomationProperties.Name="{DynamicResource ui.QueueModes.5bbcac595bc6}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Classes="mode-icon" Kind="queue" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.QueueModes.5bbcac595bc6}" /></StackPanel></Button>
+    <Button Classes="queue-mode" Command="{Binding ShuffleCommand}" Classes.active="{Binding IsShuffle}" AutomationProperties.Name="{DynamicResource ui.QueueModes.f34b7ce61098}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Classes="mode-icon" Kind="shuffle" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.QueueModes.f34b7ce61098}" /></StackPanel></Button>
+    <Button Classes="queue-mode" Command="{Binding RepeatOneCommand}" Classes.active="{Binding IsRepeatOne}" AutomationProperties.Name="{DynamicResource ui.QueueModes.8cde791504d2}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Classes="mode-icon" Kind="repeat-one" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.QueueModes.8cde791504d2}" /></StackPanel></Button>
+    <Button Classes="queue-mode" Command="{Binding RepeatAllCommand}" Classes.active="{Binding IsRepeatAll}" AutomationProperties.Name="{DynamicResource ui.QueueModes.2fe0943eacb3}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Classes="mode-icon" Kind="repeat" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.QueueModes.2fe0943eacb3}" /></StackPanel></Button>
   </WrapPanel>
 </UserControl>

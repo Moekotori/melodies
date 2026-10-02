@@ -14,18 +14,21 @@ public partial class PlayerBar : UserControl
     private PlayerViewModel? Player => (DataContext as ShellViewModel)?.Player;
     private readonly PlayerSliderInteraction seekInteraction;
     private readonly MotionFlyout outputFlyout;
+    private readonly PlayerPopoverBinding popoverBinding = new();
     public PlayerBar()
     {
         InitializeComponent();
-        seekInteraction = new(SeekSlider, () => Player, seek: true);
+        seekInteraction = new(SeekSlider, () => Player, seek: true,
+            () => ElapsedText.SetCurrentValue(TextBlock.TextProperty, Player?.PositionText ?? "0:00"));
         outputFlyout = new() { Placement = PlacementMode.Top, Content = new PlayerOutputPanel() };
+        foreach (var flyout in new[] { SignalPathButton.Flyout, OutputSettingsButton.Flyout, VolumeButton.Flyout, outputFlyout }.OfType<Flyout>()) popoverBinding.Wrap(flyout);
         SizeChanged += (_, _) => ApplyLayout();
         SeekSlider.PropertyChanged += (_, e) =>
         {
             if (e.Property == Slider.ValueProperty && Player?.IsSeeking == true)
-                ElapsedText.Text = TimeSpan.FromSeconds(SeekSlider.Value).ToString(SeekSlider.Value >= 3600 ? @"h\:mm\:ss" : @"m\:ss");
+                ElapsedText.SetCurrentValue(TextBlock.TextProperty, TimeSpan.FromSeconds(SeekSlider.Value).ToString(SeekSlider.Value >= 3600 ? @"h\:mm\:ss" : @"m\:ss"));
         };
-        DataContextChanged += (_, _) => { seekInteraction.Cancel(); outputFlyout.Hide(); };
+        DataContextChanged += (_, _) => { seekInteraction.Cancel(); outputFlyout.Hide(); popoverBinding.Attach(DataContext as ShellViewModel); };
     }
     private void ApplyLayout()
     {
@@ -46,13 +49,14 @@ public partial class PlayerBar : UserControl
         QueueButton.IsVisible = !tiny;
     }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { seekInteraction.Cancel(); HidePopovers(); outputFlyout.Hide(); base.OnDetachedFromVisualTree(e); }
+    { seekInteraction.Cancel(); HidePopovers(); outputFlyout.Hide(); popoverBinding.Detach(); base.OnDetachedFromVisualTree(e); }
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    { base.OnAttachedToVisualTree(e); popoverBinding.Attach(DataContext as ShellViewModel); }
     private void HidePopovers()
     { SignalPathButton.Flyout?.Hide(); OutputSettingsButton.Flyout?.Hide(); VolumeButton.Flyout?.Hide(); }
     private async void OpenOutputSettings(object? sender, RoutedEventArgs args)
     {
         HidePopovers();
-        if (outputFlyout.Content is PlayerOutputPanel panel) panel.DataContext = DataContext;
         outputFlyout.ShowAt(OutputSettingsButton);
         if (Player is { } player) await player.AudioSettings.RefreshCommand.ExecuteAsync(null);
     }

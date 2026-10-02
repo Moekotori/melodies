@@ -1,63 +1,63 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:albums="using:Echo.Desktop.Features.Albums" xmlns:icon="using:Echo.Desktop.Controls"
+             xmlns:filters="using:Echo.Desktop.Features.LibraryDetails" xmlns:albums="using:Echo.Desktop.Features.Albums" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Albums.AlbumsView" x:DataType="albums:AlbumsViewModel">
   <Grid>
     <Grid Name="Wall" RowDefinitions="Auto,Auto,Auto,*">
       <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
         <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-          <TextBlock Text="专辑" Classes="heading" FontSize="30" FontStyle="Normal" />
+          <TextBlock Text="{DynamicResource ui.AlbumsView.9e070772b185}" Classes="heading" FontSize="30" FontStyle="Normal" />
           <TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" />
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-          <Button Name="ImportButton" Click="OnImport" ToolTip.Tip="将音乐文件夹导入曲库"><TextBlock Text="导入文件夹" FontSize="13" /></Button>
-          <Button Classes="icon" Click="OnRefresh" ToolTip.Tip="刷新专辑"><icon:GlyphIcon Kind="refresh" Width="18" Height="18" /></Button>
+          <Button Name="ImportButton" Click="OnImport" ToolTip.Tip="{DynamicResource ui.AlbumsView.1a99d0ec9af4}"><TextBlock Text="{DynamicResource ui.AlbumsView.9592c9b4b949}" FontSize="13" /></Button>
+          <Button Classes="icon" Click="OnRefresh" ToolTip.Tip="{DynamicResource ui.AlbumsView.1a7b0aa3c283}"><icon:GlyphIcon Kind="refresh" Width="18" Height="18" /></Button>
         </StackPanel>
       </Grid>
       <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="0,0,0,20">
         <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="120">
           <icon:GlyphIcon Kind="search" Width="18" Height="18" Margin="12,0" ZIndex="1" />
-          <TextBox Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="搜索专辑或艺术家" Padding="40,10,60,10" CornerRadius="6" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
-          <Button Grid.Column="2" Content="×" Click="OnClearSearch" Classes="icon" ToolTip.Tip="清空搜索" Margin="8,0" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBox Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource ui.AlbumsView.a46fec777e53}" Padding="40,10,60,10" CornerRadius="6" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
+          <Button Grid.Column="2" Content="×" Click="OnClearSearch" Classes="icon" ToolTip.Tip="{DynamicResource ui.AlbumsView.b6f00afa6537}" Margin="8,0" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </Grid>
-        <Button Grid.Column="1" ToolTip.Tip="筛选与布局">
-          <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="settings" Width="16" Height="16" /><TextBlock Text="筛选" FontSize="13" /><TextBlock Text="⌄" /></StackPanel>
+        <Button Grid.Column="1" ToolTip.Tip="{DynamicResource ui.AlbumsView.f06571a3d112}">
+          <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="settings" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.AlbumsView.b5f15473fdc0}" FontSize="13" /><TextBlock Text="⌄" /></StackPanel>
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedRight">
-              <StackPanel Spacing="14" Width="200">
-                <TextBlock Text="音质" FontWeight="SemiBold" />
-                <CheckBox Content="仅无损专辑" IsChecked="{Binding LosslessOnly, Mode=TwoWay}" />
+              <StackPanel Spacing="14" Width="300">
+                <TextBlock Text="{DynamicResource ui.AlbumDetailView.eb11dd93ee99}" FontWeight="SemiBold" />
+                <filters:LibraryFilterView DataContext="{Binding Filters}" />
                 <Border Height="1" Background="{DynamicResource EchoDivider}" />
-                <TextBlock Text="每行专辑" FontWeight="SemiBold" />
+                <TextBlock Text="{DynamicResource ui.AlbumsView.088ca20b4938}" FontWeight="SemiBold" />
                 <ComboBox Name="Density" SelectedIndex="0" SelectionChanged="OnDensityChanged" HorizontalAlignment="Stretch">
-                  <ComboBoxItem Content="自动" /><ComboBoxItem Content="4 张" /><ComboBoxItem Content="5 张" /><ComboBoxItem Content="6 张" />
+                  <ComboBoxItem Content="{DynamicResource ui.AlbumsView.7eb336e42cb5}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.0fc19c9a6ba6}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.995672c27fde}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.b4184384945a}" />
                 </ComboBox>
-                <Button Content="重置筛选" Click="OnResetFilter" />
+                <Button Content="{DynamicResource ui.AlbumsView.13a431e59b65}" Click="OnResetFilter" />
               </StackPanel>
             </Flyout>
           </Button.Flyout>
         </Button>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
           <ComboBox SelectedIndex="{Binding SortIndex, Mode=TwoWay}" MinWidth="120" VerticalAlignment="Center">
-            <ComboBoxItem Content="专辑名称" /><ComboBoxItem Content="艺术家" /><ComboBoxItem Content="发行年份" />
-            <ComboBoxItem Content="最近入库" /><ComboBoxItem Content="专辑时长" /><ComboBoxItem Content="曲目数量" />
+            <ComboBoxItem Content="{DynamicResource ui.AlbumsView.4cea59dbe1d6}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.8104520f6e69}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.703d2fb0baef}" />
+            <ComboBoxItem Content="{DynamicResource ui.AlbumsView.3411b4e3fafc}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.ecad6a2d30ef}" /><ComboBoxItem Content="{DynamicResource ui.AlbumsView.cfc309de0941}" />
           </ComboBox>
-          <ToggleButton IsChecked="{Binding Descending, Mode=TwoWay}" Content="↓" ToolTip.Tip="降序排列" Width="32" />
+          <ToggleButton IsChecked="{Binding Descending, Mode=TwoWay}" Content="↓" ToolTip.Tip="{DynamicResource ui.AlbumsView.b40514e8597f}" Width="32" />
         </StackPanel>
       </Grid>
       <StackPanel Grid.Row="2" Spacing="8" Margin="0,0,0,8">
         <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <Grid Name="ScanProgressRow" ColumnDefinitions="*,Auto" IsVisible="False">
           <TextBlock Name="ScanText" Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" />
-          <Button Grid.Column="1" Content="取消导入" Click="OnCancelImport" />
+          <Button Grid.Column="1" Content="{DynamicResource ui.AlbumsView.26bff7125c63}" Click="OnCancelImport" />
         </Grid>
       </StackPanel>
       <Grid Grid.Row="3">
         <ContentControl Name="ViewportHost" />
         <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
           <icon:GlyphIcon Kind="album" Width="32" Height="32" HorizontalAlignment="Center" />
-          <TextBlock Text="没有找到专辑" Classes="heading" FontSize="18" HorizontalAlignment="Center" />
-          <TextBlock Text="导入音乐文件夹，或调整搜索与筛选。" Classes="muted" FontSize="13" />
-          <Button Content="导入文件夹" Click="OnImport" HorizontalAlignment="Center" />
+          <TextBlock Text="{DynamicResource ui.AlbumsView.3e53bf20bf17}" Classes="heading" FontSize="18" HorizontalAlignment="Center" />
+          <TextBlock Text="{DynamicResource ui.AlbumsView.206e79d0bee2}" Classes="muted" FontSize="13" />
+          <Button Content="{DynamicResource ui.AlbumsView.9592c9b4b949}" Click="OnImport" HorizontalAlignment="Center" />
         </StackPanel>
       </Grid>
     </Grid>

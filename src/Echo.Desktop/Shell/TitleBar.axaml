@@ -7,18 +7,18 @@
         <TextBlock Text="ECHO" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource EchoHeading}" />
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
-        <Button Classes="icon" Command="{Binding ShowPendingCommand}" CommandParameter="全局搜索" ToolTip.Tip="搜索（Ctrl+F）"><icon:GlyphIcon Kind="search" Width="17" Height="17" /></Button>
-        <Button Name="AudioDrawerButton" Classes="icon" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="audio" ToolTip.Tip="音频设置" AutomationProperties.Name="音频设置"><icon:GlyphIcon Kind="headphones" Width="17" Height="17" /></Button>
-        <Button Name="LyricsDrawerButton" Classes="icon" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="lyrics" ToolTip.Tip="歌词设置" AutomationProperties.Name="歌词设置"><icon:EchoIcon Kind="lyrics" Scope="player" Width="22" Height="22" /></Button>
-        <Button Classes="icon" Command="{Binding ToggleThemeCommand}" ToolTip.Tip="切换浅色 / 深色主题"><icon:GlyphIcon Kind="moon" Width="17" Height="17" /></Button>
-        <Button Classes="icon" Command="{Binding NavigateCommand}" CommandParameter="settings" ToolTip.Tip="设置"><icon:GlyphIcon Kind="settings" Width="17" Height="17" /></Button>
+        <Button Classes="icon" Command="{Binding OpenSearchCommand}" ToolTip.Tip="{DynamicResource ui.TitleBar.00d9d5007273}"><icon:GlyphIcon Kind="search" Width="17" Height="17" /></Button>
+        <Button Name="AudioDrawerButton" Classes="icon" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="audio" ToolTip.Tip="{DynamicResource ui.TitleBar.24c267e226db}" AutomationProperties.Name="{DynamicResource ui.TitleBar.24c267e226db}"><icon:GlyphIcon Kind="headphones" Width="17" Height="17" /></Button>
+        <Button Name="LyricsDrawerButton" Classes="icon" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="lyrics" ToolTip.Tip="{DynamicResource ui.TitleBar.13c2f86425fa}" AutomationProperties.Name="{DynamicResource ui.TitleBar.13c2f86425fa}"><icon:EchoIcon Kind="lyrics" Scope="player" Width="22" Height="22" /></Button>
+        <Button Classes="icon" Command="{Binding ToggleThemeCommand}" ToolTip.Tip="{DynamicResource ui.TitleBar.395b0181b012}"><icon:GlyphIcon Kind="moon" Width="17" Height="17" /></Button>
+        <Button Classes="icon" Command="{Binding NavigateCommand}" CommandParameter="settings" ToolTip.Tip="{DynamicResource ui.Sidebar.df3d58c7d84b}"><icon:GlyphIcon Kind="settings" Width="17" Height="17" /></Button>
       </StackPanel>
       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-        <Button Classes="window" Click="OnMinimize" ToolTip.Tip="隐藏窗口"><icon:GlyphIcon Kind="hide" Width="15" Height="15" /></Button>
-        <Button Classes="window" Click="OnFullscreen" ToolTip.Tip="全屏（F11）"><icon:GlyphIcon Kind="fullscreen" Width="15" Height="15" /></Button>
-        <Button Classes="window" Click="OnMinimize" ToolTip.Tip="最小化"><icon:GlyphIcon Kind="minus" Width="16" Height="16" /></Button>
-        <Button Classes="window" Click="OnMaximize" ToolTip.Tip="最大化 / 还原"><icon:GlyphIcon Kind="maximize" Width="14" Height="14" /></Button>
-        <Button Classes="window close" Click="OnClose" ToolTip.Tip="关闭"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
+        <Button Classes="window" Click="OnMinimize" ToolTip.Tip="{DynamicResource ui.TitleBar.6d1955fae43e}"><icon:GlyphIcon Kind="hide" Width="15" Height="15" /></Button>
+        <Button Classes="window" Click="OnFullscreen" ToolTip.Tip="{DynamicResource ui.TitleBar.ed12b1f768c5}"><icon:GlyphIcon Kind="fullscreen" Width="15" Height="15" /></Button>
+        <Button Classes="window" Click="OnMinimize" ToolTip.Tip="{DynamicResource ui.TitleBar.ac29e57a46f4}"><icon:GlyphIcon Kind="minus" Width="16" Height="16" /></Button>
+        <Button Classes="window" Click="OnMaximize" ToolTip.Tip="{DynamicResource ui.TitleBar.9949b1fb5f67}"><icon:GlyphIcon Kind="maximize" Width="14" Height="14" /></Button>
+        <Button Classes="window close" Click="OnClose" ToolTip.Tip="{DynamicResource ui.TitleBar.3fd47edce45b}"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
       </StackPanel>
     </Grid>
   </Border>

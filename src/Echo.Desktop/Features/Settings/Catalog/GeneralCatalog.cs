@@ -7,7 +7,7 @@ public static partial class SettingsCatalog
     private static IReadOnlyList<SettingsSectionDefinition> General() => [
         Section("语言与引导",
             new("ui-scale", "界面缩放", SettingKind.Scale),
-            Select("language", "显示语言", "简体中文", "简体中文", "繁體中文", "English", "日本語", "한국어") with { Help = "选择界面显示语言。" },
+            Select("language", "显示语言", "system") with { Help = "选择界面显示语言。" },
             Toggle("language-follow-steam", "跟随 Steam 语言", true, "使用 Steam 客户端的语言偏好。"),
             Action("first-run-wizard", "新手教程", "打开新手教程") with { Help = "重新了解曲库导入和播放器的基本操作。" }),
         Section("窗口与启动",

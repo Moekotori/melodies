@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:folders="using:Echo.Desktop.Features.Folders" xmlns:albums="using:Echo.Desktop.Features.Albums"
+             x:Class="Echo.Desktop.Features.Folders.FolderTrackList" x:DataType="folders:FoldersViewModel">
+  <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="/Features/Folders/FolderListStyles.axaml" />
+  </ResourceDictionary.MergedDictionaries></ResourceDictionary></UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Border.playing TextBlock.track-title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button.liked"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
+    <folders:FolderColumnsGrid Name="HeaderColumns" Margin="8,0,8,8" HorizontalAlignment="Left">
+      <TextBlock Text="#" Classes="muted" FontSize="11" />
+      <TextBlock Grid.Column="1" Text="{DynamicResource folders.track}" Classes="muted" FontSize="11" />
+      <TextBlock Grid.Column="2" Text="{DynamicResource folders.album}" Classes="muted wide" FontSize="11" />
+      <TextBlock Grid.Column="3" Text="{DynamicResource folders.quality}" Classes="muted wide" FontSize="11" />
+      <TextBlock Grid.Column="4" Text="{DynamicResource folders.duration}" Classes="muted" FontSize="11" HorizontalAlignment="Right" />
+    </folders:FolderColumnsGrid>
+    <ListBox Name="TrackList" Grid.Row="1" ItemsSource="{Binding Tracks}" Background="Transparent" BorderThickness="0" Padding="0"
+             ItemContainerTheme="{StaticResource FolderListItem}" SelectionMode="Multiple" DoubleTapped="OnDoubleTap"
+             SelectionChanged="OnSelection" KeyDown="OnKey" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+      <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="albums:AlbumTrackItem">
+          <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="8,9" Classes.playing="{Binding IsPlaying}">
+            <Border.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="{DynamicResource folders.play}" Click="OnMenuPlay" />
+                <MenuItem Header="{DynamicResource folders.nextUp}" Click="OnMenuNext" />
+                <MenuItem Header="{DynamicResource folders.append}" Click="OnMenuAppend" />
+              </ContextMenu>
+            </Border.ContextMenu>
+            <folders:FolderColumnsGrid>
+              <Grid VerticalAlignment="Center"><TextBlock Text="{Binding Number}" Classes="muted" FontSize="11" IsVisible="{Binding !IsPlaying}" /><TextBlock Text="♫" Foreground="{DynamicResource EchoAccentText}" IsVisible="{Binding IsPlaying}" /></Grid>
+              <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Row.Title}" Classes="track-title" Foreground="{DynamicResource EchoHeading}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <TextBlock Grid.Column="2" Text="{Binding Row.Album}" Classes="muted wide" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="3" Text="{Binding Signal}" Classes="muted wide" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="4" Text="{Binding Duration}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
+              <Button Grid.Column="5" Content="{Binding Heart}" FontSize="19" Classes="icon" Classes.liked="{Binding Favorite}"
+                      Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanFavorite}" Click="OnFavorite" ToolTip.Tip="{DynamicResource folders.favorite}" />
+            </folders:FolderColumnsGrid>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="24">
+      <TextBlock Text="{DynamicResource folders.emptyTitle}" Classes="heading" FontSize="20" HorizontalAlignment="Center" />
+      <TextBlock Text="{DynamicResource folders.emptyHint}" Classes="muted" FontSize="12" MaxWidth="300" TextAlignment="Center" TextWrapping="Wrap" />
+      <Button Content="{DynamicResource folders.reset}" Command="{Binding ResetFiltersCommand}" HorizontalAlignment="Center" />
+    </StackPanel>
+    <TextBlock Grid.Row="1" Text="{DynamicResource folders.loading}" Classes="muted" IsVisible="{Binding IsLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <Grid Grid.Row="2" Name="SelectionBar" IsVisible="False" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,4" IsEnabled="{Binding CanAct}">
+      <TextBlock Name="SelectionText" Classes="muted" VerticalAlignment="Center" FontSize="12" />
+      <Button Grid.Column="1" Content="{DynamicResource folders.playSelected}" Click="OnPlaySelected" />
+      <Button Grid.Column="2" Content="{DynamicResource folders.nextUp}" Click="OnNextSelected" />
+      <Button Grid.Column="3" Content="{DynamicResource folders.append}" Click="OnAppendSelected" />
+    </Grid>
+  </Grid>
+</UserControl>

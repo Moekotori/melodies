@@ -1,1 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" /><ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" /><PackageReference Include="Microsoft.Data.Sqlite" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" />
+    <ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <None Include="../../artifacts/native/scanner/**/echo-native-scanner*" Link="runtimes/%(RecursiveDir)native/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+<ItemGroup><EmbeddedResource Include="Search/Data/opencc-search.json.gz" /></ItemGroup></Project>

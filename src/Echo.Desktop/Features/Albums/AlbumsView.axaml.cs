@@ -5,6 +5,7 @@ using Avalonia.Platform.Storage;
 using Echo.Contracts.Library;
 using Echo.Contracts.Scanning;
 using Echo.Desktop.Shell;
+using Echo.Desktop.Features.LibraryDetails;
 
 namespace Echo.Desktop.Features.Albums;
 
@@ -13,7 +14,7 @@ public partial class AlbumsView : UserControl, IDisposable
     private readonly ShellViewModel _shell;
     private readonly AlbumsViewModel _model;
     private readonly AlbumWallViewport _viewport;
-    private AlbumDetailView? _detail;
+    private DetailNavigator? _detail;
     private CancellationTokenSource? _import;
     private bool _closed;
     public AlbumsViewModel Model => _model;
@@ -23,7 +24,8 @@ public partial class AlbumsView : UserControl, IDisposable
     public AlbumsView(ShellViewModel shell) : this()
     {
         _shell = shell;
-        _model = new(shell.AlbumLibrary!);
+        _model = new(shell.AlbumLibrary!, text: shell.Text, preference: shell.QueryPreference("albums"));
+        _model.PreferenceChanged += () => { try { shell.RememberQuery(_model.Preference); } catch (ArgumentException) { } };
         DataContext = _model;
         _viewport = new(_model, shell.AlbumArtwork!);
         _viewport.OpenAlbum += OpenDetail;
@@ -47,14 +49,15 @@ public partial class AlbumsView : UserControl, IDisposable
         _viewport.FixedColumns = combo.SelectedIndex switch { 1 => 4, 2 => 5, 3 => 6, _ => 0 };
         _viewport.ScrollTo(0); _viewport.RequestLayout();
     }
-    private void OnResetFilter(object? sender, RoutedEventArgs args) { _model.LosslessOnly = false; Density.SelectedIndex = 0; }
+    private void OnResetFilter(object? sender, RoutedEventArgs args) { _model.LosslessOnly = false; _model.Filters.Reset(); Density.SelectedIndex = 0; }
 
     private void OpenDetail(AlbumRow album)
     {
         _detail?.Dispose();
-        _detail = new(album, _shell.AlbumLibrary!, _shell.AlbumArtwork!, _shell.Player);
+        _detail = new(_shell);
         _detail.Back += CloseDetail;
         _detail.PersonalStateChanged += _model.UpdatePersonalState;
+        _detail.OpenAlbum(album);
         DetailHost.Content = _detail;
         DetailHost.IsVisible = true; Wall.IsVisible = false;
         _viewport.SetSuspended(true);
@@ -91,7 +94,7 @@ public partial class AlbumsView : UserControl, IDisposable
         finally { _import = null; if (!_closed) { ScanProgressRow.IsVisible = false; ImportButton.IsEnabled = true; } }
     }
     private void OnCancelImport(object? sender, RoutedEventArgs args) => _import?.Cancel();
-    public void SetWindowVisible(bool visible) => _viewport.SetSuspended(!visible || _detail is not null);
+    public void SetWindowVisible(bool visible) { _viewport.SetSuspended(!visible || _detail is not null); _detail?.SetWindowVisible(visible); }
     public void Dispose()
     { if (_closed) return; _closed = true; _import?.Cancel(); _detail?.Dispose(); _viewport.Dispose(); _model.Dispose(); }
 }

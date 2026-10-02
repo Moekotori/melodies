@@ -12,9 +12,13 @@ const glyphs = { search:'search', close:'x', minus:'minus', maximize:'square', f
   sparkles:'sparkles', user:'user-round', message:'message-square', palette:'palette', keyboard:'keyboard',
   accessibility:'accessibility', zap:'zap', download:'download', captions:'captions', link:'link-2',
   gamepad:'gamepad-2', gauge:'gauge', database:'database', info:'info', trash:'trash-2', plus:'plus',
-  reset:'rotate-ccw', help:'circle-help', book:'book-open' };
+  reset:'rotate-ccw', help:'circle-help', book:'book-open', grip:'grip-vertical',
+  locate:'locate-fixed', 'arrow-right':'arrow-right', repeat:'repeat-2', 'repeat-one':'repeat-1', save:'save',
+  sliders:'sliders-horizontal', waves:'waves', monitor:'monitor', check:'check', type:'type' };
+const requested = process.argv[3]?.split(',');
+const selected = Object.entries(glyphs).filter(([name]) => !requested || requested.includes(name));
 fs.mkdirSync(destination, {recursive:true});
-for (const [name, original] of Object.entries(glyphs)) {
+for (const [name, original] of selected) {
   const sourceCode = fs.readFileSync(path.join(source, 'node_modules/lucide-react/dist/esm/icons', original+'.js'), 'utf8');
   const literal = sourceCode.match(/createLucideIcon\("[^"]+", (\[[\s\S]*?\])\s*\);/)?.[1];
   if (!literal) throw new Error(`Missing source geometry: ${original}`);
@@ -22,5 +26,5 @@ for (const [name, original] of Object.entries(glyphs)) {
   const shapes = nodes.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).filter(([k])=>k!=='key').map(([k,v])=>`${k}="${String(v).replaceAll('&','&amp;').replaceAll('"','&quot;')}"`).join(' ')} />`).join('\n');
   fs.writeFileSync(path.join(destination, name+'-base.svg'), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n${shapes}\n</svg>\n`);
 }
-fs.copyFileSync(path.join(source,'node_modules/lucide-react/LICENSE'), path.join(destination,'LICENSE'));
-console.log(`Imported ${Object.keys(glyphs).length} original glyphs.`);
+if (!requested) fs.copyFileSync(path.join(source,'node_modules/lucide-react/LICENSE'), path.join(destination,'LICENSE'));
+console.log(`Imported ${selected.length} original glyphs.`);

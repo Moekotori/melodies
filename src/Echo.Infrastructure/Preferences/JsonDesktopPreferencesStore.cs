@@ -5,7 +5,7 @@ using Echo.Contracts.Settings;
 
 namespace Echo.Infrastructure.Preferences;
 
-// One fixed worker, latest pending snapshot only, at most 8 KiB on disk.
+// One fixed worker, latest pending snapshot only, bounded theme library, max 512 KiB on disk.
 public sealed class JsonDesktopPreferencesStore : IDesktopPreferencesStore
 {
     private readonly string _path;
@@ -20,7 +20,7 @@ public sealed class JsonDesktopPreferencesStore : IDesktopPreferencesStore
     {
         if (!File.Exists(_path)) return null;
         await using var file = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
-        if (file.Length > 8192) throw new InvalidDataException("Settings size limit exceeded.");
+        if (file.Length > 524288) throw new InvalidDataException("Settings size limit exceeded.");
         var preferences = await JsonSerializer.DeserializeAsync(file, DesktopPreferencesJsonContext.Default.DesktopPreferences, cancellation).ConfigureAwait(false);
         if (preferences?.Version != 1) throw new InvalidDataException("Unsupported settings version.");
         return preferences;
@@ -33,9 +33,11 @@ public sealed class JsonDesktopPreferencesStore : IDesktopPreferencesStore
             var temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
+                var bytes = JsonSerializer.SerializeToUtf8Bytes(preferences, DesktopPreferencesJsonContext.Default.DesktopPreferences);
+                if (bytes.Length > 524288) throw new InvalidDataException("Settings size limit exceeded.");
                 Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
                 await using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
-                    await JsonSerializer.SerializeAsync(file, preferences, DesktopPreferencesJsonContext.Default.DesktopPreferences).ConfigureAwait(false);
+                    await file.WriteAsync(bytes).ConfigureAwait(false);
                 File.Move(temporary, _path, true);
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)

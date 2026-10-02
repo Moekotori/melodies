@@ -44,7 +44,7 @@ internal static class FlacMetadataReader
                 bits = (int)((packed >> 36) & 0x1f) + 1;
                 samples = (long)(packed & 0xfffffffff);
             }
-            else if (type == 5) throw new MetadataReadException("cue_expansion_required");
+            else if (type == 5) { } // Legacy expansion consumes textual CUESHEET; binary blocks do not replace tags.
             else if (type == 4)
             {
                 if (length > CommentLimit) throw new MetadataReadException("flac_comment_size_limit");
@@ -66,7 +66,7 @@ internal static class FlacMetadataReader
                     if (separator < 0) continue;
                     var key = Encoding.ASCII.GetString(comment[..separator]);
                     var value = comment[(separator + 1)..];
-                    if (key.Equals("CUESHEET", StringComparison.OrdinalIgnoreCase)) throw new MetadataReadException("cue_expansion_required");
+                    if (key.Equals("CUESHEET", StringComparison.OrdinalIgnoreCase)) continue;
                     if (key.Equals("TITLE", StringComparison.OrdinalIgnoreCase)) title = Decode(value);
                     else if (key.Equals("ARTIST", StringComparison.OrdinalIgnoreCase)) artist = Merge(artist, Decode(value));
                     else if (key.Equals("ALBUM", StringComparison.OrdinalIgnoreCase)) album = Decode(value);

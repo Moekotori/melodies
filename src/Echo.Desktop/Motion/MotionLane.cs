@@ -4,6 +4,7 @@ using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Media.Transformation;
 using Avalonia.Rendering.Composition;
+using Avalonia.Rendering.Composition.Transport;
 using Avalonia.Threading;
 
 namespace Echo.Desktop.Motion;
@@ -13,6 +14,8 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
 {
     private static readonly AttachedProperty<MotionPlayback?> PlaybackProperty =
         AvaloniaProperty.RegisterAttached<MotionLane, Control, MotionPlayback?>("Playback");
+    private static readonly AttachedProperty<MotionVelocity> VelocityProperty =
+        AvaloniaProperty.RegisterAttached<MotionLane, Control, MotionVelocity>("Velocity");
     private CancellationTokenSource? _pending;
     private Control? _target;
     private CompositionVisual? _visual;
@@ -20,15 +23,32 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
 
     public async Task PlayAsync(Control target, double fromOpacity, double toOpacity,
         TransformOperations fromTransform, TransformOperations toTransform,
-        TimeSpan duration, Easing? easing = null)
+        TimeSpan duration, Easing? easing = null, bool preserveGeometry = false)
     {
+        var velocity = target.GetValue(PlaybackProperty)?.SampleVelocity() ?? target.GetValue(VelocityProperty);
         Cancel();
+        target.ClearValue(VelocityProperty);
+        if (!velocity.IsRecent) velocity = default;
         var pending = new CancellationTokenSource();
         var token = pending.Token;
         _pending = pending;
         _target = target;
         var from = fromTransform.Value;
         var to = toTransform.Value;
+        if (MotionScope.GetPolicy(target) is { } policy)
+        {
+            if (!policy.CanAnimate) duration = TimeSpan.Zero;
+            else duration = policy.Duration(duration);
+            var amount = policy.UseSpatialMotion ? policy.Travel(1) : 0;
+            // Current poses are already themed. Scaling them again breaks reversals and FLIP.
+            if (!preserveGeometry)
+            {
+                if (!velocity.IsRecent)
+                    from = new Matrix(1 + (from.M11 - 1) * amount, from.M12, from.M21, 1 + (from.M22 - 1) * amount, from.M31 * amount, from.M32 * amount);
+                to = new Matrix(1 + (to.M11 - 1) * amount, to.M12, to.M21, 1 + (to.M22 - 1) * amount, to.M31 * amount, to.M32 * amount);
+            }
+            fromTransform = At(from.M32, from.M11, from.M31); toTransform = At(to.M32, to.M11, to.M31);
+        }
         easing ??= MotionTokens.EnterEasing;
         target.Opacity = fromOpacity;
         target.RenderTransform = fromTransform;
@@ -46,31 +66,48 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
             if (_visual is null || duration <= TimeSpan.Zero) return;
             var visual = _visual;
             var compositor = visual.Compositor;
+            var opacityChannel = MotionChannel.Create(fromOpacity, toOpacity, duration, easing, velocity.Opacity, bounded: true);
+            var xChannel = MotionChannel.Create(from.M31, to.M31, duration, easing, velocity.X);
+            var yChannel = MotionChannel.Create(from.M32, to.M32, duration, easing, velocity.Y);
+            // The framework animates Translation as one vector. Existing owners move on one axis.
+            var movementChannel = Math.Abs(to.M31 - from.M31) >= Math.Abs(to.M32 - from.M32) ? xChannel : yChannel;
+            var moveCurve = movementChannel.Curve;
+            xChannel = xChannel with { Curve = moveCurve };
+            yChannel = yChannel with { Curve = moveCurve };
+            var scaleChannel = MotionChannel.Create(from.M11, to.M11, duration, easing, velocity.Scale);
+            var playback = new MotionPlayback(opacityChannel, xChannel, yChannel, scaleChannel, duration);
+            target.SetValue(PlaybackProperty, playback);
             var fade = compositor.CreateScalarKeyFrameAnimation();
             fade.Duration = duration;
             fade.InsertKeyFrame(0, (float)fromOpacity);
-            fade.InsertKeyFrame(1, (float)toOpacity, easing);
+            fade.InsertKeyFrame(1, (float)toOpacity, opacityChannel.RenderCurve);
             var move = compositor.CreateVector3DKeyFrameAnimation();
             move.Duration = duration;
             move.InsertKeyFrame(0, new Vector3D(from.M31 - to.M31, from.M32 - to.M32, 0));
-            move.InsertKeyFrame(1, default, easing);
+            move.InsertKeyFrame(1, default, movementChannel.RenderCurve);
             var scale = compositor.CreateVector3DKeyFrameAnimation();
             scale.Duration = duration;
             scale.InsertKeyFrame(0, new Vector3D(from.M11 / to.M11, from.M22 / to.M22, 1));
-            scale.InsertKeyFrame(1, new Vector3D(1, 1, 1), easing);
+            scale.InsertKeyFrame(1, new Vector3D(1, 1, 1), scaleChannel.RenderCurve);
             var started = new TaskCompletionSource();
+            CompositionBatch? startBatch = null;
             compositor.RequestCompositionUpdate(() =>
             {
                 if (token.IsCancellationRequested) { started.TrySetCanceled(token); return; }
-                target.SetValue(PlaybackProperty, new MotionPlayback(fromOpacity, toOpacity, from, to, duration, easing));
-                visual.StartAnimation("Opacity", fade);
-                visual.StartAnimation("Translation", move);
-                visual.StartAnimation("Scale", scale);
+                playback.Begin();
+                if (fromOpacity != toOpacity) visual.StartAnimation("Opacity", fade);
+                if (from.M31 != to.M31 || from.M32 != to.M32) visual.StartAnimation("Translation", move);
+                if (from.M11 != to.M11) visual.StartAnimation("Scale", scale);
+                startBatch = compositor.RequestCompositionBatchCommitAsync();
                 started.TrySetResult();
             });
             await started.Task.WaitAsync(token);
-            // Single completion wait with commit slack; this is not a frame timer.
-            await Task.Delay(duration + TimeSpan.FromMilliseconds(32), token);
+            await startBatch!.Processed.WaitAsync(token);
+            await Task.Delay(duration, token);
+            // Retire only after a real final composition frame; bound occluded-backend waiting.
+            var finalBatch = compositor.RequestCompositionBatchCommitAsync();
+            try { await finalBatch.Rendered.WaitAsync(TimeSpan.FromMilliseconds(80), token); }
+            catch (TimeoutException) { }
         }
         catch (OperationCanceledException) when (pending.IsCancellationRequested) { }
         finally
@@ -87,6 +124,8 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
 
     public void Cancel()
     {
+        if (_target?.GetValue(PlaybackProperty) is { } playback)
+            _target.SetValue(VelocityProperty, playback.SampleVelocity());
         var pending = _pending;
         _pending = null;
         pending?.Cancel();

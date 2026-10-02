@@ -12,16 +12,13 @@ public sealed partial class LibraryDatabase : IPlayerTrackLibrary
         {
             using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT id,path,title,artist,album,duration,codec,sample_rate,bit_depth,sort_key,
-                       track_no,disc_no,favorite
+                SELECT id,path,title,artist,coalesce((SELECT display_title FROM album_identity WHERE group_key=tracks.album_key),album),duration,codec,sample_rate,bit_depth,sort_key,
+                       track_no,disc_no,favorite,source_json
                 FROM tracks WHERE path_key=$path AND missing=0 LIMIT 1;
                 """;
             command.Parameters.AddWithValue("$path", key);
             using var reader = command.ExecuteReader();
-            return !reader.Read() ? null : new(reader.GetString(0), reader.GetString(1), reader.GetString(2),
-                reader.GetString(3), reader.GetString(4), reader.GetDouble(5), reader.GetString(6),
-                reader.GetInt32(7), reader.GetInt32(8), reader.GetString(9),
-                reader.IsDBNull(10) ? null : reader.GetInt32(10), reader.IsDBNull(11) ? null : reader.GetInt32(11), reader.GetBoolean(12));
+            return !reader.Read() ? null : TrackRowMapping.Read(reader);
         }, false, cancellation);
     }
 }

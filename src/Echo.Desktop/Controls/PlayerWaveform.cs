@@ -4,26 +4,41 @@ using Avalonia.Media;
 
 namespace Echo.Desktop.Controls;
 
-// Original idle ornament from PlayerProgress.tsx; not an audio measurement.
-// Static until bounds or theme changes. No timer or worker.
+// Original seeded waveform progress from PlayerProgress.tsx; not an audio measurement.
+// At most 96 bars, regenerated only for a different song/duration/width tier. No timer or worker.
 public sealed class PlayerWaveform : Control
 {
     public static readonly StyledProperty<IBrush?> BarBrushProperty = AvaloniaProperty.Register<PlayerWaveform, IBrush?>(nameof(BarBrush));
     public IBrush? BarBrush { get => GetValue(BarBrushProperty); set => SetValue(BarBrushProperty, value); }
-    private readonly double[] _bars = CreateBars("idle:0", 96);
-    static PlayerWaveform() => AffectsRender<PlayerWaveform>(BarBrushProperty);
+    public static readonly StyledProperty<IBrush?> PlayedBrushProperty = AvaloniaProperty.Register<PlayerWaveform, IBrush?>(nameof(PlayedBrush));
+    public static readonly StyledProperty<double> ValueProperty = AvaloniaProperty.Register<PlayerWaveform, double>(nameof(Value));
+    public static readonly StyledProperty<double> MaximumProperty = AvaloniaProperty.Register<PlayerWaveform, double>(nameof(Maximum));
+    public static readonly StyledProperty<string> SeedProperty = AvaloniaProperty.Register<PlayerWaveform, string>(nameof(Seed), "idle");
+    public IBrush? PlayedBrush { get => GetValue(PlayedBrushProperty); set => SetValue(PlayedBrushProperty, value); }
+    public double Value { get => GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
+    public double Maximum { get => GetValue(MaximumProperty); set => SetValue(MaximumProperty, value); }
+    public string Seed { get => GetValue(SeedProperty); set => SetValue(SeedProperty, value); }
+    private double[] _bars = [];
+    private string _renderSeed = "";
+    private double _renderDuration = -1;
+    static PlayerWaveform() => AffectsRender<PlayerWaveform>(BarBrushProperty, PlayedBrushProperty, ValueProperty, MaximumProperty, SeedProperty);
     public override void Render(DrawingContext context)
     {
         base.Render(context);
         var count = Bounds.Width >= 384 ? 96 : Bounds.Width >= 256 ? 64 : 48;
+        var duration = Math.Round(Maximum);
+        if (_bars.Length != count || _renderSeed != Seed || _renderDuration != duration)
+        { _bars = CreateBars($"{Seed}:{duration}", count); _renderSeed = Seed; _renderDuration = duration; }
         var width = Math.Max(1, (Bounds.Width - (count - 1) * 2) / count);
-        using (context.PushOpacity(0.276))
-            for (var index = 0; index < count; index++)
-            {
-                var height = Math.Round(_bars[index] * 100) / 100 * Bounds.Height;
-                context.DrawRectangle(BarBrush ?? Brushes.Gray, null,
+        var progress = double.IsFinite(Value) && double.IsFinite(Maximum) && Maximum > 0 ? Math.Clamp(Value / Maximum, 0, 1) : 0;
+        for (var index = 0; index < count; index++)
+        {
+            var played = (index + 0.5) / count <= progress;
+            var height = Math.Max(4, Math.Round(_bars[index] * 100) / 100 * Bounds.Height);
+            using (context.PushOpacity(played ? 0.92 : 0.276))
+                context.DrawRectangle(played ? PlayedBrush ?? BarBrush ?? Brushes.Gray : BarBrush ?? Brushes.Gray, null,
                     new Rect(index * (width + 2), (Bounds.Height - height) / 2, width, height), width / 2, width / 2);
-            }
+        }
     }
     private static double[] CreateBars(string seed, int count)
     {

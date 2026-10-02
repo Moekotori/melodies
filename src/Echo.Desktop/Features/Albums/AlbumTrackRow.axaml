@@ -2,31 +2,35 @@
              xmlns:albums="using:Echo.Desktop.Features.Albums" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Albums.AlbumTrackRow" x:DataType="albums:AlbumTrackItem">
   <UserControl.Styles>
-    <Style Selector="Button.track"><Setter Property="CornerRadius" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+    <Style Selector="Button.track"><Setter Property="Background" Value="{DynamicResource EchoRow}" /><Setter Property="CornerRadius" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
     <Style Selector="Button.track:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
     <Style Selector="Button.track.playing"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+    <Style Selector="TextBlock.title"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
     <Style Selector="Button.track.playing TextBlock.title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
     <Style Selector="Button.track:pointerover TextBlock.number"><Setter Property="Opacity" Value="0" /></Style>
     <Style Selector="Button.track:pointerover icon|GlyphIcon.row-play"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="Button.track.playing TextBlock.number"><Setter Property="Opacity" Value="0" /></Style>
+    <Style Selector="Button.track.playing icon|GlyphIcon.row-play"><Setter Property="Opacity" Value="1" /></Style>
     <Style Selector="Button.liked"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button.liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
   </UserControl.Styles>
   <Button Name="PlayButton" Classes="track" Classes.playing="{Binding IsPlaying}" Click="OnPlay" Padding="0"
           HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MinHeight="56"
           BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0">
-    <Button.ContextMenu><ContextMenu><MenuItem Header="立即播放" Click="OnMenuPlay" /><MenuItem Header="下一首播放" Click="OnMenuNext" /><MenuItem Header="添加到队列" Click="OnMenuAdd" /></ContextMenu></Button.ContextMenu>
+    <Button.ContextMenu><ContextMenu><MenuItem Header="{DynamicResource ui.AlbumTrackRow.79aaf3909d9f}" Click="OnMenuPlay" /><MenuItem Header="{DynamicResource ui.AlbumDetailView.94ca0a7bf933}" Click="OnMenuNext" /><MenuItem Header="{DynamicResource ui.AlbumDetailView.fa5f222e10c4}" Click="OnMenuAdd" /></ContextMenu></Button.ContextMenu>
     <Grid Name="Columns" ColumnDefinitions="46,*,230,68,34" ColumnSpacing="18" Margin="0,7">
       <Grid VerticalAlignment="Center">
         <TextBlock Classes="muted number" Text="{Binding Number}" FontSize="12" />
         <icon:GlyphIcon Classes="row-play" Kind="play" Width="13" Height="13" Stroke="{DynamicResource EchoAccentText}" Opacity="0" HorizontalAlignment="Left" />
       </Grid>
       <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-        <TextBlock Classes="title" Text="{Binding Row.Title}" Foreground="{DynamicResource EchoHeading}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-        <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+        <TextBlock Classes="title" Text="{Binding Row.Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Row.Title}" />
+        <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Row.Artist}" />
       </StackPanel>
       <TextBlock Name="Signal" Grid.Column="2" Text="{Binding Signal}" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
       <TextBlock Grid.Column="3" Text="{Binding Duration}" Classes="muted" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" />
-      <Button Grid.Column="4" Classes="icon" Classes.liked="{Binding Favorite}" Content="{Binding Heart}" FontSize="19" Width="30" Padding="0"
-              Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanFavorite}" Click="OnFavorite" ToolTip.Tip="收藏曲目" />
+      <Button Name="FavoriteButton" Grid.Column="4" Classes="icon" Classes.liked="{Binding Favorite}" Width="30" Padding="0"
+              Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanFavorite}" Click="OnFavorite" ToolTip.Tip="{DynamicResource ui.AlbumTrackRow.b66069d108b5}" AutomationProperties.Name="{DynamicResource ui.AlbumTrackRow.b66069d108b5}"><icon:GlyphIcon Kind="{Binding HeartIcon}" Width="17" Height="17" StrokeWidth="1.75" /></Button>
     </Grid>
   </Button>
 </UserControl>

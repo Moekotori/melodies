@@ -8,6 +8,7 @@ Directory.CreateDirectory(root);
 var a = Path.Combine(root, "a.wav");
 var b = Path.Combine(root, "b.wav");
 Wave(a, 2.5); Wave(b, 0.6);
+if (args.Contains("--state-only")) { await StateSmoke.RunAsync(a); await RuntimeSmoke.RunAsync(root, a); return; }
 if (args.Contains("--runtime-only")) { await RuntimeSmoke.RunAsync(root, a); return; }
 await FakeAsync(a, b);
 await QueueScenarios.RunAsync(a, b);

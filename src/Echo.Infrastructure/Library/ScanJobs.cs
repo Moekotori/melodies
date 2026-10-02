@@ -22,6 +22,7 @@ public sealed partial class LibraryDatabase
                   SELECT id FROM scan_jobs WHERE state!='Running' ORDER BY started_at DESC LIMIT 31);
                 INSERT INTO scan_jobs(id,root_prefix,state,track_presence,started_at)
                 VALUES($id,$root,'Running',$presence,unixepoch());
+                INSERT OR IGNORE INTO library_roots(prefix) VALUES($root);
                 """;
             command.Parameters.AddWithValue("$id", id);
             command.Parameters.AddWithValue("$root", prefix);
