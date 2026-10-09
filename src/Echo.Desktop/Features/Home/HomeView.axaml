@@ -2,32 +2,31 @@
              xmlns:home="using:Echo.Desktop.Features.Home" xmlns:icon="using:Echo.Desktop.Controls" xmlns:motion="using:Echo.Desktop.Motion"
              x:Class="Echo.Desktop.Features.Home.HomeView" x:DataType="home:HomeViewModel">
  <Grid>
-  <StackPanel Name="HomeContent" MaxWidth="1200" HorizontalAlignment="Stretch" Spacing="28" Margin="0,4,0,24">
-    <home:HomeWelcomeView IsVisible="{Binding ShowWelcome}" />
-    <Border IsVisible="{Binding HasFocus}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,24">
-      <Grid Name="HeroGrid" ColumnDefinitions="220,*" ColumnSpacing="32" MinHeight="220">
-        <Border Name="HeroArtwork" Width="220" Height="220" Background="{DynamicResource EchoPlaceholder}" CornerRadius="{DynamicResource EchoCoverRadius}" ClipToBounds="True"><Grid>
+  <StackPanel Name="HomeContent" MaxWidth="1200" HorizontalAlignment="Stretch" Spacing="22" Margin="12,12,12,28">
+    <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,20">
+      <Grid Name="HeroGrid" ColumnDefinitions="280,*" ColumnSpacing="26" MinHeight="280">
+        <Border Name="HeroArtwork" Width="280" Height="280" Background="{DynamicResource EchoPlaceholder}" CornerRadius="{DynamicResource EchoCoverRadius}" ClipToBounds="True"><Grid>
           <Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" />
           <Image Name="FocusCover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
         </Grid></Border>
-        <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Center">
-          <TextBlock Text="{Binding HeroLabel}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="SemiBold" />
+        <StackPanel Name="HeroCopy" Grid.Column="1" Spacing="12" VerticalAlignment="Top">
+          <TextBlock LineHeight="18" Text="{Binding HeroLabel}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="SemiBold" />
           <StackPanel Spacing="6">
-            <TextBlock Text="{Binding FocusTitle}" Classes="heading" FontSize="32" LineHeight="40" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FocusTitle}" />
+            <TextBlock Name="HeroTitle" Text="{Binding FocusTitle}" Classes="heading" FontSize="38" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FocusTitle}" />
             <WrapPanel>
-              <Button Classes="content-link" Padding="0" Command="{Binding OpenArtistCommand}" CommandParameter="{Binding FocusArtist}" IsVisible="{Binding HasFocus}"><TextBlock Text="{Binding FocusArtist}" Classes="muted" FontSize="14" /></Button>
+              <Button Classes="content-link" MinHeight="19" Padding="0" Command="{Binding OpenArtistCommand}" CommandParameter="{Binding FocusArtist}" IsVisible="{Binding HasFocus}"><TextBlock Text="{Binding FocusArtist}" Classes="muted" FontSize="14" /></Button>
               <TextBlock Text=" · " Classes="muted" VerticalAlignment="Center" IsVisible="{Binding HasFocus}" />
-              <Button Classes="content-link" Padding="0" Command="{Binding OpenFocusAlbumCommand}" IsVisible="{Binding HasFocus}"><TextBlock Text="{Binding FocusAlbum}" Classes="muted" FontSize="14" /></Button>
+              <Button Classes="content-link" MinHeight="19" Padding="0" Command="{Binding OpenFocusAlbumCommand}" IsVisible="{Binding HasFocus}"><TextBlock Text="{Binding FocusAlbum}" Classes="muted" FontSize="14" /></Button>
               <TextBlock Text="{DynamicResource ui.HomeView.fabc693887a2}" Classes="muted" FontSize="14" IsVisible="{Binding !HasFocus}" />
             </WrapPanel>
           </StackPanel>
           <TextBlock Text="{DynamicResource ui.HomeView.5550d47bf79d}" FontSize="13" Classes="muted" LineHeight="22" TextWrapping="Wrap" IsVisible="{Binding !HasFocus}" />
-          <TextBlock Text="{Binding SourceLabel}" Classes="muted" FontSize="11" IsVisible="{Binding HasFocus}" />
+          <TextBlock Text="{Binding SourceLabel}" Classes="muted" FontSize="11" IsVisible="{Binding SourceLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <WrapPanel Orientation="Horizontal">
             <Button Name="ContinueButton" Classes="primary" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="play" Width="17" Height="17" Stroke="{DynamicResource EchoOnAccent}" /><TextBlock Text="{DynamicResource ui.HomeView.11a6c8e68b59}" /></StackPanel></Button>
-            <Button Command="{Binding Shell.NavigateCommand}" CommandParameter="queue" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="queue" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.f9c57473d6a0}" FontSize="13" /></StackPanel></Button>
-            <Button Name="RefreshButton" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.aee887434131}" FontSize="13" /></StackPanel></Button>
-            <Button Name="RandomButton" Command="{Binding RandomCommand}" IsEnabled="{Binding CanRandom}" Margin="0,8,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="shuffle" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.41fd818df70c}" FontSize="13" /></StackPanel></Button>
+            <Button Classes="quiet" Command="{Binding Shell.NavigateCommand}" CommandParameter="queue" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="queue" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.f9c57473d6a0}" FontSize="13" /></StackPanel></Button>
+            <Button Name="RefreshButton" Classes="quiet" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.aee887434131}" FontSize="13" /></StackPanel></Button>
+            <Button Name="RandomButton" Classes="quiet" Command="{Binding RandomCommand}" IsEnabled="{Binding CanRandom}" Margin="0,8,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="shuffle" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.41fd818df70c}" FontSize="13" /></StackPanel></Button>
           </WrapPanel>
           <TextBlock Text="{Binding Specifications}" Classes="muted" FontSize="10" />
           <home:HomeNowLyrics />
@@ -36,8 +35,8 @@
         </StackPanel>
       </Grid>
     </Border>
-    <home:LibraryOverview Name="LibraryMetrics" IsVisible="{Binding HasCollection}" />
-    <Grid ColumnDefinitions="*,232" ColumnSpacing="32" Name="DiscoveryGrid" IsVisible="{Binding HasCollection}">
+    <home:LibraryOverview Name="LibraryMetrics" />
+    <Grid ColumnDefinitions="*,232" ColumnSpacing="32" Name="DiscoveryGrid">
       <StackPanel Spacing="24">
         <StackPanel Spacing="16">
           <Grid ColumnDefinitions="*,Auto">
@@ -70,7 +69,7 @@
       </StackPanel>
       <home:ListeningOverview Name="ListeningSidebar" Grid.Column="1" />
     </Grid>
-    <home:HomeInsightsView Name="Insights" IsVisible="{Binding HasCollection}" />
+    <home:HomeInsightsView Name="Insights" />
     <StackPanel HorizontalAlignment="Center" Spacing="8">
       <TextBlock Text="{DynamicResource home.loading}" IsVisible="{Binding IsLoading}" Classes="muted" FontSize="12" HorizontalAlignment="Center" />
       <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" HorizontalAlignment="Center" />

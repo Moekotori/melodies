@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell" xmlns:playback="using:Echo.Playback"
+             x:Class="Echo.Desktop.Features.Player.PlayerQuickOutputPanel" x:DataType="shell:ShellViewModel">
+  <StackPanel Spacing="10">
+    <TextBlock Text="{Binding Player.OutputName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+    <Button Content="{DynamicResource ui.PlayerOutputPanel.c62ccce456a1}" Command="{Binding Player.AudioSettings.RefreshCommand}" HorizontalAlignment="Stretch" />
+    <ComboBox ItemsSource="{Binding Player.AudioSettings.Devices}" SelectedItem="{Binding Player.AudioSettings.SelectedDevice}" HorizontalAlignment="Stretch" IsEnabled="{Binding !Player.AudioSettings.IsRefreshing}" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.output}">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputDevice"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <ComboBox ItemsSource="{Binding Player.AudioSettings.Modes}" SelectedItem="{Binding Player.AudioSettings.SelectedMode}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource ui.PlayerOutputPanel.c25a1af82895}">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputMode"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <Button Content="{DynamicResource ui.PlayerOutputPanel.a1a42cd9b16e}" Command="{Binding Player.AudioSettings.ApplyCommand}" IsEnabled="{Binding !Player.AudioSettings.IsRefreshing}" HorizontalAlignment="Stretch" />
+    <TextBlock Text="{Binding Player.AudioSettings.Message}" Classes="muted" TextWrapping="Wrap" FontSize="12" IsVisible="{Binding Player.AudioSettings.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

@@ -9,7 +9,7 @@ namespace Echo.Desktop.Shell;
 public sealed partial class ShellViewModel
 {
     private static readonly string[] DefaultSidebarOrder =
-        ["home", "songs", "artists", "folders", "albums", "genres", "remote", "radio", "dsp", "workshop", "queue", "history", "playlists", "listening"];
+        ["home", "songs", "artists", "genres", "albums", "album-artists", "folders", "playlists", "remote", "radio", "workshop", "dsp", "queue", "history", "listening"];
 
     [ObservableProperty] private bool isSidebarEditing;
     public SidebarLayoutPreferences SidebarLayout => new(AllItems().Select(x => x.Id).ToArray(), AllItems().Where(x => x.IsHidden).Select(x => x.Id).ToArray());
@@ -24,6 +24,7 @@ public sealed partial class ShellViewModel
     {
         if (!IsSidebarEditing || item is null || !AllItems().Contains(item)) return;
         item.IsHidden = !item.IsHidden;
+        RefreshSidebarHierarchy();
         OnPropertyChanged(nameof(SidebarLayout));
     }
     [RelayCommand] private void ResetSidebarLayout() => RestoreSidebarLayout(null);
@@ -33,6 +34,7 @@ public sealed partial class ShellViewModel
         foreach (var item in AllItems()) item.IsEditing = value;
         OnPropertyChanged(nameof(IsSidebarLabelVisible));
         OnPropertyChanged(nameof(SidebarReservedWidth));
+        RefreshSidebarHierarchy();
     }
 
     private IEnumerable<ObservableCollection<NavigationItem>> SidebarGroups() => [LibraryItems, SourceItems, PlaybackItems];
@@ -40,7 +42,10 @@ public sealed partial class ShellViewModel
     public void RestoreSidebarLayout(SidebarLayoutPreferences? layout)
     {
         // Ignore unknown/duplicate ids and keep new entries, including future bundled rows.
-        var order = (layout?.Order ?? DefaultSidebarOrder).Take(64).Distinct(StringComparer.Ordinal).ToArray();
+        var savedOrder = layout?.Order;
+        string[] previousDefault = ["home", "songs", "artists", "folders", "albums", "genres", "remote", "radio", "dsp", "workshop", "queue", "history", "playlists", "listening"];
+        var order = (savedOrder is null || savedOrder.SequenceEqual(previousDefault) ? DefaultSidebarOrder : savedOrder)
+            .Take(64).Distinct(StringComparer.Ordinal).ToArray();
         var hidden = (layout?.Hidden ?? []).Take(64).ToHashSet(StringComparer.Ordinal);
         foreach (var group in SidebarGroups())
         {
@@ -49,6 +54,7 @@ public sealed partial class ShellViewModel
             for (var i = 0; i < sorted.Count; i++) group.Move(group.IndexOf(sorted[i]), i);
             foreach (var item in group) item.IsHidden = hidden.Contains(item.Id);
         }
+        RefreshSidebarHierarchy();
         OnPropertyChanged(nameof(SidebarLayout));
     }
 

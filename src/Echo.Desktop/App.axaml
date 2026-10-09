@@ -1,7 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:semi="https://irihi.tech/semi"
-             x:Class="Echo.Desktop.App" RequestedThemeVariant="Light">
+             x:Class="Echo.Desktop.App" Name="ECHO" RequestedThemeVariant="Light">
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>

@@ -88,7 +88,7 @@ try
     window.Content = content;
     Wait(tools.CancelTimerCommand.ExecuteAsync(null));
     text.SetLanguage("en-US"); ApplyLanguage(); ApplyTheme(false); Pump(); Capture("tools-english.png");
-    Require(panel.FindControl<ComboBox>("TimerAction")!.SelectedItem?.ToString() == "Stop when finished" && tools.ActionIndex == 1,
+    Require(panel.FindControl<PlayerSleepTimerPanel>("SleepTimer")!.FindControl<ComboBox>("TimerAction")!.SelectedItem?.ToString() == "Stop when finished" && tools.ActionIndex == 1,
         "language switch refreshes action label without changing saved action");
     window.Width = 340; Pump(); Capture("tools-narrow.png");
     Wait(runtime.InvokeAsync("sleep-timer", "开始定时")); Require(timer.State.Active, "settings action reaches shared timer");
@@ -113,7 +113,7 @@ void Until(Func<bool> condition, int milliseconds = 2000)
 void Wait(Task task) { Until(() => task.IsCompleted, 3500); task.GetAwaiter().GetResult(); }
 void Click(string name)
 {
-    Pump(); var button = panel.FindControl<Button>(name)!;
+    Pump(); var button = panel.FindControl<Button>(name) ?? panel.FindControl<PlayerSleepTimerPanel>("SleepTimer")!.FindControl<Button>(name)!;
     var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
     window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Pump();
 }

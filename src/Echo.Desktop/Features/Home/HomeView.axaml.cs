@@ -94,12 +94,22 @@ public partial class HomeView : UserControl, IDisposable
     { detail?.Dispose(); detail = null; DetailHost.Content = null; DetailHost.IsVisible = false; HomeContent.IsVisible = true; }
     private void ApplyLayout()
     {
-        var narrow = Bounds.Width is > 0 and < 760;
-        DiscoveryGrid.ColumnDefinitions = new(narrow ? "*" : "*,232"); DiscoveryGrid.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
+        var width = Math.Max(0, Bounds.Width - 24);
+        var narrow = width <= 820;
+        DiscoveryGrid.ColumnDefinitions = new(narrow ? "*" : width <= 1100 ? "*,220" : "*,260"); DiscoveryGrid.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
+        DiscoveryGrid.ColumnSpacing = width <= 1100 ? 24 : 28;
         Grid.SetColumn(ListeningSidebar, narrow ? 0 : 1); Grid.SetRow(ListeningSidebar, narrow ? 1 : 0);
         ListeningSidebar.Margin = new(0, narrow ? 28 : 0, 0, 0);
-        var edge = Bounds.Width is > 0 and < 760 ? 144 : 220;
-        HeroGrid.ColumnDefinitions[0].Width = new(edge); HeroGrid.MinHeight = edge; HeroArtwork.Width = HeroArtwork.Height = edge;
+        var stacked = width <= 460;
+        var edge = width <= 600 ? 144 : width <= 820 ? 192 : width <= 1100 ? 248 : 280;
+        HeroGrid.ColumnDefinitions = new(stacked ? "*" : $"{edge},*");
+        HeroGrid.RowDefinitions = new(stacked ? "Auto,Auto" : "Auto");
+        Grid.SetColumn(HeroCopy, stacked ? 0 : 1); Grid.SetRow(HeroCopy, stacked ? 1 : 0);
+        HeroCopy.Margin = new(0, stacked ? 20 : 0, 0, 0);
+        HeroGrid.ColumnSpacing = width <= 820 ? 20 : width <= 1100 ? 24 : 26;
+        HeroGrid.MinHeight = edge; HeroArtwork.Width = HeroArtwork.Height = edge;
+        HeroCopy.Spacing = width <= 1100 ? 6 : 12;
+        HeroTitle.FontSize = width <= 600 ? 24 : width <= 1100 ? 32 : Math.Clamp(width * .032, 28, 38);
     }
     public void SetWindowVisible(bool visible)
     {

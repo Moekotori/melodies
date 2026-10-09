@@ -13,6 +13,8 @@ using Echo.Desktop.Bootstrap;
 using Echo.Desktop.Features.Player;
 using Echo.Desktop.Shell;
 using Echo.Playback;
+using Echo.Application.Playback;
+using Echo.Desktop.Features.Settings.Runtime;
 using Echo.Playback.NativeAudio;
 
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions())
@@ -22,12 +24,14 @@ Directory.CreateDirectory(root);
 var clock = Stopwatch.StartNew();
 var native = new ControlNative();
 var session = new PlaybackSessionCoordinator(native);
+var timer = new SleepTimerService(session);
 var shell = new ShellViewModel(); shell.Text.SetLanguage("zh-CN");
 var player = new PlayerViewModel(new("local", "本机", session), shell.Text); shell.AttachPlayback(player);
+player.AttachTools(timer, new FeaturePreferences());
 var panel = new PlayerVolumePanel { DataContext = shell };
-var surface = new Border { Padding = new Thickness(20), CornerRadius = new CornerRadius(16), Child = panel };
+var surface = new Border { Padding = new Thickness(10, 8, 10, 14), CornerRadius = new CornerRadius(16), Child = panel };
 surface.Bind(Border.BackgroundProperty, surface.GetResourceObservable("EchoPlayer"));
-var window = new Window { Width = 460, Height = 355, Content = surface, DataContext = shell };
+var window = new Window { Width = 286, Height = 230, Content = surface, DataContext = shell };
 ApplyLanguage();
 try
 {
@@ -70,6 +74,24 @@ try
     finally { Wait(restored.DisposeAsync().AsTask()); }
     window.RequestedThemeVariant = ThemeVariant.Dark; Pump(); Capture("controls-dark.png");
     shell.Text.SetLanguage("en-US"); ApplyLanguage(); Pump(); Capture("controls-english.png");
+    window.RequestedThemeVariant = ThemeVariant.Light; shell.Text.SetLanguage("zh-CN"); ApplyLanguage();
+    Click("SleepTab");
+    var sleepPanel = (PlayerSleepTimerPanel)panel.FindControl<ContentControl>("ExtraPane")!.Content!;
+    Require(sleepPanel.DataContext == player.Tools && !panel.FindControl<StackPanel>("VolumePane")!.IsVisible, "sleep tab binds shared timer without navigating away");
+    Wait(player.Tools!.StartTimerCommand.ExecuteAsync(null));
+    Require(timer.State.Active, "embedded sleep timer starts shared deadline");
+    window.Height = 280; Pump(); Capture("controls-sleep.png");
+    Click("MiniTab"); Require(panel.FindControl<ContentControl>("ExtraPane")!.Content is PlayerMiniPanel && timer.State.Active, "switching tabs preserves background timer");
+    Capture("controls-mini.png");
+    window.Height = 340; Click("OutputTab"); Require(panel.FindControl<ContentControl>("ExtraPane")!.Content is PlayerQuickOutputPanel, "output tab stays in the same popover");
+    Capture("controls-output.png");
+    Click("VolumeTab"); window.Height = 230;
+    panel.FindControl<Button>("VolumeTab")!.Focus();
+    window.KeyPress(Key.Q, RawInputModifiers.None, PhysicalKey.Q, null); window.KeyRelease(Key.Q, RawInputModifiers.None, PhysicalKey.Q, null);
+    Require(speed.IsFocused, "Q focuses speed control");
+    window.KeyPress(Key.E, RawInputModifiers.None, PhysicalKey.E, null); window.KeyRelease(Key.E, RawInputModifiers.None, PhysicalKey.E, null);
+    Require(panel.FindControl<Slider>("VolumeSlider")!.IsFocused, "E focuses volume control");
+    Wait(player.Tools.CancelTimerCommand.ExecuteAsync(null));
     window.Content = null; Pump(); Require(!player.IsChangingPlaybackRate && !player.IsChangingVolume, "detach releases preview ownership");
     var bar = new PlayerBar { DataContext = shell };
     window.Width = 1100; window.Height = 480;
@@ -101,9 +123,9 @@ try
         finally { Wait(real.DisposeAsync().AsTask()); }
         Console.WriteLine("PASS real Native Audio Host speed receipts (.75x, 1.25x, reset), silent volume. No acoustic/device acceptance claimed.");
     }
-    Console.WriteLine($"PASS product Avalonia XAML: drag/keyboard, one command per drag, failure rollback, shared speed, +/- volume, mute restore, lock, checkpoint/recovery, detach, light/dark/English. {clock.Elapsed.TotalSeconds:0.0}s.");
+    Console.WriteLine($"PASS product Avalonia XAML: drag/keyboard, one command per drag, failure rollback, shared speed, +/- volume, mute restore, lock, four panes, shared sleep timer, Q/E focus, checkpoint/recovery, detach, light/dark/English. {clock.Elapsed.TotalSeconds:0.0}s.");
 }
-finally { window.Close(); player.Detach(); Wait(session.DisposeAsync().AsTask()); }
+finally { window.Close(); player.Detach(); Wait(timer.DisposeAsync().AsTask()); Wait(session.DisposeAsync().AsTask()); }
 
 void ApplyLanguage()
 { foreach (var key in shell.Text.Catalog.Fallback.Strings.Keys) window.Resources[key] = shell.Text[key]; }

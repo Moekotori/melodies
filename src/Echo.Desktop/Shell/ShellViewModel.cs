@@ -12,15 +12,16 @@ public sealed partial class ShellViewModel : ObservableObject
 {
     public Echo.Desktop.Features.Player.AppearanceVisualsViewModel AppearanceVisuals { get; } = new();
     public ObservableCollection<NavigationItem> LibraryItems { get; } = [
-        new("home", "主页", "library"), new("songs", "曲目", "library"),
-        new("artists", "艺术家", "library"), new("folders", "文件夹", "library"),
-        new("albums", "专辑", "library"), new("genres", "流派", "library")];
+        new("home", "主页", "start"), new("songs", "曲目", "library"),
+        new("artists", "艺术家", "library"), new("genres", "流派", "library"),
+        new("albums", "专辑", "library"), new("album-artists", "专辑艺术家", "library"),
+        new("folders", "文件夹", "library"), new("playlists", "收藏与歌单", "library")];
     public ObservableCollection<NavigationItem> SourceItems { get; } = [
         new("remote", "网盘 / 远程", "sources"), new("radio", "电台", "sources"),
-        new("dsp", "音效处理", "sources"), new("workshop", "创意工坊", "sources")];
+        new("workshop", "创意工坊", "sources"), new("dsp", "音效处理", "sources")];
     public ObservableCollection<NavigationItem> PlaybackItems { get; } = [
         new("queue", "队列", "playback"), new("history", "历史", "playback"),
-        new("playlists", "收藏与歌单", "playback"), new("listening", "一起听歌", "playback")];
+        new("listening", "一起听歌", "playback")];
     public IReadOnlyList<NavigationItem> PluginItems { get; } = [];
 
     [ObservableProperty] private string activeRouteId = "home";
@@ -49,6 +50,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public ShellViewModel(LocalizationService? text = null)
     {
         Text = text ?? new(); Motion = new(Text); LibraryItems[0].IsActive = true;
+        ConfigureSidebarBranches();
+        LibraryItems.CollectionChanged += SidebarLibraryChanged;
         FeaturePreferences.Changed += OnResidencyPreferencesChanged;
         Floating = new(Text);
         LyricsAppearance = new(text: Text);
@@ -59,26 +62,36 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         foreach (var item in AllItems())
         {
-            var key = "navigation." + item.Id;
+            var key = item.Id == "artists" ? "sidebar.songArtists" : "navigation." + item.Id;
             item.Label = Text.Catalog.Fallback.Strings.ContainsKey(key) ? Text[key] : Text.Translate(item.SourceLabel);
         }
-        ActivePageTitle = AllItems().FirstOrDefault(item => item.Id == ActiveRouteId)?.Label
+        ActivePageTitle = AllItems().FirstOrDefault(item => item.Id == (ActiveRouteId == "artists" && ArtistGroupingIndex == 1 ? "album-artists" : ActiveRouteId))?.Label
             ?? Text.Translate(ActiveRouteId switch { "settings" => "设置", "lyrics" => "歌词", "audio-settings" => "音频设置", _ => ActiveRouteId });
         OnPropertyChanged(nameof(RecentEmptyTitle)); OnPropertyChanged(nameof(RecentEmptyDescription));
         OnPropertyChanged(nameof(QuickSettingsTitle));
     }
-    public void ReleaseLocalization() { FeaturePreferences.Changed -= OnResidencyPreferencesChanged; Shortcuts.Dispose(); Text.Changed -= RefreshLanguage; Motion.ReleaseLocalization(); LyricsAppearance.ReleaseLocalization(); }
+    public void ReleaseLocalization() { LibraryItems.CollectionChanged -= SidebarLibraryChanged; FeaturePreferences.Changed -= OnResidencyPreferencesChanged; Shortcuts.Dispose(); Text.Changed -= RefreshLanguage; Motion.ReleaseLocalization(); LyricsAppearance.ReleaseLocalization(); }
 
     [RelayCommand]
     private void Navigate(string? id)
     {
         CloseSidebarDrawer();
-        if (string.IsNullOrWhiteSpace(id) || id == ActiveRouteId) return;
+        if (string.IsNullOrWhiteSpace(id)) return;
+        var requestedId = id;
+        var previousGrouping = ArtistGroupingIndex;
+        if (id is "artists" or "album-artists") { ArtistGroupingIndex = id == "album-artists" ? 1 : 0; id = "artists"; }
+        if (id == ActiveRouteId)
+        {
+            if (id == "artists" && previousGrouping != ArtistGroupingIndex) NavigationVersion++;
+            RevealSidebarDestination(requestedId);
+            return;
+        }
         if (id == "settings") _settingsReturnRoute = ActiveRouteId;
         ActiveRouteId = id;
         IsHome = id == "home";
-        foreach (var item in AllItems()) item.IsActive = item.Id == id;
-        ActivePageTitle = AllItems().FirstOrDefault(item => item.Id == id)?.Label ?? Text.Translate(id switch
+        UpdateSidebarSelection();
+        RevealSidebarDestination(requestedId);
+        ActivePageTitle = AllItems().FirstOrDefault(item => item.Id == requestedId)?.Label ?? Text.Translate(id switch
         {
             "settings" => "设置", "lyrics" => "歌词", "audio-settings" => "音频设置", _ => id
         });

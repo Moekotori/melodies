@@ -42,6 +42,8 @@ public partial class Sidebar : UserControl
         var handle = control.GetVisualAncestors().Prepend(control).OfType<Button>().FirstOrDefault(x => x.Classes.Contains("sidebar-handle"));
         if (handle is not null) OnGripPressed(handle, e);
     }
+    private void OnBranchToggle(object? sender, RoutedEventArgs e)
+    { if (sender is Control { DataContext: NavigationItem item }) item.IsBranchExpanded = !item.IsBranchExpanded; }
     private void OnNavigationClicked(object? sender, RoutedEventArgs e)
     {
         if (Model?.IsSidebarEditing != false || sender is not Control { DataContext: NavigationItem item }) return;

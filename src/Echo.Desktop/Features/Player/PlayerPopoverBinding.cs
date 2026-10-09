@@ -38,7 +38,7 @@ internal sealed class PlayerPopoverBinding
             scope.RequestedThemeVariant = shell.IsDark ? ThemeVariant.Dark : ThemeVariant.Light;
             var strings = new ResourceDictionary();
             foreach (var key in shell.Text.Catalog.Fallback.Strings.Keys)
-                if (key.StartsWith("floating.", StringComparison.Ordinal) || key.StartsWith("ui.PlayerBar.", StringComparison.Ordinal) ||
+                if (key.StartsWith("playerTools.", StringComparison.Ordinal) || key.StartsWith("floating.", StringComparison.Ordinal) || key.StartsWith("ui.PlayerBar.", StringComparison.Ordinal) ||
                     key.StartsWith("ui.PlayerOutputPanel.", StringComparison.Ordinal) ||
                     key.StartsWith("ui.LyricsSettingsDrawerView.", StringComparison.Ordinal) ||
                     key.StartsWith("ui.PlayerVolumePanel.", StringComparison.Ordinal)) strings.Add(key, shell.Text[key]);

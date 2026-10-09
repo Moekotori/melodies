@@ -5,7 +5,15 @@ namespace Echo.Desktop.Shell;
 
 public partial class TitleBar : UserControl
 {
-    public TitleBar() => InitializeComponent();
+    public TitleBar()
+    {
+        InitializeComponent();
+        if (OperatingSystem.IsMacOS())
+        {
+            TitlebarSurface.Padding = new Avalonia.Thickness(86, 0, 8, 0);
+            WindowButtons.IsVisible = false;
+        }
+    }
     private Window? Host => TopLevel.GetTopLevel(this) as Window;
     private void OnOpenQuickSettings(object? sender, RoutedEventArgs e)
     {

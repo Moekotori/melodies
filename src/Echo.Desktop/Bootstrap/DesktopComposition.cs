@@ -1,3 +1,5 @@
+using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Echo.Desktop.Shell;
 using Echo.Desktop.Features.Player;
 using Echo.Playback;
@@ -98,7 +100,7 @@ public static class DesktopComposition
                 state.PositionSeconds, state.DurationSeconds, state.Volume, state.PlaybackRate);
         });
         var broadcastSettings = new BroadcastSettingsModule(settingsRuntime, shell.FeaturePreferences, broadcast,
-            settingsDialogs, value => window.Clipboard?.SetTextAsync(value) ?? throw new NotSupportedException("当前平台无法写入剪贴板。"),
+            settingsDialogs, value => window.Clipboard?.SetValueAsync(DataFormat.Text, value) ?? throw new NotSupportedException("当前平台无法写入剪贴板。"),
             value => shell.Settings.Feedback = value);
         var windowFeatures = new WindowFeatureController(window, shell, settingsRuntime, settingsDialogs);
         var taskbar = OperatingSystem.IsWindows() ? new WindowTaskbarBinding(window, shell, settingsRuntime, settingsDialogs) : null;

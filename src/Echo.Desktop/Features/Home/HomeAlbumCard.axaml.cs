@@ -27,7 +27,7 @@ public partial class HomeAlbumCard : UserControl, IDisposable
         {
             CardLayout.RowDefinitions = new("*"); CardLayout.ColumnDefinitions = new("88,*"); CardLayout.ColumnSpacing = 14;
             Grid.SetRow(Copy, 0); Grid.SetColumn(Copy, 1); Copy.Margin = new(0);
-            ArtworkFrame.Width = ArtworkFrame.Height = 88; OpenButton.Padding = new(4); Title.FontSize = 16;
+            ArtworkFrame.Width = ArtworkFrame.Height = 88; OpenButton.Padding = new(0); Title.FontSize = 17; Artist.FontSize = 14; Metadata.FontSize = 12;
         }
         AttachedToVisualTree += (_, _) => _ = LoadCoverAsync();
     }

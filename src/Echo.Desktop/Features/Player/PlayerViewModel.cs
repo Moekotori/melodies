@@ -31,7 +31,8 @@ public sealed partial class PlayerViewModel : ObservableObject
     [ObservableProperty] private string durationText = "0:00";
     [ObservableProperty] private string playIcon = "play";
     [ObservableProperty] private string repeatText = "顺序播放";
-    [ObservableProperty] private string modeIcon = "queue";
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(TransportModeIcon))] private string modeIcon = "queue";
+    public string TransportModeIcon => ModeIcon is "queue" or "repeat" ? "sequence" : ModeIcon;
     [ObservableProperty] private string currentFilePath = "";
     [ObservableProperty] private string artistAlbum = "选择歌曲开始播放";
     [ObservableProperty] private string signalPath = "尚未打开输出设备";

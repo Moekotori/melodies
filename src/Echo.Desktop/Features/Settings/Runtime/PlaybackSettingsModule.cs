@@ -26,7 +26,7 @@ public sealed class PlaybackSettingsModule : IDisposable
             value.Selection switch { "Nightcore" => "nightcore", "Doubletime" => "speed", _ => throw new ArgumentException("无效的变速模式。") }, token));
         runtime.RegisterChange("auto-play-on-startup", (_, _) => Task.CompletedTask); // Consumed once in StartupAsync.
         runtime.RegisterChange("wdm-ks", async (value, _) =>
-        { shell.Player!.AudioSettings.ShowKernelStreaming = value.Enabled; await shell.Player.AudioSettings.RefreshAsync(); });
+        { shell.Player!.AudioSettings.ShowKernelStreaming = value.Enabled; await shell.Player.AudioSettings.RefreshCommand.ExecuteAsync(null); });
         if (OperatingSystem.IsWindows()) runtime.RegisterChange("prevent-sleep-while-playing", (value, _) =>
         { wake.Update(value.Enabled && playback.LocalZone.Session.Snapshot.Status == PlaybackStatus.Playing); return Task.CompletedTask; });
         runtime.RegisterChange("auto-output", (value, token) => value.Enabled ? SetDefaultOutputAsync(token)

@@ -1,55 +1,61 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
+             xmlns:player="using:Echo.Desktop.Features.Player"
              x:Class="Echo.Desktop.Features.Player.PlayerVolumePanel" x:DataType="shell:ShellViewModel">
   <UserControl.Styles>
     <StyleInclude Source="PlayerBarStyles.axaml" />
   </UserControl.Styles>
-  <StackPanel Width="420" Spacing="18">
-    <Border Background="{DynamicResource EchoPanelMuted}" CornerRadius="8" Padding="5">
-      <Grid ColumnDefinitions="*,*,*" ColumnSpacing="4">
-        <Border Background="{DynamicResource EchoPlayer}" CornerRadius="5" Padding="12,8">
-          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-            <icon:EchoIcon Scope="player" Kind="volume" Width="20" Height="20" BaseBrush="{DynamicResource EchoAccentText}" />
-            <TextBlock Text="{DynamicResource ui.PlayerBar.8bf8b9780d34}" Foreground="{DynamicResource EchoAccentText}" FontWeight="SemiBold" VerticalAlignment="Center" />
-          </StackPanel>
-        </Border>
-        <Button Grid.Column="1" Classes="control-tab" Click="OpenOutput" ToolTip.Tip="{DynamicResource ui.PlayerBar.ff71ead6e0d9}">
-          <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="headphones" Width="19" Height="19" /><TextBlock Text="{DynamicResource ui.PlayerVolumePanel.output}" Foreground="{DynamicResource EchoMuted}" VerticalAlignment="Center" /></StackPanel>
+  <StackPanel Width="266" Spacing="12">
+    <Border Background="{DynamicResource EchoPanelMuted}" CornerRadius="6" Padding="3">
+      <Grid Name="PaneTabs" ColumnDefinitions="*,*,*,*" ColumnSpacing="2">
+        <Button Name="VolumeTab" Classes="control-tab active" Click="SelectPane" Tag="volume" AutomationProperties.Name="{DynamicResource ui.PlayerBar.8bf8b9780d34}">
+          <StackPanel Orientation="Horizontal" Spacing="4"><icon:EchoIcon Scope="player" Kind="volume" Width="14" Height="14" /><TextBlock Text="{DynamicResource ui.PlayerBar.8bf8b9780d34}" /></StackPanel>
         </Button>
-        <Button Grid.Column="2" Classes="control-tab" Click="ToggleMini">
-          <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="monitor" Width="19" Height="19" /><TextBlock Text="{DynamicResource ui.PlayerVolumePanel.mini}" Foreground="{DynamicResource EchoMuted}" VerticalAlignment="Center" /></StackPanel>
+        <Button Name="OutputTab" Grid.Column="1" Classes="control-tab" Click="SelectPane" Tag="output" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.output}">
+          <StackPanel Orientation="Horizontal" Spacing="4"><icon:GlyphIcon Kind="speaker" Width="13" Height="13" /><TextBlock Text="{DynamicResource ui.PlayerVolumePanel.output}" /></StackPanel>
+        </Button>
+        <Button Name="SleepTab" Grid.Column="2" Classes="control-tab" Click="SelectPane" Tag="sleep" AutomationProperties.Name="{DynamicResource playerTools.timer}">
+          <StackPanel Orientation="Horizontal" Spacing="4"><icon:GlyphIcon Kind="moon" Width="13" Height="13" /><TextBlock Text="{DynamicResource ui.PlayerVolumePanel.sleep}" /></StackPanel>
+        </Button>
+        <Button Name="MiniTab" Grid.Column="3" Classes="control-tab" Click="SelectPane" Tag="mini" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.mini}">
+          <StackPanel Orientation="Horizontal" Spacing="4"><icon:GlyphIcon Kind="monitor" Width="13" Height="13" /><TextBlock Text="{DynamicResource ui.PlayerVolumePanel.mini}" /></StackPanel>
         </Button>
       </Grid>
     </Border>
-    <StackPanel Spacing="10" IsEnabled="{Binding !Player.IsBusy}">
-      <Grid ColumnDefinitions="28,*,Auto,32" ColumnSpacing="10">
-        <icon:GlyphIcon Kind="gauge" Width="21" Height="21" VerticalAlignment="Center" />
-        <TextBlock Grid.Column="1" Text="{DynamicResource ui.PlayerOutputPanel.c114a632b201}" FontSize="17" VerticalAlignment="Center" />
-        <TextBlock Name="SpeedReadout" Grid.Column="2" Text="{Binding Player.PlaybackRateText}" Classes="control-value" />
-        <Button Name="ResetSpeedButton" Grid.Column="3" Classes="control-step" Click="ResetSpeed" ToolTip.Tip="{DynamicResource ui.PlayerVolumePanel.resetSpeed}" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.resetSpeed}"><icon:GlyphIcon Kind="refresh" Width="19" Height="19" /></Button>
-      </Grid>
-      <Grid ColumnDefinitions="32,*,32" ColumnSpacing="10">
-        <Button Name="SpeedDownButton" Classes="control-step" Click="DecreaseSpeed" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.speedDown}"><TextBlock Text="−" Foreground="{DynamicResource EchoMuted}" /></Button>
-        <Slider Grid.Column="1" Name="SpeedSlider" Classes="control-rail" Minimum="0.5" Maximum="2" Value="{Binding Player.PlaybackRate, Mode=OneWay}" SmallChange="0.05" LargeChange="0.1" AutomationProperties.Name="{DynamicResource ui.PlayerOutputPanel.c114a632b201}" />
-        <Button Name="SpeedUpButton" Grid.Column="2" Classes="control-step" Click="IncreaseSpeed" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.speedUp}"><TextBlock Text="+" Foreground="{DynamicResource EchoMuted}" /></Button>
-      </Grid>
-      <Grid ColumnDefinitions="*,*" Margin="42,-8,42,0"><TextBlock Text="0.50x" Classes="muted" /><TextBlock Grid.Column="1" Text="2.00x" Classes="muted" HorizontalAlignment="Right" /></Grid>
-    </StackPanel>
-    <Border Height="1" Background="{DynamicResource EchoDivider}" />
-    <StackPanel Spacing="10" IsEnabled="{Binding !Player.IsBusy}">
-      <Grid ColumnDefinitions="28,*,Auto,32" ColumnSpacing="10">
-        <Button Name="MuteButton" Classes="control-step" Click="ToggleMute" ToolTip.Tip="{DynamicResource ui.PlayerVolumePanel.0038c37b83f6}" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.0038c37b83f6}"><icon:EchoIcon Scope="player" Kind="volume" Width="21" Height="21" /></Button>
-        <TextBlock Grid.Column="1" Text="{DynamicResource ui.PlayerBar.8bf8b9780d34}" FontSize="17" VerticalAlignment="Center" />
-        <TextBlock Name="VolumeReadout" Grid.Column="2" Text="{Binding Player.VolumeText}" Classes="control-value" />
-        <Button Name="VolumeLockButton" Grid.Column="3" Classes="control-step" Click="ToggleVolumeLock" ToolTip.Tip="{DynamicResource ui.PlayerVolumePanel.lock}" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.lock}"><icon:GlyphIcon Kind="lock" Width="19" Height="19" /></Button>
-      </Grid>
-      <Grid Name="VolumeAdjustment" ColumnDefinitions="32,*,32" ColumnSpacing="10">
-        <Button Name="VolumeDownButton" Classes="control-step" Click="DecreaseVolume" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.volumeDown}"><TextBlock Text="−" Foreground="{DynamicResource EchoMuted}" /></Button>
-        <Slider Grid.Column="1" Name="VolumeSlider" Classes="control-rail" Minimum="0" Maximum="1" Value="{Binding Player.Volume, Mode=OneWay}" SmallChange="0.01" LargeChange="0.1" AutomationProperties.Name="{DynamicResource ui.PlayerBar.8bf8b9780d34}" />
-        <Button Name="VolumeUpButton" Grid.Column="2" Classes="control-step" Click="IncreaseVolume" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.volumeUp}"><TextBlock Text="+" Foreground="{DynamicResource EchoMuted}" /></Button>
-      </Grid>
-      <Grid ColumnDefinitions="*,*" Margin="42,-8,42,0"><TextBlock Text="0" Classes="muted" /><TextBlock Grid.Column="1" Text="100" Classes="muted" HorizontalAlignment="Right" /></Grid>
-    </StackPanel>
-    <TextBlock Text="{Binding Player.Error}" IsVisible="{Binding Player.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" FontSize="12" />
+    <Grid MinHeight="158">
+      <StackPanel Name="VolumePane" Spacing="8">
+        <StackPanel Spacing="8" IsEnabled="{Binding !Player.IsBusy}">
+          <Grid ColumnDefinitions="20,*,Auto,24" ColumnSpacing="8">
+            <icon:GlyphIcon Kind="gauge" Width="14" Height="14" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"><TextBlock Text="{DynamicResource ui.PlayerVolumePanel.speed}" FontSize="14" /><Border Classes="control-shortcut"><TextBlock Text="Q" /></Border></StackPanel>
+            <TextBlock Name="SpeedReadout" Grid.Column="2" Text="{Binding Player.PlaybackRateText}" Classes="control-value" />
+            <Button Name="ResetSpeedButton" Grid.Column="3" Classes="control-step" Click="ResetSpeed" ToolTip.Tip="{DynamicResource ui.PlayerVolumePanel.resetSpeed}" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.resetSpeed}"><icon:GlyphIcon Kind="refresh" Width="14" Height="14" /></Button>
+          </Grid>
+          <Grid ColumnDefinitions="24,*,24" ColumnSpacing="8">
+            <Button Name="SpeedDownButton" Classes="control-step" Click="DecreaseSpeed" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.speedDown}"><TextBlock Text="−" Foreground="{DynamicResource EchoMuted}" /></Button>
+            <Slider Grid.Column="1" Name="SpeedSlider" Classes="control-rail" Minimum="0.5" Maximum="2" Value="{Binding Player.PlaybackRate, Mode=OneWay}" SmallChange="0.05" LargeChange="0.1" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.speed}" />
+            <Button Name="SpeedUpButton" Grid.Column="2" Classes="control-step" Click="IncreaseSpeed" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.speedUp}"><TextBlock Text="+" Foreground="{DynamicResource EchoMuted}" /></Button>
+          </Grid>
+          <Grid ColumnDefinitions="*,*" Margin="32,-8,32,0"><TextBlock Text="0.50x" Classes="muted" /><TextBlock Grid.Column="1" Text="2.00x" Classes="muted" HorizontalAlignment="Right" /></Grid>
+        </StackPanel>
+        <Border Height="1" Background="{DynamicResource EchoDivider}" />
+        <StackPanel Spacing="8" IsEnabled="{Binding !Player.IsBusy}">
+          <Grid ColumnDefinitions="20,*,Auto,24" ColumnSpacing="8">
+            <Button Name="MuteButton" Classes="control-step" Click="ToggleMute" ToolTip.Tip="{DynamicResource ui.PlayerVolumePanel.0038c37b83f6}" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.0038c37b83f6}"><icon:EchoIcon Scope="player" Kind="volume" Width="14" Height="14" /></Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"><TextBlock Text="{DynamicResource ui.PlayerBar.8bf8b9780d34}" FontSize="14" /><Border Classes="control-shortcut"><TextBlock Text="E" /></Border></StackPanel>
+            <TextBlock Name="VolumeReadout" Grid.Column="2" Text="{Binding Player.VolumeText}" Classes="control-value" />
+            <Button Name="VolumeLockButton" Grid.Column="3" Classes="control-step" Click="ToggleVolumeLock" ToolTip.Tip="{DynamicResource ui.PlayerVolumePanel.lock}" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.lock}"><icon:GlyphIcon Kind="lock" Width="14" Height="14" /></Button>
+          </Grid>
+          <Grid Name="VolumeAdjustment" ColumnDefinitions="24,*,24" ColumnSpacing="8">
+            <Button Name="VolumeDownButton" Classes="control-step" Click="DecreaseVolume" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.volumeDown}"><TextBlock Text="−" Foreground="{DynamicResource EchoMuted}" /></Button>
+            <Slider Grid.Column="1" Name="VolumeSlider" Classes="control-rail" Minimum="0" Maximum="1" Value="{Binding Player.Volume, Mode=OneWay}" SmallChange="0.01" LargeChange="0.1" AutomationProperties.Name="{DynamicResource ui.PlayerBar.8bf8b9780d34}" />
+            <Button Name="VolumeUpButton" Grid.Column="2" Classes="control-step" Click="IncreaseVolume" AutomationProperties.Name="{DynamicResource ui.PlayerVolumePanel.volumeUp}"><TextBlock Text="+" Foreground="{DynamicResource EchoMuted}" /></Button>
+          </Grid>
+          <Grid ColumnDefinitions="*,*" Margin="32,-8,32,0"><TextBlock Text="0" Classes="muted" /><TextBlock Grid.Column="1" Text="100" Classes="muted" HorizontalAlignment="Right" /></Grid>
+        </StackPanel>
+        <TextBlock Text="{Binding Player.Error}" IsVisible="{Binding Player.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" FontSize="12" />
+      </StackPanel>
+      <ContentControl Name="ExtraPane" IsVisible="False" HorizontalContentAlignment="Stretch" />
+    </Grid>
   </StackPanel>
 </UserControl>

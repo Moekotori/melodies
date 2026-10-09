@@ -25,7 +25,7 @@ public sealed partial class ThemeViewModel : ObservableObject
     [ObservableProperty] private string darkAt = "19:00";
     [ObservableProperty] private string lightAt = "07:00";
     [ObservableProperty] private bool invert;
-    [ObservableProperty] private string font = "Segoe UI";
+    [ObservableProperty] private string font = "Outfit";
     [ObservableProperty] private string chineseFont = "Microsoft YaHei UI";
     [ObservableProperty] private string fallbackFont = "Noto Sans SC";
     [ObservableProperty] private string wallpaper = "";

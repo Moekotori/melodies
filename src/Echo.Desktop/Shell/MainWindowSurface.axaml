@@ -9,7 +9,7 @@
         x:Class="Echo.Desktop.Shell.MainWindowSurface" x:DataType="shell:ShellViewModel">
   <Grid>
   <theme:WallpaperViewport Name="ThemeWallpaperLayer" IsHitTestVisible="False" />
-  <LayoutTransformControl Name="UiScaleHost">
+  <icon:UiScaleViewport Name="UiScaleHost">
   <Grid RowDefinitions="40,*,108" ColumnDefinitions="220,*" Name="ShellGrid">
     <shell:TitleBar Grid.ColumnSpan="2" />
     <Grid Grid.Row="1" Grid.Column="1" Name="PageArea" Background="Transparent" ClipToBounds="True">
@@ -36,17 +36,17 @@
     <shell:SidebarHost Name="NavigationSidebar" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" />
     <player:PlayerBar Grid.Row="2" Grid.ColumnSpan="2" />
   </Grid>
-  </LayoutTransformControl>
+  </icon:UiScaleViewport>
   <ContentControl Name="LyricsStageHost" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-  <LayoutTransformControl Name="QueueScaleHost" LayoutTransform="{Binding #UiScaleHost.LayoutTransform}">
+  <icon:UiScaleViewport Name="QueueScaleHost" LayoutTransform="{Binding #UiScaleHost.LayoutTransform}">
     <queue:QueueOverlay Margin="0,40,0,108" />
-  </LayoutTransformControl>
-  <LayoutTransformControl Name="QuickSettingsScaleHost">
+  </icon:UiScaleViewport>
+  <icon:UiScaleViewport Name="QuickSettingsScaleHost">
     <drawers:QuickSettingsDrawer Name="QuickSettingsOverlay" />
-  </LayoutTransformControl>
-  <LayoutTransformControl Name="SearchScaleHost">
+  </icon:UiScaleViewport>
+  <icon:UiScaleViewport Name="SearchScaleHost">
     <search:GlobalSearchOverlay Name="GlobalSearchOverlay" />
-  </LayoutTransformControl>
+  </icon:UiScaleViewport>
   <Border IsVisible="{Binding IsSongDropHover}" IsHitTestVisible="False" Margin="12,44,12,12"
           BorderBrush="{DynamicResource EchoAccent}" BorderThickness="2" Background="#20000000">
     <Border Background="{DynamicResource EchoField}" Padding="28,18" HorizontalAlignment="Center" VerticalAlignment="Center">

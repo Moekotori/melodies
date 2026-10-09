@@ -6,13 +6,13 @@
   <UserControl.Styles><StyleInclude Source="PlayerBarStyles.axaml" /></UserControl.Styles>
   <Grid>
   <icon:MeasuredWaveform Name="TopWaveform" Envelope="{Binding AppearanceVisuals.Envelope}" Position="{Binding Player.Position}" IsVisible="{Binding AppearanceVisuals.TopWaveform}" Brush="{DynamicResource EchoAccent}" Height="20" VerticalAlignment="Top" Margin="0,-20,0,0" IsHitTestVisible="False" />
-  <Border Name="BarSurface" Background="{DynamicResource EchoPlayer}" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource EchoBorder}" Padding="28,6">
+  <Border Name="BarSurface" Background="{DynamicResource EchoPlayer}" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource EchoBorder}" Padding="14,6,28,6">
     <Grid ColumnDefinitions="*,691.2,*" ColumnSpacing="16" Name="PlayerLayout">
-      <Grid Name="NowPlaying" ColumnDefinitions="64,*" ColumnSpacing="14" VerticalAlignment="Center" ClipToBounds="True">
-        <Button Name="CoverButton" Classes="player-cover" Width="64" Height="64" Padding="0"
+      <Grid Name="NowPlaying" ColumnDefinitions="84,*" ColumnSpacing="14" VerticalAlignment="Center" ClipToBounds="True">
+        <Button Name="CoverButton" Classes="player-cover" Width="84" Height="84" Padding="0"
                 Command="{Binding OpenNowPlayingCommand}" ToolTip.Tip="{Binding Player.NowPlayingViewLabel}" AutomationProperties.Name="{Binding Player.NowPlayingViewLabel}">
-          <Grid Width="{Binding #CoverButton.Bounds.Width}" Height="{Binding #CoverButton.Bounds.Height}"><queue:QueueArtwork Name="CoverArtwork" IsVisible="{Binding Player.HasTrack}" Width="64" Height="64" CornerRadius="{DynamicResource EchoCoverRadius}" Cache="{Binding AlbumArtwork}" FilePath="{Binding Player.CurrentFilePath}" />
-            <Border IsVisible="{Binding !Player.HasTrack}" Background="{DynamicResource EchoPanelMuted}" CornerRadius="6"><icon:GlyphIcon Kind="music" Width="26" Height="26" Stroke="{DynamicResource EchoSubtle}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+          <Grid Width="{Binding #CoverButton.Bounds.Width}" Height="{Binding #CoverButton.Bounds.Height}"><queue:QueueArtwork Name="CoverArtwork" IsVisible="{Binding Player.HasTrack}" Width="84" Height="84" CornerRadius="{DynamicResource EchoCoverRadius}" Cache="{Binding AlbumArtwork}" FilePath="{Binding Player.CurrentFilePath}" />
+            <Border IsVisible="{Binding !Player.HasTrack}" Background="{DynamicResource EchoPanelMuted}" CornerRadius="11"><icon:GlyphIcon Kind="music" Width="26" Height="26" Stroke="{DynamicResource EchoSubtle}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
           </Grid>
         </Button>
         <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center" ClipToBounds="True">
@@ -38,10 +38,10 @@
             <icon:GlyphIcon Kind="{Binding Player.Details.HeartIcon}" Width="23" Height="23" StrokeWidth="1.8" />
           </Button>
           <Button Name="PreviousButton" Classes="transport" IsEnabled="{Binding Player.CanControl}" Command="{Binding Player.PreviousCommand}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.8c747908bf69}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.8c747908bf69}"><icon:EchoIcon Scope="player" Kind="previous" Width="22" Height="22" /></Button>
-          <Button Name="PlayButton" Classes="transport play" IsEnabled="{Binding Player.CanStartPlayback}" Command="{Binding Player.ToggleCommand}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}"><icon:GlyphIcon Kind="{Binding Player.PlayIcon, StringFormat='{}{0}-solid'}" Width="21" Height="21" Stroke="{Binding $parent[Button].Foreground}" /></Button>
+          <Button Name="PlayButton" Classes="transport play" IsEnabled="{Binding Player.CanStartPlayback}" Command="{Binding Player.ToggleCommand}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.f03e2b5312a8}"><icon:EchoIcon Scope="player" Kind="{Binding Player.PlayIcon}" Width="35" Height="35" BaseBrush="{Binding $parent[Button].Foreground}" AccentBrush="{DynamicResource EchoAccent}" /></Button>
           <Button Name="NextButton" Classes="transport" IsEnabled="{Binding Player.CanControl}" Command="{Binding Player.NextCommand}" ToolTip.Tip="{DynamicResource ui.LyricsTransportView.486e42475adb}" AutomationProperties.Name="{DynamicResource ui.LyricsTransportView.486e42475adb}"><icon:EchoIcon Scope="player" Kind="next" Width="22" Height="22" /></Button>
           <Button Name="ModeButton" Classes="transport" Classes.active="{Binding Player.IsSpecialMode}" Command="{Binding Player.CycleRepeatCommand}" ToolTip.Tip="{Binding Player.RepeatText}" AutomationProperties.Name="{Binding Player.RepeatText}">
-            <Grid><icon:GlyphIcon Kind="{Binding Player.ModeIcon}" Width="22" Height="22" StrokeWidth="1.8" /><Border Width="12" Height="2" Background="{DynamicResource EchoAccentText}" VerticalAlignment="Bottom" Margin="0,0,0,-5" IsVisible="{Binding Player.IsSpecialMode}" /></Grid>
+            <Grid><icon:EchoIcon Scope="player" Kind="{Binding Player.TransportModeIcon}" Width="24" Height="24" /><Border Width="12" Height="2" Background="{DynamicResource EchoAccentText}" VerticalAlignment="Bottom" Margin="0,0,0,-5" IsVisible="{Binding Player.IsSpecialMode}" /></Grid>
           </Button>
           <Button Name="LyricsButton" Classes="transport" Command="{Binding OpenNowPlayingCommand}" ToolTip.Tip="{Binding Player.NowPlayingViewLabel}" AutomationProperties.Name="{Binding Player.NowPlayingViewLabel}"><icon:EchoIcon Scope="player" Kind="lyrics" Width="20" Height="20" /></Button>
         </StackPanel>
@@ -83,7 +83,7 @@
         </Button>
         <Button Name="VolumeButton" Classes="transport" ToolTip.Tip="{Binding Player.VolumeText}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.8bf8b9780d34}">
           <icon:GlyphIcon Kind="sliders" Width="25" Height="25" />
-          <Button.Flyout><motion:MotionFlyout Placement="Top"><player:PlayerVolumePanel /></motion:MotionFlyout></Button.Flyout>
+          <Button.Flyout><motion:MotionFlyout Placement="TopEdgeAlignedRight" VerticalOffset="-6"><player:PlayerVolumePanel /></motion:MotionFlyout></Button.Flyout>
         </Button>
       </StackPanel>
     </Grid>

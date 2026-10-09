@@ -58,8 +58,8 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     public string FocusAlbum => Shell.Player is { HasTrack: true } player ? player.Details.Album : dashboard?.LastTrack?.Album ?? "";
     public string FocusPath => Shell.Player is { HasTrack: true } player ? player.CurrentFilePath : dashboard?.LastTrack?.Path ?? "";
     public bool HasFocus => FocusPath.Length > 0;
-    public string HeroLabel => Shell.Text[Shell.Player is { HasTrack: true } ? "home.nowPlaying" : "home.continueListening"];
-    public string Specifications => Shell.Player is { HasTrack: true } player ? string.Join(" · ", new[] { player.Details.Format, player.Details.Specifications }.Where(s => s.Length > 0)) : dashboard?.LastTrack is { } track ? $"{track.Codec.ToUpperInvariant()} · {track.BitDepth} bit · {track.SampleRate / 1000d:0.##} kHz" : "";
+    public string HeroLabel => Shell.Text[Shell.Player is { HasTrack: true } ? "home.nowPlaying" : HasFocus ? "home.continueListening" : "home.startFromLibrary"];
+    public string Specifications => Shell.Player is { HasTrack: true } player ? string.Join(" · ", new[] { player.Details.Format, player.Details.Specifications }.Where(s => s.Length > 0)) : dashboard?.LastTrack is { } track ? string.Join(" · ", new[] { track.Codec.ToUpperInvariant(), track.BitDepth > 0 ? $"{track.BitDepth} bit" : "", track.SampleRate > 0 ? $"{track.SampleRate / 1000d:0.##} kHz" : "" }.Where(value => value.Length > 0)) : "";
     public string SourceLabel => Shell.Player?.Session.Snapshot.Current?.Origin?.Label ?? "";
     public string RecentEmptyTitle => Shell.RecentEmptyTitle;
     public string RecentEmptyDescription => Shell.RecentEmptyDescription;

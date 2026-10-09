@@ -42,8 +42,8 @@ public partial class PlayerBar : UserControl
         PlayerLayout.ColumnDefinitions[1].Width = new GridLength(small ? tiny ? 240 : compact ? 288 : 360 : Math.Clamp(width * 0.48, 560, 760));
         PlayerLayout.ColumnDefinitions[2].Width = small ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
         PlayerLayout.ColumnSpacing = compact ? 8 : 16;
-        BarSurface.Padding = new Thickness(small ? 16 : 28, 6);
-        var cover = tiny ? 44 : small ? 56 : 64;
+        BarSurface.Padding = new Thickness(14, 6, small ? 20 : 28, 6);
+        var cover = tiny ? 44 : small ? 56 : 84;
         NowPlaying.ColumnDefinitions[0].Width = new GridLength(cover);
         NowPlaying.ColumnSpacing = small ? 10 : 14;
         CoverButton.Width = CoverButton.Height = CoverArtwork.Width = CoverArtwork.Height = cover;

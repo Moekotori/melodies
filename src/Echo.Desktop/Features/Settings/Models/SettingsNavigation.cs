@@ -17,9 +17,15 @@ public sealed partial class SettingsNavigationGroup(string title, IReadOnlyList<
     public IReadOnlyList<SettingsCategoryItem> Items { get; } = items;
     [ObservableProperty] private bool isActive = items.Any(item => item.IsActive);
 }
-public sealed record SettingsSectionViewModel(string Title, IReadOnlyList<SettingRowViewModel> Rows)
+public sealed partial class SettingsTabItem(string id, string label) : ObservableObject
 {
-    public bool HasTitle => Title.Length > 0;
+    public string Id { get; } = id;
+    public string Label { get; } = label;
+    [ObservableProperty] private bool isActive;
+}
+public sealed record SettingsSectionViewModel(string Title, string Tab, IReadOnlyList<SettingRowViewModel> Rows)
+{
+    public bool HasTitle => Title.Length > 0 && Title != Tab;
     public bool HasShortcuts => Rows.Any(row => row.Definition.Kind == SettingKind.Shortcut);
 }
 public sealed partial class SettingsSearchResult(string categoryId, string rowId, string title, string categoryTitle) : ObservableObject

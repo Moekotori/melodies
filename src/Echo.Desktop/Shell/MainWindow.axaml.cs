@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        if (OperatingSystem.IsMacOS()) WindowDecorations = Avalonia.Controls.WindowDecorations.Full;
         InitializeSongDrop();
         CreateSurface();
         AddHandler(KeyDownEvent, OnGlobalSearchKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
@@ -180,7 +181,7 @@ public partial class MainWindow : Window
             "playlists" when _viewModel.PlaylistLibrary is not null => _playlistsPage = new PlaylistsView(_viewModel),
             _ => new PendingPage(_viewModel.ActivePageTitle, _viewModel.ActiveRouteId)
         };
-        page.Margin = (Thickness)this.FindResource("EchoPageInset")!;
+        page.Margin = page is HomeView ? new Thickness(42, 24, 42, 0) : (Thickness)this.FindResource("EchoPageInset")!;
         if (_viewModel.ActiveRouteId != "lyrics") _previousRoute = _viewModel.ActiveRouteId;
         if (page is Echo.Desktop.Features.Dsp.DspView) { page.Margin = default; PageHost.Content = page; return; }
         if (page is Echo.Desktop.Features.Remote.RemoteView) { page.Margin = default; PageHost.Content = page; return; }

@@ -8,6 +8,11 @@ public sealed partial class ShellViewModel
 {
     [ObservableProperty] private bool sidebarAutoHideEnabled;
     [ObservableProperty] private bool isSidebarDrawerOpen;
+    public IEnumerable<NavigationItem> SidebarLibraryItems => LibraryItems.Where(item => !item.IsHome);
+    private void SidebarLibraryChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs args)
+    { RefreshSidebarHierarchy(); OnPropertyChanged(nameof(SidebarLibraryItems)); }
+    public NavigationItem HomeNavigationItem => LibraryItems.First(item => item.Id == "home");
+    public bool IsTitleSearchVisible => IsSidebarSuppressed || IsSidebarDrawerMode;
     public bool IsSidebarSuppressed => HideSidebarInSettings && ActiveRouteId == "settings";
     public bool IsSidebarDrawerMode => SidebarAutoHideEnabled && !IsSidebarSuppressed;
     public bool IsSidebarLabelVisible => IsSidebarEditing || IsSidebarDrawerMode || IsSidebarExpanded;
@@ -25,6 +30,8 @@ public sealed partial class ShellViewModel
         OnPropertyChanged(nameof(IsSidebarSuppressed));
         OnPropertyChanged(nameof(IsSidebarDrawerMode));
         OnPropertyChanged(nameof(IsSidebarLabelVisible));
+        OnPropertyChanged(nameof(IsTitleSearchVisible));
         OnPropertyChanged(nameof(SidebarReservedWidth));
+        RefreshSidebarHierarchy();
     }
 }

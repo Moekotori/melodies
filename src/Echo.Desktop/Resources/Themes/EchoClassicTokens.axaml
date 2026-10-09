@@ -62,5 +62,5 @@
       <Bitmap x:Key="EchoPlaceholderImage">avares://Echo.Desktop/Resources/Artwork/placeholder-dark.png</Bitmap>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
-  <FontFamily x:Key="EchoFont">Segoe UI, Microsoft YaHei UI, Noto Sans, PingFang SC, DejaVu Sans</FontFamily>
+  <FontFamily x:Key="EchoFont">avares://Echo.Desktop/Resources/Fonts#Outfit, Microsoft YaHei UI, Noto Sans, PingFang SC, DejaVu Sans</FontFamily>
 </ResourceDictionary>

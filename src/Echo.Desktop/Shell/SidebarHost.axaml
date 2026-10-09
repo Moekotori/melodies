@@ -7,7 +7,15 @@
   </UserControl.Styles>
   <Grid ClipToBounds="True">
     <Border Name="NavigationPanel" Classes="navigationSurface" Classes.drawer="{Binding IsSidebarDrawerMode}">
+      <Grid>
       <shell:Sidebar />
+      <Border Name="CollapseEdge" Width="12" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding !IsSidebarEditing}">
+        <Button Classes="quiet" Width="12" Height="64" MinHeight="64" Padding="0" Opacity="0" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="{DynamicResource ui.Sidebar.c3d1de44037a}" AutomationProperties.Name="{DynamicResource ui.Sidebar.c3d1de44037a}">
+          <icon:GlyphIcon Kind="collapse" Width="12" Height="12" />
+          <Button.Styles><Style Selector="Button:pointerover, Button:focus-visible"><Setter Property="Opacity" Value="1" /></Style></Button.Styles>
+        </Button>
+      </Border>
+      </Grid>
     </Border>
     <Grid Name="EdgeReveal" Background="Transparent" PointerEntered="OnEdgeEntered">
       <Button Name="RevealButton" Width="22" Height="64" MinHeight="64" Padding="0" VerticalAlignment="Center"

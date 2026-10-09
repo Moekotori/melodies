@@ -4,7 +4,7 @@
   <Grid>
     <Grid Name="Wall" RowDefinitions="Auto,Auto,Auto,*">
       <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
-        <StackPanel Orientation="Horizontal" Spacing="16"><TextBlock Text="{DynamicResource navigation.artists}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontStyle="Normal" /><TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="16"><TextBlock Name="ArtistsTitle" Text="{DynamicResource navigation.artists}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontStyle="Normal" /><TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" /></StackPanel>
         <Button Grid.Column="1" Classes="icon" Click="OnRefresh" ToolTip.Tip="{DynamicResource ui.ArtistsView.ab75473d030d}"><icon:GlyphIcon Kind="refresh" Width="18" Height="18" /></Button>
       </Grid>
       <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="0,0,0,20">

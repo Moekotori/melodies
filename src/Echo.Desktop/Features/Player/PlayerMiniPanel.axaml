@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Echo.Desktop.Shell"
+             x:Class="Echo.Desktop.Features.Player.PlayerMiniPanel" x:DataType="shell:ShellViewModel">
+  <StackPanel Spacing="10">
+    <ToggleSwitch Name="MiniEnabledSwitch" Content="{DynamicResource floating.mini}" IsChecked="{Binding Floating.MiniEnabled}" />
+    <CheckBox Content="{DynamicResource floating.topmost}" IsChecked="{Binding Floating.MiniTopmost}" />
+    <CheckBox Content="{DynamicResource floating.fixed}" IsChecked="{Binding Floating.MiniLocked}" />
+    <Button Content="{DynamicResource floating.useMini}" Command="{Binding Floating.UseMiniCommand}" HorizontalAlignment="Stretch" />
+    <Button Content="{DynamicResource floating.reset}" Command="{Binding Floating.ResetPositionCommand}" HorizontalAlignment="Stretch" />
+    <TextBlock Text="{Binding Floating.Diagnostic}" Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Floating.Diagnostic, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

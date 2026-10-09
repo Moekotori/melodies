@@ -6,16 +6,18 @@
     <StyleInclude Source="TitleBarStyles.axaml" />
     <StyleInclude Source="TitleBarMenuStyles.axaml" />
   </UserControl.Styles>
-  <Border Background="{DynamicResource EchoTitlebar}" Padding="18,0,8,0" chrome:WindowDecorationProperties.ElementRole="TitleBar">
+  <Border Name="TitlebarSurface" Background="{DynamicResource EchoTitlebar}" Padding="18,0,8,0" chrome:WindowDecorationProperties.ElementRole="TitleBar">
     <Grid ColumnDefinitions="Auto,*,Auto" Background="Transparent">
-      <TextBlock Text="Melodies" FontFamily="avares://Echo.Desktop/Resources/Fonts#Outfit"
-                 FontSize="16" FontWeight="Medium" Foreground="{DynamicResource EchoHeading}"
+      <TextBlock Text="ECHO" FontFamily="avares://Echo.Desktop/Resources/Fonts#Outfit"
+                 FontSize="18" FontWeight="Bold" Foreground="{DynamicResource EchoHeading}"
                  VerticalAlignment="Center" IsHitTestVisible="False" />
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="24,0,12,0" chrome:WindowDecorationProperties.ElementRole="User">
-        <Button Name="GlobalSearchButton" Classes="icon titleAction" Command="{Binding OpenSearchCommand}"
+        <Button Name="GlobalSearchButton" Classes="icon titleAction" IsVisible="{Binding IsTitleSearchVisible}" Command="{Binding OpenSearchCommand}"
                 ToolTip.Tip="{DynamicResource ui.TitleBar.f1c10da84402}" AutomationProperties.Name="{DynamicResource ui.TitleBar.f1c10da84402}">
           <icon:GlyphIcon Kind="search" Width="16" Height="16" />
         </Button>
+        <Button Classes="icon titleAction" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="audio" ToolTip.Tip="{DynamicResource ui.TitleBar.24c267e226db}" AutomationProperties.Name="{DynamicResource ui.TitleBar.24c267e226db}"><icon:GlyphIcon Kind="headphones" Width="17" Height="17" /></Button>
+        <Button Classes="icon titleAction" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="lyrics" ToolTip.Tip="{DynamicResource ui.TitleBar.13c2f86425fa}" AutomationProperties.Name="{DynamicResource ui.TitleBar.13c2f86425fa}"><icon:EchoIcon Kind="lyrics" Scope="player" Width="17" Height="17" /></Button>
         <Button Classes="icon titleAction" Command="{Binding NavigateCommand}" CommandParameter="settings" ToolTip.Tip="{DynamicResource ui.Sidebar.df3d58c7d84b}" AutomationProperties.Name="{DynamicResource ui.Sidebar.df3d58c7d84b}"><icon:GlyphIcon Kind="settings" Width="17" Height="17" /></Button>
         <Button Name="MoreButton" Classes="icon titleAction" ToolTip.Tip="{DynamicResource ui.PlayerBar.38844b135cf7}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.38844b135cf7}">
           <icon:EchoIcon Kind="more" Scope="player" Width="19" Height="19" />
@@ -40,7 +42,7 @@
           </Button.Flyout>
         </Button>
       </StackPanel>
-      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+      <StackPanel Name="WindowButtons" Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
         <Button Name="MinimizeButton" Classes="window titleWindow" chrome:WindowDecorationProperties.ElementRole="MinimizeButton" Click="OnMinimize" ToolTip.Tip="{DynamicResource ui.TitleBar.ac29e57a46f4}" AutomationProperties.Name="{DynamicResource ui.TitleBar.ac29e57a46f4}"><icon:GlyphIcon Kind="minus" Width="14" Height="14" /></Button>
         <Button Name="MaximizeButton" Classes="window titleWindow" chrome:WindowDecorationProperties.ElementRole="MaximizeButton" Click="OnMaximize" ToolTip.Tip="{DynamicResource ui.TitleBar.9949b1fb5f67}" AutomationProperties.Name="{DynamicResource ui.TitleBar.9949b1fb5f67}"><icon:GlyphIcon Kind="maximize" Width="13" Height="13" /></Button>
         <Button Name="CloseButton" Classes="window titleWindow close" chrome:WindowDecorationProperties.ElementRole="CloseButton" Click="OnClose" ToolTip.Tip="{DynamicResource ui.TitleBar.3fd47edce45b}" AutomationProperties.Name="{DynamicResource ui.TitleBar.3fd47edce45b}"><icon:GlyphIcon Kind="close" Width="14" Height="14" /></Button>

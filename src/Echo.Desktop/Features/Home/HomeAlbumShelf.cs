@@ -26,9 +26,14 @@ public sealed class HomeAlbumShelf : UserControl, IDisposable
         }
         else
         {
-            var rail = new UniformGrid { Columns = 4, Rows = 1 };
+            var rail = new UniformGrid { Columns = 4, Rows = 1, Margin = new(-8, 0) };
             foreach (var album in albums.Take(4))
-            { var card = new HomeAlbumCard(album, shell, open) { Margin = new(0, 0, 20, 0) }; cards.Add(card); rail.Children.Add(card); }
+            { var card = new HomeAlbumCard(album, shell, open) { Margin = new(8, 0) }; cards.Add(card); rail.Children.Add(card); }
+            SizeChanged += (_, _) =>
+            {
+                rail.Columns = Bounds.Width <= 600 ? 2 : 4;
+                rail.Rows = rail.Columns == 2 ? 2 : 1;
+            };
             Content = rail;
         }
         DetachedFromVisualTree += (_, _) => Dispose();

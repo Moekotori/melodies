@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:player="using:Echo.Desktop.Features.Player"
+             x:Class="Echo.Desktop.Features.Player.PlayerSleepTimerPanel" x:DataType="player:PlayerToolsViewModel">
+  <StackPanel Spacing="10">
+    <StackPanel Spacing="4">
+      <TextBlock Text="{DynamicResource playerTools.timer}" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock Name="TimerStatus" Text="{Binding TimerStatus}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <TextBlock Text="{DynamicResource playerTools.minutes}" VerticalAlignment="Center" />
+      <NumericUpDown Name="TimerMinutes" Grid.Column="1" Width="112" Minimum="1" Maximum="720" Increment="5" Value="{Binding Minutes}" FormatString="0" />
+    </Grid>
+    <ComboBox Name="TimerAction" ItemsSource="{Binding ActionLabels}" SelectedIndex="{Binding ActionIndex}" HorizontalAlignment="Stretch" />
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsEnabled="{Binding !IsBusy}">
+      <Button Name="StartTimer" Content="{DynamicResource playerTools.startTimer}" Command="{Binding StartTimerCommand}" HorizontalAlignment="Stretch" />
+      <Button Name="CancelTimer" Grid.Column="1" Content="{DynamicResource playerTools.cancel}" Command="{Binding CancelTimerCommand}" IsEnabled="{Binding TimerActive}" HorizontalAlignment="Stretch" />
+    </Grid>
+    <TextBlock Text="{Binding Feedback}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" FontSize="12" />
+  </StackPanel>
+</UserControl>

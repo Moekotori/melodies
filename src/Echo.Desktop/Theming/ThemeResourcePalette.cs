@@ -41,6 +41,7 @@ internal static class ThemeResourcePalette
         result["SettingsDivider"] = new SolidColorBrush(divider);
         Brush("LibraryInputSurface", "field");
         Brush("EchoPanelMuted", "panelSoft", alpha); Brush("EchoTitlebar", "titlebar", alpha); Brush("EchoSidebar", "sidebar", alpha); Brush("EchoPlayer", "player", alpha);
+        result["EchoSidebarSearch"] = new SolidColorBrush(ThemeColorMath.Mix(C("sidebar"), C("heading"), .03));
         Brush("EchoSidebarSelected", "rowActive", .5);
         Brush("LibraryPopupSelected", "accent", .12);
         Brush("LibraryInputSurface", "chip", .45);
