@@ -2,11 +2,11 @@ using Echo.Contracts.Radio;
 
 namespace Echo.Desktop.Features.Radio;
 
-public sealed record RadioStationRowModel(RadioStation Station, int Index)
+public sealed record RadioStationRowModel(RadioStation Station, int Index, string? LiveTitle = null)
 {
     public string Number => Index.ToString("00");
     public string Name => Station.Name;
-    public string Description => Station.Description;
+    public string Description => LiveTitle ?? Station.Description;
     public string Genre => Station.Genre;
     public string Codec => Station.Codec;
     public string FavoriteIcon => Station.Favorite ? "heart-filled" : "heart";

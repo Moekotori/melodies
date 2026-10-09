@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Podcasts" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Podcasts.PodcastView" x:DataType="local:PodcastViewModel" x:Name="Root"
+             Background="{DynamicResource EchoField}">
+  <UserControl.Styles>
+    <Style Selector="Button.podcast-tool"><Setter Property="Height" Value="36" /><Setter Property="Padding" Value="14,0" /><Setter Property="CornerRadius" Value="7" /></Style>
+    <Style Selector="Button.filter"><Setter Property="Padding" Value="10,6" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+    <Style Selector="Button.filter.on"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="Button.show"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Left" /><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="10,8" /></Style>
+    <Style Selector="Button.show.on"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /></Style>
+  </UserControl.Styles>
+  <Grid ColumnDefinitions="280,*">
+    <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,1,0" Padding="16,8,16,16">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="我的订阅" Classes="heading" FontSize="18" Margin="0,8,0,8" />
+        <TextBox DockPanel.Dock="Top" PlaceholderText="搜索订阅" Text="{Binding ShowQuery}" MaxLength="128" Margin="0,0,0,8" />
+        <Button DockPanel.Dock="Bottom" Classes="primary podcast-tool" Command="{Binding ToggleEditorCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="添加播客" />
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,12" IsVisible="{Binding EditorOpen}">
+          <TextBox PlaceholderText="公开 RSS 地址" Text="{Binding DraftUrl}" MaxLength="4096" />
+          <Button Classes="primary podcast-tool" Command="{Binding SubscribeCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="订阅" />
+        </StackPanel>
+        <TextBlock Text="还没有订阅" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !HasShows}" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <ItemsControl ItemsSource="{Binding Shows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="local:PodcastShowRow">
+                <Button Classes="show" Classes.on="{Binding IsSelected}" Command="{Binding $parent[UserControl].((local:PodcastViewModel)DataContext).SelectCommand}" CommandParameter="{Binding}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Author}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" IsVisible="{Binding Author, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="28,8,28,16">
+      <StackPanel Spacing="8">
+        <TextBlock Text="播客" FontSize="{StaticResource EchoPageTitleSize}" Classes="heading" />
+        <TextBlock Text="订阅喜欢的节目，接着上次的进度听。" Classes="muted" FontSize="13" />
+        <TextBlock Text="直接连接节目原站；请使用作者公开发布的 RSS。" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Message}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <Button Content="重试" Command="{Binding RetryListCommand}" IsVisible="{Binding ListFailed}" HorizontalAlignment="Left" />
+      </StackPanel>
+      <Grid Grid.Row="1" ColumnDefinitions="96,*" Margin="0,18,0,12" IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <Border Width="96" Height="96" CornerRadius="6" Background="{DynamicResource EchoPanelMuted}" ClipToBounds="True">
+          <Panel>
+            <icon:GlyphIcon Kind="headphones" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Image Source="{Binding Cover}" Stretch="UniformToFill" IsVisible="{Binding Cover, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </Panel>
+        </Border>
+        <StackPanel Grid.Column="1" Margin="16,0,0,0" Spacing="6">
+          <TextBlock Text="{Binding ShowTitle}" Classes="heading" FontSize="22" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding ShowAuthor}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding ShowDescription}" TextWrapping="Wrap" MaxLines="{Binding DescriptionLines}" FontSize="13" />
+          <Button Content="{Binding DescriptionToggle}" Command="{Binding ToggleDescriptionCommand}" Padding="0" Background="Transparent" HorizontalAlignment="Left" IsVisible="{Binding ShowDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary podcast-tool" Command="{Binding ListenCommand}" IsEnabled="{Binding !Busy}" Content="收听节目" />
+            <Button Classes="podcast-tool" Command="{Binding RefreshCommand}" IsEnabled="{Binding !Busy}" Content="刷新节目" />
+            <Button Classes="podcast-tool" Command="{Binding AskRemoveCommand}" IsEnabled="{Binding !Busy}" Content="取消订阅" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ConfirmRemove}">
+            <TextBlock Text="取消订阅并删除这个节目的本地单集和进度？" VerticalAlignment="Center" FontSize="12" />
+            <Button Content="取消订阅" Command="{Binding RemoveCommand}" />
+            <Button Content="取消" Command="{Binding CancelRemoveCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+      <DockPanel Grid.Row="2" IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,8">
+          <Button Classes="filter" Classes.on="{Binding FilterAll}" Command="{Binding SetFilterCommand}" CommandParameter="all" Content="全部" />
+          <Button Classes="filter" Classes.on="{Binding FilterUnplayed}" Command="{Binding SetFilterCommand}" CommandParameter="unplayed" Content="未听完" />
+          <Button Classes="filter" Classes.on="{Binding FilterProgress}" Command="{Binding SetFilterCommand}" CommandParameter="progress" Content="继续收听" />
+          <Button Classes="filter" Classes.on="{Binding FilterPlayed}" Command="{Binding SetFilterCommand}" CommandParameter="played" Content="已听" />
+          <TextBox PlaceholderText="搜索单集" Text="{Binding EpisodeQuery}" MaxLength="128" Width="180" />
+          <Button Content="搜索" Command="{Binding SearchEpisodesCommand}" />
+          <TextBlock Text="{Binding CountText}" Classes="muted" VerticalAlignment="Center" />
+        </StackPanel>
+        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+          <Button Content="上一页" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPrevious}" />
+          <TextBlock Grid.Column="1" Text="{Binding PageText}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="muted" />
+          <Button Grid.Column="2" Content="下一页" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNext}" />
+        </Grid>
+        <Button DockPanel.Dock="Top" Content="重试" Command="{Binding RetryEpisodesCommand}" IsVisible="{Binding EpisodesFailed}" HorizontalAlignment="Left" Margin="0,8,0,0" />
+        <Panel>
+          <TextBlock Text="正在读取…" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowEpisodeLoading}" />
+          <TextBlock Text="没有匹配的单集。" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ShowEpisodeEmpty}" />
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasEpisodes}">
+          <ItemsControl ItemsSource="{Binding Episodes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="local:PodcastEpisodeRow">
+                <Grid ColumnDefinitions="Auto,*,Auto" MinHeight="52">
+                  <Button Classes="icon" Command="{Binding $parent[UserControl].((local:PodcastViewModel)DataContext).PlayEpisodeCommand}" CommandParameter="{Binding}" ToolTip.Tip="播放"><icon:GlyphIcon Kind="{Binding PlayIcon}" Width="16" Height="16" /></Button>
+                  <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Meta}" Classes="muted" FontSize="12" />
+                  </StackPanel>
+                  <Button Grid.Column="2" Classes="icon" Click="OnEpisodeMenu" ToolTip.Tip="更多操作"><icon:GlyphIcon Kind="more" Width="16" Height="16" /></Button>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+        </Panel>
+      </DockPanel>
+      <StackPanel Grid.Row="1" Grid.RowSpan="2" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420" IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNull}}">
+        <TextBlock Text="{Binding EmptyTitle}" Classes="heading" FontSize="22" HorizontalAlignment="Center" TextAlignment="Center" />
+        <TextBlock Text="{Binding EmptyDescription}" Classes="muted" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Connect.SmartHome"
+             x:Class="Echo.Desktop.Features.Connect.SmartHome.ConnectSmartHomeView" x:DataType="local:ConnectSmartHomeViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="16" Margin="0,4,8,28" MaxWidth="720" HorizontalAlignment="Left">
+      <Border Classes="connect-card">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4">
+              <TextBlock Text="MQTT" Classes="connect-kicker" />
+              <TextBlock Text="家居联动" FontSize="22" Classes="heading" />
+            </StackPanel>
+            <Border Grid.Column="1" Classes="connect-state" Classes.live="{Binding PortReachable}"><TextBlock Text="{Binding StateLabel}" FontSize="12" /></Border>
+          </Grid>
+          <Border Classes="connect-inset">
+            <StackPanel Spacing="6">
+              <Grid ColumnDefinitions="72,*">
+                <TextBlock Text="状态" Classes="muted" FontSize="12" />
+                <TextBlock Grid.Column="1" Text="{Binding StateTopic}" FontSize="13" TextTrimming="CharacterEllipsis" />
+              </Grid>
+              <Grid ColumnDefinitions="72,*">
+                <TextBlock Text="命令" Classes="muted" FontSize="12" />
+                <TextBlock Grid.Column="1" Text="{Binding CommandTopic}" FontSize="13" TextTrimming="CharacterEllipsis" />
+              </Grid>
+              <Grid ColumnDefinitions="72,*">
+                <TextBlock Text="最近" Classes="muted" FontSize="12" />
+                <TextBlock Grid.Column="1" Text="{Binding LastCommand}" FontSize="13" TextWrapping="Wrap" />
+              </Grid>
+            </StackPanel>
+          </Border>
+          <TextBlock Text="密码只在这次连接中使用，不会写入设置。曲目、播放状态或音量变化时才发布，不跟随进度。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+          <Grid ColumnDefinitions="*,120" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="代理主机" FontSize="12" Classes="muted" />
+              <TextBox Text="{Binding Host, Mode=TwoWay}" MaxLength="253" PlaceholderText="127.0.0.1" LostFocus="OnEdited" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Text="端口" FontSize="12" Classes="muted" />
+              <TextBox Text="{Binding PortText, Mode=TwoWay}" MaxLength="5" PlaceholderText="1883" LostFocus="OnEdited" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Text="主题前缀" FontSize="12" Classes="muted" />
+          <TextBox Text="{Binding Topic, Mode=TwoWay}" MaxLength="80" PlaceholderText="echo/playback" LostFocus="OnEdited" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="账号" FontSize="12" Classes="muted" />
+              <TextBox Text="{Binding Username, Mode=TwoWay}" MaxLength="64" PlaceholderText="可留空" LostFocus="OnEdited" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Text="密码" FontSize="12" Classes="muted" />
+              <TextBox Text="{Binding Password, Mode=TwoWay}" MaxLength="128" PasswordChar="•" PlaceholderText="不保存" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" />
+          <Button Classes="connect-primary" Content="{Binding ActionLabel}" Command="{Binding TestCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Left" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

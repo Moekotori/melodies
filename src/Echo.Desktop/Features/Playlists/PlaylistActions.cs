@@ -87,8 +87,8 @@ public sealed partial class PlaylistsViewModel
         var rows = (selected is { Count: > 0 } ? selected : Tracks).ToArray();
         if (shuffle) Random.Shared.Shuffle(rows);
         var origin = new QueueOrigin(IsLiked ? "liked" : "playlist", Title, IsLiked ? null : Selection);
-        var queue = rows.Select(item => new QueueTrack(Guid.NewGuid().ToString("N"), item.Row.Id, item.Row.Source?.AudioPath ?? item.Row.Path,
-            Source: item.Row.Source is { } source ? AudioSource.Local(source.AudioPath,
+        var queue = rows.Select(item => new QueueTrack(Guid.NewGuid().ToString("N"), item.Row.Id, item.Row.Source?.Kind == "remote" ? item.Row.Path : item.Row.Source?.AudioPath ?? item.Row.Path,
+            Source: item.Row.Source?.Kind == "remote" ? new AudioSource("remote", item.Row.Path) : item.Row.Source is { } source ? AudioSource.Local(source.AudioPath,
                 source.Kind == "cue" ? source.StartSeconds : 0, source.Kind == "cue" ? source.EndSeconds : null) : null,
             Metadata: new Dictionary<string, string?> { ["title"] = item.Row.Title, ["artist"] = item.Row.Artist,
                 ["album"] = item.Row.Album, ["duration"] = item.Row.DurationSeconds.ToString(CultureInfo.InvariantCulture), ["codec"] = item.Row.Codec }, Origin: origin,

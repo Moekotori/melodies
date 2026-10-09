@@ -1,4 +1,5 @@
 using Echo.Contracts.Library;
+using Echo.Contracts.Remote;
 using Echo.Contracts.Scanning;
 using Echo.Infrastructure.Files;
 using Echo.Infrastructure.Library;
@@ -54,28 +55,53 @@ internal static class AlbumMaintenanceProbe
             Require((await db.GetAlbumsAsync(new(), cancellation)).Items.Single().TrackCount == 2, "returning missing track restored");
         }
 
-        // Recreate a genuine v1 snapshot, then let the only schema owner migrate it.
+        // Rewind the album key to the previous generated column, then let schema 20 regroup it.
         using (var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path }.ToString()))
         {
             connection.Open();
             using var command = connection.CreateCommand();
+            command.CommandText = "SELECT type,name,sql FROM sqlite_master WHERE type IN ('trigger','index') AND sql LIKE '%album_key%'";
+            var dependents = new List<(string Type, string Name, string Sql)>();
+            using (var reader = command.ExecuteReader())
+                while (reader.Read()) dependents.Add((reader.GetString(0), reader.GetString(1), reader.GetString(2)));
+            foreach (var item in dependents)
+            {
+                command.CommandText = (item.Type == "index" ? "DROP INDEX " : "DROP TRIGGER ")
+                    + "\"" + item.Name.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
+                command.ExecuteNonQuery();
+            }
             command.CommandText = """
-                DROP TRIGGER tracks_album_insert; DROP TRIGGER tracks_album_update; DROP TRIGGER tracks_album_delete;
-                DROP TRIGGER albums_fts_insert; DROP TRIGGER albums_fts_delete;
-                DROP TABLE albums_fts; DROP TABLE albums; DROP TABLE album_user_state;
-                DROP INDEX tracks_album; DROP INDEX tracks_album_year;
-                ALTER TABLE tracks DROP COLUMN album_key; ALTER TABLE tracks DROP COLUMN album_credit;
-                PRAGMA user_version=1;
+                ALTER TABLE tracks DROP COLUMN album_key;
+                ALTER TABLE tracks ADD COLUMN album_key TEXT GENERATED ALWAYS AS
+                  (printf('%d:%s%d:%s',length(trim(album)),trim(album),length(album_credit),album_credit)) VIRTUAL;
+                PRAGMA user_version=18;
                 """;
             command.ExecuteNonQuery();
+            foreach (var item in dependents)
+            {
+                command.CommandText = item.Sql;
+                command.ExecuteNonQuery();
+            }
         }
         await using (var migrated = await LibraryDatabase.OpenAsync(path, cancellation))
         {
             var album = (await migrated.GetAlbumsAsync(new(), cancellation)).Items.Single();
-            Require(album.TrackCount == 2 && album.DurationSeconds == 180 && album.Year == 2024, "v1 backfill parity");
+            Require(album.TrackCount == 2 && album.DurationSeconds == 180 && album.Year == 2024, "album regrouping preserved the aggregate");
+        }
+        await using (var remote = await LibraryDatabase.OpenAsync(Path.Combine(root, "remote.sqlite"), cancellation))
+        {
+            var receipt = await remote.WriteAsync([
+                new RemoteIndexTrack("box", "/Album/CD1/a.flac", "甲", "歌手甲", "网盘套装", 10, 10, 3, "FLAC", "同一人"),
+                new RemoteIndexTrack("box", "/Album/CD2/b.flac", "乙", "歌手乙", "网盘套装", 10, 10, 4, "FLAC", "同一人"),
+                new RemoteIndexTrack("box", "/Album/Other/c.flac", "丙", "歌手丙", "网盘套装", 10, 10, 5, "FLAC", "同一人"),
+                new RemoteIndexTrack("box", "/Elsewhere/d.flac", "丁", "歌手丁", "网盘套装", 10, 10, 6, "FLAC", "同一人")
+            ], "sync-1", cancellation);
+            var boxed = await remote.GetAlbumsAsync(new(Search: "网盘套装"), cancellation);
+            Require(receipt.Inserted == 4 && boxed.Total == 3 && boxed.Items.Count(album => album.TrackCount == 2) == 1,
+                "remote disc folders stay together and do not collapse into one album");
         }
         var baseline = await Scenarios.RunAsync(Path.Combine(root, "scan-baseline"), null, cancellation);
-        Console.WriteLine($"Album maintenance/missing/restore/v1 migration passed; existing scan boundary checks={baseline}.");
+        Console.WriteLine($"Album maintenance/missing/restore/regrouping passed; existing scan boundary checks={baseline}.");
         await AlbumArtworkProbe.RunAsync(Path.Combine(root, "artwork"), cancellation);
     }
     private static void Require(bool value, string reason) { if (!value) throw new InvalidOperationException(reason); }

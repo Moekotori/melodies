@@ -1,10 +1,11 @@
 using Echo.Desktop.Motion;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
-
+using Echo.Contracts.Settings;
 using Echo.Desktop.Theming;
 
 namespace Echo.Desktop.Bootstrap;
@@ -23,6 +24,8 @@ internal sealed class WindowThemeBinding : IDisposable
     private readonly ThemeFontBinding _fonts;
     public bool IsApplying { get; private set; }
     private bool _disposed;
+    private bool? _acrylicHint;
+    private PaletteStamp? _palette;
     public WindowThemeBinding(Window window, ThemeViewModel theme, MotionPolicy motion, Action<bool> setDark)
     {
         _window = window; _theme = theme; _motion = motion; _setDark = setDark; _platform = global::Avalonia.Application.Current?.PlatformSettings;
@@ -67,20 +70,31 @@ internal sealed class WindowThemeBinding : IDisposable
                 dark = ThemeViewModel.ScheduledDark(TimeOnly.FromDateTime(DateTime.Now), atDark, atLight);
             var requestedAcrylic = preferences.AcrylicEnabled || preferences.Mode == "acrylic";
             var useAcrylic = requestedAcrylic && (_window.IsActive || preferences.AcrylicKeepUnfocused);
-            _window.TransparencyLevelHint = useAcrylic ? [WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Blur, WindowTransparencyLevel.None] : [WindowTransparencyLevel.None];
+            if (_acrylicHint != useAcrylic)
+            {
+                _window.TransparencyLevelHint = useAcrylic ? [WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Blur, WindowTransparencyLevel.None] : [WindowTransparencyLevel.None];
+                _acrylicHint = useAcrylic;
+            }
             var availableAcrylic = useAcrylic && _window.ActualTransparencyLevel != WindowTransparencyLevel.None;
             _theme.AcrylicStatus = !requestedAcrylic ? "" : !useAcrylic ? "窗口失焦时使用实色" : availableAcrylic ? "系统模糊已启用" : "当前平台未提供系统模糊，已使用实色背景";
             var tone = _theme.Tone(dark);
             _motion.ThemeAllowsAnimation = tone.MotionEnabled;
             _motion.ThemeDurationScale = tone.Numbers["motionSpeedSeconds"] / .22;
             _motion.ThemeIntensityScale = tone.Numbers["motionIntensityPercent"] / 100;
-            _fonts.Apply(preferences.Appearance ?? new()); _wallpaper.Apply(preferences, tone, _motion.UseSpatialMotion);
-            // Set both tone dictionaries first. Popups and theme-scoped controls inherit the same resources.
-            foreach (var toneDark in new[] { false, true })
+            var appearance = preferences.Appearance ?? new();
+            _fonts.Apply(appearance); _wallpaper.Apply(preferences, tone, _motion.UseSpatialMotion);
+            var font = _fonts.Family(preferences);
+            var stamp = PaletteStamp.Capture(preferences, appearance, dark, availableAcrylic, _wallpaper.HasImage, system?.AccentColor1, font.ToString());
+            // Brightness, blur and wallpaper framing do not change brushes. Skip the dictionary rebuild while a slider is moving.
+            if (_palette != stamp)
             {
-                var resources = ThemeResourcePalette.Create(_theme.Tone(toneDark), preferences, toneDark, system?.AccentColor1, availableAcrylic, _wallpaper.HasImage);
-                resources["EchoFont"] = _fonts.Family(preferences);
-                _window.Resources.ThemeDictionaries[toneDark ? ThemeVariant.Dark : ThemeVariant.Light] = resources;
+                foreach (var toneDark in new[] { false, true })
+                {
+                    var resources = ThemeResourcePalette.Create(_theme.Tone(toneDark), preferences, toneDark, system?.AccentColor1, availableAcrylic, _wallpaper.HasImage);
+                    resources["EchoFont"] = font;
+                    _window.Resources.ThemeDictionaries[toneDark ? ThemeVariant.Dark : ThemeVariant.Light] = resources;
+                }
+                _palette = stamp;
             }
             _setDark(dark); _window.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
             _rainbow.Apply(); UpdateTimer();
@@ -96,6 +110,21 @@ internal sealed class WindowThemeBinding : IDisposable
         if (_platform is not null) _platform.ColorValuesChanged -= OnPlatformChanged;
         _theme.WallpaperReloadRequested -= ReloadWallpaper;
         _wallpaper.AvailabilityChanged -= Apply; _wallpaper.Dispose(); _rainbow.Dispose(); _fonts.Dispose();
+    }
+    private readonly record struct PaletteStamp(bool Dark, bool Acrylic, bool Image, byte AccentA, byte AccentR, byte AccentG, byte AccentB, bool HasAccent,
+        string Mode, string Font, string ChineseFont, string FallbackFont, bool AcrylicEnabled, double AcrylicTransparency, bool HasWallpaper,
+        bool WallpaperEnabled, double UiOpacity, bool Unified, bool Protection, string? PageLight, string? PageDark, string Cover, bool Portrait,
+        ThemeTone? Light, ThemeTone? DarkTone, ImportedFont? MainFont, ImportedFont? ChineseFile, ImportedFont? FallbackFile, string Family)
+    {
+        public static PaletteStamp Capture(ThemePreferences preferences, AppearancePreferences appearance, bool dark, bool acrylic, bool image, Color? accent, string family)
+        {
+            var color = accent.GetValueOrDefault();
+            return new(dark, acrylic, image, color.A, color.R, color.G, color.B, accent is not null, preferences.Mode, preferences.Font,
+                preferences.ChineseFont, preferences.FallbackFont, preferences.AcrylicEnabled, preferences.AcrylicTransparency, preferences.Wallpaper.Length > 0,
+                appearance.WallpaperEnabled, appearance.WallpaperUiOpacity, appearance.WallpaperUnifiedOpacity, appearance.WallpaperVisualProtection,
+                appearance.PageTextLight, appearance.PageTextDark, appearance.CoverShape, appearance.PortraitWallpaper.Length > 0, preferences.Light, preferences.Dark,
+                appearance.MainFontFile, appearance.ChineseFontFile, appearance.FallbackFontFile, family);
+        }
     }
 }
 

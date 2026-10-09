@@ -22,7 +22,7 @@ public partial class ThemeBackgroundSettings : UserControl
     private void Reflow()
     {
         var narrow = Bounds.Width < 790;
-        WallpaperWorkspace.ColumnDefinitions = new(narrow ? "*" : "*,270");
+        WallpaperWorkspace.ColumnDefinitions = new(narrow ? "*" : "*,312");
         Grid.SetRow(AdjustmentColumn, narrow ? 1 : 0); Grid.SetColumn(AdjustmentColumn, narrow ? 0 : 1);
     }
     private void OpenPreview()

@@ -21,6 +21,11 @@ internal sealed class OneDriveFileClient(RemoteHttpTransport http, OneDriveAutho
     public async Task<RemoteDirectoryPage> BrowseAsync(RemoteConnection source, string path, int page, string search, bool audioOnly, CancellationToken token)
     {
         RemoteBrowseRules.Request(path, page, search);
+        return RemoteBrowseRules.Page(await ListChildrenAsync(source, path, token).ConfigureAwait(false), page, search, audioOnly);
+    }
+    public async Task<IReadOnlyList<RemoteEntry>> ListChildrenAsync(RemoteConnection source, string path, CancellationToken token)
+    {
+        RemoteBrowseRules.PathParts(path);
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token); budget.CancelAfter(TimeSpan.FromSeconds(15));
         var next = ItemUrl(source, path, children: true); var rows = new List<RemoteEntry>(); var seen = new HashSet<string>();
         for (var batch = 0; next is not null && batch < 100; batch++)
@@ -41,7 +46,7 @@ internal sealed class OneDriveFileClient(RemoteHttpTransport http, OneDriveAutho
             next = continuation.Length == 0 ? null : ValidateGraph(new Uri(continuation));
         }
         if (next is not null) throw new IOException("OneDrive 分页超过安全上限，请选择较小的目录。");
-        return await Task.Run(() => RemoteBrowseRules.Page(rows, page, search, audioOnly), budget.Token).ConfigureAwait(false);
+        return rows;
     }
     public async Task<RemoteMediaSource> ResolveMediaAsync(RemoteConnection source, RemoteEntry entry, CancellationToken token)
     {

@@ -15,14 +15,16 @@ public partial class EqEditorView : UserControl
     }
     private void ArrangeEditor()
     {
-        var narrow = Bounds.Width < 740;
-        EqCurve.Height = narrow ? 242 : 300;
-        var toolbarNarrow = Bounds.Width < 510;
-        EqToolbar.ColumnDefinitions = new(toolbarNarrow ? "*" : "*,Auto");
-        EqToolbar.RowDefinitions = new(toolbarNarrow ? "Auto,Auto" : "Auto");
-        Grid.SetColumn(EqTools, toolbarNarrow ? 0 : 1); Grid.SetRow(EqTools, toolbarNarrow ? 1 : 0);
-        EqTools.Margin = toolbarNarrow ? new Avalonia.Thickness(0, 8, 0, 0) : default;
-        PresetPicker.Width = Bounds.Width < 350 ? 174 : 238;
+        var narrow = Bounds.Width < 760;
+        EqToolbar.ColumnDefinitions = new(narrow ? "*" : "*,Auto");
+        EqToolbar.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
+        Grid.SetColumn(EqTools, narrow ? 0 : 1); Grid.SetRow(EqTools, narrow ? 1 : 0);
+        EqTools.Margin = narrow ? new Thickness(0, 8, 0, 0) : default;
+        PresetPicker.Width = Bounds.Width < 520 ? 156 : 210;
+        TrimControls.ColumnDefinitions = new(narrow ? "*" : "*,*");
+        TrimControls.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
+        Grid.SetColumn(TiltField, narrow ? 0 : 1); Grid.SetRow(TiltField, narrow ? 1 : 0);
+        if (narrow) TiltField.Margin = new Thickness(0, 8, 0, 0); else TiltField.Margin = default;
     }
     private void QueueReveal()
     {

@@ -33,11 +33,24 @@ public sealed partial class QueueViewModel
             return -1;
         }
     }
-    private int PendingCount => Math.Max(0, state.Items.Count - CurrentIndex - 1);
+    private int PendingCount
+    {
+        get
+        {
+            if (state.Mode != Echo.Playback.QueuePlaybackMode.Shuffle) return Math.Max(0, state.Items.Count - CurrentIndex - 1);
+            var count = 0;
+            foreach (var item in state.Items)
+                if (item.ItemId != state.CurrentItemId) count++;
+            return count;
+        }
+    }
     private void RefreshDrawerRows()
     {
         var index = CurrentIndex;
-        drawerRows = presentationActive ? Rows.Where(row => !row.IsCurrent && row.Index > index).ToArray() : [];
+        drawerRows = !presentationActive ? []
+            : state.Mode == Echo.Playback.QueuePlaybackMode.Shuffle
+                ? Rows.Where(row => !row.IsCurrent).ToArray()
+                : Rows.Where(row => !row.IsCurrent && row.Index > index).ToArray();
         foreach (var name in new[] { nameof(DrawerRows), nameof(IsDrawerEmpty), nameof(PendingCountText),
             nameof(CurrentSourceText), nameof(DrawerEmptyTitle), nameof(DrawerEmptyHint), nameof(ModeLabel), nameof(ModeGlyph) })
             OnPropertyChanged(name);

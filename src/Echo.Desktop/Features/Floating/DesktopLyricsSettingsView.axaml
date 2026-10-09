@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:floating="using:Echo.Desktop.Features.Floating"
+             x:Class="Echo.Desktop.Features.Floating.DesktopLyricsSettingsView" x:DataType="floating:FloatingWindowsViewModel">
+  <StackPanel Spacing="10">
+    <TextBlock Text="{DynamicResource floating.lyrics}" FontSize="15" FontWeight="SemiBold" />
+    <CheckBox Content="{DynamicResource floating.lyrics}" IsChecked="{Binding LyricsEnabled}" />
+    <CheckBox Content="{DynamicResource floating.lock}" IsChecked="{Binding LyricsLocked}" IsEnabled="{Binding SupportsPassthrough}" />
+    <CheckBox Content="{DynamicResource floating.double}" IsChecked="{Binding DoubleLine}" />
+    <Grid ColumnDefinitions="*,*"><CheckBox Content="{DynamicResource floating.translation}" IsChecked="{Binding Translation}" /><CheckBox Grid.Column="1" Content="{DynamicResource floating.romanization}" IsChecked="{Binding Romanization}" /></Grid>
+    <CheckBox Content="{DynamicResource floating.hideEmpty}" IsChecked="{Binding HideWithoutLyrics}" />
+    <CheckBox Content="{DynamicResource floating.stroke}" IsChecked="{Binding StrokeEnabled}" />
+    <CheckBox Content="{DynamicResource floating.shadow}" IsChecked="{Binding DropShadow}" />
+    <CheckBox Content="{DynamicResource floating.interpolated}" IsChecked="{Binding Interpolated}" />
+    <Grid ColumnDefinitions="*,160" ColumnSpacing="8"><TextBlock Text="{DynamicResource floating.colorMode}" VerticalAlignment="Center" /><ComboBox Name="ColorModeInput" Grid.Column="1" ItemsSource="{Binding ColorModeChoices}" SelectedItem="{Binding ColorModeChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="floating:FloatingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
+    <Grid ColumnDefinitions="*,160" ColumnSpacing="8"><TextBlock Text="{DynamicResource floating.direction}" VerticalAlignment="Center" /><ComboBox Name="DirectionInput" Grid.Column="1" ItemsSource="{Binding DirectionChoices}" SelectedItem="{Binding DirectionChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="floating:FloatingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
+    <Grid ColumnDefinitions="*,160" ColumnSpacing="8"><TextBlock Text="{DynamicResource floating.align}" VerticalAlignment="Center" /><ComboBox Name="AlignInput" Grid.Column="1" ItemsSource="{Binding AlignChoices}" SelectedItem="{Binding AlignChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="floating:FloatingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource floating.fontSize}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding FontSize, StringFormat='{}{0:0}px'}" Classes="muted" /></Grid>
+    <Slider Minimum="18" Maximum="72" Value="{Binding FontSize}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="{DynamicResource floating.fontSize}" />
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource floating.secondarySize}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding SecondarySize, StringFormat='{}{0:0}px'}" Classes="muted" /></Grid>
+    <Slider Minimum="12" Maximum="48" Value="{Binding SecondarySize}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="{DynamicResource floating.secondarySize}" />
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource floating.scale}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding ScaleText}" Classes="muted" /></Grid>
+    <Slider Minimum="75" Maximum="170" Value="{Binding ScalePercent}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="{DynamicResource floating.scale}" />
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource floating.opacity}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding OpacityText}" Classes="muted" /></Grid>
+    <Slider Minimum="0.35" Maximum="1" Value="{Binding Opacity}" SmallChange="0.01" AutomationProperties.Name="{DynamicResource floating.opacity}" />
+    <Grid ColumnDefinitions="*,130"><TextBlock Text="{DynamicResource floating.offset}" FontSize="12" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" /></Grid>
+    <TextBox Text="{Binding FontFamily}" MaxLength="256" PlaceholderText="{DynamicResource floating.fontFamily}" AutomationProperties.Name="{DynamicResource floating.fontFamily}" />
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+      <Button Content="{DynamicResource floating.importFont}" Click="ImportFont" />
+      <Button Grid.Column="1" Content="{DynamicResource floating.resetFont}" Command="{Binding ResetFontCommand}" />
+    </Grid>
+    <TextBlock Text="{Binding FontFileName}" FontSize="11" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding FontFileName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <TextBox Text="{Binding Color}" MaxLength="7" PlaceholderText="#FFFFFF" AutomationProperties.Name="{DynamicResource floating.played}" IsVisible="{Binding IsCustomMode}" />
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding IsGradientMode}">
+      <TextBox Text="{Binding GradientStart}" MaxLength="7" PlaceholderText="#4F46E5" AutomationProperties.Name="{DynamicResource floating.gradientStart}" />
+      <TextBox Grid.Column="1" Text="{Binding GradientEnd}" MaxLength="7" PlaceholderText="#EC4899" AutomationProperties.Name="{DynamicResource floating.gradientEnd}" />
+    </Grid>
+    <Expander Header="{DynamicResource floating.moreColors}">
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+        <TextBox Text="{Binding StrokeColor}" MaxLength="7" PlaceholderText="#111827" AutomationProperties.Name="{DynamicResource floating.strokeColor}" />
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+          <TextBox Text="{Binding UnplayedTop}" MaxLength="7" PlaceholderText="#FFFFFF" AutomationProperties.Name="{DynamicResource floating.unplayedTop}" />
+          <TextBox Grid.Column="1" Text="{Binding UnplayedBottom}" MaxLength="7" PlaceholderText="#CCCCCC" AutomationProperties.Name="{DynamicResource floating.unplayedBottom}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+          <TextBox Text="{Binding OutlinePlayed}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.outlinePlayed}" />
+          <TextBox Grid.Column="1" Text="{Binding OutlineUnplayed}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.outlineUnplayed}" />
+        </Grid>
+        <CheckBox Content="{DynamicResource floating.independent}" IsChecked="{Binding IndependentRows}" />
+        <StackPanel Spacing="8" IsVisible="{Binding IndependentRows}">
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+            <TextBox Text="{Binding LowerPlayedTop}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.lowerPlayed}" />
+            <TextBox Grid.Column="1" Text="{Binding LowerPlayedBottom}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.lowerPlayedBottom}" />
+          </Grid>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+            <TextBox Text="{Binding LowerUnplayedTop}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.unplayedTop}" />
+            <TextBox Grid.Column="1" Text="{Binding LowerUnplayedBottom}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.unplayedBottom}" />
+          </Grid>
+        </StackPanel>
+      </StackPanel>
+    </Expander>
+  </StackPanel>
+</UserControl>

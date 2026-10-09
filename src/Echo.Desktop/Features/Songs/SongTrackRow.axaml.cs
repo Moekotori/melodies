@@ -27,19 +27,14 @@ public partial class SongTrackRow : UserControl
         InitializeComponent(); DataContextChanged += (_, _) => UpdateRow();
         AttachedToVisualTree += (_, _) => { Observe(); UpdateRow(); };
         DetachedFromVisualTree += (_, _) => { Observe(null); Release(false); };
-        SizeChanged += (_, _) =>
-        {
-            var narrow = Bounds.Width < 700;
-            Genre.IsVisible = !narrow;
-            Columns.ColumnDefinitions[2].Width = new(narrow ? 0 : 140);
-            Columns.ColumnSpacing = narrow ? 8 : 12;
-        };
+        SizeChanged += (_, _) => ApplyLayout();
     }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == ArtworkProperty && this.IsAttachedToVisualTree()) _ = LoadCoverAsync();
+        if (change.Property == ArtworkProperty && this.IsAttachedToVisualTree() && Layout != "dense") _ = LoadCoverAsync();
         if (change.Property == PlayerProperty && this.IsAttachedToVisualTree()) { Observe(); UpdatePlaying(); }
+        if (change.Property == LayoutProperty) { ApplyLayout(); if (Layout == "dense") Release(false); else if (this.IsAttachedToVisualTree() && DataContext is TrackRow) _ = LoadCoverAsync(); }
     }
     private void Observe() => Observe(Player);
     private void Observe(PlayerViewModel? player)
@@ -62,10 +57,13 @@ public partial class SongTrackRow : UserControl
         SpecTag.IsVisible = row.SampleRate > 0;
         BpmTag.IsVisible = row.Source?.Bpm is > 0 && double.IsFinite(row.Source.Bpm.Value);
         BpmText.Text = BpmTag.IsVisible ? row.Source!.Bpm!.Value.ToString("0.#", CultureInfo.InvariantCulture) + " BPM" : "";
+        ArtistColumn.Text = row.Artist; AlbumColumn.Text = row.Album;
+        SpecColumn.Text = string.Join(" · ", new[] { FormatTag.IsVisible ? FormatText.Text : "", SpecTag.IsVisible ? SpecText.Text : "" }.Where(part => part.Length > 0));
         Duration.Text = row.DurationSeconds > 0 && double.IsFinite(row.DurationSeconds)
             ? (string)SongDurationConverter.Instance.Convert(row.DurationSeconds, typeof(string), null, CultureInfo.InvariantCulture) : "--:--";
         Heart.Kind = row.Favorite ? "heart-filled" : "heart"; FavoriteButton.Classes.Set("liked", row.Favorite);
-        UpdatePlaying();
+        UpdatePlaying(); ApplyLayout();
+        if (Layout == "dense") { Release(false); return; }
         if (this.IsAttachedToVisualTree()) _ = LoadCoverAsync();
     }
     private async Task LoadCoverAsync()

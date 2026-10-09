@@ -30,7 +30,7 @@ public sealed class PlaybackMediaTransport : IAsyncDisposable
     private void Publish(PlaybackStateSnapshot snapshot)
     {
         if (Volatile.Read(ref disposed) == 0)
-            transport.Publish(MediaTransportMapping.Create(snapshot.Playback, snapshot.Queue.Items, snapshot.Repeat, snapshot.Queue));
+            transport.Publish(MediaTransportMapping.Create(snapshot.Playback, snapshot.Queue.Items, snapshot.Repeat, snapshot.Queue, snapshot.Output.DeviceName));
     }
     private async Task PublishStatesAsync()
     {

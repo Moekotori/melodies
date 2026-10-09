@@ -23,7 +23,7 @@ public sealed partial class PlaybackSessionCoordinator
         if (startItemId is not null && !items.Any(x => x.ItemId == startItemId)) throw new ArgumentException("队列中不存在起始项");
         return Command(async () =>
         {
-            foreach (var item in items) (item.Source ?? AudioSource.Local(item.FilePath)).Validate();
+            foreach (var item in items) AudioSource.Playable(item).Validate();
             await EnsureStartedAsync().ConfigureAwait(false);
             var current = startItemId ?? (items.Any(x => x.ItemId == snapshot.Current?.ItemId) ? snapshot.Current?.ItemId : null);
             var oldOrder = shuffleOrder;
@@ -105,7 +105,9 @@ public sealed partial class PlaybackSessionCoordinator
         if (!shuffle || repeat == RepeatMode.One)
             return active is not null && !items.Any(x => x.ItemId == current) ? [active, .. items] : items;
         var byId = items.Where(x => !x.QueuedNext).ToDictionary(x => x.ItemId, StringComparer.Ordinal);
-        var bases = shuffleOrder.Select(id => byId.GetValueOrDefault(id)).OfType<QueueTrack>().ToList();
+        var bases = new List<QueueTrack>(shuffleOrder.Length);
+        foreach (var id in shuffleOrder)
+            if (byId.TryGetValue(id, out var track)) bases.Add(track);
         var ordered = shuffleOrder.ToHashSet(StringComparer.Ordinal);
         bases.AddRange(items.Where(x => !x.QueuedNext && !ordered.Contains(x.ItemId)));
         var pendingNext = items.Where(x => x.QueuedNext && x.ItemId != current).ToArray();
@@ -118,27 +120,35 @@ public sealed partial class PlaybackSessionCoordinator
         return [.. bases.Take(split), .. active is null ? Array.Empty<QueueTrack>() : new[] { active }, .. pendingNext, .. bases.Skip(split)];
     }
 
-    private static string[] CreateShuffleOrder(QueueTrack[] items, string? current)
-    {
-        var ids = items.Where(x => !x.QueuedNext && x.ItemId != current).Select(x => x.ItemId).ToArray();
-        Random.Shared.Shuffle(ids);
-        return items.Any(x => x.ItemId == current && !x.QueuedNext) ? [current!, .. ids] : ids;
-    }
+    private string[] CreateShuffleOrder(QueueTrack[] items, string? current)
+        => QueuePlaybackPlan.Order(items, current, QueuePlaybackPlan.RecentTrackIds(history));
 
     private QueueTrack? ResolveNext(bool automatic = false)
     {
         if (automatic && repeat == RepeatMode.One && queue.Any(x => x.ItemId == snapshot.Current?.ItemId)) return snapshot.Current;
         if (queue.Length == 0) return null;
-        var projected = ProjectNativeQueue(queue, snapshot.Current?.ItemId);
-        var index = Array.FindIndex(projected, x => x.ItemId == snapshot.Current?.ItemId);
-        if (index + 1 < projected.Length) return projected[index + 1];
-        return repeat == RepeatMode.All ? projected.FirstOrDefault() : null;
+        var current = snapshot.Current?.ItemId;
+        var projected = ProjectNativeQueue(queue, current);
+        var steps = QueuePlaybackPlan.Upcoming(projected, current, repeat == RepeatMode.All, shuffle, QueuePlaybackPlan.RecentTrackIds(history), 1);
+        return steps.Length == 0 ? null : FindProjected(projected, steps[0].ItemId);
+    }
+
+    private static QueueTrack? FindProjected(QueueTrack[] projected, string itemId)
+    {
+        foreach (var item in projected)
+            if (item.ItemId == itemId) return item;
+        return null;
     }
 
     private void PublishQueue()
     {
-        var state = new QueueSnapshot(++queueVersion, Queue, Array.AsReadOnly(history), snapshot.Current?.ItemId,
-            repeat == RepeatMode.One ? null : ResolveNext(), QueueMode);
+        var current = snapshot.Current?.ItemId;
+        var projected = ProjectNativeQueue(queue, current);
+        var steps = queue.Length == 0 || repeat == RepeatMode.One ? []
+            : QueuePlaybackPlan.Upcoming(projected, current, repeat == RepeatMode.All, shuffle, QueuePlaybackPlan.RecentTrackIds(history));
+        var state = new QueueSnapshot(++queueVersion, Queue, Array.AsReadOnly(history), current,
+            steps.Length == 0 ? null : FindProjected(projected, steps[0].ItemId), QueueMode)
+        { Plan = steps };
         Volatile.Write(ref queueSnapshot, state);
         PublishState();
         if (QueueChanged is { } handlers)

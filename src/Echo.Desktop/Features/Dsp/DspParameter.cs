@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Echo.Desktop.Features.Dsp;
@@ -18,15 +19,45 @@ public sealed partial class EqBandViewModel(int index, double frequency, double 
     public int Index { get; } = index;
     public string Number => (Index + 1).ToString("00");
     [ObservableProperty, NotifyPropertyChangedFor(nameof(FrequencyLabel))] private double frequencyHz = frequency;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(GainLabel))] private double gainDb = gain;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(GainLabel)), NotifyPropertyChangedFor(nameof(IsShaped))] private double gainDb = gain;
     [ObservableProperty] private double q = q;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(QMaximum)), NotifyPropertyChangedFor(nameof(IsGainEditable))]
     private DspChoice filter = EqFilters.All.FirstOrDefault(x => x.Key == filter) ?? EqFilters.All[0];
-    [ObservableProperty] private bool enabled = enabled;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsShaped))] private bool enabled = enabled;
     public double QMaximum => Filter.Key == "notch" ? 24 : 12;
     public bool IsGainEditable => Filter.Key is "peaking" or "lowShelf" or "highShelf";
+    public bool IsShaped => Enabled && Math.Abs(GainDb) > 0.01;
+    public IBrush Swatch => DspBandPalette.Brush(Index);
     public string FrequencyLabel => FrequencyHz >= 1000 ? $"{FrequencyHz / 1000:0.#}k" : $"{FrequencyHz:0.#}";
     public string GainLabel => $"{GainDb:+0.0;-0.0;0.0} dB";
+}
+
+public sealed partial class DspToggle(string key, string label, bool initial) : ObservableObject
+{
+    public string Key { get; } = key;
+    public string Label { get; } = label;
+    [ObservableProperty] private bool value = initial;
+}
+
+public sealed partial class DspChoiceField : ObservableObject
+{
+    public DspChoiceField(DspChoiceDefinition definition, string selectedKey)
+    {
+        Definition = definition;
+        selected = definition.Options.FirstOrDefault(x => x.Key == selectedKey) ?? definition.Options[0];
+    }
+    public DspChoiceDefinition Definition { get; }
+    public string Key => Definition.Key;
+    public string Label => Definition.Label;
+    public IReadOnlyList<DspChoice> Options => Definition.Options;
+    [ObservableProperty] private DspChoice selected;
+}
+
+public sealed class DspRackRow(string id, string label, bool pinned)
+{
+    public string Id { get; } = id;
+    public string Label { get; } = label;
+    public bool Pinned { get; } = pinned;
 }
 
 public static class EqFilters

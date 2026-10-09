@@ -26,6 +26,7 @@ public partial class SignalPathPanel : UserControl
             panel.Width = Math.Clamp((top?.ClientSize.Width ?? 900) - 48, 280, 400);
             panel.MaxHeight = Math.Clamp((top?.ClientSize.Height ?? 800) - 140, 240, 540);
             panel.DiagnosticsExpander.IsExpanded = false;
+            panel.DoctorExpander.IsExpanded = false;
             panel.DataContext = player() is { } model ? new SignalPathViewModel(model) : null;
             panel.ContentScroll.Offset = default;
             panel.CloseButton.Focus();

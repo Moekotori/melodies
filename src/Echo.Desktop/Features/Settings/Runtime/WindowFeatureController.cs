@@ -4,6 +4,7 @@ using Avalonia.Media;
 using Avalonia.Platform;
 using Echo.Contracts.Settings;
 using Echo.Desktop.Shell;
+using Echo.Platform.MacOS;
 using Echo.Platform.Windows;
 
 namespace Echo.Desktop.Features.Settings.Runtime;
@@ -25,8 +26,13 @@ public sealed class WindowFeatureController : IDisposable
             shell.CloseToTray = value.Enabled; return Task.CompletedTask;
         });
         runtime.RegisterChange("ultra-light-mode", (value, _) => { shell.UltraLightEnabled = value.Enabled; return Task.CompletedTask; });
-        runtime.RegisterChange("launch-at-login", (value, token) => WindowsDesktopFeatures.SetStartupAsync(value.Enabled,
-            Environment.ProcessPath ?? throw new IOException("无法定位 ECHO 可执行文件。"), token));
+        runtime.RegisterChange("launch-at-login", (value, token) =>
+        {
+            var path = Environment.ProcessPath ?? throw new IOException("无法定位 ECHO 可执行文件。");
+            return OperatingSystem.IsMacOS()
+                ? MacOsLoginItem.SetEnabledAsync(value.Enabled, path, token)
+                : WindowsDesktopFeatures.SetStartupAsync(value.Enabled, path, token);
+        });
         runtime.RegisterChange("touch-keyboard", (value, token) => WindowsDesktopFeatures.SetTouchKeyboardAsync(value.Enabled, token));
         runtime.RegisterChange("accessibility-eye-comfort", (value, _) => { SetComfort(value.Enabled); return Task.CompletedTask; });
         runtime.RegisterChange("accessibility-high-contrast", (value, _) => { SetContrast(value.Enabled); return Task.CompletedTask; });

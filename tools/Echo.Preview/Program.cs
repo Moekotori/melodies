@@ -9,10 +9,14 @@ using Echo.Desktop.Shell;
 
 // Native Avalonia render, no HTML recreation. This tool is not loaded by Desktop.
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions()).UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
+if (args.Length == 1 && args[0] == "--desktop-lyrics")
+{ Echo.Desktop.Features.Floating.DesktopLyricsLayout.Verify(); Console.WriteLine("PASS desktop lyrics layout"); return; }
 if (args.Length >= 2 && args[0] == "--song-menu")
 { SongContextMenuSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--dsp")
 { DspWorkbenchSmoke.Run(Path.GetFullPath(args[1]), args.Length > 2 ? Path.GetFullPath(args[2]) : Path.Combine(AppContext.BaseDirectory, "native", "echo-audio-host.exe")); return; }
+if (args.Length >= 2 && args[0] == "--dsp-appearance")
+{ DspAppearanceCapture.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--queue-window")
 { QueueDrawerSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--settings-functional")

@@ -1,6 +1,6 @@
 namespace Echo.Desktop.Features.Lyrics;
 
-public enum LyricsLayout { Reading, Light, WordFocus, CoverLeft, Editorial, Folded, Vinyl, Cinema, Poster, CoverRight, Slices, Afterglow }
+public enum LyricsLayout { Reading, Light, WordFocus, CoverLeft, Editorial, Folded, Vinyl, Cinema, Poster, CoverRight, Slices, CoverOnly, Afterglow }
 public sealed record LyricsStyle(string Id, string Label, string Description, LyricsLayout Layout,
     string Background, string Ink, string Accent, double Scale = 1, bool Center = false);
 public sealed record AfterglowLook(string Id, string Label, string Background, string Ink, string Accent, string Secondary);
@@ -15,10 +15,11 @@ public static class LyricsStyleCatalog
         new("afterglowCover", "余晖", "封面与温暖的阅读舞台", LyricsLayout.CoverLeft, "#1B1716", "#F9F5ED", "#F1C28F"),
         new("editorial", "纸笺", "纸张底色与边栏排版", LyricsLayout.Editorial, "#FBFAF8", "#122039", "#4046F2"),
         new("folded", "折光", "青紫折射与透视层次", LyricsLayout.Folded, "#01060C", "#F1F5F7", "#78E4EE", 1.1),
-        new("roseVinyl", "留声", "封面阅读列与克制排版", LyricsLayout.Vinyl, "#10131A", "#F8FAFC", "#F8FAFC"),
+        new("roseVinyl", "留声", "封面阅读列与克制排版", LyricsLayout.Vinyl, "#171116", "#F8FAFC", "#F8FAFC"),
         new("cinemaStage", "映幕", "宽银幕构图与字幕焦点", LyricsLayout.Cinema, "#020407", "#F8FAFC", "#BEECE2", 1.18, true),
         new("kineticPoster", "跃字", "已唱、当前词与未唱词的三栏海报", LyricsLayout.Poster, "#07111F", "#FFF3D4", "#FF776D", 1.65, true),
         new("coverStage", "画境", "封面铺陈与并列歌词", LyricsLayout.CoverRight, "#16181E", "#F8F8F8", "#F8F8F8"),
+        new("coverOnly", "纯封面", "居中封面，画面让出歌词", LyricsLayout.CoverOnly, "", "", ""),
         new("cutBoard", "切影", "斜切封面与歌词切片", LyricsLayout.Slices, "#080C11", "#FFF6E0", "#FF705E", 1.35),
         new("jizura", "Afterglow", "独立场景与动态文字", LyricsLayout.Afterglow, "#EAE4F6", "#3A2C5E", "#8E6FD6", 1.6, true)
     ];

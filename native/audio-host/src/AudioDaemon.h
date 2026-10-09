@@ -1,6 +1,8 @@
 #pragma once
 
 #include "AutomixHandoffSchedule.h"
+struct WorkshopTransitionWindow;
+#include "DualTrackMixDecoder.h"
 
 #include <atomic>
 #include <array>
@@ -80,6 +82,8 @@ public:
         std::function<void(uint64_t)> markAutomixDeckEnded;
         std::function<void(uint64_t, uint64_t)> failAutomixDeck;
         std::function<bool(uint64_t)> commitAutomixDeck;
+        std::function<void(std::shared_ptr<const WorkshopTransitionWindow>)> installWorkshopTransitionWindow;
+        std::function<bool()> workshopTransitionDeadlineMissed;
         std::function<bool(uint64_t)> armInitialPlayGate;
         std::function<bool(uint64_t)> initialPlayGateArmed;
         std::function<bool(uint64_t, uint64_t)> beginInitialPlayGateWait;
@@ -88,6 +92,7 @@ public:
         std::function<bool(uint64_t)> requestStopForGeneration;
         std::function<void(int, uint64_t)> publishGaplessReplayGainBoundary;
         std::function<bool()> requiresReplayGainPreparation;
+        std::function<void(std::shared_ptr<DualTrackMixBuffer>)> installDualTrackMix;
     };
 
     // Queue state for autonomous track advancement
@@ -206,6 +211,12 @@ private:
                     double sourceRangeStartSeconds = 0.0,
                     std::optional<double> sourceRangeEndSeconds = std::nullopt);
     bool onOpenSource(const nlohmann::json& source, int targetSampleRate, double requestedStartSeconds, nlohmann::json& result);
+    bool openDualTrackMixLocked(const std::string& a, const std::string& b, int sampleRate,
+                               double startSeconds, float balance, uint64_t operationId, nlohmann::json& result);
+    bool onMixBalance(const nlohmann::json& request, nlohmann::json& result);
+    std::shared_ptr<DualTrackMixDecoder> activeMix_;
+    std::string mixSourceB_;
+    float mixBalance_ = 0.5f;
     bool onPause(bool pause, uint64_t expectedOperationId = 0);
     bool onSeek(double positionSeconds, nlohmann::json& result, uint64_t expectedOperationId = 0);
     bool onStop(nlohmann::json& result, uint64_t expectedOperationId = 0);
@@ -356,6 +367,7 @@ private:
     std::jthread automixThread_;
     std::shared_ptr<echo::LibavPcmStreamDecoder> activeAutomixStream_;
     std::atomic<uint64_t> automixPreparationId_{0};
+    std::shared_ptr<WorkshopTransitionWindow> stagedWorkshopWindow_;
 
     // Queue for autonomous track advancement
     std::vector<QueueItem> queue_;

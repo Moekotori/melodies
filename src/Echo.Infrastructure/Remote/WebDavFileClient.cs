@@ -8,13 +8,15 @@ using Echo.Contracts.Remote;
 
 namespace Echo.Infrastructure.Remote;
 
-// Two requests, 8 MiB XML, 20,000 entries per directory; only a 200-row page escapes this owner.
+// Two directory requests, 8 MiB XML, 20,000 entries; only a 200-row page escapes a browse call.
 public sealed class WebDavFileClient : IRemoteFileClient, IDisposable
 {
     public const int PageSize = 200;
     public const int MaxXmlBytes = 8 * 1024 * 1024;
     private readonly HttpClient client;
     private readonly SemaphoreSlim admission = new(2, 2);
+    private readonly HashSet<string> digestSources = new(StringComparer.Ordinal);
+    private RemoteHttpProxy? proxy;
     public WebDavFileClient(HttpMessageHandler? handler = null)
     {
         client = new(handler ?? new SocketsHttpHandler { AllowAutoRedirect = false, MaxConnectionsPerServer = 2,
@@ -26,13 +28,52 @@ public sealed class WebDavFileClient : IRemoteFileClient, IDisposable
     {
         token.ThrowIfCancellationRequested();
         var headers = RemoteBrowseRules.SessionHeaders();
+        var address = new Uri(GetMediaUrl(source, entry.Path));
+        if (digestSources.Contains(source.Id) && (source.Username.Length > 0 || source.Password.Length > 0))
+        {
+            proxy ??= new(client);
+            return Task.FromResult(new RemoteMediaSource("http", proxy.Register(address, source), headers));
+        }
         if (source.Username.Length > 0 || source.Password.Length > 0)
             headers["authorization"] = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(source.Username + ":" + source.Password));
-        return Task.FromResult(new RemoteMediaSource("http", GetMediaUrl(source, entry.Path), headers));
+        return Task.FromResult(new RemoteMediaSource("http", address.AbsoluteUri, headers));
+    }
+    public Task<IReadOnlyList<RemoteEntry>> ListChildrenAsync(RemoteConnection source, string path, CancellationToken token)
+    { RemoteBrowseRules.PathParts(path); return LoadAsync(source, path, token); }
+    public async Task<byte[]?> ReadFileAsync(RemoteConnection source, string path, int maxBytes, CancellationToken token)
+    {
+        if (maxBytes is < 1 or > 4 * 1024 * 1024) throw new ArgumentException("读取大小无效。");
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(TimeSpan.FromSeconds(15));
+        var entered = false;
+        try
+        {
+            await admission.WaitAsync(deadline.Token).ConfigureAwait(false); entered = true;
+            using var response = await SendAsync(source, () => new HttpRequestMessage(HttpMethod.Get, WebDavPaths.Resolve(source.BaseUrl, path)), "GET", deadline.Token).ConfigureAwait(false);
+            if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden) return null;
+            if (!response.IsSuccessStatusCode) return null;
+            if (response.Content.Headers.ContentLength > maxBytes) return null;
+            await using var stream = await response.Content.ReadAsStreamAsync(deadline.Token).ConfigureAwait(false);
+            using var bytes = new MemoryStream(); var buffer = new byte[8192];
+            while (true)
+            {
+                var read = await stream.ReadAsync(buffer, deadline.Token).ConfigureAwait(false); if (read == 0) break;
+                if (bytes.Length + read > maxBytes) return null;
+                bytes.Write(buffer, 0, read);
+            }
+            return bytes.Length == 0 ? null : bytes.ToArray();
+        }
+        catch (Exception) when (deadline.IsCancellationRequested && !token.IsCancellationRequested) { return null; }
+        catch (HttpRequestException) { return null; }
+        finally { if (entered) admission.Release(); }
     }
     public async Task<RemoteDirectoryPage> BrowseAsync(RemoteConnection source, string path, int page, string search, bool audioOnly, CancellationToken token)
     {
         if (page is < 0 or > 100 || search.Length > 160) throw new ArgumentException("网盘分页或搜索条件无效。");
+        var rows = await LoadAsync(source, path, token).ConfigureAwait(false);
+        return RemoteBrowseRules.Page(rows, page, search, audioOnly);
+    }
+    private async Task<IReadOnlyList<RemoteEntry>> LoadAsync(RemoteConnection source, string path, CancellationToken token)
+    {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
         deadline.CancelAfter(TimeSpan.FromSeconds(15));
         var entered = false;
@@ -41,12 +82,13 @@ public sealed class WebDavFileClient : IRemoteFileClient, IDisposable
             await admission.WaitAsync(deadline.Token).ConfigureAwait(false); entered = true;
             var root = new Uri(source.BaseUrl.TrimEnd('/') + "/");
             var directory = WebDavPaths.Resolve(source.BaseUrl, path.TrimEnd('/') + "/");
-            using var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), directory);
-            request.Headers.Add("Depth", "1");
-            if (source.Username.Length > 0 || source.Password.Length > 0)
-                request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes(source.Username + ":" + source.Password)));
-            request.Content = new StringContent("<?xml version=\"1.0\"?><d:propfind xmlns:d=\"DAV:\"><d:prop><d:resourcetype/><d:getcontentlength/><d:getlastmodified/></d:prop></d:propfind>", Encoding.UTF8, "application/xml");
-            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
+            using var response = await SendAsync(source, () =>
+            {
+                var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), directory);
+                request.Headers.Add("Depth", "1");
+                request.Content = new StringContent("<?xml version=\"1.0\"?><d:propfind xmlns:d=\"DAV:\"><d:prop><d:resourcetype/><d:getcontentlength/><d:getlastmodified/></d:prop></d:propfind>", Encoding.UTF8, "application/xml");
+                return request;
+            }, "PROPFIND", deadline.Token).ConfigureAwait(false);
             if ((int)response.StatusCode != 207) throw new IOException(response.StatusCode switch
             {
                 HttpStatusCode.Unauthorized => "账号或密码不正确，请检查 WebDAV 应用密码。",
@@ -65,15 +107,25 @@ public sealed class WebDavFileClient : IRemoteFileClient, IDisposable
                 if (bytes.Length + read > MaxXmlBytes) throw new IOException("目录响应超过 8 MiB，请选择较小的子目录。");
                 bytes.Write(buffer, 0, read);
             }
-            // XML parsing and sorting are CPU work and never run on the UI thread.
-            return await Task.Run(() => Parse(bytes, root, directory, page, search, audioOnly, deadline.Token), deadline.Token).ConfigureAwait(false);
+            return await Task.Run(() => Parse(bytes, root, directory, deadline.Token), deadline.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { throw new TimeoutException("网盘响应超时，请重试或检查网络。"); }
         catch (HttpRequestException) { throw new IOException("无法连接网盘，请检查网络、地址与证书。"); }
         catch (XmlException) { throw new IOException("服务器返回的 WebDAV 目录格式无效。"); }
         finally { if (entered) admission.Release(); }
     }
-    private static RemoteDirectoryPage Parse(MemoryStream bytes, Uri root, Uri directory, int page, string search, bool audioOnly, CancellationToken token)
+    private async Task<HttpResponseMessage> SendAsync(RemoteConnection source, Func<HttpRequestMessage> create, string method, CancellationToken token)
+    {
+        using var first = create(); var address = first.RequestUri!;
+        WebDavDigest.ApplyBasic(first, source);
+        var response = await client.SendAsync(first, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+        if (!WebDavDigest.TryChallenge(response, address, source, method, out var digest)) return response;
+        response.Dispose();
+        lock (digestSources) digestSources.Add(source.Id);
+        var second = create(); second.Headers.Authorization = digest;
+        return await client.SendAsync(second, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+    }
+    private static IReadOnlyList<RemoteEntry> Parse(MemoryStream bytes, Uri root, Uri directory, CancellationToken token)
     {
         bytes.Position = 0;
         using var reader = XmlReader.Create(bytes, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
@@ -93,7 +145,6 @@ public sealed class WebDavFileClient : IRemoteFileClient, IDisposable
             if (href is null || href.Length > 12288 || !Uri.TryCreate(directory, href, out var target)) continue;
             var relative = WebDavPaths.Relative(root, target);
             if (relative is null || target.AbsolutePath.TrimEnd('/') == directory.AbsolutePath.TrimEnd('/')) continue;
-            // Depth:1 may be ignored by a server. Never admit descendants or siblings.
             var child = target.AbsolutePath;
             if (!child.StartsWith(directory.AbsolutePath, StringComparison.Ordinal) || child[directory.AbsolutePath.Length..].TrimEnd('/').Contains('/')) continue;
             if (!seen.Add(relative)) continue;
@@ -104,13 +155,11 @@ public sealed class WebDavFileClient : IRemoteFileClient, IDisposable
             var name = relative.TrimEnd('/').Split('/').Last();
             if (name.Length > 512 || relative.Length > 4096) continue;
             var audio = !folder && AudioFormatCatalog.DirectAudioExtensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
-            if (audioOnly && !folder && !audio || !name.Contains(search, StringComparison.OrdinalIgnoreCase)) continue;
             var size = long.TryParse(prop.Element(dav + "getcontentlength")?.Value, out var length) && length >= 0 ? (long?)length : null;
             var modified = DateTimeOffset.TryParse(prop.Element(dav + "getlastmodified")?.Value, out var date) ? date.ToString("yyyy-MM-dd") : null;
             rows.Add(new(relative, name, folder, audio, size, modified));
         }
-        rows.Sort((a, b) => a.IsDirectory != b.IsDirectory ? a.IsDirectory ? -1 : 1 : StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name));
-        return new(rows.Skip(page * PageSize).Take(PageSize).ToArray(), rows.Count, page, PageSize);
+        return rows;
     }
-    public void Dispose() => client.Dispose();
+    public void Dispose() { proxy?.Dispose(); client.Dispose(); }
 }

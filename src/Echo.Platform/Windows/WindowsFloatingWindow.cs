@@ -15,6 +15,13 @@ public static partial class WindowsFloatingWindow
         var accepted = SetWindowLongW(handle, ExtendedStyle, next) != 0 || Marshal.GetLastPInvokeError() == 0;
         return accepted && ((GetWindowLongW(handle, ExtendedStyle) & Transparent) != 0) == enabled;
     }
+    public static bool TryGetCursor(out int x, out int y)
+    {
+        if (!GetCursorPos(out var point)) { x = y = 0; return false; }
+        x = point.X; y = point.Y; return true;
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct WinPoint { public int X; public int Y; }
     [DllImport("user32.dll", SetLastError = true)] private static extern int GetWindowLongW(nint handle, int index);
     [DllImport("user32.dll", SetLastError = true)] private static extern int SetWindowLongW(nint handle, int index, int value);
+    [DllImport("user32.dll")] private static extern bool GetCursorPos(out WinPoint point);
 }

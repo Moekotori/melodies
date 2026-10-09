@@ -9,6 +9,16 @@ internal sealed class MountedFileClient : IRemoteFileClient
     public async Task<RemoteDirectoryPage> BrowseAsync(RemoteConnection source, string path, int page, string search, bool audioOnly, CancellationToken token)
     {
         RemoteBrowseRules.Request(path, page, search);
+        return RemoteBrowseRules.Page(await ListChildrenAsync(source, path, token).ConfigureAwait(false), page, search, audioOnly);
+    }
+    public string? LocalPath(RemoteConnection source, string path)
+    {
+        try { return Resolve(source.BaseUrl, path, CancellationToken.None); }
+        catch (Exception) { return null; }
+    }
+    public async Task<IReadOnlyList<RemoteEntry>> ListChildrenAsync(RemoteConnection source, string path, CancellationToken token)
+    {
+        RemoteBrowseRules.PathParts(path);
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(token); budget.CancelAfter(TimeSpan.FromSeconds(15));
         var workToken = budget.Token;
         await admission.WaitAsync(budget.Token).ConfigureAwait(false);
@@ -28,12 +38,20 @@ internal sealed class MountedFileClient : IRemoteFileClient
                     rows.Add(new(remote, item.Name, folder, !folder && RemoteBrowseRules.Audio(item.Name),
                         item is FileInfo file ? file.Length : null, item.LastWriteTimeUtc.ToString("yyyy-MM-dd")));
                 }
-                return RemoteBrowseRules.Page(rows, page, search, audioOnly);
+                return (IReadOnlyList<RemoteEntry>)rows;
             }
             finally { admission.Release(); }
         }, CancellationToken.None);
         _ = worker.ContinueWith(t => { _ = t.Exception; }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         return await worker.WaitAsync(budget.Token).ConfigureAwait(false);
+    }
+    public async Task<byte[]?> ReadFileAsync(RemoteConnection source, string path, int maxBytes, CancellationToken token)
+    {
+        var full = LocalPath(source, path);
+        if (full is null || !File.Exists(full)) return null;
+        var length = new FileInfo(full).Length;
+        if (length <= 0 || length > maxBytes) return null;
+        return await File.ReadAllBytesAsync(full, token).ConfigureAwait(false);
     }
     public async Task<RemoteMediaSource> ResolveMediaAsync(RemoteConnection source, RemoteEntry entry, CancellationToken token)
     {

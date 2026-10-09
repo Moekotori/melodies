@@ -109,7 +109,8 @@ public partial class MainWindow
                 case "bossKey":
                     if (state.Volume > 0) _unmutedVolume = state.Volume;
                     await player.ChangeVolumeAsync(0);
-                    if (EnsureTrayRecovery()) { ShowInTaskbar = false; Hide(); }
+                    if (OperatingSystem.IsMacOS()) Hide();
+                    else if (EnsureTrayRecovery()) { ShowInTaskbar = false; Hide(); }
                     else WindowState = WindowState.Minimized; break;
                 case "revealCurrentTrackInFolder":
                     if (state.Current is { } track && Path.GetDirectoryName(track.FilePath) is { Length: > 0 } directory)

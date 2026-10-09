@@ -1,0 +1,87 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Button.connect-tab">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="Button.connect-tab:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Button.connect-tab.active"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Button.connect-tab.active TextBlock"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Button.connect-tool">
+    <Setter Property="Height" Value="34" />
+    <Setter Property="MinWidth" Value="34" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{DynamicResource EchoField}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Button.connect-tool:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Button.connect-tool.active">
+    <Setter Property="Background" Value="{DynamicResource EchoHover}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+  </Style>
+  <Style Selector="Button.connect-chip">
+    <Setter Property="Height" Value="30" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="99" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.connect-primary">
+    <Setter Property="Height" Value="34" />
+    <Setter Property="MinWidth" Value="64" />
+    <Setter Property="Padding" Value="14,0" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{DynamicResource EchoAccent}" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoOnAccent}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.connect-primary:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+  <Style Selector="Border.connect-card">
+    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="18" />
+  </Style>
+  <Style Selector="Border.connect-inset">
+    <Setter Property="Background" Value="{DynamicResource EchoField}" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12,10" />
+  </Style>
+  <Style Selector="Border.connect-row">
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.connect-row:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Border.connect-row.current, Border.connect-row.active">
+    <Setter Property="Background" Value="{DynamicResource EchoHover}" />
+  </Style>
+  <Style Selector="Border.connect-state">
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="CornerRadius" Value="99" />
+    <Setter Property="Background" Value="{DynamicResource EchoField}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.connect-state.live"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+  <Style Selector="Border.connect-state.error"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+  <Style Selector="Border.connect-code">
+    <Setter Property="Background" Value="{DynamicResource EchoField}" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="18,14" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="TextBlock.connect-kicker">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+  </Style>
+  <Style Selector="TextBlock.connect-note.live"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+</Styles>

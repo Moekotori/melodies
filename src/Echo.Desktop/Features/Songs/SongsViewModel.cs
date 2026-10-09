@@ -38,6 +38,9 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private bool isActing;
     [ObservableProperty] private string error = "";
+    [ObservableProperty] private string layout = "list";
+    [ObservableProperty] private bool alphabet;
+    [ObservableProperty] private string alphabetLetter = "";
     public bool CanPrevious => !IsLoading && offset > 0;
     public bool CanNext => !IsLoading && hasNext;
     public bool IsEmpty => !IsLoading && Items.Count == 0 && Error.Length == 0;
@@ -46,6 +49,9 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
         + (Order().Count > 1 ? " +" + (Order().Count - 1) : "");
     public string CountText => text.Format("query.visibleCount", Items.Count);
     public string PageText => text.Format("query.page", offset / 200 + 1, Items.Count);
+    public bool IsListLayout => Layout == "list";
+    public bool IsSplitLayout => Layout == "split";
+    public bool IsDenseLayout => Layout == "dense";
     public SongsViewModel(ITrackLibrary library, PlayerViewModel? player, LocalizationService text, LibraryViewPreferences? preference = null)
     {
         this.library = library; this.player = player; this.text = text;
@@ -55,13 +61,21 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
             sortIndex = preference.SortIndex; descending = preference.Descending;
             secondaryIndex = preference.SecondaryIndex; secondaryDescending = preference.SecondaryDescending;
             tertiaryIndex = preference.TertiaryIndex; tertiaryDescending = preference.TertiaryDescending;
+            layout = preference.Layout is "split" or "dense" ? preference.Layout : "list";
+            alphabet = preference.Alphabet;
             Filters.Restore(preference.Filter);
         }
         isMultiSortEnabled = secondaryIndex > 0 || tertiaryIndex > 0;
         Filters.Changed += OnFilters; text.Changed += OnLanguage;
     }
     public event Action? PreferenceChanged;
-    public LibraryViewPreferences Preference => new("songs", SortIndex, Descending, SecondaryIndex, SecondaryDescending, TertiaryIndex, TertiaryDescending, Filters.Snapshot());
+    public LibraryViewPreferences Preference => new("songs", SortIndex, Descending, SecondaryIndex, SecondaryDescending, TertiaryIndex, TertiaryDescending, Filters.Snapshot(), Layout, Alphabet);
+    partial void OnLayoutChanged(string value)
+    {
+        if (value is not ("list" or "split" or "dense")) { if (Layout != "list") Layout = "list"; return; }
+        OnPropertyChanged(nameof(IsListLayout)); OnPropertyChanged(nameof(IsSplitLayout)); OnPropertyChanged(nameof(IsDenseLayout));
+        PreferenceChanged?.Invoke();
+    }
     private void OnFilters() { OnPropertyChanged(nameof(HasQuery)); PreferenceChanged?.Invoke(); _ = LoadAsync(0, true); }
     private void OnOptions() { if (changingSort) return;
         if ((SecondaryIndex > 0 || TertiaryIndex > 0) && !IsMultiSortEnabled) { IsMultiSortEnabled = true; OnPropertyChanged(nameof(IsMultiSortEnabled)); }
@@ -93,18 +107,23 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     [RelayCommand] private Task NextAsync() => CanNext ? LoadAsync(offset + 200, expected: revision) : Task.CompletedTask;
     [RelayCommand] private void ClearSearch() => Search = "";
     [RelayCommand] private void ResetQuery() { Search = ""; Filters.Reset(); }
-    public async Task LoadAsync(int target = 0, bool debounce = false, long? expected = null)
+    public async Task LoadAsync(int target = 0, bool debounce = false, long? expected = null, bool fromJump = false)
     {
         if (closed) return;
-        request?.Cancel(); using var current = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+        if (!fromJump) { jump?.Cancel(); AlphabetLetter = ""; }
+        request?.Cancel();
+        using var current = fromJump && jump is { } active
+            ? CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, active.Token)
+            : CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
         request = current; var version = ++generation; IsLoading = true; Error = "";
-        // Disable actions on results belonging to a previous query.
-        Selected = null; Items = [];
+        // A letter jump keeps the current page until its own page arrives.
+        if (!fromJump) { Selected = null; Items = []; }
         try
         {
             if (debounce) await Task.Delay(120, current.Token);
             var page = await library.GetTracksAsync(new(200, Search, Order: Order(), Filter: Filters.Snapshot(), Offset: target, Revision: expected), current.Token);
             if (closed || version != generation) return;
+            if (fromJump) Selected = null;
             Items = page.Items; offset = target; revision = page.Revision; hasNext = page.Next is not null;
         }
         catch (OperationCanceledException) { }
@@ -146,7 +165,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     }
     public void Dispose()
     {
-        if (closed) return; closed = true; ++generation; request?.Cancel(); lifetime.Cancel(); lifetime.Dispose();
+        if (closed) return; closed = true; ++generation; jump?.Cancel(); request?.Cancel(); lifetime.Cancel(); lifetime.Dispose();
         PreferenceChanged = null; Filters.Changed -= OnFilters; text.Changed -= OnLanguage; Items = []; Selected = null;
     }
 }

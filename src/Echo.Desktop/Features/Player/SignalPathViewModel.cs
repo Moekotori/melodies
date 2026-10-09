@@ -34,6 +34,14 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
     [ObservableProperty] private IReadOnlyList<SignalPathFact> outputFacts = [];
     [ObservableProperty] private IReadOnlyList<SignalPathFact> diagnostics = [];
     [ObservableProperty] private IReadOnlyList<SignalPathNode> nodes = [];
+    [ObservableProperty] private IReadOnlyList<SignalPathChip> engagedChips = [];
+    [ObservableProperty] private string idleSummary = "";
+    [ObservableProperty] private string insightPreview = "";
+    [ObservableProperty] private IReadOnlyList<SignalPathInsight> insights = [];
+    [ObservableProperty] private string doctorCount = "";
+    [ObservableProperty] private string stabilityHeadline = "";
+    [ObservableProperty] private string stabilityDetail = "";
+    [ObservableProperty] private IReadOnlyList<SignalPathFact> stability = [];
     public string Title => L("title");
     public string CloseLabel => L("close");
     public string LevelLabel => L("level");
@@ -42,6 +50,8 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
     public string PerformanceText => player.PerformanceText;
     public string OutputSettingsLabel => L("settings");
     public string ChainLabel => L("chain");
+    public string TechLabel => L("tech");
+    public string StabilityLabel => L("stability");
     private string L(string key) => player.Text["signal." + key];
     private string Unknown => L("unknown");
 
@@ -85,7 +95,7 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
     private void RefreshLanguage()
     {
         presentedVersion = -1;
-        foreach (var property in new[] { nameof(Title), nameof(CloseLabel), nameof(LevelLabel), nameof(LevelNote), nameof(DiagnosticsLabel), nameof(OutputSettingsLabel), nameof(ChainLabel) })
+        foreach (var property in new[] { nameof(Title), nameof(CloseLabel), nameof(LevelLabel), nameof(LevelNote), nameof(DiagnosticsLabel), nameof(OutputSettingsLabel), nameof(ChainLabel), nameof(TechLabel), nameof(StabilityLabel) })
             OnPropertyChanged(property);
         Present();
     }
@@ -131,7 +141,7 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
         var state = frame.Playback;
         var output = frame.Output.Confirmed;
         var processing = state.Processing;
-        var src = Child(processing, "echoSrc"); var sdm = Child(processing, "sdm"); var dither = Child(processing, "dither");
+        var src = Child(processing, "echoSrc"); var sdm = Child(processing, "sdm"); var dither = Child(processing, "dither"); var limiter = Child(processing, "limiter");
         var active = frame.Output.HasConfirmedDevice;
         var rate = Number(output, "hardwareSampleRate");
         var streamRate = Number(output, "sampleRate");
@@ -142,7 +152,10 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
         if (format.Length == 0) format = state.Current?.Metadata?.GetValueOrDefault("codec")?.ToUpperInvariant() ?? Unknown;
         var depth = player.Details.BitDepth > 0 ? $"{player.Details.BitDepth} bit" : "";
         var channels = Number(output, "channels") is > 0 ? $"{Number(output, "channels"):0} ch" : "";
-        var mode = Boolean(output, "exclusive") is true ? L("exclusive") : Boolean(output, "exclusive") is false ? L("shared") : Unknown;
+        var backend = Text(output, "backend");
+        var exclusive = Boolean(output, "exclusive");
+        var mode = backend == "asio" ? L("asioExclusive") : backend == "wdm-ks" ? "WDM-KS"
+            : exclusive is true ? L("exclusive") : exclusive is false ? L("shared") : Unknown;
         var dsp = Flag(output, "dspActive") || Flag(processing, "dspActive");
         var converted = Flag(src, "active") || Flag(sdm, "active") || Flag(dither, "active") || sourceRate is > 0 && streamRate is > 0 && sourceRate != streamRate;
         var attenuated = state.Volume < .999999;
@@ -153,11 +166,12 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
         var device = active ? Text(output, "deviceName") ?? Unknown : Unknown;
         var clockChanged = sourceRate is > 0 && rate is > 0 && sourceRate != rate;
         var resampled = sourceRate is > 0 && streamRate is > 0 && sourceRate != streamRate;
+        var clock = clockChanged ? $"{Rate(sourceRate)} → {Rate(rate)}" : Rate(rate) is { Length: > 0 } actualClock ? actualClock : Unknown;
         Metrics = [new(L("source"), Join(format, Rate(sourceRate), depth), state.Current?.Source?.Kind == "http" ? L("http") : L("local")),
             new(L("processing"), !dsp && resampled ? L("src") : route,
                 resampled ? $"{Rate(sourceRate)} → {Rate(streamRate)}" : Description, active && (dsp || converted || attenuated)),
             new(L("output"), device, Join(mode, Text(output, "backendImpl") ?? Text(output, "backend"), Rate(rate))),
-            new(L("clock"), clockChanged ? $"{Rate(sourceRate)} → {Rate(rate)}" : Rate(rate) is { Length: > 0 } actual ? actual : Unknown,
+            new(L("clock"), clock,
                 sourceRate is > 0 && rate is > 0 ? clockChanged ? L("conversionOn") : L("sameClock") : L("clockPending"), clockChanged)];
         OutputFacts = [new(L("inputFormat"), format), new(L("sent"), Join(Text(processing, "outputFormat") ?? Text(output, "format"), Rate(streamRate), channels) is { Length: > 0 } sent ? sent : Unknown),
             new(L("declared"), Unknown), new(L("ceiling"), Unknown), new(L("currentProcessing"), active ? route : Unknown),
@@ -174,6 +188,25 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
             new(L("buffer"), buffer is > 0 ? $"{buffer:0} frames" : Unknown), new(L("src"), Flag(src, "active") ? Join(Rate(Number(src, "sourceSampleRate")), "→", Rate(Number(src, "targetSampleRate"))) : L("off")),
             new(L("dither"), Flag(dither, "active") ? Text(dither, "mode") ?? Unknown : L("off"))];
         Diagnosis = state.Error ?? (!active ? L("unconfirmed") : mode == L("shared") ? L("sharedNote") : dsp || converted || attenuated ? L("modifiedNote") : L("bitPerfectNote"));
+        var livePeak = frame.Level is { } level && state.Status == PlaybackStatus.Playing && level.OperationId == state.OperationId
+            && Stopwatch.GetElapsedTime(level.Timestamp) < TimeSpan.FromSeconds(1) ? level.PeakDb : (double?)null;
+        var sections = SignalPathSections.Create(new()
+        {
+            Text = L, Format = (key, args) => player.Text.Format(key, args), Active = active, Faulted = state.Status == PlaybackStatus.Faulted,
+            Error = state.Error, Dsp = dsp, Sdm = Flag(sdm, "active"), Resampled = resampled || Flag(src, "active"),
+            EchoSrc = Flag(src, "active"), DitherKnown = dither is not null, DitherActive = Flag(dither, "active"),
+            LimiterKnown = limiter is not null, LimiterActive = Flag(limiter, "active"), LimiterProtecting = Flag(limiter, "protecting"),
+            Attenuated = attenuated, ClockChanged = clockChanged,
+            BitPerfect = (Flag(processing, "bitPerfectCandidate") || Flag(output, "bitPerfectCandidate")) && string.IsNullOrEmpty(state.Error),
+            RequestedMode = Text(frame.Output.Requested, "outputMode"), Exclusive = exclusive, Mode = mode, Device = device,
+            Backend = Text(output, "backendImpl") ?? Text(output, "backend"), Route = route, Clock = clock, DitherMode = Text(dither, "mode"),
+            SdmBackend = Text(sdm, "activeBackend"), Volume = state.Volume, PeakDb = livePeak,
+            BufferMilliseconds = frame.Performance.BufferedMilliseconds, LatencyMilliseconds = Number(src, "nominalLatencyMilliseconds"),
+            BufferFrames = Number(output, "actualBufferFrames") ?? Number(output, "deviceBufferFrames")
+        });
+        EngagedChips = sections.Engaged; IdleSummary = sections.IdleSummary; InsightPreview = sections.InsightPreview;
+        Insights = sections.Insights; DoctorCount = sections.DoctorCount; StabilityHeadline = sections.StabilityHeadline;
+        StabilityDetail = sections.StabilityDetail; Stability = sections.Stability;
     }
     public void Dispose()
     {

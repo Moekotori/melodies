@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Echo.Contracts/Echo.Contracts.csproj" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <Compile Include="../../src/Echo.Infrastructure/Podcast/*.cs" LinkBase="Podcast" />
+    <Compile Include="../../src/Echo.Application/Podcast/PodcastProgressTracker.cs" Link="PodcastProgressTracker.cs" />
+  </ItemGroup>
+</Project>

@@ -169,9 +169,10 @@ public sealed partial class LibraryDatabase
     private const string UpsertSql = """
         INSERT INTO tracks(id,path,path_key,size_bytes,modified_ticks,parser_version,title,sort_key,artist,
           album,album_artist,duration,codec,sample_rate,bit_depth,track_no,disc_no,year,genre,updated_at,
-          source_json,dependency_stamp,physical_path,source_kind)
+          source_json,dependency_stamp,physical_path,source_kind,album_key)
         VALUES($id,$path,$key,$size,$mtime,$version,$title,$sort,$artist,$album,$albumArtist,$duration,
-          $codec,$rate,$bits,$track,$disc,$year,$genre,unixepoch(),$source,$stamp,$physical,$kind)
+          $codec,$rate,$bits,$track,$disc,$year,$genre,unixepoch(),$source,$stamp,$physical,$kind,
+          echo_album_key($path,$album,$albumArtist,coalesce($kind,''),coalesce($source,'')))
         ON CONFLICT(path_key) DO UPDATE SET
           path=excluded.path,size_bytes=excluded.size_bytes,modified_ticks=excluded.modified_ticks,
           parser_version=excluded.parser_version,title=excluded.title,sort_key=excluded.sort_key,
@@ -180,7 +181,7 @@ public sealed partial class LibraryDatabase
           bit_depth=excluded.bit_depth,track_no=excluded.track_no,disc_no=excluded.disc_no,
           year=excluded.year,genre=excluded.genre,missing=0,updated_at=excluded.updated_at,
           source_json=excluded.source_json,dependency_stamp=excluded.dependency_stamp,
-          physical_path=excluded.physical_path,source_kind=excluded.source_kind
+          physical_path=excluded.physical_path,source_kind=excluded.source_kind,album_key=excluded.album_key
         WHERE tracks.path=excluded.path COLLATE BINARY
         """;
 }

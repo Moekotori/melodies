@@ -13,7 +13,7 @@ public partial class AlbumTrackRow : UserControl
         InitializeComponent();
         SizeChanged += (_, _) =>
         {
-            var narrow = Bounds.Width < 650;
+            var narrow = Bounds.Width < 720;
             Signal.IsVisible = !narrow;
             Columns.ColumnDefinitions[0].Width = new(narrow ? 28 : 46);
             Columns.ColumnDefinitions[2].Width = new(narrow ? 0 : 230);

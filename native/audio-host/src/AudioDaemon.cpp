@@ -1,4 +1,5 @@
 #include "AudioDaemon.h"
+#include "WorkshopTransitionWindow.h"
 #include "NativePcmChannelPolicy.h"
 #include "AutomixTempoProcessor.h"
 
@@ -385,6 +386,9 @@ void AudioDaemon::initialize()
         [this](const nlohmann::json& source, int targetSampleRate, double startSeconds, nlohmann::json& result) -> bool {
             return onOpenSource(source, targetSampleRate, startSeconds, result);
         });
+    echo::JsonRpcProtocol::setMixBalanceCallback([this](const nlohmann::json& request, nlohmann::json& result) {
+        return onMixBalance(request, result);
+    });
 
     echo::JsonRpcProtocol::setPauseCallback(
         [this](bool pause, uint64_t expectedOperationId) -> bool {
@@ -455,6 +459,26 @@ bool AudioDaemon::onOpenSource(
     double requestedStartSeconds,
     nlohmann::json& result)
 {
+    if (source.contains("mix"))
+    {
+        std::lock_guard<std::mutex> lock(operationMutex_);
+        const auto& mix = source["mix"];
+        const std::string a = source.value("uri", "");
+        const std::string b = mix.value("uri", "");
+        const float balance = mix.value("balance", 0.5f);
+        // This capability intentionally admits only finite local PCM songs.
+        if (source.value("kind", "") != "local" || source.contains("range") || a.empty() || b.empty()
+            || a.find("://") != std::string::npos || b.find("://") != std::string::npos
+            || !std::isfinite(balance) || balance < 0 || balance > 1 || outputChannels_ != 2
+            || (source_.decoderSampleRateFor && source_.decoderSampleRateFor(sampleRate_) != sampleRate_))
+        { result["error"] = "invalid local mix source"; return false; }
+        stopInitialPlayGateWaiter();
+        pendingQueueAdvance_.reset();
+        const uint64_t operation = operationId_.fetch_add(1, std::memory_order_acq_rel) + 1;
+        stopProducersLocked();
+        return openDualTrackMixLocked(a, b, targetSampleRate > 0 ? targetSampleRate : sampleRate_,
+                                      requestedStartSeconds, balance, operation, result);
+    }
     std::string uri;
     echo::LibavInputOptions inputOptions;
     double rangeStartSeconds = 0.0;
@@ -474,6 +498,82 @@ bool AudioDaemon::onOpenSource(
         UINT64_MAX,
         rangeStartSeconds,
         rangeEndSeconds);
+}
+
+bool AudioDaemon::onMixBalance(const nlohmann::json& request, nlohmann::json& result)
+{
+    std::lock_guard<std::mutex> lock(operationMutex_);
+    if (!activeMix_ || !request.contains("balance") || !request["balance"].is_number()
+        || request.value("expectedOperationId", UINT64_MAX) != operationId_.load(std::memory_order_acquire)) return false;
+    const float balance = request["balance"].get<float>();
+    if (!std::isfinite(balance) || balance < 0 || balance > 1) return false;
+    mixBalance_ = balance;
+    activeMix_->buffer->setBalance(balance);
+    result = { {"balance", balance}, {"operationId", operationId_.load(std::memory_order_acquire)} };
+    return true;
+}
+
+bool AudioDaemon::openDualTrackMixLocked(const std::string& a, const std::string& b, int sampleRate,
+                                        double startSeconds, float balance, uint64_t operationId, nlohmann::json& result)
+{
+    try
+    {
+        if (!source_.installDualTrackMix || sampleRate < 8000 || sampleRate > 192000)
+            throw std::runtime_error("mix output unavailable");
+        auto mix = std::make_shared<DualTrackMixDecoder>(a, b, sampleRate, outputChannels_, balance, startSeconds);
+        const auto generation = source_.generation();
+        const double position = std::clamp(startSeconds, 0.0, std::max(0.0, mix->durationSeconds - 0.001));
+        activeMix_ = mix;
+        mixSourceB_ = b;
+        mixBalance_ = balance;
+        currentFilePath_ = a;
+        currentInputOptions_ = {};
+        currentSourceRangeStartSeconds_ = 0;
+        currentSourceRangeDurationSeconds_ = mix->durationSeconds;
+        currentSourceRangeActive_ = false;
+        sampleRate_ = sampleRate;
+        listeningStartSeconds_.store(position, std::memory_order_release);
+        positionFrameOffset_.store(0, std::memory_order_release);
+        positionFrameScale_.store(1.0, std::memory_order_release);
+        positionUsesDeviceClock_.store(false, std::memory_order_release);
+        positionTempoRampFrames_.store(0, std::memory_order_release);
+        autoAdvanceSuppressedOperationId_.store(operationId, std::memory_order_release);
+        if (source_.configureMqaPassthrough) source_.configureMqaPassthrough(echo::AudioProbe{});
+        source_.installDualTrackMix(mix->buffer);
+        if (source_.initialPlayGateArmed && source_.initialPlayGateArmed(generation)) {
+            paused_ = true;
+            initialPlayGateOperationId_.store(operationId, std::memory_order_release);
+        } else initialPlayGateOperationId_.store(UINT64_MAX, std::memory_order_release);
+        decodeGeneration_ = generation;
+        decodeThread_ = std::jthread([this, mix, generation, operationId](std::stop_token stop) {
+            bool first = true;
+            try {
+                while (!stop.stop_requested() && source_.generation() == generation) {
+                    auto chunk = mix->read(decodeChunkFrames);
+                    if (chunk.frames <= 0) break;
+                    if (!source_.pushForGeneration(chunk.samples.data(), chunk.frames, generation)) return;
+                    if (first) { emitFirstPcm(operationId); first = false; }
+                }
+                if (!stop.stop_requested() && operationId_.load(std::memory_order_acquire) == operationId)
+                    source_.markInputEnded();
+            } catch (...) {
+                if (!stop.stop_requested() && operationId_.load(std::memory_order_acquire) == operationId) {
+                    source_.markInputEnded();
+                    emitAudioError(operationId, "local_mix_decode_failed");
+                }
+            }
+        });
+        result = { {"status", "decoding"}, {"operationId", operationId}, {"filePath", a},
+            {"sampleRate", sampleRate}, {"sourceSampleRate", sampleRate}, {"channels", outputChannels_},
+            {"durationSeconds", mix->durationSeconds}, {"startSeconds", position}, {"positionSeconds", position},
+            {"codec", "pcm"}, {"container", "local-mix"}, {"bitDepth", 32}, {"mqaTagged", false} };
+        return true;
+    } catch (...) {
+        mixSourceB_.clear();
+        activeMix_.reset();
+        result["error"] = "local mix could not open both songs";
+        return false;
+    }
 }
 
 bool AudioDaemon::onOpenFile(const std::string& filePath, int targetSampleRate, double requestedStartSeconds,
@@ -507,6 +607,8 @@ bool AudioDaemon::onOpenFile(const std::string& filePath, int targetSampleRate, 
     }
     stopProducersLocked();
     currentFilePath_.clear();
+    if (source_.installDualTrackMix) source_.installDualTrackMix(nullptr);
+    mixSourceB_.clear();
     currentSourceRangeStartSeconds_ = 0.0;
     currentSourceRangeDurationSeconds_ = 0.0;
     currentSourceRangeActive_ = false;
@@ -855,6 +957,16 @@ bool AudioDaemon::onSeek(double positionSeconds, nlohmann::json& result, uint64_
     if (expectedOperationId != 0
         && operationId_.load(std::memory_order_acquire) != expectedOperationId)
         return false;
+    if (!mixSourceB_.empty())
+    {
+        const auto a = currentFilePath_;
+        const auto b = mixSourceB_;
+        const auto operation = operationId_.fetch_add(1, std::memory_order_acq_rel) + 1;
+        stopInitialPlayGateWaiter();
+        stopProducersLocked();
+        source_.replaceBufferedAudio(nullptr, 0, paused_);
+        return openDualTrackMixLocked(a, b, sampleRate_, positionSeconds, mixBalance_, operation, result);
+    }
     stopInitialPlayGateWaiter();
     pendingQueueAdvance_.reset();
     const uint64_t operationId = operationId_.fetch_add(1, std::memory_order_acq_rel) + 1;
@@ -870,9 +982,8 @@ bool AudioDaemon::onSeek(double positionSeconds, nlohmann::json& result, uint64_
 
     if (currentFilePath_.empty()) return false;
     std::string seekFile = currentFilePath_;
-    const double logicalPositionSeconds = currentSourceRangeActive_
-        ? normalizeStartSeconds(positionSeconds, currentSourceRangeDurationSeconds_)
-        : positionSeconds;
+    const double logicalPositionSeconds = normalizeStartSeconds(positionSeconds, currentSourceRangeDurationSeconds_);
+    result["positionSeconds"] = logicalPositionSeconds;
     listeningStartSeconds_.store(logicalPositionSeconds, std::memory_order_release);
     const double physicalPositionSeconds = currentSourceRangeStartSeconds_ + logicalPositionSeconds;
     const double physicalRangeEndSeconds = currentSourceRangeStartSeconds_ + currentSourceRangeDurationSeconds_;
@@ -1130,6 +1241,8 @@ bool AudioDaemon::onStop(nlohmann::json& result, uint64_t expectedOperationId)
     result["drained"] = drained;
     result["drainWaitMs"] = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - drainStartedAt).count();
+    if (source_.installDualTrackMix) source_.installDualTrackMix(nullptr);
+    mixSourceB_.clear();
     return true;
 }
 
@@ -1439,6 +1552,25 @@ bool AudioDaemon::onGaplessPrepare(const nlohmann::json& request, nlohmann::json
 bool AudioDaemon::onAutomixPrepare(const nlohmann::json& request, nlohmann::json& result)
 {
     std::lock_guard<std::mutex> operationLock(operationMutex_);
+    if (request.value("operation", "").starts_with("window."))
+    {
+        if (request.value("expectedOperationId", UINT64_MAX) != operationId_.load(std::memory_order_acquire)
+            || (source_.decoderSampleRateFor && source_.decoderSampleRateFor(sampleRate_) != sampleRate_)
+            || !WorkshopTransitionWindow::transport(request, result, stagedWorkshopWindow_, sampleRate_, outputChannels_))
+        {
+            result["error"] = "invalid or stale workshop transition window";
+            return false;
+        }
+        return true;
+    }
+    const std::string windowId = request.value("workshopWindowId", "");
+    auto workshopWindow = stagedWorkshopWindow_;
+    if (!windowId.empty() && (!workshopWindow || workshopWindow->id != windowId
+        || workshopWindow->writtenFrames != workshopWindow->frames))
+    {
+        result["error"] = "workshop transition window incomplete";
+        return false;
+    }
     cancelAutomixLocked("replaced");
 
     if (! request.contains("plan") || ! request["plan"].is_object()
@@ -1461,6 +1593,7 @@ bool AudioDaemon::onAutomixPrepare(const nlohmann::json& request, nlohmann::json
     const int requestedMixRate = plan.value("mixSampleRate", sampleRate_);
     const double nextStartSeconds = plan.value("nextStartSeconds", 0.0);
     const double tempoRatio = plan.value("tempoRatio", 1.0);
+    const bool workshopSchedule = plan.value("workshopSchedule", false);
     if (plan.value("version", 0) != 2 || planId.empty() || fromItemId.empty() || toItemId.empty()
         || fromTrackId.empty() || toTrackId.empty() || queueRevision == 0
         || requestedMixRate <= 0 || ! std::isfinite(nextStartSeconds)
@@ -1478,7 +1611,9 @@ bool AudioDaemon::onAutomixPrepare(const nlohmann::json& request, nlohmann::json
         };
         return true;
     }
-    if (! isValidAutomixFrameSchedule(
+    if (!(workshopSchedule && overlapFrames < 2 && fadeEndFrame >= fadeStartFrame
+            && fadeEndFrame - fadeStartFrame == overlapFrames && commitFrame == fadeEndFrame)
+        && ! isValidAutomixFrameSchedule(
             fadeStartFrame,
             fadeEndFrame,
             commitFrame,
@@ -1573,6 +1708,17 @@ bool AudioDaemon::onAutomixPrepare(const nlohmann::json& request, nlohmann::json
     if (deckLease == 0) {
         result["error"] = "automix pipeline unavailable";
         return false;
+    }
+    if (!windowId.empty())
+    {
+        if (!source_.installWorkshopTransitionWindow || workshopWindow->frames != overlapFrames
+            || workshopWindow->channels != outputChannels_ || requestedMixRate != sampleRate_ || tempoRatio != 1.0)
+        {
+            cancelAutomixLocked("invalid_workshop_window");
+            result["error"] = "workshop transition format mismatch";
+            return false;
+        }
+        source_.installWorkshopTransitionWindow(std::move(workshopWindow));
     }
     const uint64_t preparationId = automixPreparationId_.fetch_add(1, std::memory_order_acq_rel) + 1;
     const uint64_t currentOperationId = operationId_.load(std::memory_order_acquire);
@@ -1785,6 +1931,7 @@ bool AudioDaemon::shouldUseStreamingDecode() const
 
 void AudioDaemon::stopDecodeThreadLocked()
 {
+    if (activeMix_) activeMix_->cancel();
     if (activeStream_ != nullptr)
         activeStream_->cancel();
     if (decodeThread_.joinable()) {
@@ -1794,6 +1941,7 @@ void AudioDaemon::stopDecodeThreadLocked()
         decodeThread_ = std::jthread();
     }
     activeStream_.reset();
+    activeMix_.reset();
     decodeGeneration_ = 0;
 }
 
@@ -1825,6 +1973,8 @@ uint64_t AudioDaemon::cancelPendingQueueAdvanceLocked()
 
 void AudioDaemon::cancelAutomixLocked(const std::string& reason)
 {
+    stagedWorkshopWindow_.reset();
+    if (source_.installWorkshopTransitionWindow) source_.installWorkshopTransitionWindow(nullptr);
     automixPreparationId_.fetch_add(1, std::memory_order_acq_rel);
     if (activeAutomixStream_ != nullptr)
         activeAutomixStream_->cancel();
@@ -2083,6 +2233,21 @@ void AudioDaemon::emitDeviceEvent(const nlohmann::json& event)
 void AudioDaemon::maybeCommitAutomix(uint64_t absoluteFramesPlayed)
 {
     std::lock_guard<std::mutex> operationLock(operationMutex_);
+    if (source_.workshopTransitionDeadlineMissed && source_.workshopTransitionDeadlineMissed())
+    {
+        std::string id;
+        uint64_t revision = 0;
+        uint64_t operation = 0;
+        {
+            std::lock_guard<std::mutex> stateLock(automixStateMutex_);
+            id = preparedAutomix_.planId;
+            revision = preparedAutomix_.queueRevision;
+            operation = preparedAutomix_.operationId;
+        }
+        cancelAutomixLocked("workshop_deadline_missed");
+        emitAutomixFallback(id, revision, operation, "workshop_deadline_missed");
+        return;
+    }
     nlohmann::json event;
     {
         std::lock_guard<std::mutex> stateLock(automixStateMutex_);
@@ -2104,7 +2269,8 @@ void AudioDaemon::maybeCommitAutomix(uint64_t absoluteFramesPlayed)
         const uint64_t actualFadeEnd = source_.automixFadeEndFrame
             ? source_.automixFadeEndFrame()
             : preparedAutomix_.fadeEndFrame;
-        if (actualFadeEnd <= actualFadeStart)
+        if (actualFadeEnd < actualFadeStart
+            || (actualFadeEnd == actualFadeStart && !preparedAutomix_.plan.value("workshopSchedule", false)))
             return;
         const uint64_t actualCommitFrame = resolveAutomixIdentityCommitFrame(actualFadeStart, actualFadeEnd);
         if (absoluteFramesPlayed < actualCommitFrame)
@@ -2211,6 +2377,7 @@ void AudioDaemon::maybeCommitAutomix(uint64_t absoluteFramesPlayed)
     const std::string notification = echo::JsonRpcProtocol::createJsonRpcNotification(
         "audio.transitionCommitted", event) + "\n";
     rpcOutputWriter_->enqueue(notification);
+    if (source_.installWorkshopTransitionWindow) source_.installWorkshopTransitionWindow(nullptr);
 }
 
 uint64_t AudioDaemon::scaleAutomixTrackFrames(

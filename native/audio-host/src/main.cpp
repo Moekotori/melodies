@@ -5283,6 +5283,10 @@ int runNativePcmHost(const Options& options)
         [&playbackPipeline](uint64_t deckLease) {
             return playbackPipeline.commitAutomixDeck(deckLease);
         },
+        [&source](std::shared_ptr<const WorkshopTransitionWindow> window) {
+            source.installWorkshopTransitionWindow(std::move(window));
+        },
+        [&source]() { return source.workshopTransitionDeadlineMissed(); },
         [&source, &playbackPipeline](uint64_t operationId) {
             if (playbackPipeline.outputFormat() != NativePlaybackPipeline::OutputFormat::Pcm)
                 return false;
@@ -5324,6 +5328,7 @@ int runNativePcmHost(const Options& options)
             playbackPipeline.publishGaplessReplayGainBoundary(index, frame);
           },
           [&replayGainProcessor]() { return replayGainProcessor.requiresTrackPreparation(); },
+          [&source](std::shared_ptr<DualTrackMixBuffer> mix) { source.installDualTrackMix(std::move(mix)); },
     };
     audioDaemon = std::make_unique<AudioDaemon>(std::move(sourceHooks),
         actualSampleRate, rpcOutputWriter, shutdownRequested,
@@ -5461,7 +5466,15 @@ int runNativePcmHost(const Options& options)
             endedReported = false;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(33));
+        // The loop above stays at about 33 ms. Level-meter snapshots are published much more often, so the
+        // visualizer sees a new spectrum as soon as the meter has one (flush is a cheap no-op when nothing is new).
+        const auto sliceStart = std::chrono::steady_clock::now();
+        while (! shutdownRequested.load(std::memory_order_acquire)
+               && std::chrono::steady_clock::now() - sliceStart < std::chrono::milliseconds(33))
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(4));
+            audioDaemon->flushLevelMeter();
+        }
     }
 
 

@@ -8,6 +8,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
 {
     private readonly INativeAudio native;
     private readonly IPlaybackSourceProbe? sourceProbe;
+    private IRemoteAudioResolver? remoteResolver;
     private readonly PlaybackCommandLane lane = new();
     private QueueTrack[] queue = [];
     private IReadOnlyList<QueueTrack> queueView = Array.Empty<QueueTrack>();
@@ -31,6 +32,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
         native.Notification += OnNotification;
         native.Failed += OnFailed;
     }
+    public void AttachRemoteResolver(IRemoteAudioResolver resolver) => remoteResolver = resolver;
 
     private Task Command(Func<Task> action, CancellationToken token = default, bool affectsPlayback = true)
         => lane.InvokeAsync(async () =>
@@ -67,6 +69,17 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
         initialized = true;
     }
 
+    private async Task<AudioSource> ResolvePlayableAsync(QueueTrack track)
+    {
+        var source = AudioSource.Playable(track);
+        if (source.Kind != "remote") return source;
+        if (remoteResolver is null) throw new IOException("网盘播放服务尚未装配。");
+        var resolved = await remoteResolver.ResolveAsync(source, CancellationToken.None).ConfigureAwait(false);
+        resolved.Validate();
+        if (resolved.Kind is not ("http" or "local")) throw new IOException("网盘曲目没有解析出可播放地址。");
+        return resolved;
+    }
+
     private async Task OpenAsync(QueueTrack track, double start = 0, bool paused = false)
     {
         // Reopening even the same item creates a new native operation, so its old loop cannot survive.
@@ -92,7 +105,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
             throw new IOException("输出设备未提供请求的完整声道范围");
         var rate = (int)(output?.Number("sampleRate", snapshot.SampleRate) ?? snapshot.SampleRate);
         await native.CallAsync("audio.setVolume", Params(new JsonArray(new JsonObject { ["volume"] = snapshot.Volume }))).ConfigureAwait(false);
-        var source = track.Source ?? AudioSource.Local(track.FilePath);
+        var source = await ResolvePlayableAsync(track).ConfigureAwait(false);
         var request = new JsonObject { ["sampleRate"] = rate, ["startSeconds"] = start };
         string method;
         if (source.Kind == "local" && source.Range is null) { method = "audio.openFile"; request["filePath"] = source.Uri; }
@@ -108,6 +121,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
             Output = output, Status = paused ? PlaybackStatus.Paused : PlaybackStatus.Loading });
         if (deviceConfiguration?.Text("outputMode") == "asio")
             await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
+        await TryPrepareAlbumGaplessAsync(track).ConfigureAwait(false);
         if (!paused)
         {
             await AcceptedAsync("audio.play").ConfigureAwait(false);
@@ -217,6 +231,7 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
             await lane.InvokeAsync(async () =>
             {
                 disposed = true;
+                CancelAutomixAnalysis();
                 PublishState();
                 try
                 {

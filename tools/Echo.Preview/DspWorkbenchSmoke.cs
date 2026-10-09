@@ -85,7 +85,7 @@ internal static class DspWorkbenchSmoke
             model.SelectedModule = model.Modules.First(x => x.Id == "eq"); Wait(() => !model.IsBusy);
             window.Width = 1000; window.Height = 800; Settle(); Save("dsp-eq-compact.png");
             model.SelectedModule = model.Modules.First(x => x.Id == "src"); Wait(() => !model.IsBusy);
-            Require(model.IsPending && !model.CanApply, "Unavailable module cannot apply");
+            Require(model.IsReady && !model.CanApply, "SRC shows the output path without an unconfirmed change");
             model.SelectedModule = model.Modules.First(x => x.Id == "eq"); Wait(() => !model.IsBusy);
             shell.NavigateCommand.Execute("home"); Settle(); Require(view.Model is null, "Page detach cancels and releases");
             Console.WriteLine("PASS: actual Avalonia page, native EQ/9 module reads, EQ/crossfeed/headroom applies, curve input, drafts/undo/discard, unavailable state, detach. No audio-device listening acceptance.");

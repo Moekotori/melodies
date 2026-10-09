@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Connect.Output"
+             x:Class="Echo.Desktop.Features.Connect.Output.ConnectOutputView" x:DataType="local:ConnectOutputViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="16" Margin="0,4,8,28">
+      <Border Classes="connect-card">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4">
+              <TextBlock Text="{Binding Now.Status}" Classes="connect-kicker" />
+              <TextBlock Text="{Binding Now.Title}" FontSize="22" Classes="heading" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding Now.Artist}" Classes="muted" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="connect-tool" Content="复制诊断" Click="OnCopyDiagnostics" VerticalAlignment="Top" />
+          </Grid>
+          <ProgressBar Minimum="0" Maximum="100" Value="{Binding Now.Progress}" Height="3" />
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <TextBlock Text="{Binding Now.PositionText}" Classes="muted" FontSize="12" />
+            <TextBlock Grid.Column="2" Text="{Binding Now.DurationText}" Classes="muted" FontSize="12" />
+          </Grid>
+          <TextBlock Text="{Binding Now.OutputName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Now.Signal}" Classes="muted" FontSize="12" TextWrapping="Wrap" MaxHeight="54" />
+          <TextBlock Text="{Binding PlaybackNote}" Classes="connect-note" Classes.live="{Binding Casting}" FontSize="12" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="connect-primary" Content="{Binding TransportLabel}" Command="{Binding TogglePlaybackCommand}" IsEnabled="{Binding CanTransport}" />
+            <Button Classes="connect-tool" Content="停止" Command="{Binding StopPlaybackCommand}" IsEnabled="{Binding CanStop}" />
+            <Button Classes="connect-tool" Content="去曲目" Command="{Binding OpenSongsCommand}" IsVisible="{Binding !Now.HasTrack}" />
+            <Button Classes="connect-tool" Content="{Binding CastButton}" Command="{Binding StopCastCommand}" IsVisible="{Binding Casting}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="connect-tool" Classes.active="{Binding ComputerVolume}" Content="电脑音量" Command="{Binding UseComputerVolumeCommand}" />
+            <Button Classes="connect-tool" Classes.active="{Binding DeviceVolume}" Content="设备音量" Command="{Binding UseDeviceVolumeCommand}" />
+          </StackPanel>
+          <Slider Name="VolumeSlider" Minimum="0" Maximum="100" Value="{Binding Now.VolumePercent, Mode=OneWay}" IsEnabled="{Binding VolumeSliderEnabled}"
+                  PointerPressed="OnVolumePressed" PointerCaptureLost="OnVolumeCaptureLost" LostFocus="OnVolumeLostFocus" AutomationProperties.Name="音量" />
+          <TextBlock Text="{Binding VolumeHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding ShowVolumeHint}" />
+        </StackPanel>
+      </Border>
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <TextBox PlaceholderText="搜索输出设备" Text="{Binding Query, Mode=TwoWay}" MaxLength="80" />
+        <Button Grid.Column="1" Classes="connect-tool" Content="系统输出" Command="{Binding ReturnLocalCommand}" />
+        <Button Grid.Column="2" Classes="connect-tool" Content="{Binding SectionLabel}" Command="{Binding ToggleDevicesCommand}" />
+      </Grid>
+      <StackPanel Spacing="12" IsVisible="{Binding DevicesExpanded}">
+        <WrapPanel Orientation="Horizontal">
+          <Button Classes="connect-tool connect-chip" Classes.active="{Binding IsFilterAll}" Command="{Binding ShowAllCommand}" Margin="0,0,8,8"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="全部" /><TextBlock Text="{Binding AllCount}" Classes="muted" /></StackPanel></Button>
+          <Button Classes="connect-tool connect-chip" Classes.active="{Binding IsFilterCurrent}" Command="{Binding ShowCurrentCommand}" Margin="0,0,8,8"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="当前" /><TextBlock Text="{Binding CurrentCount}" Classes="muted" /></StackPanel></Button>
+          <Button Classes="connect-tool connect-chip" Classes.active="{Binding IsFilterPinned}" Command="{Binding ShowPinnedCommand}" Margin="0,0,8,8"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="已固定" /><TextBlock Text="{Binding PinnedCount}" Classes="muted" /></StackPanel></Button>
+          <Button Classes="connect-tool connect-chip" Classes.active="{Binding IsFilterHidden}" Command="{Binding ShowHiddenCommand}" Margin="0,0,8,8"><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="已隐藏" /><TextBlock Text="{Binding HiddenCount}" Classes="muted" /></StackPanel></Button>
+        </WrapPanel>
+        <TextBlock Text="{Binding ResultText}" Classes="muted" FontSize="12" />
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" FontSize="12" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <ItemsControl ItemsSource="{Binding Visible}" IsVisible="{Binding !ShowEmpty}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="local:ConnectDeviceItem"><local:ConnectDeviceRow /></DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <StackPanel IsVisible="{Binding ShowEmpty}" Spacing="6" Margin="0,12,0,0">
+          <TextBlock Text="{Binding EmptyTitle}" FontSize="18" Classes="heading" />
+          <TextBlock Text="{Binding EmptyHint}" Classes="muted" TextWrapping="Wrap" />
+          <Button Classes="connect-tool" Content="恢复全部隐藏" Command="{Binding RestoreHiddenCommand}" HorizontalAlignment="Left" IsVisible="{Binding IsFilterHidden}" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="connect-card">
+        <StackPanel Spacing="10">
+          <TextBlock Text="局域网数播" FontSize="20" Classes="heading" />
+          <TextBlock Text="{Binding LanStatus}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding LanDevices}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="local:ConnectLanDevice">
+                <Border Classes="connect-row" Classes.active="{Binding IsActive}">
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <Border Classes="connect-state" Classes.live="{Binding IsActive}" VerticalAlignment="Center"><TextBlock Text="{Binding Kind}" FontSize="11" /></Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="connect-primary" Content="{Binding ActionLabel}" Command="{Binding CastCommand}" IsEnabled="{Binding CanCast}" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

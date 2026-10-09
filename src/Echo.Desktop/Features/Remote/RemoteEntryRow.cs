@@ -3,7 +3,7 @@ using Echo.Desktop.Localization;
 
 namespace Echo.Desktop.Features.Remote;
 
-public sealed class RemoteEntryRow(RemoteEntry entry, LocalizationService text)
+public sealed class RemoteEntryRow(RemoteEntry entry, LocalizationService text, bool indexed = false)
 {
     public RemoteEntry Entry { get; } = entry;
     public string Path => Entry.Path;
@@ -13,7 +13,9 @@ public sealed class RemoteEntryRow(RemoteEntry entry, LocalizationService text)
     public bool IsDirectory => Entry.IsDirectory;
     public bool IsAudio => Entry.IsAudio;
     public string? Modified => Entry.Modified;
+    public bool Indexed { get; } = indexed && entry.IsAudio;
     public string Kind => IsDirectory ? text["remote.folder"] : IsAudio ? Entry.Codec ?? System.IO.Path.GetExtension(Name).TrimStart('.').ToUpperInvariant() : text["remote.file"];
+    public string TypeLabel => Indexed ? Kind + " · " + text["remote.indexed"] : Kind;
     public string Icon => IsDirectory ? "folder" : IsAudio ? "music" : "file";
     public string SizeLabel => IsDirectory || Entry.SizeBytes is null ? "—" : Entry.SizeBytes >= 1048576
         ? text.Format("remote.sizeMb", Entry.SizeBytes / 1048576d) : text.Format("remote.sizeKb", Entry.SizeBytes / 1024d);

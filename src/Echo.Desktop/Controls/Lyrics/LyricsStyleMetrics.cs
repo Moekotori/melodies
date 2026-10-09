@@ -6,6 +6,7 @@ using Echo.Desktop.Features.Lyrics;
 namespace Echo.Desktop.Controls.Lyrics;
 
 // CSS metric ports, rather than one shared scale. Sources are named in LYRIC_STYLE_FIDELITY.md.
+internal readonly record struct LyricsCaption(double X, double Y, double Width, double Size, bool Center, bool Bold);
 internal readonly record struct LyricsLineMetrics(double Size, double SecondarySize, double LineHeight,
     double LetterSpacing, FontWeight Weight, double MinimumHeight, double Gap, bool Secondary, double Opacity);
 
@@ -65,7 +66,7 @@ internal static class LyricsStyleMetrics
                 leading = focus ? 1.02 : 1.08; tracking = size * (focus ? -.055 : -.045);
                 weight = focus ? 590 : 560; secondary = Clamp(15, w * .0145, 24);
                 row = focus ? Clamp(128, h * .20, 220) : Clamp(92, h * .13, 152);
-                gap = Clamp(18, h * .028, 34); opacity = focus ? 1 : distance switch { 1 => .38 * .58, 2 => .38 * .4, _ => .38 * .24 }; break;
+                gap = Clamp(18, h * .028, 34); opacity = focus ? 1 : .38 * distance switch { 1 => .58, 2 => .4, 3 => .24, 4 => .12, _ => .34 }; break;
             case LyricsLayout.Vinyl:
                 size = Clamp(20, px * .78, 32); secondary = Clamp(12, secondary * .85, 20);
                 leading = 1.5; weight = 500; gap = 16 * .82; opacity = focus ? 1 : .38; break;
@@ -102,6 +103,72 @@ internal static class LyricsStyleMetrics
         if (layout == LyricsLayout.Vinyl && w > 900) { safe = Clamp(48, w * .07, 148); var gap = Clamp(48, w * .06, 112); var available = w - safe * 2 - gap; return new(safe, 0, available * .63, h); }
         if (layout == LyricsLayout.Editorial && w > 780) { var x = Clamp(40, w * .031, 56) + Clamp(250, w * .21, 312) + Clamp(56, w * .052, 84) + Clamp(34, w * .034, 48) + 18; return new(x, 0, Math.Max(100, w - x - Clamp(72, w * .058, 98)), h); }
         return new(w * .08, 0, w * .84, h);
+    }
+    public static LyricsCaption Caption(LyricsLayout layout, double w, double h, double areaX, double areaWidth)
+    {
+        var width = Math.Max(32, areaWidth); var x = areaX; var y = Math.Clamp(h * .04, 29, 47); var size = 17d; var center = false; var bold = false;
+        if (layout == LyricsLayout.Light)
+        { var cover = LuminousCover(w, h); x = cover.Right + 18; y = cover.Y + 8; width = Math.Min(520, Math.Max(80, w - x - cover.X)); size = Clamp(14, w * .011, 17); }
+        else if (layout == LyricsLayout.Folded)
+        { x = Clamp(78, w * .064, 108); y = Clamp(25, h * .035, 43); width = Math.Min(410, Math.Max(80, w - x - 48)); size = Clamp(17, w * .0135, 22); }
+        else if (layout == LyricsLayout.CoverOnly)
+        { var art = CoverOnlyFrame(w, h); x = art.X; y = art.Bottom + 18; width = Math.Max(32, art.Width); size = Clamp(24, w * .024, 36); center = bold = true; }
+        else if (layout == LyricsLayout.CoverLeft)
+        { var art = AfterglowCover(w, h); x = art.X; y = art.Bottom + 28; width = art.Width; size = Clamp(18, w * .0135, 24); }
+        else if (layout == LyricsLayout.Editorial && w >= 780)
+        { x = Clamp(40, w * .031, 56); y = h * .25 + Clamp(250, w * .21, 312) + 28; width = Clamp(250, w * .21, 312); size = 30; bold = true; }
+        else if (layout == LyricsLayout.CoverRight) { y = Math.Clamp(h * .086, 64, 104); size = 27; }
+        else if (layout == LyricsLayout.Vinyl) { y = Math.Clamp(h * .08, 64, 104); size = Clamp(24, w * .021, 34); }
+        else if (layout is LyricsLayout.Reading or LyricsLayout.WordFocus or LyricsLayout.Afterglow) y = Math.Max(82, h * .105);
+        return new(x, y, width, size, center, bold);
+    }
+    public static Rect LuminousCover(double w, double h)
+        => new(Clamp(54, w * .07, 148), h - Clamp(96, h * .13, 140) - 60, 60, 60);
+    public static Rect AfterglowCover(double w, double h)
+    {
+        var side = Math.Min(Math.Min(w * .34, h * .50), 560);
+        return new(Clamp(36, w * .048, 86), Math.Max(76, (h - side - 112) / 2), side, side);
+    }
+    internal readonly record struct FoldedPose(double X, double Y, double ScaleX, double ScaleY, double Radians, double Origin);
+    public static bool TryFold(int distance, double w, double h, out FoldedPose pose)
+    {
+        var past = distance < 0;
+        var step = Math.Abs(distance);
+        if (step == 0)
+        {
+            var near = 1500d / (1500d - 68d);
+            pose = new(0, 0, near, near, Degrees(-.8), .5);
+            return true;
+        }
+        if (step >= 4) { pose = default; return false; }
+        var (x, y, z, tiltX, tiltY, tiltZ, scale, origin) = (step, past) switch
+        {
+            (1, false) => (.09, .015, -150d, 1.2, -8d, 1.7, .76, .76),
+            (1, true) => (-.08, -.015, -150d, -1d, 8d, -2d, .76, .24),
+            (2, false) => (.14, .035, -260d, 1.8, -12d, 2.6, .70, .76),
+            (2, true) => (-.13, -.035, -260d, -1.6, 12d, -2.8, .70, .22),
+            (3, false) => (.18, .05, -380d, 2.4, -15d, 3.2, .64, .76),
+            _ => (-.17, -.05, -380d, -2d, 15d, -3.4, .64, .20)
+        };
+        var projected = scale * 1500d / (1500d - z);
+        pose = new(x * w, y * h, projected * Math.Cos(Degrees(tiltY)), projected * Math.Cos(Degrees(tiltX)), Degrees(tiltZ), origin);
+        return true;
+    }
+    public static Matrix FoldMatrix(FoldedPose pose, Point point, double width, double height)
+    {
+        var origin = new Point(point.X + width * pose.Origin, point.Y + height * .5);
+        return Matrix.CreateTranslation(-origin.X, -origin.Y)
+            * Matrix.CreateScale(pose.ScaleX, pose.ScaleY)
+            * Matrix.CreateRotation(pose.Radians)
+            * Matrix.CreateTranslation(origin.X + pose.X, origin.Y + pose.Y);
+    }
+    private static double Degrees(double value) => value * Math.PI / 180d;
+    public static Rect CoverOnlyFrame(double w, double h)
+    {
+        var top = Clamp(54, h * .09, 84);
+        var side = Math.Min(Math.Min(h * .62, w * .46), 520);
+        side = Math.Min(Math.Max(140, side), Math.Max(140, h - top - 168));
+        return new((w - side) / 2, top, side, side);
     }
     public static double Clamp(double minimum, double value, double maximum) => Math.Clamp(value, minimum, Math.Max(minimum, maximum));
 }

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:icon="using:Echo.Desktop.Controls"
+             xmlns:floating="using:Echo.Desktop.Features.Floating"
              x:Class="Echo.Desktop.Features.Settings.Drawers.LyricsSettingsDrawerView" x:DataType="lyrics:LyricsAppearance">
   <Grid RowDefinitions="*,Auto">
     <TabControl Name="LyricsTabs" Classes="drawer-tabs" Margin="22,14,22,0" HorizontalContentAlignment="Stretch">
@@ -61,6 +62,11 @@
             <TextBlock Text="{DynamicResource drawer.help.offset}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
             <Button Content="{DynamicResource ui.LyricsSettingsDrawerView.7f4cde95ec65}" Classes="drawer-action" Click="OnReset" HorizontalAlignment="Left" />
           </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="{DynamicResource floating.lyrics}">
+        <ScrollViewer Classes="drawer-scroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <floating:DesktopLyricsSettingsView Name="DesktopLyricsSettings" Margin="0,22,0,24" />
         </ScrollViewer>
       </TabItem>
     </TabControl>

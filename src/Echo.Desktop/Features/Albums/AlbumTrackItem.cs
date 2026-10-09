@@ -15,21 +15,34 @@ public sealed partial class AlbumTrackItem : ObservableObject
     public string Number { get; }
     public string Position { get; }
     public string CodecLabel => Row.Codec.ToUpperInvariant();
+    public IReadOnlyList<string> Tags { get; }
+    public string DiscLabel { get; }
+    public bool HasDiscLabel => DiscLabel.Length > 0;
     public string Resolution => string.Join(" · ", new[] { Row.BitDepth > 0 ? $"{Row.BitDepth} bit" : "",
         Row.SampleRate > 0 ? $"{Row.SampleRate / 1000d:0.##} kHz" : "" }.Where(value => value.Length > 0));
     public string Duration => TimeSpan.FromSeconds(Math.Max(0, Row.DurationSeconds)).ToString(Row.DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"m\:ss");
-    public string Signal => string.Join("  ", new[] { Row.Codec.ToUpperInvariant(), Row.BitDepth > 0 ? $"{Row.BitDepth} bit" : "",
-        Row.SampleRate > 0 ? $"{Row.SampleRate / 1000d:0.##} kHz" : "" }.Where(s => s.Length > 0));
+    public string Signal => string.Join(" ", Tags);
     public bool CanFavorite => _state is not null;
     public string Heart => Favorite ? "♥" : "♡";
     public string HeartIcon => Favorite ? "heart-filled" : "heart";
     partial void OnFavoriteChanged(bool value) { OnPropertyChanged(nameof(Heart)); OnPropertyChanged(nameof(HeartIcon)); }
-    public AlbumTrackItem(TrackRow row, int index, IAlbumPersonalState? state, CancellationToken cancellation, Action<string> reportError)
+    public AlbumTrackItem(TrackRow row, int index, IAlbumPersonalState? state, CancellationToken cancellation, Action<string> reportError, bool multiDisc = false, string? discLabel = null)
     {
         Row = row; _state = state; _cancellation = cancellation; _reportError = reportError;
-        Favorite = row.Favorite;
+        Favorite = row.Favorite; Tags = TechnicalTags(row); DiscLabel = discLabel ?? "";
         Position = index.ToString(System.Globalization.CultureInfo.CurrentCulture);
-        Number = row.DiscNumber is > 1 ? $"{row.DiscNumber}-{row.TrackNumber ?? index}" : $"{row.TrackNumber ?? index}";
+        var trackNo = row.TrackNumber ?? index;
+        Number = multiDisc && row.DiscNumber is > 0 ? $"{row.DiscNumber}-{trackNo}"
+            : row.DiscNumber is > 1 ? $"{row.DiscNumber}-{trackNo}" : $"{trackNo}";
+    }
+    private static string[] TechnicalTags(TrackRow row)
+    {
+        var tags = new List<string>(3);
+        if (row.Codec.Length > 0) tags.Add(row.Codec.ToUpperInvariant());
+        if (row.BitDepth > 0) tags.Add($"{row.BitDepth}bit");
+        if (row.SampleRate >= 1000) tags.Add($"{Math.Round(row.SampleRate / 1000d).ToString(System.Globalization.CultureInfo.InvariantCulture)}kHz");
+        else if (row.SampleRate > 0) tags.Add($"{row.SampleRate.ToString(System.Globalization.CultureInfo.InvariantCulture)}Hz");
+        return tags.ToArray();
     }
     [RelayCommand] private async Task ToggleFavoriteAsync()
     {

@@ -73,7 +73,8 @@ public sealed partial class RemoteViewModel : ObservableObject, IDisposable
         var path = targetPath ?? CurrentPath;
         var result = await catalog.BrowseAsync(SelectedSource.Id, path, targetPage, Search.Trim(), AudioOnly, token);
         token.ThrowIfCancellationRequested(); if (disposed) return;
-        Entries.Clear(); foreach (var item in result.Entries) Entries.Add(new(item, shell.Text));
+        var indexed = await IndexedPathsAsync(result.Entries, token);
+        Entries.Clear(); foreach (var item in result.Entries) Entries.Add(new(item, shell.Text, indexed.Contains(item.Path)));
         SelectedEntry = null; CurrentPath = path; Page = result.Page; Total = result.Total; LoadedDirectory = true; Message = ""; RefreshLocation(); RefreshState();
     });
     [RelayCommand] private Task RefreshAsync() => BrowseAsync();
@@ -134,7 +135,9 @@ public sealed partial class RemoteViewModel : ObservableObject, IDisposable
     [RelayCommand] private Task RemoveAsync() => RunAsync(async token =>
     {
         if (SelectedSource is null) return;
-        var id = SelectedSource.Id; await catalog.RemoveAsync(id, token); token.ThrowIfCancellationRequested();
+        var id = SelectedSource.Id;
+        if (shell.RemoteIndex is not null) await shell.RemoteIndex.RetireSourceAsync(id, token);
+        await catalog.RemoveAsync(id, token); token.ThrowIfCancellationRequested();
         if (disposed) return;
         SelectedSource = null; ConfirmRemove = false; RefreshSources(); Message = shell.Text["remote.removed"];
     });
@@ -153,13 +156,22 @@ public sealed partial class RemoteViewModel : ObservableObject, IDisposable
     private void RefreshState()
     {
         foreach (var name in new[] { nameof(HasSource), nameof(HasNoSources), nameof(IsEmpty), nameof(CanPrevious), nameof(CanNext),
-            nameof(CanUp), nameof(CanPlay), nameof(CanOpen), nameof(PageLabel), nameof(HasSavedSources),
+            nameof(CanUp), nameof(CanPlay), nameof(CanOpen), nameof(PageLabel), nameof(HasSavedSources), nameof(CanSync),
             nameof(NeedsSourceSelection), nameof(DirectoryCount) }) OnPropertyChanged(name);
+    }
+    private async Task<HashSet<string>> IndexedPathsAsync(IReadOnlyList<RemoteEntry> entries, CancellationToken token)
+    {
+        var indexed = new HashSet<string>(StringComparer.Ordinal);
+        if (SelectedSource is not { SyncMode: "index" } selected || shell.RemoteIndex is null) return indexed;
+        var audio = entries.Where(item => item.IsAudio).Select(item => item.Path).Take(200).ToArray();
+        if (audio.Length == 0) return indexed;
+        foreach (var path in await shell.RemoteIndex.PresentAsync(selected.Id, audio, token)) indexed.Add(path);
+        return indexed;
     }
     private void LanguageChanged()
     {
-        var selected = SelectedEntry?.Path; var items = Entries.Select(x => x.Entry).ToArray();
-        Entries.Clear(); foreach (var entry in items) Entries.Add(new(entry, shell.Text));
+        var selected = SelectedEntry?.Path; var items = Entries.Select(x => (x.Entry, x.Indexed)).ToArray();
+        Entries.Clear(); foreach (var entry in items) Entries.Add(new(entry.Entry, shell.Text, entry.Indexed));
         SelectedEntry = Entries.FirstOrDefault(x => x.Path == selected); RefreshLocation(); RefreshState();
         RefreshProviderLanguage();
     }

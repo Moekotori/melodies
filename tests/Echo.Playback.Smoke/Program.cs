@@ -11,6 +11,7 @@ Wave(a, 2.5); Wave(b, 0.6);
 if (args.Contains("--admission-only")) { await AdmissionSmoke.RunAsync(a, root); await StateSmoke.RunAsync(a); return; }
 if (args.Contains("--state-only")) { await StateSmoke.RunAsync(a); await RuntimeSmoke.RunAsync(root, a); return; }
 if (args.Contains("--runtime-only")) { await RuntimeSmoke.RunAsync(root, a); return; }
+AutomixPlannerChecks.Run();
 await FakeAsync(a, b);
 await QueueScenarios.RunAsync(a, b);
 await RuntimeSmoke.RunAsync(root, a);
@@ -95,6 +96,8 @@ sealed class FakeHost : INativeAudio
     public JsonElement LastQueue { get; private set; }
     public bool RejectQueueOnce { get; set; }
     public List<string> Calls { get; } = [];
+    public JsonElement? GaplessRequest { get; private set; }
+    public JsonElement? AutomixRequest { get; private set; }
     public event Action<string, JsonElement>? Notification;
     public event Action<Exception>? Failed { add { } remove { } }
     private int operation;
@@ -108,6 +111,8 @@ sealed class FakeHost : INativeAudio
             if (RejectQueueOnce) { RejectQueueOnce = false; return Task.FromResult(JsonDocument.Parse("{}").RootElement.Clone()); }
             LastQueue = parameters!.Value.Clone();
         }
+        if (method == "audio.gaplessPrepare") GaplessRequest = parameters?.Clone();
+        if (method == "automix.prepare") AutomixRequest = parameters?.Clone();
         var json = method switch
         {
             "queue.set" => $"{{\"queueRevision\":{parameters!.Value.GetProperty("revision").GetInt64()}}}",

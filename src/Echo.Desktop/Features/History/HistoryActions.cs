@@ -16,8 +16,9 @@ public sealed partial class HistoryViewModel
         try
         {
             var row = record.Track;
-            var audioPath = row.Source?.AudioPath ?? row.Path;
-            var source = row.Source is { Kind: "cue" } cue ? AudioSource.Local(audioPath, cue.StartSeconds, cue.EndSeconds) : AudioSource.Local(audioPath);
+            var audioPath = row.Source?.Kind == "remote" ? row.Path : row.Source?.AudioPath ?? row.Path;
+            var source = row.Source?.Kind == "remote" ? new AudioSource("remote", row.Path)
+                : row.Source is { Kind: "cue" } cue ? AudioSource.Local(audioPath, cue.StartSeconds, cue.EndSeconds) : AudioSource.Local(audioPath);
             var track = new QueueTrack(Guid.NewGuid().ToString("N"), row.Id, audioPath, Source: source,
                 Metadata: new Dictionary<string, string?> { ["title"] = row.Title, ["artist"] = row.Artist, ["album"] = row.Album,
                     ["duration"] = row.DurationSeconds.ToString(CultureInfo.InvariantCulture), ["codec"] = row.Codec }, Origin: new("history", Text["navigation.history"]),

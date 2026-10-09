@@ -1,9 +1,9 @@
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Channels;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
@@ -25,7 +25,18 @@ internal sealed class ThemeWallpaper : IDisposable
     private readonly IAppearanceMedia _decoder;
     private readonly Channel<Request> _requests = Channel.CreateBounded<Request>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly CancellationTokenSource _stop = new();
+    private readonly object _stillGate = new();
+    private readonly object _videoGate = new();
     private CancellationTokenSource? _active;
+    private CancellationTokenSource? _lookDelay;
+    private SKBitmap? _still;
+    private Bitmap? _neutral;
+    private Bitmap? _shown;
+    private byte[]? _videoFrame;
+    private int _videoW;
+    private int _videoH;
+    private int _lookEpoch;
+    private double _brightness = 1;
     private string _path = "";
     private int _revision;
     private bool _disposed;
@@ -33,16 +44,10 @@ internal sealed class ThemeWallpaper : IDisposable
     public bool HasImage => _view.Image is not null;
     public event Action? AvailabilityChanged;
     public void InvalidateSource() => _path = "\0";
-    private void SetImage(Bitmap? image)
-    {
-        var old = _view.Image; var available = old is not null;
-        _view.Image = image; _theme.WallpaperPreview = image; _view.InvalidateVisual(); old?.Dispose();
-        if (available != (image is not null)) AvailabilityChanged?.Invoke();
-    }
     public ThemeWallpaper(Window window, ThemeViewModel theme)
     {
         _theme = theme; _window = window; _view = window.FindControl<WallpaperViewport>("ThemeWallpaperLayer")!;
-        _decoder = new AppearanceMediaDecoder(AppearanceMediaPath.Resolve()); _ = Task.Run(DecodeLoop);
+        _decoder = new AppearanceMediaDecoder(AppearanceMediaPath.Resolve(), AppearanceMediaPath.AnalysisHost()); _ = Task.Run(DecodeLoop);
     }
     public void Apply(ThemePreferences p, ThemeTone tone, bool animationAllowed = true)
     {
@@ -51,19 +56,106 @@ internal sealed class ThemeWallpaper : IDisposable
         var framing = portrait ? a.PortraitFraming ?? new() : new(p.WallpaperFit, p.WallpaperX, p.WallpaperY, a.WallpaperZoom);
         var path = a.WallpaperEnabled ? portrait ? a.PortraitWallpaper : p.Wallpaper : "";
         _view.Opacity = p.WallpaperOpacity / 100; _view.Fit = framing.Fit; _view.PositionX = framing.X / 100; _view.PositionY = framing.Y / 100;
-        _view.Zoom = framing.Fit is "Uniform" or "UniformToFill" ? framing.Zoom / 100 : 1; _view.Brightness = a.WallpaperBrightness / 100;
-        _view.Effect = p.WallpaperBlur > 0 ? new BlurEffect { Radius = p.WallpaperBlur } : null; _view.InvalidateVisual();
+        _view.Zoom = framing.Fit is "Uniform" or "UniformToFill" ? framing.Zoom / 100 : 1; _view.Blur = p.WallpaperBlur;
+        NoteBrightness(a.WallpaperBrightness / 100); _view.InvalidateVisual();
         var visible = _window.IsVisible && _window.WindowState != WindowState.Minimized;
         var running = visible && (!AppearanceMediaDecoder.IsVideo(path) || animationAllowed && (a.VideoPauseMode != "smart" || _window.IsActive));
         if (_path == path && _playing == running) return;
         var changed = _path != path; _path = path; _playing = running; var revision = ++_revision;
         _active?.Cancel(); _active?.Dispose(); _active = null;
-        if (changed || path.Length == 0) SetImage(null);
+        if (changed || path.Length == 0) ClearMedia();
         _theme.WallpaperStatus = path.Length == 0 ? (a.WallpaperEnabled ? "选择本地图片或视频，立即应用到整个窗口" : "背景已停用，素材和效果设置已保留")
             : !running ? "背景已暂停，窗口恢复后继续" : "正在读取背景…";
         if (!running || path.Length == 0) return;
         _active = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
         _requests.Writer.TryWrite(new(path, revision, _active.Token));
+    }
+    private void NoteBrightness(double brightness)
+    {
+        if (Math.Abs(_brightness - brightness) <= 0.003) return;
+        _brightness = brightness;
+        var hasVideo = false; lock (_videoGate) hasVideo = _videoW > 0;
+        var hasStill = false; lock (_stillGate) hasStill = _still is not null;
+        if (hasVideo || hasStill) ScheduleBrightness(false);
+    }
+    private void ScheduleBrightness(bool immediate)
+    {
+        var epoch = Interlocked.Increment(ref _lookEpoch);
+        var brightness = _brightness;
+        _lookDelay?.Cancel(); _lookDelay?.Dispose(); _lookDelay = new();
+        var token = _lookDelay.Token;
+        var hasVideo = false; lock (_videoGate) hasVideo = _videoW > 0;
+        if (!hasVideo && WallpaperGrade.IsNeutral(brightness))
+        { Dispatcher.UIThread.Post(() => { if (epoch == Volatile.Read(ref _lookEpoch) && _neutral is not null) Present(_neutral); }); return; }
+        _ = Task.Run(async () =>
+        {
+            if (!immediate) try { await Task.Delay(12, token); } catch (Exception error) when (error is OperationCanceledException or ObjectDisposedException) { return; }
+            if (epoch != Volatile.Read(ref _lookEpoch)) return;
+            if (hasVideo) { await RegradeVideo(epoch, brightness, token); return; }
+            SKBitmap? copy; lock (_stillGate) copy = _still?.Copy();
+            if (copy is null || epoch != Volatile.Read(ref _lookEpoch)) { copy?.Dispose(); return; }
+            try
+            {
+                WallpaperGrade.ApplyBrightness(copy, brightness);
+                var bitmap = WallpaperGrade.ToBitmap(copy);
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                { if (epoch != Volatile.Read(ref _lookEpoch) || _disposed) bitmap.Dispose(); else Present(bitmap); });
+            }
+            finally { copy.Dispose(); }
+        });
+    }
+    private async Task RegradeVideo(int epoch, double brightness, CancellationToken token)
+    {
+        byte[]? raw = null; var width = 0; var height = 0;
+        var length = 0;
+        lock (_videoGate)
+        {
+            length = _videoW * _videoH * 4;
+            if (_videoFrame is not null && length > 0 && _videoFrame.Length >= length)
+            {
+                raw = ArrayPool<byte>.Shared.Rent(length);
+                _videoFrame.AsSpan(0, length).CopyTo(raw);
+                width = _videoW;
+                height = _videoH;
+            }
+        }
+        if (raw is null) return;
+        try
+        {
+            if (!WallpaperGrade.IsNeutral(brightness)) WallpaperGrade.ApplyBrightness(raw.AsSpan(0, length), brightness);
+            if (epoch != Volatile.Read(ref _lookEpoch) || token.IsCancellationRequested) return;
+            await Dispatcher.UIThread.InvokeAsync(() => { if (epoch == Volatile.Read(ref _lookEpoch) && !_disposed) Upload(raw, width, height); });
+        }
+        finally { if (raw is not null) ArrayPool<byte>.Shared.Return(raw); }
+    }
+    private void Remember(Bitmap image)
+    {
+        var still = WallpaperGrade.Snapshot(image);
+        SKBitmap? retired; lock (_stillGate) { retired = _still; _still = still; }
+        retired?.Dispose();
+        var previousNeutral = _neutral; _neutral = image;
+        if (previousNeutral is not null && previousNeutral != _shown) previousNeutral.Dispose();
+        Present(image);
+        if (!WallpaperGrade.IsNeutral(_brightness)) ScheduleBrightness(true);
+    }
+    private void Present(Bitmap? image)
+    {
+        var previous = _shown; var available = previous is not null; _shown = image;
+        _view.Image = image; _theme.WallpaperPreview = image; _view.InvalidateVisual();
+        if (previous is not null && previous != image && previous != _neutral) previous.Dispose();
+        if (available != (image is not null)) AvailabilityChanged?.Invoke();
+    }
+    private void ClearMedia()
+    {
+        Interlocked.Increment(ref _lookEpoch);
+        SKBitmap? still; lock (_stillGate) { still = _still; _still = null; } still?.Dispose();
+        lock (_videoGate) { _videoFrame = null; _videoW = 0; _videoH = 0; }
+        var shown = _shown; var neutral = _neutral; _shown = null; _neutral = null;
+        var available = _view.Image is not null;
+        _view.Image = null; _theme.WallpaperPreview = null; _view.InvalidateVisual();
+        if (shown is not null && shown != neutral) shown.Dispose();
+        neutral?.Dispose();
+        if (available) AvailabilityChanged?.Invoke();
     }
     private async Task DecodeLoop()
     {
@@ -82,14 +174,14 @@ internal sealed class ThemeWallpaper : IDisposable
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
                             if (!Current(request)) { image.Dispose(); return; }
-                            SetImage(image); _theme.WallpaperStatus = "已应用背景图片";
+                            Remember(image); _theme.WallpaperStatus = "已应用背景图片";
                         });
                     }
                 }
                 catch (OperationCanceledException) when (request.Cancellation.IsCancellationRequested) { }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException or OperationCanceledException or JsonException or System.ComponentModel.Win32Exception)
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => { if (Current(request)) { SetImage(null); _theme.WallpaperStatus = error is InvalidDataException ? error.Message : "背景无法读取，请重新选择或切换素材后重试"; } });
+                    await Dispatcher.UIThread.InvokeAsync(() => { if (Current(request)) { ClearMedia(); _theme.WallpaperStatus = error is InvalidDataException ? error.Message : "背景无法读取，请重新选择或切换素材后重试"; } });
                 }
             }
         }
@@ -100,20 +192,49 @@ internal sealed class ThemeWallpaper : IDisposable
     private async Task DisplayVideo(Request request, VideoFrame frame, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        await Dispatcher.UIThread.InvokeAsync(() =>
+        lock (_videoGate)
         {
-            if (!Current(request)) return;
-            if (_view.Image is not WriteableBitmap bitmap || bitmap.PixelSize != new PixelSize(frame.Width, frame.Height))
+            if (_videoFrame is null || _videoFrame.Length != frame.Bgra.Length) _videoFrame = new byte[frame.Bgra.Length];
+            frame.Bgra.AsSpan().CopyTo(_videoFrame);
+            _videoW = frame.Width;
+            _videoH = frame.Height;
+        }
+        var epoch = Interlocked.Increment(ref _lookEpoch);
+        var brightness = _brightness;
+        var length = frame.Bgra.Length;
+        var graded = WallpaperGrade.IsNeutral(brightness) ? null : ArrayPool<byte>.Shared.Rent(length);
+        try
+        {
+            byte[] pixels;
+            if (graded is null)
+                pixels = frame.Bgra;
+            else
             {
-                bitmap = new(new(frame.Width, frame.Height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Opaque);
-                SetImage(bitmap);
+                frame.Bgra.AsSpan().CopyTo(graded);
+                WallpaperGrade.ApplyBrightness(graded.AsSpan(0, length), brightness);
+                pixels = graded;
             }
-            using (var pixels = bitmap.Lock())
-                for (var y = 0; y < frame.Height; y++) Marshal.Copy(frame.Bgra, y * frame.Width * 4, pixels.Address + y * pixels.RowBytes, frame.Width * 4);
-            _view.InvalidateVisual();
-            _theme.WallpaperFrameVersion++;
-            _theme.WallpaperStatus = "已应用静音视频背景";
-        }, DispatcherPriority.Background);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!Current(request) || epoch != Volatile.Read(ref _lookEpoch)) return;
+                Upload(pixels, frame.Width, frame.Height);
+                _theme.WallpaperStatus = "已应用静音视频背景";
+            }, DispatcherPriority.Background);
+        }
+        finally
+        {
+            if (graded is not null) ArrayPool<byte>.Shared.Return(graded);
+        }
+    }
+    private void Upload(byte[] pixels, int width, int height)
+    {
+        var bitmap = _view.Image as WriteableBitmap;
+        var created = bitmap is null || bitmap.PixelSize != new PixelSize(width, height);
+        if (created) bitmap = new(new(width, height), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Opaque);
+        using (var locked = bitmap!.Lock())
+            for (var y = 0; y < height; y++) Marshal.Copy(pixels, y * width * 4, locked.Address + y * locked.RowBytes, width * 4);
+        if (created) Present(bitmap);
+        _theme.WallpaperFrameVersion++; _view.ContentRevision = _theme.WallpaperFrameVersion;
     }
     private static async Task<Bitmap> ReadImage(Request request)
     {
@@ -129,6 +250,6 @@ internal sealed class ThemeWallpaper : IDisposable
     public void Dispose()
     {
         if (_disposed) return; _disposed = true; ++_revision; _active?.Cancel(); _active?.Dispose(); _active = null;
-        _stop.Cancel(); _requests.Writer.TryComplete(); SetImage(null);
+        _lookDelay?.Cancel(); _lookDelay?.Dispose(); _stop.Cancel(); _requests.Writer.TryComplete(); ClearMedia();
     }
 }

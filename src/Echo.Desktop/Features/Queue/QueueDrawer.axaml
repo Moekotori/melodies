@@ -12,7 +12,7 @@
         <Button Grid.Column="1" Classes="icon" Click="OnShortcuts" ToolTip.Tip="{DynamicResource queue.drawer.shortcuts}" AutomationProperties.Name="{DynamicResource queue.drawer.shortcuts}"><icon:GlyphIcon Kind="keyboard" Width="17" Height="17" /></Button>
         <Button Name="CloseDrawerButton" Grid.Column="2" Classes="icon" Command="{Binding CloseQueueDrawerCommand}" ToolTip.Tip="{DynamicResource ui.MainWindow.40f65663b09a}" AutomationProperties.Name="{DynamicResource ui.MainWindow.40f65663b09a}"><icon:GlyphIcon Kind="close" Width="17" Height="17" /></Button>
       </Grid>
-      <Border Grid.Row="1" Background="{DynamicResource EchoQueueHero}" CornerRadius="6" Padding="10,9" IsVisible="{Binding Player.HasTrack}">
+      <Border Grid.Row="1" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="10" Padding="10,8" IsVisible="{Binding Player.HasTrack}">
         <Grid ColumnDefinitions="52,*,30" ColumnSpacing="12">
           <queue:QueueArtwork Width="52" Height="52" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding Player.Queue.CurrentArtworkPath}" Cache="{Binding Player.Queue.Artwork}" />
           <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
@@ -24,14 +24,12 @@
           <Button Grid.Column="2" Classes="icon" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource queue.drawer.playPause}" AutomationProperties.Name="{DynamicResource queue.drawer.playPause}"><icon:EchoIcon Scope="player" Kind="{Binding Player.PlayIcon}" Width="18" Height="18" /></Button>
         </Grid>
       </Border>
-      <Grid Grid.Row="2" ColumnDefinitions="*,*" Margin="0,0,0,2">
-        <Button Name="ModeButton" Classes="drawer-mode" HorizontalAlignment="Center" Click="OnMode" IsEnabled="{Binding !Player.Queue.IsBusy}" ToolTip.Tip="{DynamicResource queue.drawer.mode}">
+      <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,0,2">
+        <Button Name="ModeButton" Classes="drawer-mode" HorizontalAlignment="Left" Click="OnMode" IsEnabled="{Binding !Player.Queue.IsBusy}" ToolTip.Tip="{DynamicResource queue.drawer.mode}">
           <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="{Binding Player.Queue.ModeGlyph}" Width="16" Height="16" /><TextBlock Text="{Binding Player.Queue.ModeLabel}" /><TextBlock Text="⌄" Classes="muted" /></StackPanel>
         </Button>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{DynamicResource queue.drawer.transitionHint}">
-          <icon:GlyphIcon Kind="music-stat" Width="16" Height="16" /><TextBlock Text="{DynamicResource queue.drawer.normal}" Classes="muted" FontSize="12" FontWeight="SemiBold" />
-        </StackPanel>
-      </Grid>
+        <TextBlock Text="{Binding Player.Queue.StrategyText}" Classes="muted" FontSize="11" TextWrapping="Wrap" LineHeight="16" />
+      </StackPanel>
       <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" IsEnabled="{Binding !Player.Queue.IsBusy}">
         <Button Classes="drawer-action" Command="{Binding Player.Queue.ClearCommand}" ToolTip.Tip="{DynamicResource ui.QueueDrawer.d18e02739127}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="trash" Width="15" Height="15" /><TextBlock Text="{DynamicResource queue.drawer.clear}" /></StackPanel></Button>
         <Button Grid.Column="1" Classes="drawer-action" HorizontalAlignment="Center" Click="OnAdd"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="plus" Width="15" Height="15" /><TextBlock Text="{DynamicResource queue.drawer.add}" /></StackPanel></Button>

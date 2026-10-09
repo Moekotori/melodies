@@ -3,14 +3,14 @@ using System.Text.Json;
 
 namespace Echo.Infrastructure.Remote;
 
-// Shared JSON transport: two active requests, 4 MiB bodies, no redirect or response-body diagnostics.
+// Four active requests: a Subsonic album scan stays at Echo's cap and never opens its 64-wide queue.
 internal sealed class RemoteHttpTransport : IDisposable
 {
     private readonly HttpClient client;
-    private readonly SemaphoreSlim admission = new(2, 2);
+    private readonly SemaphoreSlim admission = new(4, 4);
     public RemoteHttpTransport(HttpMessageHandler? handler = null) => client = new(handler ?? new SocketsHttpHandler
     {
-        AllowAutoRedirect = false, MaxConnectionsPerServer = 2, ConnectTimeout = TimeSpan.FromSeconds(5),
+        AllowAutoRedirect = false, MaxConnectionsPerServer = 4, ConnectTimeout = TimeSpan.FromSeconds(5),
         MaxResponseDrainSize = 0, PooledConnectionLifetime = TimeSpan.FromMinutes(2)
     }) { Timeout = Timeout.InfiniteTimeSpan };
     public async Task<JsonDocument> JsonAsync(Uri uri, CancellationToken token, IReadOnlyDictionary<string, string>? headers = null, HttpContent? content = null)
@@ -38,6 +38,33 @@ internal sealed class RemoteHttpTransport : IDisposable
         catch (OperationCanceledException) when (!token.IsCancellationRequested) { throw new TimeoutException("服务响应超时，请检查网络或重试。"); }
         catch (HttpRequestException) { throw new IOException("无法连接服务，请检查地址、网络与证书。"); }
         catch (JsonException) { throw new IOException("服务返回的数据格式无效。"); }
+        finally { if (entered) admission.Release(); }
+    }
+    public async Task<byte[]> BytesAsync(Uri uri, int maxBytes, CancellationToken token, IReadOnlyDictionary<string, string>? headers = null)
+    {
+        if (maxBytes is < 1 or > 4 * 1024 * 1024) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(TimeSpan.FromSeconds(15));
+        var entered = false;
+        try
+        {
+            await admission.WaitAsync(deadline.Token).ConfigureAwait(false); entered = true;
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            if (headers is not null) foreach (var item in headers) request.Headers.TryAddWithoutValidation(item.Key, item.Value);
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) throw new RemoteHttpException(response.StatusCode);
+            if (response.Content.Headers.ContentLength > maxBytes) throw new IOException("封面或附件超过大小上限。");
+            await using var stream = await response.Content.ReadAsStreamAsync(deadline.Token).ConfigureAwait(false);
+            using var bytes = new MemoryStream(); var buffer = new byte[32768];
+            while (true)
+            {
+                var read = await stream.ReadAsync(buffer, deadline.Token).ConfigureAwait(false); if (read == 0) break;
+                if (bytes.Length + read > maxBytes) throw new IOException("封面或附件超过大小上限。");
+                bytes.Write(buffer, 0, read);
+            }
+            return bytes.ToArray();
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested) { throw new TimeoutException("服务响应超时，请检查网络或重试。"); }
+        catch (HttpRequestException) { throw new IOException("无法连接服务，请检查地址、网络与证书。"); }
         finally { if (entered) admission.Release(); }
     }
     public void Dispose() => client.Dispose();

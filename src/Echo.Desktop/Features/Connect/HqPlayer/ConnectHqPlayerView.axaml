@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Connect.HqPlayer"
+             x:Class="Echo.Desktop.Features.Connect.HqPlayer.ConnectHqPlayerView" x:DataType="local:ConnectHqPlayerViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="16" Margin="0,4,8,28" MaxWidth="720" HorizontalAlignment="Left">
+      <Border Classes="connect-card">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4">
+              <TextBlock Text="外部渲染器" Classes="connect-kicker" />
+              <TextBlock Text="HQPlayer" FontSize="22" Classes="heading" />
+            </StackPanel>
+            <Border Grid.Column="1" Classes="connect-state" Classes.live="{Binding PortReachable}"><TextBlock Text="{Binding StateLabel}" FontSize="12" /></Border>
+          </Grid>
+          <Border Classes="connect-inset">
+            <StackPanel Spacing="4">
+              <TextBlock Text="将要送出" Classes="connect-kicker" />
+              <TextBlock Text="{Binding TrackLine}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <TextBlock Text="检测会询问控制协议。只有按下送出之后，当前曲目才会交给 HQPlayer。ECHO 不会启动它的程序。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+          <CheckBox Content="记住为外部渲染器" IsChecked="{Binding RememberEnabled, Mode=TwoWay}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="connect-tool" Classes.active="{Binding IsLocal}" Content="本机桌面" Command="{Binding UseLocalCommand}" />
+            <Button Classes="connect-tool" Classes.active="{Binding !IsLocal}" Content="远程" Command="{Binding UseRemoteCommand}" />
+          </StackPanel>
+          <Grid ColumnDefinitions="*,120" ColumnSpacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="主机" FontSize="12" Classes="muted" />
+              <TextBox Text="{Binding Host, Mode=TwoWay}" IsEnabled="{Binding !IsLocal}" MaxLength="253" PlaceholderText="127.0.0.1" LostFocus="OnEdited" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="6">
+              <TextBlock Text="端口" FontSize="12" Classes="muted" />
+              <TextBox Text="{Binding PortText, Mode=TwoWay}" MaxLength="5" PlaceholderText="4321" LostFocus="OnEdited" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Text="{Binding Endpoint}" Classes="muted" FontSize="12" />
+          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" />
+          <WrapPanel Orientation="Horizontal">
+            <Button Classes="connect-primary" Content="检测协议" Command="{Binding TestCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="送出当前曲目" Command="{Binding HandOffCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="暂停" Command="{Binding PauseCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="停止" Command="{Binding StopRendererCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

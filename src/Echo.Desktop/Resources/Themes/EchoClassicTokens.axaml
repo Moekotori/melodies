@@ -14,6 +14,7 @@
       <SolidColorBrush x:Key="LibraryPopupSelected">#ededfa</SolidColorBrush>
       <SolidColorBrush x:Key="LibraryInputSurface">#f6f6fa</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccentText">#4b52bc</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDanger">#b3261e</SolidColorBrush>
       <SolidColorBrush x:Key="EchoIconAccent">#6069df</SolidColorBrush>
       <SolidColorBrush x:Key="EchoBorder">#66e0e1e9</SolidColorBrush>
       <SolidColorBrush x:Key="EchoDivider">#e5e7eb</SolidColorBrush>
@@ -44,6 +45,7 @@
       <SolidColorBrush x:Key="LibraryPopupSelected">#303247</SolidColorBrush>
       <SolidColorBrush x:Key="LibraryInputSurface">#292b34</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccentText">#c6c9ff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDanger">#ff9b9f</SolidColorBrush>
       <SolidColorBrush x:Key="EchoIconAccent">#969bf1</SolidColorBrush>
       <SolidColorBrush x:Key="EchoBorder">#383a40</SolidColorBrush>
       <SolidColorBrush x:Key="EchoDivider">#383a40</SolidColorBrush>

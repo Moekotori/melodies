@@ -75,6 +75,8 @@ public sealed partial class PlaybackSessionCoordinator
                 Publish(snapshot with { Status = PlaybackStatus.Faulted, OperationId = 0, Output = null, Error = "输出设备状态改变，请重新选择设备或重试播放" });
             return;
         }
+        if (method == "audio.transitionCommitted") { await AdoptAutomixAsync(value).ConfigureAwait(false); return; }
+        if (method == "audio.automixFallback") { NoteAutomixFallback(value); return; }
         if (method == "audio.ended" && value.Flag("queueAdvance"))
         {
             // Native only publishes an advance once the next output becomes audible.
@@ -102,11 +104,14 @@ public sealed partial class PlaybackSessionCoordinator
             case "audio.position":
                 if (snapshot.OperationId <= 0 || snapshot.Status is PlaybackStatus.Stopped or PlaybackStatus.Ended or PlaybackStatus.Faulted) return;
                 ObservePerformance(value);
+                if (value.TryGetProperty("outputFrame", out var frame) && frame.TryGetInt64(out var output) && output >= 0)
+                { outputFrame = output; outputFrameOperation = snapshot.OperationId; outputFrameKnown = true; }
                 var seconds = positionBase + value.Number("framesPlayed") / Math.Max(1, snapshot.SampleRate);
                 Publish(snapshot with { PositionSeconds = snapshot.DurationSeconds > 0 ? Math.Min(seconds, snapshot.DurationSeconds) : seconds,
                     Status = snapshot.Status == PlaybackStatus.Loading && HasConfirmedRendering() ? PlaybackStatus.Playing : snapshot.Status,
                     Processing = value.Child("processing") ?? snapshot.Processing });
                 await ApplySegmentBoundaryAsync().ConfigureAwait(false);
+                await TryArmAutomixAsync().ConfigureAwait(false);
                 break;
             case "audio.ended":
                 await HandleNativeEofAsync(value.Long("operationId")).ConfigureAwait(false);

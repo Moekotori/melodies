@@ -1,5 +1,6 @@
 using Echo.Desktop.Features.Settings.Catalog;
 using Echo.Desktop.Features.Settings.Models;
+using Echo.Desktop.Shell;
 
 namespace Echo.Desktop.Features.Settings;
 
@@ -17,9 +18,9 @@ public sealed partial class SettingsViewModel
         ActiveCategory = _categories.First(category => category.Id == id); ActiveCategory.IsActive = true;
         NavigationGroups = _categories.GroupBy(category => category.Definition.Group)
             .Select(group => new SettingsNavigationGroup(group.Key, group.ToArray())).ToArray();
-        _searchEntries = SettingsCatalog.Categories.SelectMany(category => category.Sections.SelectMany(section => section.Rows.Select(row =>
+        _searchEntries = SettingsCatalog.Categories.SelectMany(category => category.Sections.SelectMany(section => section.Rows.Where(row => PlatformSettingVisibility.IsAvailable(row.Id)).Select(row =>
             new SearchEntry(category.Id, row.Id, text.Translate(row.Title), text.Translate(category.Title),
-                string.Join(' ', new[] { row.Title, row.Help, section.Title, category.Title }.Concat(row.Options ?? []).Select(text.Translate)))))).ToArray();
+                string.Join(' ', new[] { row.Title, row.Help, section.Title, section.Tab, category.Title }.Concat(row.Options ?? []).Select(text.Translate)))))).ToArray();
         BuildSections(); OnQueryChanged(Query);
         OnPropertyChanged(nameof(NavigationGroups)); SectionVersion++;
     }

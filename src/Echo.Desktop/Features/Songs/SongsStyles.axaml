@@ -50,4 +50,21 @@
   <Style Selector="Button.songSortChoice.selected TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
   <Style Selector="Button.sortDirection"><Setter Property="Width" Value="28" /><Setter Property="Height" Value="30" /><Setter Property="MinHeight" Value="30" /><Setter Property="Padding" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
   <Style Selector="Button.sortDirection.selected"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Button.layoutChoice">
+    <Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="32" /><Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontSize" Value="12" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+  </Style>
+  <Style Selector="Button.layoutChoice:pointerover"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Button.layoutChoice.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="ListBox.songList.dense ListBoxItem"><Setter Property="MinHeight" Value="36" /><Setter Property="CornerRadius" Value="4" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="0,0,0,1" /></Style>
+  <Style Selector="ListBox.songList.split ListBoxItem"><Setter Property="MinHeight" Value="48" /></Style>
+  <Style Selector="Button.alphabetLetter">
+    <Setter Property="Width" Value="21" /><Setter Property="Height" Value="15" /><Setter Property="MinHeight" Value="15" /><Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="5" />
+    <Setter Property="FontSize" Value="10" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.alphabetLetter:pointerover, Button.alphabetLetter.active"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
 </Styles>

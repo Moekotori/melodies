@@ -6,6 +6,10 @@ namespace Echo.Infrastructure.Remote;
 
 internal sealed class MediaServerFileClient(RemoteHttpTransport http) : IRemoteFileClient
 {
+    private readonly object sessionGate = new();
+    private Auth? session;
+    private string sessionId = "";
+    private long sessionUntil;
     public async Task<RemoteDirectoryPage> BrowseAsync(RemoteConnection source, string path, int page, string search, bool audioOnly, CancellationToken token)
     {
         RemoteBrowseRules.Request(path, page, search);
@@ -29,6 +33,38 @@ internal sealed class MediaServerFileClient(RemoteHttpTransport http) : IRemoteF
         var rows = items.Select(x => Entry(x, path, false)).Where(x => x.IsDirectory || x.IsAudio).ToArray();
         return new(rows, Count(json.RootElement, rows.Length), page, 200);
     }
+    public async Task<byte[]?> ReadArtworkAsync(RemoteConnection source, string remotePath, CancellationToken token)
+    {
+        try
+        {
+            var auth = await AuthenticateAsync(source, token).ConfigureAwait(false);
+            var id = Uri.EscapeDataString(RemoteBrowseRules.VirtualId(remotePath).Id);
+            var uri = RemoteBrowseRules.Url(Base(source), "Items/" + id + "/Images/Primary", new Dictionary<string, string> { ["maxWidth"] = "600" });
+            return await http.BytesAsync(uri, 4 * 1024 * 1024, token, auth.Headers).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception) { return null; }
+    }
+    public async Task<string?> ReadServerLyricsAsync(RemoteConnection source, string remotePath, CancellationToken token)
+    {
+        try
+        {
+            var auth = await AuthenticateAsync(source, token).ConfigureAwait(false);
+            var id = Uri.EscapeDataString(RemoteBrowseRules.VirtualId(remotePath).Id);
+            using var json = await http.JsonAsync(RemoteBrowseRules.Url(Base(source), "Audio/" + id + "/Lyrics"), token, auth.Headers).ConfigureAwait(false);
+            var lines = new List<string>();
+            foreach (var line in RemoteBrowseRules.Array(json.RootElement, "Lyrics").Take(4000))
+            {
+                var text = RemoteBrowseRules.Text(line, "Text", 2000);
+                if (text.Length == 0) continue;
+                var start = RemoteBrowseRules.Number(line, "Start");
+                lines.Add(start is long ticks ? $"[{ticks / 600000000:00}:{(ticks / 10000000d) % 60:00.00}]{text}" : text);
+            }
+            return lines.Count == 0 ? null : string.Join('\n', lines);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception) { return null; }
+    }
     public async Task<RemoteMediaSource> ResolveMediaAsync(RemoteConnection source, RemoteEntry entry, CancellationToken token)
     {
         var auth = await AuthenticateAsync(source, token).ConfigureAwait(false);
@@ -42,6 +78,10 @@ internal sealed class MediaServerFileClient(RemoteHttpTransport http) : IRemoteF
         var headers = new Dictionary<string, string> { ["X-Emby-Authorization"] = "MediaBrowser Client=\"ECHO\", Device=\"Desktop\", DeviceId=\"echo-avalonia\", Version=\"1\"" };
         if (source.AuthMode is "token" or "apiKey")
         { headers["X-Emby-Token"] = source.Password; return new(source.Password, source.UserId, headers); }
+        lock (sessionGate)
+        {
+            if (session is not null && sessionId == source.Id && Environment.TickCount64 < sessionUntil) return session;
+        }
         using var bytes = new MemoryStream();
         using (var writer = new Utf8JsonWriter(bytes))
         { writer.WriteStartObject(); writer.WriteString("Username", source.Username); writer.WriteString("Pw", source.Password); writer.WriteEndObject(); }
@@ -50,7 +90,10 @@ internal sealed class MediaServerFileClient(RemoteHttpTransport http) : IRemoteF
         var secret = RemoteBrowseRules.Text(json.RootElement, "AccessToken", 16384);
         if (secret.Length == 0 || secret.Any(char.IsControl)) throw new IOException("媒体服务器没有返回有效授权，请检查账号。");
         var user = json.RootElement.TryGetProperty("User", out var info) ? RemoteBrowseRules.Text(info, "Id") : "";
-        headers["X-Emby-Token"] = secret; return new(secret, user, headers);
+        headers["X-Emby-Token"] = secret;
+        var auth = new Auth(secret, user, headers);
+        lock (sessionGate) { session = auth; sessionId = source.Id; sessionUntil = Environment.TickCount64 + 600_000; }
+        return auth;
     }
     private static string Base(RemoteConnection source)
     {

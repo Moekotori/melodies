@@ -42,6 +42,8 @@ internal static class LegacyMigrationProbe
         Check(first.Failed==0 && first.Inserted==3,"CUE import");
         var page = await db.GetTracksAsync(new(20),cancellation);
         Check(page.Items.Count==3 && page.Items.All(item=>item.Source?.Kind=="cue"),"no whole-album duplicate");
+        var cueAlbum = await db.GetAlbumsAsync(new(Search:"旧版专辑"),cancellation);
+        Check(cueAlbum.Total==1 && cueAlbum.Items[0].TrackCount==3 && cueAlbum.Items[0].Artist=="旧版艺术家","CUE sheet stays one album");
         Check(page.Items.All(item=>Math.Abs(item.DurationSeconds-1)<.001),"segment durations");
         var source = TrackPlaybackSource.Audio(page.Items.Single(item=>item.Title=="第二首"));
         Check(source.Uri==audio && source.Range?.StartSeconds==1 && source.Range.EndSeconds==2,"playback range");
@@ -128,6 +130,63 @@ internal static class LegacyMigrationProbe
         Check(embedded.Inserted==2 && embedded.Failed==0,"copied embedded FLAC CUE");
         var segments=await db.GetTracksAsync(new(10,"片段"),cancellation);
         Check(segments.Items.Count==2 && segments.Items.All(row=>row.Source?.AudioPath==embeddedPath),"embedded playback origins");
+        var embeddedAlbum = await db.GetAlbumsAsync(new(Search:"内嵌专辑"),cancellation);
+        Check(embeddedAlbum.Total==1 && embeddedAlbum.Items[0].TrackCount==2,"embedded CUE stays one album");
+
+        var various = Path.Combine(root,"various"); Directory.CreateDirectory(various);
+        Wave(Path.Combine(various,"disc.wav"),3);
+        await File.WriteAllTextAsync(Path.Combine(various,"album.cue"), """
+            TITLE "合辑"
+            FILE "disc.wav" WAVE
+            TRACK 01 AUDIO
+            TITLE "甲"
+            PERFORMER "歌手甲"
+            INDEX 01 00:00:00
+            TRACK 02 AUDIO
+            TITLE "乙"
+            PERFORMER "歌手乙"
+            INDEX 01 00:01:00
+            """, new UTF8Encoding(true), cancellation);
+        var variousReport = await Scanner().ScanAsync(new(various),cancellation:cancellation);
+        var variousAlbum = await db.GetAlbumsAsync(new(Search:"合辑"),cancellation);
+        Check(variousReport.Failed==0 && variousReport.Inserted==2 && variousAlbum.Total==1 && variousAlbum.Items[0].TrackCount==2
+            && variousAlbum.Items[0].Artist=="Various Artists", "CUE track performers do not split the album");
+        var performer = await db.GetArtistsAsync(new(Search:"歌手甲"),cancellation);
+        var performerAlbum = await db.GetArtistsAsync(new(Search:"歌手甲", Grouping:ArtistGrouping.AlbumArtist),cancellation);
+        Check(performer.Total==1 && performer.Items[0].TrackCount==1 && performerAlbum.Total==0,
+            "CUE performer stays a track credit");
+
+        var repeat = Path.Combine(root,"repeat"); Directory.CreateDirectory(repeat);
+        Wave(Path.Combine(repeat,"a.wav"),3); Wave(Path.Combine(repeat,"b.wav"),3);
+        await File.WriteAllTextAsync(Path.Combine(repeat,"album.cue"), """
+            TITLE "重复编号"
+            FILE "a.wav" WAVE
+            TRACK 01 AUDIO
+            TITLE "甲"
+            INDEX 01 00:00:00
+            FILE "b.wav" WAVE
+            TRACK 01 AUDIO
+            TITLE "乙"
+            INDEX 01 00:00:00
+            """, new UTF8Encoding(true), cancellation);
+        var repeatReport = await Scanner().ScanAsync(new(repeat),cancellation:cancellation);
+        var repeatAlbum = await db.GetAlbumsAsync(new(Search:"重复编号"),cancellation);
+        Check(repeatReport.Failed==0 && repeatAlbum.Total==1 && repeatAlbum.Items[0].TrackCount==1,
+            "repeated CUE track numbers do not fail the scan");
+
+        var box = Path.Combine(root,"box");
+        var grouping = await db.BeginScanAsync(box,false,cancellation);
+        ScanEntry Boxed(string path) => new(new(path, LibraryPath.Key(path), 10, 10), ScanEntryKind.Metadata,
+            new("Song","同一人","套装","同一人",10,"FLAC",44100,16));
+        await db.CommitScanBatchAsync(grouping,1,[
+            Boxed(Path.Combine(box,"Release","CD1","a.flac")),
+            Boxed(Path.Combine(box,"Release","CD2","b.flac")),
+            Boxed(Path.Combine(box,"Other","c.flac"))
+        ], cancellation);
+        await db.FinishScanAsync(grouping, ScanStatus.Completed, 3, false, null, cancellation);
+        var boxed = await db.GetAlbumsAsync(new(Search:"套装"),cancellation);
+        Check(boxed.Total==2 && boxed.Items.Count(album => album.TrackCount==2)==1,
+            "disc folders stay together and a different folder stays separate");
 
         var native = Path.Combine(AppContext.BaseDirectory,"runtimes","win-x64","native","echo-native-scanner.exe");
         if (OperatingSystem.IsWindows())

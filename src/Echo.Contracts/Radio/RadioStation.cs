@@ -1,7 +1,8 @@
 namespace Echo.Contracts.Radio;
 
 public sealed record RadioStation(string Id, string Name, string Url, string Description = "",
-    string Genre = "—", string Codec = "—", bool Favorite = false);
+    string Genre = "—", string Codec = "—", bool Favorite = false,
+    string CoverUrl = "", string VideoUrl = "", string Homepage = "", int BitrateKbps = 0);
 
 public interface IRadioStationStore
 {

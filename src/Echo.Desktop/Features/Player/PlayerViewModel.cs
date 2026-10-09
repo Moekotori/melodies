@@ -129,6 +129,7 @@ public sealed partial class PlayerViewModel : ObservableObject
                 Details.Update(state.Current);
                 CurrentFilePath = state.Current?.FilePath ?? "";
                 ArtistAlbum = state.Current is null ? Text.Translate("选择歌曲开始播放") : string.Join(" · ", new[] { state.Current.Metadata?.GetValueOrDefault("artist"), state.Current.Metadata?.GetValueOrDefault("album") }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                ApplyRadioProgramme();
                 if (!IsChangingVolume) Volume = state.Volume;
                 if (!IsChangingPlaybackRate) PlaybackRate = state.PlaybackRate;
                 if (!AudioSettings.IsApplying) AudioSettings.PlaybackRate = state.PlaybackRate;
@@ -204,6 +205,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     public void Detach()
     {
         if (Interlocked.Exchange(ref detached, 1) != 0) return;
+        ReleaseRadioMetadata();
         Text.Changed -= RefreshLanguage; subscription.Dispose();
         session.VolumeLockChanged -= ObserveVolumeLock;
         try { stateLifetime.Cancel(); } catch (ObjectDisposedException) { }

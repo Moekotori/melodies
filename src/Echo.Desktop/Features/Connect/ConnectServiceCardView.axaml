@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:connect="using:Echo.Desktop.Features.Connect"
+             x:Class="Echo.Desktop.Features.Connect.ConnectServiceCardView" x:DataType="connect:ConnectServiceCard">
+  <Border Classes="connect-card">
+    <StackPanel Spacing="14">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock Text="{Binding Kicker}" Classes="connect-kicker" />
+          <TextBlock Text="{Binding Title}" FontSize="20" Classes="heading" TextWrapping="Wrap" />
+        </StackPanel>
+        <Border Grid.Column="1" Classes="connect-state" Classes.live="{Binding IsLive}" Classes.error="{Binding IsError}" Margin="12,0,0,0">
+          <TextBlock Text="{Binding State}" FontSize="12" />
+        </Border>
+      </Grid>
+      <Border Classes="connect-inset">
+        <ItemsControl ItemsSource="{Binding Facts}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="connect:ConnectFact">
+              <Grid ColumnDefinitions="72,*" Margin="0,3">
+                <TextBlock Text="{Binding Label}" Classes="muted" FontSize="12" />
+                <TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="13" TextTrimming="CharacterEllipsis" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+      <TextBlock Text="{Binding GuideTitle}" FontWeight="SemiBold" />
+      <ItemsControl ItemsSource="{Binding Steps}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="connect:ConnectStep">
+            <TextBlock Text="{Binding Text}" Classes="muted" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,4" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Text="{Binding Hint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+      <Button Classes="connect-primary" Content="{Binding PrimaryLabel}" Command="{Binding PrimaryCommand}" HorizontalAlignment="Left" />
+    </StackPanel>
+  </Border>
+</UserControl>

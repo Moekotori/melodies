@@ -2,12 +2,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Echo.Contracts.Library;
 using Echo.Desktop.Features.Player;
+using Echo.Desktop.Localization;
 using Echo.Playback;
 using Avalonia.Threading;
 
 namespace Echo.Desktop.Features.Albums;
 
-public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary library, PlayerViewModel player)
+public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary library, PlayerViewModel player, LocalizationService? text = null)
     : ObservableObject, IDisposable
 {
     private readonly CancellationTokenSource _lifetime = new();
@@ -23,16 +24,37 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
     [ObservableProperty] private int activeTab;
     [ObservableProperty] private int sortIndex;
     [ObservableProperty] private bool descending;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasDiscs), nameof(DiscText))] private int discCount;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasGenres), nameof(GenreText))] private IReadOnlyList<string> genres = [];
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanPlay))] private bool isLoading;
     public bool CanPlay => !IsBusy && !IsLoading && Tracks.Count > 0;
     private string? _playingId;
     public AlbumRow Album => album;
-    public string Subtitle => $"{album.Artist} · {album.TrackCount:N0} 首 · {TimeSpan.FromSeconds(album.DurationSeconds).TotalMinutes:N0} 分钟" + (album.Year is { } year ? $" · {year}" : "");
-    public string Meta => (album.Year is { } year ? $"{year}     " : "") + $"{album.TrackCount:N0} 首曲目";
-    public string DurationLabel => $"{TimeSpan.FromSeconds(album.DurationSeconds).TotalMinutes:N0} 分钟";
+    public bool HasYear => album.Year is not null;
+    public string YearText => album.Year?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? "";
+    public bool HasDiscs => DiscCount > 1;
+    public bool HasGenres => Genres.Count > 0;
+    public string GenreText => string.Join(" · ", Genres);
+    public string TrackCountText => text?.Format("album.detail.songs", album.TrackCount) ?? $"{album.TrackCount:N0} 首歌";
+    public string DiscText => text?.Format("album.detail.discs", DiscCount) ?? $"{DiscCount} 张碟";
     public string AddedDate => album.AddedUnix > 0 ? DateTimeOffset.FromUnixTimeSeconds(album.AddedUnix).ToLocalTime().ToString("yyyy.MM.dd") : "—";
     public string Quality => Tracks.FirstOrDefault()?.Signal ?? "";
-    public string Summary => $"{album.TrackCount:N0} 首曲目     |     {DurationLabel}" + (Quality.Length > 0 ? "     |     " + Quality : "");
+    public bool HasQuality => Quality.Length > 0;
+    public bool HasDuration => album.DurationSeconds > 0;
+    public string DurationLabel
+    {
+        get
+        {
+            if (album.DurationSeconds <= 0) return "";
+            var totalMinutes = Math.Max(1, (int)Math.Round(album.DurationSeconds / 60d));
+            var hours = totalMinutes / 60;
+            var minutes = totalMinutes % 60;
+            if (text is null) return hours > 0 ? $"{hours} 小时 {minutes} 分钟" : $"{totalMinutes} 分钟";
+            return hours > 0 ? text.Format("album.detail.hours", hours, minutes) : text.Format("album.detail.minutes", totalMinutes);
+        }
+    }
+    public string Meta => string.Join(" · ", new[] { YearText, HasDiscs ? DiscText : "", TrackCountText }.Where(part => part.Length > 0));
+    public string Summary => string.Join("     |     ", new[] { TrackCountText, HasDuration ? DurationLabel : "", HasQuality ? Quality : "" }.Where(part => part.Length > 0));
     public string Folder => Path.GetDirectoryName(album.SamplePath) ?? "";
     public string Heart => Favorite ? "♥" : "♡";
     public string HeartIcon => Favorite ? "heart-filled" : "heart";
@@ -51,7 +73,17 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
         OnPropertyChanged(nameof(IsTracks)); OnPropertyChanged(nameof(IsGallery)); OnPropertyChanged(nameof(IsSources));
         OnPropertyChanged(nameof(IsVersions)); OnPropertyChanged(nameof(IsInformation));
     }
-    public void ObservePlayback() { _playingId = player.Session.Snapshot.Current?.TrackId; player.Session.Changed += OnPlayback; }
+    public void ObservePlayback()
+    {
+        if (text is not null) text.Changed += OnLanguage;
+        _playingId = player.Session.Snapshot.Current?.TrackId; player.Session.Changed += OnPlayback;
+    }
+    private void OnLanguage() => Dispatcher.UIThread.Post(() =>
+    {
+        if (_closed) return;
+        OnPropertyChanged(nameof(TrackCountText)); OnPropertyChanged(nameof(DiscText));
+        OnPropertyChanged(nameof(DurationLabel)); OnPropertyChanged(nameof(Summary)); OnPropertyChanged(nameof(Meta));
+    });
     private void OnPlayback(PlaybackSnapshot snapshot)
     {
         var id = snapshot.Current?.TrackId;
@@ -78,10 +110,28 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
                 Sort: (DetailTrackSort)Math.Clamp(SortIndex, 0, 3), Descending: Descending), request.Token);
             if (_lifetime.IsCancellationRequested || generation != _generation) return;
             _revision = page.Revision; _offset = offset;
-            Tracks = page.Items.Select((row, index) => new AlbumTrackItem(row, offset + index + 1,
-                library as IAlbumPersonalState, _lifetime.Token, message => Error = message) { IsPlaying = row.Id == _playingId }).ToArray();
+            var discs = page.Items.Select(row => row.DiscNumber).Where(number => number is > 0).Select(number => number!.Value).Distinct().ToArray();
+            var multiDisc = discs.Length > 1 || discs.Any(number => number > 1);
+            DiscCount = discs.Length;
+            Genres = page.Items.Select(row => row.Genre.Trim()).Where(genre => genre.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(12).ToArray();
+            var showDiscs = multiDisc && SortIndex == 0 && !Descending;
+            int? previousDisc = null;
+            var items = new AlbumTrackItem[page.Items.Count];
+            for (var index = 0; index < page.Items.Count; index++)
+            {
+                var row = page.Items[index];
+                string? header = null;
+                if (showDiscs)
+                {
+                    var disc = row.DiscNumber is > 0 ? row.DiscNumber : 0;
+                    if (disc != previousDisc) { header = disc > 0 ? $"DISC {disc}" : "DISC ?"; previousDisc = disc; }
+                }
+                items[index] = new AlbumTrackItem(row, offset + index + 1, library as IAlbumPersonalState, _lifetime.Token,
+                    message => Error = message, multiDisc, header) { IsPlaying = row.Id == _playingId };
+            }
+            Tracks = items;
             OnPropertyChanged(nameof(PageText));
-            OnPropertyChanged(nameof(Quality)); OnPropertyChanged(nameof(Summary));
+            OnPropertyChanged(nameof(Quality)); OnPropertyChanged(nameof(HasQuality)); OnPropertyChanged(nameof(Summary)); OnPropertyChanged(nameof(Meta));
         }
         catch (OperationCanceledException) { }
         catch (LibraryChangedException) { if (!_closed && generation == _generation) { _revision = null; Error = "曲库已变化，请刷新曲目。"; } }
@@ -161,5 +211,5 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
         new Dictionary<string, string?> { ["title"] = track.Title, ["artist"] = track.Artist, ["album"] = track.Album,
             ["duration"] = track.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture), ["codec"] = track.Codec },
         Origin: new("album", album.Title, album.Id), SampleRate: track.SampleRate > 0 ? track.SampleRate : null);
-    public void Dispose() { if (_closed) return; _closed = true; player.Session.Changed -= OnPlayback; _request?.Cancel(); _lifetime.Cancel(); ++_generation; Tracks = []; PersonalStateChanged = null; }
+    public void Dispose() { if (_closed) return; _closed = true; if (text is not null) text.Changed -= OnLanguage; player.Session.Changed -= OnPlayback; _request?.Cancel(); _lifetime.Cancel(); ++_generation; Tracks = []; PersonalStateChanged = null; }
 }

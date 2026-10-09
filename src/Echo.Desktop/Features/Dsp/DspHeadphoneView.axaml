@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspHeadphoneView" x:DataType="local:DspViewModel">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="2,4,8,12">
+    <StackPanel Spacing="8" MaxWidth="720" HorizontalAlignment="Left">
+      <TextBlock Text="导入 frequency,gain 或 frequency,raw 的 CSV。raw 会取反后铺到 31 段峰值 EQ，增益限制在 ±12 dB。这是可继续编辑的校正，不是在线耳机库。" TextWrapping="Wrap" Classes="muted" />
+      <Button Content="导入校正曲线" Click="ImportCurve" HorizontalAlignment="Left" IsEnabled="{Binding CanEdit}" />
+    </StackPanel>
+    <Border Grid.Row="1" Margin="0,12,0,0" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,1" ClipToBounds="True">
+      <local:EqCurveControl IsVisible="{Binding IsReady}" />
+    </Border>
+    <TextBlock Grid.Row="2" Margin="0,8,0,0" Text="拖动节点就能改校正。滚轮调 Q，双击归零。" FontSize="12" Classes="muted" />
+  </Grid>
+</UserControl>

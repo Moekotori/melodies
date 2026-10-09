@@ -12,7 +12,7 @@ public sealed partial class PlaybackSessionCoordinator
         if (additions.Length == 0) return Task.CompletedTask;
         return EditQueueAsync(items =>
         {
-            foreach (var track in additions) (track.Source ?? AudioSource.Local(track.FilePath)).Validate();
+            foreach (var track in additions) AudioSource.Playable(track).Validate();
             var index = items.Length;
             if (nextUp)
             {
@@ -71,8 +71,10 @@ public sealed partial class PlaybackSessionCoordinator
         var previous = new QueueEdit(queue, history, shuffleOrder);
         var removedCurrent = snapshot.Current is not null && !items.Any(x => x.ItemId == snapshot.Current.ItemId);
         var order = shuffleOrder.Where(id => items.Any(x => x.ItemId == id)).ToList();
-        var additions = items.Where(x => !x.QueuedNext && !order.Contains(x.ItemId)).Select(x => x.ItemId).ToArray();
-        Random.Shared.Shuffle(additions); order.AddRange(additions); shuffleOrder = order.ToArray();
+        var known = order.ToHashSet(StringComparer.Ordinal);
+        var additions = items.Where(x => !x.QueuedNext && !known.Contains(x.ItemId)).Select(x => x.ItemId).ToArray();
+        QueuePlaybackPlan.PlaceAdditions(order, items, additions, snapshot.Current?.ItemId, QueuePlaybackPlan.RecentTrackIds(history));
+        shuffleOrder = order.ToArray();
         try { if (initialized) await SendQueueAsync(items, snapshot.Current?.ItemId, removedCurrent ? RepeatMode.Off : repeat).ConfigureAwait(false); }
         catch { shuffleOrder = previous.ShuffleOrder; throw; }
         SetQueueItems(items); history = editHistory?.Invoke(history) ?? history; undo = previous;

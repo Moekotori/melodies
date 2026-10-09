@@ -26,6 +26,7 @@
         </Grid>
         <StackPanel Spacing="7" IsVisible="{Binding ShowPassword}"><TextBlock Text="{Binding PasswordLabel}" Classes="remote-label" /><TextBox Text="{Binding DraftPassword, Mode=TwoWay}" PasswordChar="●" MaxLength="16384" IsEnabled="{Binding !IsBusy}" /></StackPanel>
         <StackPanel Spacing="7" IsVisible="{Binding ShowUserId}"><TextBlock Text="{DynamicResource remote.userId}" Classes="remote-label" /><TextBox Text="{Binding DraftUserId, Mode=TwoWay}" MaxLength="256" IsEnabled="{Binding !IsBusy}" /></StackPanel>
+        <StackPanel Spacing="6"><CheckBox IsChecked="{Binding DraftSyncIndex}" Content="{DynamicResource remote.syncIndex}" IsEnabled="{Binding !IsBusy}" /><TextBlock Text="{DynamicResource remote.syncHint}" Classes="remote-caption" TextWrapping="Wrap" /></StackPanel>
         <TextBlock Text="{Binding EditorError}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding EditorError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,18,0,0">
           <Grid ColumnDefinitions="*,Auto">

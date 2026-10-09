@@ -28,7 +28,7 @@ public sealed partial class PlaybackSessionCoordinator
             if (native is INativeOutputControl { Capabilities: { } caps })
             {
                 if (caps.Flag("wasapiExclusive") || caps.Flag("coreAudioExclusive")) modes.Add(new("exclusive", caps.Flag("wasapiExclusive") ? "WASAPI 独占" : "CoreAudio 独占"));
-                if (caps.Flag("asio")) modes.Add(new("asio", "ASIO"));
+                if (caps.Flag("asio")) modes.Add(new("asio", "ASIO 独占"));
                 if (caps.Flag("kernelStreaming")) modes.Add(new("ks", "WDM-KS"));
             }
             result = modes.AsReadOnly();

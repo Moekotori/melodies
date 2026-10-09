@@ -25,7 +25,8 @@ public sealed partial class SettingsViewModel
     {
         var value = Shell.FeaturePreferences.Read(row.Id, new FeatureSetting(row.Definition.Checked, row.Definition.Value,
             double.TryParse(row.Definition.Value, System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : row.NumberValue));
-        row.Synchronize(value.Enabled, value.Selection, value.Number);
+        var selection = row.Id == "output-mode" && value.Selection == "ASIO" ? "ASIO 独占" : value.Selection;
+        row.Synchronize(value.Enabled, selection, value.Number);
     }
     private void DetachRuntime()
     {

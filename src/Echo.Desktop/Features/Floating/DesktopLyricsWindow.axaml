@@ -2,19 +2,43 @@
         xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
         xmlns:lyrics="using:Echo.Desktop.Controls.Lyrics"
         x:Class="Echo.Desktop.Features.Floating.DesktopLyricsWindow" x:DataType="shell:ShellViewModel"
-        Title="ECHO · Desktop Lyrics" Width="880" Height="190" MinWidth="360" MinHeight="130"
+        Title="ECHO" Width="960" Height="144" MinWidth="360" MinHeight="84" CanMaximize="False" CanMinimize="False"
         WindowDecorations="None" Background="Transparent" TransparencyLevelHint="Transparent" ShowInTaskbar="False" ShowActivated="False" Topmost="True">
-  <Grid Background="Transparent" PointerPressed="Drag">
-    <Border Name="HoverSurface" Background="#A0202430" CornerRadius="8" Opacity="0" />
-    <lyrics:FloatingLyricsControl Name="LyricsCanvas" Margin="16,38,16,12" IsHitTestVisible="False" />
-    <StackPanel Name="Toolbar" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Spacing="4" Margin="8,4" Opacity="0">
-      <Button Classes="icon" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.previous}"><icon:EchoIcon Width="18" Height="18" Kind="previous" Scope="player" /></Button>
-      <Button Classes="icon" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanPlay}" ToolTip.Tip="{Binding Player.Subtitle}"><icon:EchoIcon Width="18" Height="18" Kind="{Binding Player.PlayIcon}" Scope="player" /></Button>
-      <Button Classes="icon" Command="{Binding Player.NextCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.next}"><icon:EchoIcon Width="18" Height="18" Kind="next" Scope="player" /></Button>
-      <Button Classes="icon" Command="{Binding Floating.ToggleLockCommand}" IsEnabled="{Binding Floating.SupportsPassthrough}" ToolTip.Tip="{DynamicResource floating.lock}"><icon:GlyphIcon Width="18" Height="18" Kind="lock" /></Button>
-      <Button Classes="icon" Command="{Binding Floating.RestoreMainCommand}" ToolTip.Tip="{DynamicResource floating.restore}"><icon:GlyphIcon Width="18" Height="18" Kind="maximize" /></Button>
-      <Button Classes="icon" Command="{Binding Floating.ToggleLyricsCommand}" ToolTip.Tip="{DynamicResource floating.close}"><icon:GlyphIcon Width="18" Height="18" Kind="close" /></Button>
+  <Window.Styles>
+    <Style Selector="Button.lyric-tool">
+      <Setter Property="Width" Value="24" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="MinWidth" Value="24" />
+      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="Button.lyric-tool:disabled"><Setter Property="Opacity" Value="0.35" /></Style>
+    <Style Selector="Button.lyric-unlock"><Setter Property="Width" Value="28" /><Setter Property="Height" Value="28" /></Style>
+  </Window.Styles>
+  <Grid Name="Root" Background="Transparent" RowDefinitions="Auto,*" PointerPressed="Drag">
+    <Border Name="Scrim" Grid.RowSpan="2" Background="#66000000" CornerRadius="8" Opacity="0" IsHitTestVisible="False" />
+    <StackPanel Name="Toolbar" Orientation="Horizontal" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" Opacity="0" IsHitTestVisible="False">
+      <Button Classes="lyric-tool" Command="{Binding Floating.RestoreMainCommand}" ToolTip.Tip="{DynamicResource floating.detail}"><icon:GlyphIcon Kind="lyric-home" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Floating.NudgeOffsetCommand}" CommandParameter="forward" IsEnabled="{Binding Floating.CanNudgeLyrics}" ToolTip.Tip="{DynamicResource floating.offsetForward}"><icon:GlyphIcon Kind="lyric-offset-forward" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Floating.NudgeOffsetCommand}" CommandParameter="back" IsEnabled="{Binding Floating.CanNudgeLyrics}" ToolTip.Tip="{DynamicResource floating.offsetBack}"><icon:GlyphIcon Kind="lyric-offset-back" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.previous}"><icon:GlyphIcon Kind="lyric-prev" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanPlay}" ToolTip.Tip="{Binding Player.Subtitle}"><icon:GlyphIcon Name="PlayGlyph" Kind="lyric-play" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Player.NextCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.next}"><icon:GlyphIcon Kind="lyric-next" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Click="OpenSettings" ToolTip.Tip="{DynamicResource floating.settings}"><icon:GlyphIcon Kind="lyric-setting" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Floating.ToggleLockCommand}" IsEnabled="{Binding Floating.SupportsPassthrough}" ToolTip.Tip="{DynamicResource floating.lockLyrics}"><icon:GlyphIcon Kind="lyric-lock" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Floating.ToggleLyricsCommand}" ToolTip.Tip="{DynamicResource floating.closeLyrics}"><icon:GlyphIcon Kind="lyric-close" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
     </StackPanel>
-    <Border Name="ResizeGrip" Width="20" Height="20" Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="BottomRightCorner" PointerPressed="Resize"><icon:GlyphIcon Kind="grip" Width="12" Height="12" /></Border>
+    <lyrics:FloatingLyricsControl Name="LyricsCanvas" Grid.Row="1" Margin="12,0,12,8" IsHitTestVisible="False" />
+    <Button Name="UnlockButton" Classes="lyric-tool lyric-unlock" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0" IsVisible="False"
+            Command="{Binding Floating.ToggleLockCommand}" ToolTip.Tip="{DynamicResource floating.unlock}">
+      <icon:GlyphIcon Kind="lyric-unlock" Width="20" Height="20" Stroke="White" StrokeWidth="0" />
+    </Button>
+    <Border Name="ResizeGrip" Grid.RowSpan="2" Width="18" Height="18" Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="BottomRightCorner" IsVisible="False" PointerPressed="Resize">
+      <icon:GlyphIcon Kind="grip" Width="12" Height="12" Stroke="White" />
+    </Border>
   </Grid>
 </Window>

@@ -18,7 +18,7 @@
         </Button>
         <Button Grid.Column="4" Name="SourceMenuButton" Classes="remote-icon" IsVisible="{Binding HasSource}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="{DynamicResource remote.sourceOptions}">
           <icon:GlyphIcon Kind="more" Width="18" Height="18" />
-          <Button.Flyout><MenuFlyout><MenuItem Header="{DynamicResource remote.edit}" Command="{Binding EditCommand}" /><MenuItem Header="{DynamicResource remote.remove}" Command="{Binding RequestRemoveCommand}" /></MenuFlyout></Button.Flyout>
+          <Button.Flyout><MenuFlyout><MenuItem Header="{DynamicResource remote.sync}" Command="{Binding SyncCommand}" IsVisible="{Binding CanSync}" /><MenuItem Header="{DynamicResource remote.edit}" Command="{Binding EditCommand}" /><MenuItem Header="{DynamicResource remote.remove}" Command="{Binding RequestRemoveCommand}" /></MenuFlyout></Button.Flyout>
         </Button>
       </Grid>
       <Border Grid.Row="1" Background="{DynamicResource EchoPanelMuted}" CornerRadius="5" Padding="12,9" Margin="0,0,0,12" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
@@ -50,6 +50,7 @@
             <Border Background="{DynamicResource EchoPanelMuted}" Padding="3" CornerRadius="5">
               <StackPanel Orientation="Horizontal" Spacing="2"><Button Name="AllFilesButton" Content="{DynamicResource remote.allFiles}" Command="{Binding ShowAllCommand}" Classes="remote-filter" Classes.active="{Binding AllFiles}" IsEnabled="{Binding !IsBusy}" /><Button Name="AudioFilesButton" Content="{DynamicResource remote.audioFiles}" Command="{Binding ShowAudioCommand}" Classes="remote-filter" Classes.active="{Binding AudioOnly}" IsEnabled="{Binding !IsBusy}" /></StackPanel>
             </Border>
+            <Button Grid.Column="1" Content="{DynamicResource remote.sync}" Command="{Binding SyncCommand}" IsVisible="{Binding CanSync}" Classes="remote-tool" HorizontalAlignment="Left" />
             <TextBlock Grid.Column="2" Text="{Binding DirectoryCount}" Classes="remote-caption" VerticalAlignment="Center" />
           </Grid>
           <Border Grid.Row="2" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="12,8,12,11">
@@ -67,7 +68,7 @@
                     <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource EchoHeading}" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding Secondary}" Classes="remote-caption" FontSize="11" TextTrimming="CharacterEllipsis" IsVisible="{Binding IsAudio}" />
                   </StackPanel>
-                  <TextBlock Grid.Column="2" Text="{Binding Kind}" Classes="remote-caption file-type" FontSize="11" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Text="{Binding TypeLabel}" Classes="remote-caption file-type" FontSize="11" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="3" Text="{Binding SizeLabel}" Classes="remote-caption" FontSize="11" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="4" Text="{Binding Modified}" Classes="remote-caption file-date" FontSize="11" VerticalAlignment="Center" />
                   <StackPanel Grid.Column="5" Classes="remote-row-actions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2" IsVisible="{Binding IsAudio}">

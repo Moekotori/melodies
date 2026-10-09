@@ -1,166 +1,328 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Media.TextFormatting;
 using Echo.Desktop.Features.Lyrics;
 using Echo.Desktop.Features.Albums;
 
 namespace Echo.Desktop.Controls.Lyrics;
 
-internal sealed class LyricsStagePainter
+internal sealed class LyricsStagePainter : IDisposable
 {
-    private readonly IBrush scrim = Brush("#AC03060C");
-    private readonly IBrush ivory = Brush("#FFF3D4");
-    private readonly Pen edge = new(Brush("#35FFFFFF"), 1);
-    private LyricsStyle? style;
-    private AfterglowLook? look;
-    private IBrush background = Brushes.Transparent;
-    private IBrush glow = Brushes.Transparent;
-    private IBrush secondGlow = Brushes.Transparent;
-    private LyricsStagePalette palette;
-    private readonly BlurEffect coverBlur = new() { Radius = 10 };
-    private readonly IBrush beam = new LinearGradientBrush
+    private static readonly double[] SliceTop = [.118, .21, .321, .446, .556, .667, .744, .902];
+    private static readonly double[] SliceBottom = [.059, .088, .172, .378, .488, .582, .703, .913];
+    private readonly LyricsCoverWash wash = new();
+    private readonly LyricsCoverWash sliceWash = new();
+    private readonly LyricsStageAtmosphere atmosphere = new();
+    private readonly StreamGeometry[] slices = new StreamGeometry[7];
+    private readonly Pen sliceEdge = new(Brush(Color.FromArgb(53, 255, 255, 255)), 1);
+    private readonly Pen cornerPen = new(Brush(Color.FromArgb(184, 232, 241, 248)), 1);
+    private readonly Pen coverRim = new(Brush(Color.FromArgb(31, 249, 245, 237)), 1);
+    private readonly IBrush letterbox = Brush(Color.FromArgb(209, 0, 2, 5));
+    private readonly IBrush shadeBrush = Brush(Color.FromArgb(41, 2, 6, 10));
+    private readonly Pen paperEdge = new(Brush(Color.FromArgb(23, 40, 48, 76)), 1);
+    private readonly IBrush coverShadow = new RadialGradientBrush
     {
-        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
-        GradientStops = [new(Color.FromArgb(0, 235, 240, 255), 0), new(Color.FromArgb(32, 235, 240, 255), 0.5), new(Color.FromArgb(0, 235, 240, 255), 1)]
+        Center = new RelativePoint(.5, .58, RelativeUnit.Relative),
+        GradientOrigin = new RelativePoint(.5, .42, RelativeUnit.Relative),
+        RadiusX = new RelativeScalar(.5, RelativeUnit.Relative),
+        RadiusY = new RelativeScalar(.5, RelativeUnit.Relative),
+        GradientStops = [new(Color.FromArgb(87, 0, 0, 0), 0), new(Color.FromArgb(28, 0, 0, 0), .55), new(Colors.Transparent, 1)]
     };
+    private readonly IBrush paperShadow = new RadialGradientBrush
+    {
+        Center = new RelativePoint(.5, .55, RelativeUnit.Relative),
+        GradientOrigin = new RelativePoint(.5, .4, RelativeUnit.Relative),
+        RadiusX = new RelativeScalar(.5, RelativeUnit.Relative),
+        RadiusY = new RelativeScalar(.5, RelativeUnit.Relative),
+        GradientStops = [new(Color.FromArgb(36, 41, 48, 72), 0), new(Colors.Transparent, 1)]
+    };
+    private readonly IBrush sleeveShadow = new RadialGradientBrush
+    {
+        Center = new RelativePoint(.5, .55, RelativeUnit.Relative),
+        GradientOrigin = new RelativePoint(.5, .4, RelativeUnit.Relative),
+        RadiusX = new RelativeScalar(.5, RelativeUnit.Relative),
+        RadiusY = new RelativeScalar(.5, RelativeUnit.Relative),
+        GradientStops = [new(Color.FromArgb(26, 20, 24, 32), 0), new(Colors.Transparent, 1)]
+    };
+    private readonly IBrush cinemaInk = Brush(Color.FromArgb(122, 238, 244, 248));
+    private readonly IBrush posterInk = Brush(Color.FromArgb(210, 239, 246, 252));
+    private LyricsStyle? style;
+    private IBrush background = Brushes.Transparent;
+    private IBrush placeholder = Brushes.Transparent;
+    private IBrush sliceAccent = Brushes.Transparent;
+    private TextLayout? cinemaLabel, posterLabel;
+    private double labelHeight, labelWidth, sliceWidth, sliceHeight;
+
     public void Configure(LyricsStyle current, AfterglowLook currentLook, bool dark, ArtworkColorSample? colors = null)
     {
-        style = current; look = currentLook;
-        var afterglow = current.Layout == LyricsLayout.Afterglow;
-        palette = LyricsStagePalette.Resolve(current, currentLook, colors, dark);
-        background = new SolidColorBrush(palette.Ground);
-        var accent = Color.Parse(afterglow ? currentLook.Accent : current.Accent.Length == 0 ? "#4B55E8" : current.Accent);
-        glow = Glow(current.Layout == LyricsLayout.CoverLeft ? palette.Wash : accent, new RelativePoint(0.22, 0.42, RelativeUnit.Relative));
-        secondGlow = current.Layout is LyricsLayout.CoverLeft or LyricsLayout.WordFocus ? Brushes.Transparent
-            : Glow(Color.Parse(afterglow ? currentLook.Secondary : "#A174E5"), new RelativePoint(0.84, 0.67, RelativeUnit.Relative));
-    }
-    public void Draw(DrawingContext dc, Rect bounds, Bitmap? artwork, int line, double phase)
-    {
-        if (style is null || look is null) return;
-        var layout = style.Layout; var w = bounds.Width; var h = bounds.Height;
-        dc.DrawRectangle(background, null, bounds);
-        if (artwork is not null && layout is not (LyricsLayout.Editorial or LyricsLayout.Afterglow or LyricsLayout.CoverLeft or LyricsLayout.CoverRight))
+        style = current;
+        var palette = LyricsStagePalette.Resolve(current, currentLook, colors, dark);
+        background = Brush(palette.Ground);
+        placeholder = Brush(Color.FromArgb(40, palette.Wash.R, palette.Wash.G, palette.Wash.B));
+        var tint = current.Accent.Length == 0 ? Color.Parse("#FF705E") : Color.Parse(current.Accent);
+        sliceAccent = new LinearGradientBrush
         {
-            using (dc.PushOpacity(layout == LyricsLayout.Vinyl ? .48 : layout == LyricsLayout.Folded ? .32 : .46))
-            using (dc.PushEffect(coverBlur, bounds.Inflate(20))) Image(dc, artwork, bounds.Inflate(20));
-            if (layout is not (LyricsLayout.Reading or LyricsLayout.Vinyl)) dc.DrawRectangle(scrim, null, bounds);
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops = [new(Color.FromArgb(158, tint.R, tint.G, tint.B), 0), new(Color.FromArgb(138, tint.R, tint.G, tint.B), 1)]
+        };
+        atmosphere.Configure(current, palette, dark);
+    }
+
+    public void Draw(DrawingContext dc, Rect bounds, Bitmap? artwork, double phase)
+    {
+        if (style is null || bounds.Width < 1 || bounds.Height < 1) return;
+        var layout = style.Layout;
+        dc.DrawRectangle(background, null, bounds);
+        if (artwork is not null && atmosphere.WashOpacity > 0 && layout != LyricsLayout.CoverRight)
+        {
+            wash.Prepare(artwork, bounds.Width, bounds.Height, atmosphere.Blur, atmosphere.Brightness, atmosphere.Saturate, atmosphere.Contrast);
+            if (wash.Image is { } soft)
+            {
+                var dest = layout == LyricsLayout.Cinema ? Inflate(bounds, .0125) : bounds;
+                using (dc.PushOpacity(atmosphere.WashOpacity))
+                    dc.DrawImage(soft, new Rect(soft.Size), dest);
+            }
         }
-        if (layout is not (LyricsLayout.Reading or LyricsLayout.Editorial or LyricsLayout.Vinyl))
-        { dc.DrawRectangle(glow, null, bounds); dc.DrawRectangle(secondGlow, null, bounds); }
-        // The independent native scene layer owns JIZURA; this painter only supplies its empty backdrop.
+        if (layout != LyricsLayout.CoverRight)
+            foreach (var veil in atmosphere.Veils) dc.DrawRectangle(veil, null, bounds);
+        if (layout == LyricsLayout.Light) DrawDrift(dc, bounds, phase);
         if (layout == LyricsLayout.Afterglow) return;
         switch (layout)
         {
             case LyricsLayout.Light:
-                using (dc.PushTransform(Matrix.CreateRotation(-0.3) * Matrix.CreateTranslation(w * 0.12 + phase, -h * 0.2)))
-                    dc.DrawRectangle(beam, null, new Rect(0, 0, w * 0.34, h * 1.6));
-                using (dc.PushTransform(Matrix.CreateRotation(0.22) * Matrix.CreateTranslation(w * 0.78 - phase, -h * 0.15)))
-                    dc.DrawRectangle(beam, null, new Rect(0, 0, w * 0.20, h * 1.6));
-                if (artwork is not null) Image(dc, artwork, new Rect(Math.Clamp(w * 0.07, 54, 148), h - Math.Clamp(h * 0.13, 96, 140) - 50, 54, 54));
+                DrawCover(dc, artwork, LyricsStyleMetrics.LuminousCover(bounds.Width, bounds.Height), 2, CoverFrame.Plain);
                 break;
             case LyricsLayout.CoverLeft:
-                var square = Math.Min(w * 0.36, h * 0.57);
-                if (w >= 780)
-                {
-                    var cover = new Rect(Math.Clamp(w * 0.048, 36, 86), h * 0.45 - square / 2, square, square);
-                    DrawCover(dc, artwork, cover);
-                }
+                DrawCover(dc, artwork, LyricsStyleMetrics.AfterglowCover(bounds.Width, bounds.Height), 12, CoverFrame.Rim);
                 break;
             case LyricsLayout.CoverRight:
-                if (w >= 780)
-                {
-                    var coverBounds = new Rect(0, 0, w * .72, h);
-                    var mask = new LinearGradientBrush
-                    {
-                        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
-                        GradientStops = [new(Colors.White, 0), new(Colors.White, .42), new(Color.Parse("#DBFFFFFF"), .54),
-                            new(Color.Parse("#85FFFFFF"), .68), new(Color.Parse("#33FFFFFF"), .82), new(Color.Parse("#0FFFFFFF"), .92), new(Colors.Transparent, 1)]
-                    };
-                    if (artwork is not null)
-                    {
-                        using (dc.PushOpacity(.5)) using (dc.PushEffect(coverBlur, bounds)) Image(dc, artwork, bounds);
-                        using (dc.PushOpacityMask(mask, coverBounds)) Image(dc, artwork, coverBounds);
-                    }
-                }
+                DrawCoverStage(dc, bounds, artwork);
                 break;
             case LyricsLayout.Vinyl:
-                if (w > 900)
+                if (bounds.Width > 900)
                 {
-                    var safe = Math.Clamp(w * .07, 48, 148); var gap = Math.Clamp(w * .06, 48, 112);
-                    var side = Math.Min(420, (w - safe * 2 - gap) * .37);
-                    DrawCover(dc, artwork, new Rect(w - safe - side, h * .48 - side / 2, side, side));
+                    var safe = Math.Clamp(bounds.Width * .07, 48, 148);
+                    var gap = Math.Clamp(bounds.Width * .06, 48, 112);
+                    var side = Math.Min(420, (bounds.Width - safe * 2 - gap) * .37);
+                    DrawCover(dc, artwork, new Rect(bounds.Width - safe - side, bounds.Height * .48 - side / 2, side, side), 12, CoverFrame.Card);
                 }
-                break;
-            case LyricsLayout.Folded:
                 break;
             case LyricsLayout.Cinema:
-                var barHeight = Math.Clamp(h * .025, 15, 28);
-                dc.DrawRectangle(Brush("#D1000205"), null, new Rect(0, 0, w, barHeight));
-                dc.DrawRectangle(Brush("#D1000205"), null, new Rect(0, h - barHeight, w, barHeight));
-                using (dc.PushOpacity(.55)) Label(dc, "ECHO / CINEMA", w - 144, Math.Clamp(h * .044, 28, 48), 10, ivory);
+                DrawCinema(dc, bounds);
                 break;
             case LyricsLayout.Poster:
-                var bar = Brush(style.Accent);
-                using (dc.PushOpacity(0.45))
-                {
-                    foreach (var point in new[] { new Point(24, 84), new Point(w - 48, 84), new Point(24, h - 150), new Point(w - 48, h - 150) })
-                    { dc.DrawLine(new Pen(bar), point, point + new Vector(24, 0)); dc.DrawLine(new Pen(bar), point, point + new Vector(0, 24)); }
-                    Label(dc, "ECHO", 26, h - 183, 18, bar);
-                }
+                DrawPoster(dc, bounds);
                 break;
             case LyricsLayout.Slices:
-                if (artwork is not null)
-                    for (var i = 0; i < 7; i++)
-                    {
-                        double[] top = [.118, .21, .321, .446, .556, .667, .744, .902], bottom = [.059, .088, .172, .378, .488, .582, .703, .913];
-                        var points = new Point[] { new(w * top[i], 0), new(w * top[i + 1], 0), new(w * bottom[i + 1], h * .72), new(w * bottom[i], h * .72) };
-                        using (dc.PushGeometryClip(Geometry(points)))
-                        using (dc.PushOpacity(.84)) Image(dc, artwork, bounds);
-                        Polygon(dc, points, null, edge);
-                    }
-                dc.DrawLine(edge, new(0, h * .72), new(w, h * .72));
+                DrawSlices(dc, bounds, artwork);
                 break;
             case LyricsLayout.Editorial:
-                if (w >= 780)
+                if (bounds.Width >= 780)
                 {
-                    var paperCover = Math.Clamp(w * 0.21, 250, 312);
-                    DrawCover(dc, artwork, new Rect(Math.Clamp(w * 0.031, 40, 56), h * 0.25, paperCover, paperCover));
+                    var paper = Math.Clamp(bounds.Width * .21, 250, 312);
+                    DrawCover(dc, artwork, new Rect(Math.Clamp(bounds.Width * .031, 40, 56), bounds.Height * .25, paper, paper), 12, CoverFrame.Paper);
                 }
+                break;
+            case LyricsLayout.CoverOnly:
+                var frame = LyricsStyleMetrics.CoverOnlyFrame(bounds.Width, bounds.Height);
+                if (artwork is null)
+                {
+                    var side = Math.Min(180, frame.Width * .42);
+                    dc.DrawEllipse(placeholder, null, new Point(bounds.Width / 2, frame.Center.Y), side / 2, side / 2);
+                }
+                else DrawCover(dc, artwork, frame, 10, CoverFrame.Sleeve);
                 break;
         }
     }
-    private void DrawCover(DrawingContext dc, Bitmap? image, Rect rect)
+
+    private void DrawDrift(DrawingContext dc, Rect bounds, double phase)
     {
-        if (image is not null)
+        var sheet = bounds.Inflate(new Thickness(bounds.Width * .28, bounds.Height * .28));
+        if (atmosphere.DriftPrimary is { } primary)
+            using (dc.PushOpacity(.46))
+            using (dc.PushTransform(LyricsStageAtmosphere.Drift(sheet, phase, 18000, -.07, -.03, -2.4, .06, .03, 1.8, -.04, -.02, -1.5)))
+            {
+                dc.DrawRectangle(primary, null, sheet);
+                if (atmosphere.DriftGlowA is { } glow) dc.DrawRectangle(glow, null, sheet);
+                if (atmosphere.DriftGlowB is { } other) dc.DrawRectangle(other, null, sheet);
+            }
+        if (atmosphere.DriftCounter is { } counter)
+            using (dc.PushOpacity(.4))
+            using (dc.PushTransform(LyricsStageAtmosphere.Drift(sheet, phase, 26000, .07, .04, 2.6, -.05, -.03, -1.6, .05, .03, 2)))
+                dc.DrawRectangle(counter, null, sheet);
+    }
+
+    private static readonly LinearGradientBrush CoverMask = new()
+    {
+        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+        EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
+        GradientStops =
+        [
+            new(Colors.White, 0), new(Colors.White, .42), new(Color.FromArgb(219, 255, 255, 255), .54),
+            new(Color.FromArgb(133, 255, 255, 255), .68), new(Color.FromArgb(51, 255, 255, 255), .82),
+            new(Color.FromArgb(15, 255, 255, 255), .92), new(Colors.Transparent, 1)
+        ]
+    };
+    private static readonly LinearGradientBrush FieldMask = new()
+    {
+        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+        EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
+        GradientStops =
+        [
+            new(Colors.White, 0), new(Colors.White, .34), new(Color.FromArgb(245, 255, 255, 255), .46),
+            new(Color.FromArgb(230, 255, 255, 255), .6), new(Color.FromArgb(209, 255, 255, 255), .76),
+            new(Color.FromArgb(189, 255, 255, 255), 1)
+        ]
+    };
+    private void DrawCoverStage(DrawingContext dc, Rect bounds, Bitmap? artwork)
+    {
+        if (artwork is null || bounds.Width < 780) return;
+        wash.Prepare(artwork, bounds.Width, bounds.Height, atmosphere.Blur, atmosphere.Brightness, atmosphere.Saturate, atmosphere.Contrast);
+        if (wash.Image is { } field)
+            using (dc.PushOpacity(atmosphere.WashOpacity))
+            using (dc.PushOpacityMask(FieldMask, bounds))
+                dc.DrawImage(field, new Rect(field.Size), bounds);
+        var cover = new Rect(0, 0, bounds.Width * .72, bounds.Height);
+        using (dc.PushOpacityMask(CoverMask, cover)) Image(dc, artwork, cover);
+        foreach (var veil in atmosphere.Veils) dc.DrawRectangle(veil, null, bounds);
+    }
+
+    private void DrawCinema(DrawingContext dc, Rect bounds)
+    {
+        var bar = Math.Clamp(bounds.Height * .025, 15, 28);
+        dc.DrawRectangle(letterbox, null, new Rect(0, 0, bounds.Width, bar));
+        dc.DrawRectangle(letterbox, null, new Rect(0, bounds.Height - bar, bounds.Width, bar));
+        EnsureChrome(bounds.Width, bounds.Height);
+        if (cinemaLabel is null) return;
+        var right = Math.Clamp(bounds.Width * .03, 26, 52);
+        var top = Math.Clamp(bounds.Height * .044, 28, 48);
+        cinemaLabel.Draw(dc, new Point(bounds.Width - right - cinemaLabel.Width, top));
+    }
+
+    private void DrawPoster(DrawingContext dc, Rect bounds)
+    {
+        var arm = 18d;
+        foreach (var point in new[] { new Point(24, 24), new Point(bounds.Width - 24, 24), new Point(24, bounds.Height - 24), new Point(bounds.Width - 24, bounds.Height - 24) })
         {
-            using (dc.PushClip(new RoundedRect(rect, style?.Layout is LyricsLayout.CoverLeft or LyricsLayout.Editorial ? 12 : 0))) Image(dc, image, rect);
+            var left = point.X > bounds.Width / 2;
+            var down = point.Y > bounds.Height / 2;
+            dc.DrawLine(cornerPen, point, point + new Vector(left ? -arm : arm, 0));
+            dc.DrawLine(cornerPen, point, point + new Vector(0, down ? -arm : arm));
+        }
+        EnsureChrome(bounds.Width, bounds.Height);
+        if (posterLabel is null) return;
+        var right = Math.Clamp(bounds.Width * .037, 42, 76);
+        var top = Math.Clamp(bounds.Height * .053, 46, 64);
+        posterLabel.Draw(dc, new Point(bounds.Width - right - 80, top));
+    }
+
+    private void DrawSlices(DrawingContext dc, Rect bounds, Bitmap? artwork)
+    {
+        if (artwork is null) return;
+        EnsureSlices(bounds.Width, bounds.Height);
+        sliceWash.Prepare(artwork, bounds.Width, bounds.Height, 0, .84, .88);
+        var graded = sliceWash.Image;
+        for (var i = 0; i < 7; i++)
+        {
+            using (dc.PushGeometryClip(slices[i]))
+            {
+                using (dc.PushOpacity(.9))
+                {
+                    if (graded is not null) dc.DrawImage(graded, new Rect(graded.Size), bounds);
+                    else Image(dc, artwork, bounds);
+                }
+                if (i == 3) dc.DrawRectangle(sliceAccent, null, bounds);
+                else dc.DrawRectangle(shadeBrush, null, bounds);
+            }
+            dc.DrawGeometry(null, sliceEdge, slices[i]);
+        }
+        dc.DrawLine(sliceEdge, new Point(0, bounds.Height * .72), new Point(bounds.Width, bounds.Height * .72));
+    }
+
+    private enum CoverFrame { Plain, Card, Rim, Paper, Sleeve }
+
+    private void DrawCover(DrawingContext dc, Bitmap? image, Rect rect, double radius, CoverFrame frame)
+    {
+        if (rect.Width < 8 || rect.Height < 8) return;
+        if (frame is CoverFrame.Card or CoverFrame.Rim)
+            dc.DrawEllipse(coverShadow, null, rect.Center + new Vector(0, rect.Height * .08), rect.Width * .62, rect.Height * .2);
+        else if (frame == CoverFrame.Paper)
+            dc.DrawEllipse(paperShadow, null, rect.Center + new Vector(0, rect.Height * .05), rect.Width * .55, rect.Height * .16);
+        else if (frame == CoverFrame.Sleeve)
+            dc.DrawEllipse(sleeveShadow, null, rect.Center + new Vector(0, rect.Height * .04), rect.Width * .52, rect.Height * .16);
+        if (image is null)
+        {
+            dc.DrawRectangle(placeholder, null, new RoundedRect(rect, radius));
             return;
         }
-        dc.DrawRectangle(glow, edge, rect);
-        Label(dc, "ECHO", rect.X + rect.Width * 0.16, rect.Y + rect.Height * 0.43, Math.Min(34, rect.Width * 0.17), ivory);
+        using (dc.PushClip(new RoundedRect(rect, radius))) Image(dc, image, rect, frame == CoverFrame.Sleeve);
+        if (frame == CoverFrame.Rim) dc.DrawRectangle(null, coverRim, new RoundedRect(rect, radius));
+        else if (frame == CoverFrame.Paper) dc.DrawRectangle(null, paperEdge, new RoundedRect(rect, radius));
     }
-    internal static void Image(DrawingContext dc, Bitmap image, Rect target)
+
+    private void EnsureChrome(double width, double height)
     {
-        var size = image.Size; var scale = Math.Max(target.Width / size.Width, target.Height / size.Height);
+        if (cinemaLabel is not null && Math.Abs(labelWidth - width) < 1 && Math.Abs(labelHeight - height) < 1) return;
+        labelWidth = width;
+        labelHeight = height;
+        cinemaLabel?.Dispose();
+        posterLabel?.Dispose();
+        var face = new Typeface("Segoe UI, Microsoft YaHei, Noto Sans CJK SC", weight: (FontWeight)680);
+        cinemaLabel = new TextLayout("ECHO / CINEMA", face, 10, cinemaInk, letterSpacing: 2.2);
+        posterLabel = new TextLayout("ECHO", face, 11, posterInk, textAlignment: TextAlignment.Right, maxWidth: 80, letterSpacing: .5);
+    }
+
+    private void EnsureSlices(double width, double height)
+    {
+        if (slices[0] is not null && Math.Abs(sliceWidth - width) < .5 && Math.Abs(sliceHeight - height) < .5) return;
+        sliceWidth = width;
+        sliceHeight = height;
+        for (var i = 0; i < 7; i++) slices[i] = Geometry(SlicePoints(width, height, i));
+    }
+
+    private static Point[] SlicePoints(double width, double height, int index) =>
+    [
+        new(width * SliceTop[index], 0), new(width * SliceTop[index + 1], 0),
+        new(width * SliceBottom[index + 1], height * .72), new(width * SliceBottom[index], height * .72)
+    ];
+
+    private static Rect Inflate(Rect rect, double scale) => rect.Inflate(new Thickness(rect.Width * scale, rect.Height * scale));
+    internal static void Image(DrawingContext dc, Bitmap image, Rect target, bool contain = false)
+    {
+        var size = image.Size;
+        if (contain)
+        {
+            var fit = Math.Min(target.Width / size.Width, target.Height / size.Height);
+            var fitted = new Rect(target.X + (target.Width - size.Width * fit) / 2, target.Y + (target.Height - size.Height * fit) / 2, size.Width * fit, size.Height * fit);
+            dc.DrawImage(image, new Rect(size), fitted);
+            return;
+        }
+        var scale = Math.Max(target.Width / size.Width, target.Height / size.Height);
         var source = new Rect((size.Width - target.Width / scale) / 2, (size.Height - target.Height / scale) / 2, target.Width / scale, target.Height / scale);
         dc.DrawImage(image, source, target);
     }
     internal static void Label(DrawingContext dc, string text, double x, double y, double size, IBrush brush)
-        => dc.DrawText(new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+        => dc.DrawText(new FormattedText(text, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
             new Typeface("Segoe UI, Microsoft YaHei, Noto Sans CJK SC"), size, brush), new Point(x, y));
-    internal static IBrush Brush(string hex) => new SolidColorBrush(Color.Parse(hex));
-    private static IBrush Glow(Color color, RelativePoint center) => new RadialGradientBrush
-    {
-        Center = center, GradientOrigin = center, RadiusX = new(0.7, RelativeUnit.Relative), RadiusY = new(0.7, RelativeUnit.Relative),
-        GradientStops = [new GradientStop(Color.FromArgb(48, color.R, color.G, color.B), 0), new GradientStop(Color.FromArgb(0, color.R, color.G, color.B), 1)]
-    };
+    private static IBrush Brush(Color color) => new SolidColorBrush(color);
     internal static StreamGeometry Geometry(IReadOnlyList<Point> points)
     {
-        var geometry = new StreamGeometry(); using var path = geometry.Open();
-        path.BeginFigure(points[0], true); foreach (var point in points.Skip(1)) path.LineTo(point); path.EndFigure(true);
+        var geometry = new StreamGeometry();
+        using var path = geometry.Open();
+        path.BeginFigure(points[0], true);
+        for (var i = 1; i < points.Count; i++) path.LineTo(points[i]);
+        path.EndFigure(true);
         return geometry;
     }
-    internal static void Polygon(DrawingContext dc, IReadOnlyList<Point> points, IBrush? brush, IPen? pen)
-        => dc.DrawGeometry(brush, pen, Geometry(points));
+
+    public void Dispose()
+    {
+        wash.Dispose();
+        sliceWash.Dispose();
+        cinemaLabel?.Dispose();
+        posterLabel?.Dispose();
+        cinemaLabel = posterLabel = null;
+    }
 }

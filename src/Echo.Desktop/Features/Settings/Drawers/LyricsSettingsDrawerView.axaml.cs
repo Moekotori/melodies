@@ -11,7 +11,7 @@ public partial class LyricsSettingsDrawerView : UserControl, IDisposable, IDrawe
     private readonly DrawerSearch _search;
     public LyricsSettingsDrawerView(ShellViewModel shell)
     {
-        _shell = shell; InitializeComponent(); DataContext = shell.LyricsAppearance;
+        _shell = shell; InitializeComponent(); DesktopLyricsSettings.DataContext = shell.Floating; DataContext = shell.LyricsAppearance;
         _search = new(this, LyricsTabs, [new(0, "逐字高亮 highlight", "LyricHighlightInput"), new(0, "显示中文翻译 译文 translation", "LyricTranslationInput"),
             new(0, "歌词字体 font", "LyricFontFamilyInput"), new(0, "歌词字号 大小 size", "LyricFontInput"), new(0, "歌词对齐 居中 alignment", "LyricAlignmentInput"),
             new(0, "翻译与罗马音字号 辅助字号", "LyricSecondaryInput"), new(0, "显示罗马音 romanization", "LyricRomanizationInput"), new(0, "显示上下文 context", "LyricContextInput"),

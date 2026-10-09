@@ -5,6 +5,12 @@
     <Style Selector="Button.track"><Setter Property="Background" Value="{DynamicResource EchoRow}" /><Setter Property="CornerRadius" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
     <Style Selector="Button.track:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
     <Style Selector="Button.track.playing"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+    <Style Selector="UserControl.album-page">
+      <Style Selector="^ Button.track"><Setter Property="Background" Value="Transparent" /></Style>
+      <Style Selector="^ Button.track.playing"><Setter Property="Background" Value="Transparent" /></Style>
+      <Style Selector="^ Button.track.playing TextBlock.title"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+      <Style Selector="^ Button.liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoDanger}" /></Style>
+    </Style>
     <Style Selector="icon|GlyphIcon.row-play"><Setter Property="Opacity" Value="0" /></Style>
     <Style Selector="TextBlock.title"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
     <Style Selector="Button.track.playing TextBlock.title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
@@ -17,6 +23,11 @@
     <Style Selector="Button.liked"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
     <Style Selector="Button.liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
   </UserControl.Styles>
+  <StackPanel>
+  <Grid IsVisible="{Binding HasDiscLabel}" ColumnDefinitions="Auto,*" ColumnSpacing="12" Height="42" Margin="0,16,0,8">
+    <TextBlock Text="{Binding DiscLabel}" FontSize="12" FontWeight="Medium" LetterSpacing="1.6" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" />
+    <Border Grid.Column="1" Height="1" VerticalAlignment="Center" Background="{DynamicResource EchoDivider}" />
+  </Grid>
   <Button Name="PlayButton" Classes="track" Classes.playing="{Binding IsPlaying}" Click="OnPlay" Padding="0"
           HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MinHeight="56"
           BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0">
@@ -30,10 +41,14 @@
         <TextBlock Classes="title" Text="{Binding Row.Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Row.Title}" />
         <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Row.Artist}" />
       </StackPanel>
-      <TextBlock Name="Signal" Grid.Column="2" Text="{Binding Signal}" Classes="muted" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" />
+      <ItemsControl Name="Signal" Grid.Column="2" ItemsSource="{Binding Tags}" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Classes="muted" FontSize="11" /></DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
       <TextBlock Grid.Column="3" Text="{Binding Duration}" Classes="muted" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" />
       <Button Name="FavoriteButton" Grid.Column="4" Classes="icon" Classes.liked="{Binding Favorite}" Width="30" Padding="0"
-              Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanFavorite}" Click="OnFavorite" ToolTip.Tip="{DynamicResource ui.AlbumTrackRow.b66069d108b5}" AutomationProperties.Name="{DynamicResource ui.AlbumTrackRow.b66069d108b5}"><icon:GlyphIcon Kind="{Binding HeartIcon}" Width="17" Height="17" StrokeWidth="1.75" /></Button>
+              Command="{Binding ToggleFavoriteCommand}" IsEnabled="{Binding CanFavorite}" Click="OnFavorite" ToolTip.Tip="{DynamicResource ui.AlbumTrackRow.b66069d108b5}" AutomationProperties.Name="{DynamicResource ui.AlbumTrackRow.b66069d108b5}"><icon:GlyphIcon Kind="{Binding HeartIcon}" Width="14" Height="14" StrokeWidth="1.75" /></Button>
     </Grid>
   </Button>
+  </StackPanel>
 </UserControl>

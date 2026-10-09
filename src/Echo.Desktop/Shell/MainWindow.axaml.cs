@@ -49,8 +49,11 @@ public partial class MainWindow : Window
         Closed += (_, _) => { _residency?.Dispose(); ReleaseLyricsPage(); _layoutMotion.Dispose(); DetachViewModel(); };
         Closing += (_, args) =>
         {
-            if (!IsExitRequested && args.CloseReason is not (WindowCloseReason.OSShutdown or WindowCloseReason.ApplicationShutdown)
-                && _residency?.TryHideToTray() == true) args.Cancel = true;
+            if (!IsExitRequested && args.CloseReason is not (WindowCloseReason.OSShutdown or WindowCloseReason.ApplicationShutdown))
+            {
+                if (OperatingSystem.IsMacOS()) { args.Cancel = true; Hide(); }
+                else if (_residency?.TryHideToTray() == true) args.Cancel = true;
+            }
             if (_surface is not null) PageHost.Settle();
         };
         Activated += (_, _) => _lyricsPage?.SetFocused(true);
@@ -98,6 +101,8 @@ public partial class MainWindow : Window
             ApplyShellAppearance();
         if (args.PropertyName is nameof(ShellViewModel.UiScalePercent) or nameof(ShellViewModel.SidebarReservedWidth)) ApplyShellAppearance();
         if (args.PropertyName == nameof(ShellViewModel.NavigationVersion)) ShowPage();
+        if (args.PropertyName == nameof(ShellViewModel.ConnectLaunch) && PageHost.Content is Echo.Desktop.Features.Connect.ConnectView connect)
+            connect.ApplyLaunchRequest();
     }
 
     private void ApplyShellAppearance()
@@ -168,6 +173,8 @@ public partial class MainWindow : Window
         {
             "home" => _homePage = new HomeView(_viewModel),
             "radio" => new Echo.Desktop.Features.Radio.RadioView(_viewModel),
+            "podcasts" => new Echo.Desktop.Features.Podcasts.PodcastView(_viewModel),
+            "connect" => new Echo.Desktop.Features.Connect.ConnectView(_viewModel),
             "dsp" => new Echo.Desktop.Features.Dsp.DspView(_viewModel),
             "remote" when _viewModel.RemoteSources is not null => new Echo.Desktop.Features.Remote.RemoteView(_viewModel),
             "queue" when _viewModel.Player is not null => new QueueView(_viewModel.Player, _viewModel.Text, false),
@@ -185,7 +192,8 @@ public partial class MainWindow : Window
         if (_viewModel.ActiveRouteId != "lyrics") _previousRoute = _viewModel.ActiveRouteId;
         if (page is Echo.Desktop.Features.Dsp.DspView) { page.Margin = default; PageHost.Content = page; return; }
         if (page is Echo.Desktop.Features.Remote.RemoteView) { page.Margin = default; PageHost.Content = page; return; }
-        if (page is Echo.Desktop.Features.Radio.RadioView) { page.Margin = default; PageHost.Content = page; return; }
+        if (page is Echo.Desktop.Features.Radio.RadioView or Echo.Desktop.Features.Podcasts.PodcastView) { page.Margin = default; PageHost.Content = page; return; }
+        if (page is Echo.Desktop.Features.Connect.ConnectView) { page.Margin = default; PageHost.Content = page; return; }
         if (page is PlaylistsView) { page.Margin = new Thickness(0); PageHost.Content = page; return; }
         if (page is SongsView) { page.Margin = new Thickness(42, 24, 0, 0); PageHost.Content = page; return; }
         if (page is AlbumsView or ArtistsView or GenresView or LibrarySearchView or FoldersView or Echo.Desktop.Features.History.HistoryView)

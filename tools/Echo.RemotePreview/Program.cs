@@ -6,5 +6,6 @@ using Echo.Desktop.Bootstrap;
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions())
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
 var output = Path.GetFullPath(args.Length > 0 ? args[0] : "misc/remote-validation/screenshots");
+RemoteIndexChecks.Run(Path.GetDirectoryName(output)!);
 ProviderChecks.Run(Path.GetDirectoryName(output)!);
 RemoteChecks.Run(output);

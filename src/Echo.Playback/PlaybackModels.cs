@@ -13,6 +13,8 @@ public sealed record AudioSource(string Kind, string Uri, SourceRange? Range = n
 {
     public static AudioSource Local(string path, double start = 0, double? end = null)
         => new("local", Path.GetFullPath(path), start > 0 || end.HasValue ? new(start, end) : null);
+    public static AudioSource Playable(QueueTrack track)
+        => track.Source ?? (track.FilePath.StartsWith("remote://", StringComparison.Ordinal) ? new("remote", track.FilePath) : Local(track.FilePath));
 
     public void Validate()
     {
@@ -21,6 +23,11 @@ public sealed record AudioSource(string Kind, string Uri, SourceRange? Range = n
             if (!Path.IsPathFullyQualified(Uri) || !File.Exists(Uri)) throw new FileNotFoundException("音源不存在", Uri);
             AudioFormatCatalog.RequireDirectAudio(Uri);
             if (Headers is { Count: > 0 }) throw new ArgumentException("本地音源不接受 HTTP headers");
+        }
+        else if (Kind == "remote")
+        {
+            if (!Uri.StartsWith("remote://", StringComparison.Ordinal) || Uri.Length > 4096 || Headers is { Count: > 0 } || Range is not null)
+                throw new ArgumentException("无效的网盘曲目。");
         }
         else if (Kind != "http" || !System.Uri.TryCreate(Uri, UriKind.Absolute, out var url)
                  || url.Scheme is not ("http" or "https") || Range is not null)
@@ -40,8 +47,13 @@ public sealed record QueueTrack(string ItemId, string TrackId, string FilePath, 
     IReadOnlyDictionary<string, string?>? Metadata = null, bool QueuedNext = false, bool RemoveAfterPlay = false,
     QueueOrigin? Origin = null, int? SampleRate = null);
 public sealed record QueueOrigin(string Kind, string Label, string? Id = null);
+public enum QueuePlanReason { Sequential, PinnedNext, ShuffleFresh, ShuffleRecent, RepeatWrap }
+public sealed record QueuePlanStep(string ItemId, QueuePlanReason Reason);
 public sealed record QueueSnapshot(long Version, IReadOnlyList<QueueTrack> Items, IReadOnlyList<QueueTrack> History,
-    string? CurrentItemId, QueueTrack? Upcoming, QueuePlaybackMode Mode);
+    string? CurrentItemId, QueueTrack? Upcoming, QueuePlaybackMode Mode)
+{
+    public IReadOnlyList<QueuePlanStep> Plan { get; init; } = [];
+}
 public sealed record NativeQueue(long Revision, string? CurrentItemId, string RepeatMode, IReadOnlyList<QueueTrack> Items);
 public sealed record PlaybackSnapshot(long Version, PlaybackStatus Status, QueueTrack? Current,
     double PositionSeconds, double DurationSeconds, double Volume, long OperationId,
@@ -54,6 +66,10 @@ public sealed record PlaybackCheckpoint(int SchemaVersion, IReadOnlyList<QueueTr
     IReadOnlyDictionary<string, JsonElement> Dsp, bool Shuffle = false,
     IReadOnlyList<QueueTrack>? History = null, IReadOnlyList<string>? ShuffleOrder = null, QueueTrack? DetachedCurrent = null);
 
+public interface IRemoteAudioResolver
+{
+    Task<AudioSource> ResolveAsync(AudioSource remote, CancellationToken token);
+}
 public interface INativeAudio : IAsyncDisposable
 {
     event Action<string, JsonElement>? Notification;

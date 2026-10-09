@@ -44,9 +44,10 @@ public sealed partial class FoldersViewModel
     private static QueueTrack ToQueue(TrackRow row, string name, string path)
     {
         var source = row.Source;
-        var audioPath = source?.AudioPath ?? row.Path;
+        var remote = source?.Kind == "remote";
+        var audioPath = remote ? row.Path : source?.AudioPath ?? row.Path;
         return new(Guid.NewGuid().ToString("N"), row.Id, audioPath,
-            Source: source is { Kind: "cue" } ? AudioSource.Local(audioPath, source.StartSeconds, source.EndSeconds) : AudioSource.Local(audioPath),
+            Source: remote ? new AudioSource("remote", row.Path) : source is { Kind: "cue" } ? AudioSource.Local(audioPath, source.StartSeconds, source.EndSeconds) : AudioSource.Local(audioPath),
             Metadata: new Dictionary<string, string?> { ["title"] = row.Title, ["artist"] = row.Artist, ["album"] = row.Album,
                 ["duration"] = row.DurationSeconds.ToString(CultureInfo.InvariantCulture), ["codec"] = row.Codec },
             Origin: new("folder", name, path));

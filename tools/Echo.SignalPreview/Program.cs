@@ -42,6 +42,7 @@ try
     Require(view.Spec.Contains("96") && view.Headline == "原生播放", "source and direct summary");
     Require(view.OutputFacts.Single(x => x.Label == "实际输出采样率").Value == "96 kHz", "confirmed hardware rate");
     Require(view.LevelText == "--", "unknown meter must not fabricate readings");
+    Require(view.EngagedChips.Any(x => x.Label == "音量") && !panel.FindControl<Expander>("DoctorExpander")!.IsExpanded, "volume chip and folded doctor");
     Require(panel.Bounds.Width <= 400 && panel.Bounds.Height <= 540 && double.IsNaN(panel.Height), "compact content-sized panel");
     Require(!panel.FindControl<Expander>("DiagnosticsExpander")!.IsExpanded, "details folded by default");
     Capture(panel, "signal-light.png");
@@ -61,6 +62,8 @@ try
     Until(() => view.Headline == "格式转换");
     Require(view.Nodes.Count == 4, "conversion stage visible in compact chain");
     Require(view.Metrics[1].Highlight && view.Metrics[3].Highlight && view.Metrics[3].Value == "192 kHz → 96 kHz", "changed processing and clocks highlighted");
+    Require(view.EngagedChips.Any(x => x.Label == "重采样"), "conversion chip");
+    Require(view.Stability.Count == 4 && view.Insights.Count > 0, "stability and doctor");
     Capture(panel, "signal-converted.png");
     player.Details.SampleRate = 96000;
     Until(() => view.Headline == "原生播放");
@@ -84,7 +87,7 @@ try
     Capture(panel, "signal-diagnostics.png");
     popup.Hide(); Pump(); Require(panel.DataContext is null, "closing releases panel state");
     // Repeated opens must release subscription admission, not consume the 32 slots.
-    for (var i = 0; i < 40; i++) { popup.ShowAt(button); Pump(); Require(!panel.FindControl<Expander>("DiagnosticsExpander")!.IsExpanded, "reopen folds details"); popup.Hide(); Pump(); }
+    for (var i = 0; i < 40; i++) { popup.ShowAt(button); Pump(); Require(!panel.FindControl<Expander>("DiagnosticsExpander")!.IsExpanded && !panel.FindControl<Expander>("DoctorExpander")!.IsExpanded, "reopen folds details"); popup.Hide(); Pump(); }
     Wait(session.StopAsync());
     Console.WriteLine($"PASS native product XAML, unknown/live/paused readings, burst coalescing, stale/invalid frames, category isolation, reopen disposal, light/dark/English/narrow. {clock.Elapsed.TotalSeconds:0.0}s. Audio simulated.");
 }

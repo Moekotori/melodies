@@ -15,6 +15,7 @@
       <Grid Name="PageHeader" ColumnDefinitions="*,Auto" Margin="0,0,0,16">
         <StackPanel Spacing="7"><TextBlock Text="电台" FontSize="{StaticResource EchoPageTitleSize}" Classes="heading" /><TextBlock Text="收藏的声音，随时为你开播。" Classes="muted" FontSize="13" /></StackPanel>
         <StackPanel Name="HeaderTools" Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <Button Name="DirectoryButton" Classes="radio-tool" Command="{Binding ToggleDirectoryCommand}" IsEnabled="{Binding !IsBusy}"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="search" Width="16" Height="16" /><TextBlock Text="全球电台" VerticalAlignment="Center" /></StackPanel></Button>
           <Button Name="ImportButton" Classes="radio-tool" Click="OnImport" IsEnabled="{Binding !IsBusy}"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="download" Width="16" Height="16" RenderTransformOrigin="50%,50%"><icon:GlyphIcon.RenderTransform><RotateTransform Angle="180" /></icon:GlyphIcon.RenderTransform></icon:GlyphIcon><TextBlock Text="导入" VerticalAlignment="Center" /></StackPanel></Button>
           <Button Name="AddButton" Classes="primary radio-tool" Command="{Binding AddCommand}" IsEnabled="{Binding !IsBusy}"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="plus" Width="16" Height="16" Stroke="{DynamicResource EchoOnAccent}" /><TextBlock Text="添加电台" VerticalAlignment="Center" /></StackPanel></Button>
         </StackPanel>
@@ -26,6 +27,7 @@
         <Grid Name="FeatureGrid" ColumnDefinitions="1.05*,0.95*" ColumnSpacing="40">
           <StackPanel Name="FeatureCopy" Spacing="0">
             <StackPanel Orientation="Horizontal" Spacing="7" Margin="0,3,0,12"><Ellipse Width="5" Height="5" Fill="{DynamicResource EchoMuted}" VerticalAlignment="Center" /><TextBlock Text="{Binding Status}" FontSize="12" Classes="muted" FontWeight="SemiBold" /></StackPanel>
+            <Image Width="64" Height="64" Source="{Binding Cover}" Stretch="UniformToFill" IsVisible="{Binding Cover, Converter={x:Static ObjectConverters.IsNotNull}}" Margin="0,0,0,12" />
             <TextBlock Text="{Binding FeatureName}" FontSize="27" Classes="heading" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{Binding FeatureDescription}" Classes="muted" FontSize="12" Margin="0,10,0,0" TextTrimming="CharacterEllipsis" />
             <StackPanel Orientation="Horizontal" Spacing="17" Margin="0,20,0,0">
@@ -42,7 +44,7 @@
           </StackPanel>
         </Grid>
       </Border>
-      <Grid Grid.Row="3" RowDefinitions="Auto,Auto,Auto,*">
+      <Grid Grid.Row="3" Name="StationLibrary" RowDefinitions="Auto,Auto,Auto,*">
         <Grid Name="LibraryToolbar" ColumnDefinitions="*,210" Margin="0,0,0,8">
           <StackPanel Orientation="Horizontal" Spacing="22">
             <Button Name="AllTab" Classes="radio-tab" Classes.active="{Binding AllSelected}" Command="{Binding ShowAllCommand}"><StackPanel Orientation="Horizontal" Spacing="7"><TextBlock Text="全部电台" FontSize="13" /><TextBlock Text="{Binding AllCount}" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" /></StackPanel></Button>
@@ -60,7 +62,7 @@
           <ProgressBar IsVisible="{Binding IsBusy}" Height="2" IsIndeterminate="True" VerticalAlignment="Top" />
         </Grid>
       </Grid>
-      <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="0,18,0,0">
+      <Grid Grid.Row="4" Name="StationFooter" ColumnDefinitions="*,Auto" Margin="0,18,0,0">
         <StackPanel Orientation="Horizontal" Spacing="16">
           <Button Name="ExportButton" Click="OnExport" Padding="0" IsEnabled="{Binding !IsBusy}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="download" Width="14" Height="14" /><TextBlock Text="导出 M3U" FontSize="12" VerticalAlignment="Center" /></StackPanel></Button>
           <Button Command="{Binding RequestClearCommand}" Padding="0" IsEnabled="{Binding !IsBusy}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="trash" Width="14" Height="14" /><TextBlock Text="全部删除" FontSize="12" VerticalAlignment="Center" /></StackPanel></Button>
@@ -68,13 +70,14 @@
         <TextBlock Grid.Column="1" Text="{Binding CountText}" Classes="radio-caption" VerticalAlignment="Center" />
       </Grid>
     </Grid>
+    <local:RadioDirectoryPanel Margin="32,96,32,28" IsVisible="{Binding DirectoryOpen}" />
     <local:RadioStage IsVisible="{Binding StageOpen}" />
     <Border IsVisible="{Binding ConfirmClear}" Background="#60000000">
       <Border Background="{DynamicResource EchoField}" Padding="26" CornerRadius="8" Width="380" HorizontalAlignment="Center" VerticalAlignment="Center"><StackPanel Spacing="16"><TextBlock Text="删除全部电台？" FontSize="22" Classes="heading" /><TextBlock Text="删除后不会自动加回。你可以先导出 M3U 作为备份。" TextWrapping="Wrap" Classes="muted" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10"><Button Content="取消" Command="{Binding CancelClearCommand}" /><Button Content="全部删除" Command="{Binding ClearCommand}" IsEnabled="{Binding !IsBusy}" /></StackPanel></StackPanel></Border>
     </Border>
     <Border IsVisible="{Binding EditorOpen}" Background="#60000000">
       <Border Background="{DynamicResource EchoField}" Padding="26" CornerRadius="8" MaxWidth="460" Margin="20" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-        <ScrollViewer MaxHeight="600"><StackPanel Spacing="12"><TextBlock Text="电台资料" FontSize="24" Classes="heading" /><TextBlock Text="名称" FontSize="12" Classes="muted" /><TextBox Name="StationNameField" Text="{Binding DraftName, Mode=TwoWay}" MaxLength="160" PlaceholderText="电台名称" /><TextBlock Text="音频流地址" FontSize="12" Classes="muted" /><TextBox Text="{Binding DraftUrl, Mode=TwoWay}" MaxLength="2048" PlaceholderText="https://…" /><TextBlock Text="简介" FontSize="12" Classes="muted" /><TextBox Text="{Binding DraftDescription, Mode=TwoWay}" MaxLength="512" /><Grid ColumnDefinitions="*,*" ColumnSpacing="12"><StackPanel Spacing="6"><TextBlock Text="类型" FontSize="12" Classes="muted" /><TextBox Text="{Binding DraftGenre, Mode=TwoWay}" MaxLength="80" /></StackPanel><StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="格式" FontSize="12" Classes="muted" /><ComboBox SelectedItem="{Binding DraftCodec, Mode=TwoWay}" ItemsSource="{Binding $parent[local:RadioView].Codecs}" HorizontalAlignment="Stretch" /></StackPanel></Grid><TextBlock Text="{Binding EditorError}" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" IsVisible="{Binding EditorError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,8,0,0"><Button Content="取消" Command="{Binding CloseEditorCommand}" IsEnabled="{Binding !IsBusy}" /><Button Name="SaveStationButton" Content="保存电台" Classes="primary" Command="{Binding SaveEditorCommand}" IsEnabled="{Binding !IsBusy}" /></StackPanel></StackPanel></ScrollViewer>
+        <ScrollViewer MaxHeight="600"><StackPanel Spacing="12"><TextBlock Text="电台资料" FontSize="24" Classes="heading" /><TextBlock Text="名称" FontSize="12" Classes="muted" /><TextBox Name="StationNameField" Text="{Binding DraftName, Mode=TwoWay}" MaxLength="160" PlaceholderText="电台名称" /><TextBlock Text="音频流地址" FontSize="12" Classes="muted" /><Grid ColumnDefinitions="*,Auto"><TextBox Text="{Binding DraftUrl, Mode=TwoWay}" MaxLength="2048" PlaceholderText="https://…" /><Button Grid.Column="1" Margin="8,0,0,0" Content="探测" Command="{Binding ProbeCommand}" IsEnabled="{Binding !IsProbing}" /></Grid><TextBlock Text="{Binding ProbeSummary}" Classes="muted" FontSize="12" IsVisible="{Binding ProbeSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /><TextBlock Text="简介" FontSize="12" Classes="muted" /><TextBox Text="{Binding DraftDescription, Mode=TwoWay}" MaxLength="512" /><TextBlock Text="封面地址" FontSize="12" Classes="muted" /><TextBox Text="{Binding DraftCover, Mode=TwoWay}" MaxLength="2048" PlaceholderText="https://…" /><TextBlock Text="视频地址" FontSize="12" Classes="muted" /><TextBox Text="{Binding DraftVideo, Mode=TwoWay}" MaxLength="2048" PlaceholderText="https://…" /><TextBlock Text="主页" FontSize="12" Classes="muted" /><TextBox Text="{Binding DraftHomepage, Mode=TwoWay}" MaxLength="2048" PlaceholderText="https://…" /><Grid ColumnDefinitions="*,*" ColumnSpacing="12"><StackPanel Spacing="6"><TextBlock Text="类型" FontSize="12" Classes="muted" /><TextBox Text="{Binding DraftGenre, Mode=TwoWay}" MaxLength="80" /></StackPanel><StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="格式" FontSize="12" Classes="muted" /><ComboBox SelectedItem="{Binding DraftCodec, Mode=TwoWay}" ItemsSource="{Binding $parent[local:RadioView].Codecs}" HorizontalAlignment="Stretch" /></StackPanel></Grid><TextBlock Text="{Binding EditorError}" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" IsVisible="{Binding EditorError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,8,0,0"><Button Content="从剪贴板播放" Click="OnPaste" IsEnabled="{Binding !IsBusy}" /><Button Content="取消" Command="{Binding CloseEditorCommand}" IsEnabled="{Binding !IsBusy}" /><Button Name="SaveStationButton" Content="保存电台" Classes="primary" Command="{Binding SaveEditorCommand}" IsEnabled="{Binding !IsBusy}" /></StackPanel></StackPanel></ScrollViewer>
       </Border>
     </Border>
   </Grid>

@@ -1,8 +1,9 @@
 namespace Echo.Contracts.Remote;
 
 public sealed record RemoteConnection(string Id, string Name, string BaseUrl, string Username = "", string Password = "",
-    string Provider = "webdav", string AuthMode = "password", string UserId = "", string RootPath = "/", OneDriveTokens? OneDrive = null);
-public sealed record RemoteSourceInfo(string Id, string Name, string BaseUrl, string Username, string Provider = "webdav");
+    string Provider = "webdav", string AuthMode = "password", string UserId = "", string RootPath = "/", OneDriveTokens? OneDrive = null,
+    string? SyncMode = null);
+public sealed record RemoteSourceInfo(string Id, string Name, string BaseUrl, string Username, string Provider = "webdav", string SyncMode = "browse");
 public sealed record RemoteEntry(string Path, string Name, bool IsDirectory, bool IsAudio, long? SizeBytes, string? Modified,
     string? MediaId = null, string? Title = null, string? Artist = null, string? Album = null, double? DurationSeconds = null, string? Codec = null);
 public sealed record RemoteDirectoryPage(IReadOnlyList<RemoteEntry> Entries, int Total, int Page, int PageSize);
@@ -36,4 +37,23 @@ public interface IRemoteFileClient
     async Task<RemoteConnection> TestConnectionAsync(RemoteConnection source, CancellationToken token)
     { await BrowseAsync(source, "/", 0, "", false, token).ConfigureAwait(false); return source; }
     void ForgetSource(string id) { }
+    async Task<IReadOnlyList<RemoteEntry>> ListChildrenAsync(RemoteConnection source, string path, CancellationToken token)
+    {
+        var all = new List<RemoteEntry>();
+        for (var page = 0; page <= 100; page++)
+        {
+            var result = await BrowseAsync(source, path, page, "", false, token).ConfigureAwait(false);
+            if (result.Entries.Count == 0) break;
+            all.AddRange(result.Entries);
+            if (all.Count >= result.Total) break;
+        }
+        if (all.Count > 20000) throw new IOException("目录超过 20,000 项，请选择较小的音乐目录。");
+        return all;
+    }
+    Task<byte[]?> ReadFileAsync(RemoteConnection source, string path, int maxBytes, CancellationToken token) => Task.FromResult<byte[]?>(null);
+    string? LocalPath(RemoteConnection source, string path) => null;
+    Task<byte[]?> ReadArtworkAsync(RemoteConnection source, string remotePath, CancellationToken token) => Task.FromResult<byte[]?>(null);
+    Task<string?> ReadServerLyricsAsync(RemoteConnection source, string remotePath, CancellationToken token) => Task.FromResult<string?>(null);
+    // Null means this provider still uses a directory walk. Subsonic returns album pages instead.
+    IAsyncEnumerable<RemoteLibraryPage>? ReadLibraryPagesAsync(RemoteConnection source, IRemoteTrackIndex index, CancellationToken token) => null;
 }

@@ -6,23 +6,25 @@
     <Style Selector="Border.navigationSurface.drawer"><Setter Property="Background" Value="{DynamicResource EchoSidebar}" /></Style>
   </UserControl.Styles>
   <Grid ClipToBounds="True">
-    <Border Name="NavigationPanel" Classes="navigationSurface" Classes.drawer="{Binding IsSidebarDrawerMode}">
-      <Grid>
-      <shell:Sidebar />
-      <Border Name="CollapseEdge" Width="12" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding !IsSidebarEditing}">
-        <Button Classes="quiet" Width="12" Height="64" MinHeight="64" Padding="0" Opacity="0" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="{DynamicResource ui.Sidebar.c3d1de44037a}" AutomationProperties.Name="{DynamicResource ui.Sidebar.c3d1de44037a}">
-          <icon:GlyphIcon Kind="collapse" Width="12" Height="12" />
-          <Button.Styles><Style Selector="Button:pointerover, Button:focus-visible"><Setter Property="Opacity" Value="1" /></Style></Button.Styles>
-        </Button>
+    <Grid Name="DrawerSlide" HorizontalAlignment="Left" VerticalAlignment="Stretch">
+      <Border Name="NavigationPanel" HorizontalAlignment="Left" Classes="navigationSurface" Classes.drawer="{Binding IsSidebarDrawerMode}">
+        <Grid>
+          <shell:Sidebar />
+          <Border Name="CollapseEdge" Width="12" HorizontalAlignment="Right" Background="Transparent" IsVisible="{Binding !IsSidebarEditing}">
+            <Button Classes="quiet" Width="12" Height="64" MinHeight="64" Padding="0" Opacity="0" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="{DynamicResource ui.Sidebar.c3d1de44037a}" AutomationProperties.Name="{DynamicResource ui.Sidebar.c3d1de44037a}">
+              <icon:GlyphIcon Kind="collapse" Width="12" Height="12" />
+              <Button.Styles><Style Selector="Button:pointerover, Button:focus-visible"><Setter Property="Opacity" Value="1" /></Style></Button.Styles>
+            </Button>
+          </Border>
+        </Grid>
       </Border>
+      <Grid Name="EdgeReveal" Width="22" HorizontalAlignment="Left" Background="Transparent" PointerEntered="OnEdgeEntered">
+        <Button Name="RevealButton" Width="22" Height="64" MinHeight="64" Padding="0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                Background="{DynamicResource EchoSidebar}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,1,1"
+                CornerRadius="0,6,6,0" Click="OnRevealClicked" ToolTip.Tip="{DynamicResource ui.SidebarHost.f5a2e8aeefd1}" AutomationProperties.Name="{DynamicResource ui.SidebarHost.658ff1eade42}">
+          <icon:GlyphIcon Kind="chevron-right" Scope="sidebar" StrokeWidth="1.25" Width="14" Height="14" />
+        </Button>
       </Grid>
-    </Border>
-    <Grid Name="EdgeReveal" Background="Transparent" PointerEntered="OnEdgeEntered">
-      <Button Name="RevealButton" Width="22" Height="64" MinHeight="64" Padding="0" VerticalAlignment="Center"
-              Background="{DynamicResource EchoSidebar}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,1,1"
-              CornerRadius="0,6,6,0" Click="OnRevealClicked" ToolTip.Tip="{DynamicResource ui.SidebarHost.f5a2e8aeefd1}" AutomationProperties.Name="{DynamicResource ui.SidebarHost.658ff1eade42}">
-        <icon:GlyphIcon Kind="chevron-right" Scope="sidebar" StrokeWidth="1.25" Width="14" Height="14" />
-      </Button>
     </Grid>
   </Grid>
 </UserControl>

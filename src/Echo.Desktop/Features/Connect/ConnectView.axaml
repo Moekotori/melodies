@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icon="using:Echo.Desktop.Controls" xmlns:connect="using:Echo.Desktop.Features.Connect"
+             x:Class="Echo.Desktop.Features.Connect.ConnectView" x:DataType="connect:ConnectViewModel"
+             Background="{DynamicResource EchoField}">
+  <UserControl.Styles>
+    <StyleInclude Source="ConnectStyles.axaml" />
+  </UserControl.Styles>
+  <Grid Name="Stage" ColumnDefinitions="260,*" RowDefinitions="*">
+    <Border Name="Rail" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,1,0" Background="{DynamicResource EchoPanelMuted}">
+      <Grid RowDefinitions="Auto,Auto,*" Margin="14,18,12,12">
+        <StackPanel Spacing="2">
+          <TextBlock Text="CONNECT" Classes="connect-kicker" />
+          <TextBlock Text="连接" FontSize="22" Classes="heading" />
+          <TextBlock Text="投送与遥控" Classes="muted" FontSize="12" />
+        </StackPanel>
+        <Border Grid.Row="1" Classes="connect-card" Margin="0,14,0,12" Padding="12">
+          <StackPanel Spacing="3">
+            <TextBlock Text="当前输出" Classes="connect-kicker" />
+            <TextBlock Text="{Binding Output.Now.Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Output.Now.OutputName}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </Border>
+        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ItemsControl Name="WorkspaceList" ItemsSource="{Binding Items}" KeyDown="OnRailKeyDown">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="connect:ConnectWorkspaceItem">
+                <StackPanel Margin="0,0,0,4">
+                  <TextBlock Text="{Binding GroupLabel}" Classes="connect-kicker" Margin="10,8,0,4" IsVisible="{Binding ShowGroup}" />
+                  <Button Classes="connect-tab" Classes.active="{Binding IsSelected}"
+                          Command="{Binding $parent[connect:ConnectView].((connect:ConnectViewModel)DataContext).SelectWorkspaceCommand}"
+                          CommandParameter="{Binding}" AutomationProperties.Name="{Binding Title}">
+                    <Grid ColumnDefinitions="22,*,8">
+                      <icon:GlyphIcon Kind="{Binding Icon}" Width="16" Height="16" VerticalAlignment="Center" Stroke="{DynamicResource EchoHeading}" />
+                      <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                        <TextBlock Text="{Binding Title}" FontSize="13" />
+                        <TextBlock Text="{Binding Hint}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <Ellipse Grid.Column="2" Width="6" Height="6" Fill="{DynamicResource EchoAccent}" VerticalAlignment="Center" IsVisible="{Binding HasActivity}" />
+                    </Grid>
+                  </Button>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+    <Grid Name="Desk" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="28,22,22,8">
+      <Grid Name="Header" ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Border Width="42" Height="42" CornerRadius="8" Background="{DynamicResource EchoPanelMuted}">
+            <icon:GlyphIcon Kind="{Binding Selected.Icon}" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" Stroke="{DynamicResource EchoHeading}" />
+          </Border>
+          <StackPanel VerticalAlignment="Center" Spacing="2">
+            <TextBlock Text="{Binding Selected.Title}" FontSize="26" Classes="heading" />
+            <TextBlock Text="{Binding Selected.Description}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Name="HeaderActions" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Classes="connect-tool" Content="{Binding Output.RefreshLabel}" Command="{Binding Output.ScanCommand}" IsVisible="{Binding IsOutput}" />
+          <Button Classes="connect-tool" Content="检测协议" Command="{Binding HqPlayer.TestCommand}" IsVisible="{Binding IsHqPlayer}" IsEnabled="{Binding !HqPlayer.IsBusy}" />
+          <Button Classes="connect-tool" Content="{Binding Receive.AutoStartLabel}" Command="{Binding Receive.ToggleAutoStartCommand}" IsVisible="{Binding IsReceive}" />
+        </StackPanel>
+      </Grid>
+      <Border Grid.Row="1" Margin="0,14,0,0" Padding="12,8" CornerRadius="8" Background="{DynamicResource EchoPanelMuted}"
+              IsVisible="{Binding Alert, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Text="{Binding Alert}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="connect-tool" Command="{Binding DismissAlertCommand}" Padding="8,0" AutomationProperties.Name="关闭提示">
+            <icon:GlyphIcon Kind="close" Width="14" Height="14" Stroke="{DynamicResource EchoHeading}" />
+          </Button>
+        </Grid>
+      </Border>
+      <ContentControl Name="WorkspaceHost" Grid.Row="2" Margin="0,16,0,0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+    </Grid>
+    <Border Name="ConfirmLayer" Grid.ColumnSpan="2" IsVisible="{Binding Output.HasPending}" Background="#66000000">
+      <Border Classes="connect-card" MaxWidth="440" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{DynamicResource EchoField}">
+        <StackPanel Spacing="14">
+          <TextBlock Text="切换输出" FontSize="22" Classes="heading" />
+          <TextBlock Text="{Binding Output.PendingText}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Classes="connect-tool" Content="取消" Command="{Binding Output.CancelPendingCommand}" />
+            <Button Classes="connect-primary" Content="切换" Command="{Binding Output.ConfirmPendingCommand}" IsEnabled="{Binding !Output.IsApplying}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</UserControl>

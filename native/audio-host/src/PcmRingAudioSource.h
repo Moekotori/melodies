@@ -1,5 +1,6 @@
 #pragma once
 #include "GaplessReplayGainTimeline.h"
+struct WorkshopTransitionWindow;
 
 #include "../../audio-engine/EqProcessor.h"
 #include "../../audio-engine/ChannelBalanceProcessor.h"
@@ -25,6 +26,8 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+
+#include "DualTrackMixBuffer.h"
 
 namespace pcm_detail {
 void configureAudioCallbackThread();
@@ -137,6 +140,8 @@ public:
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
     void prepareForNativeRender(int maxFramesPerCallback, double sampleRate);
     void releaseResources();
+    void installWorkshopTransitionWindow(std::shared_ptr<const WorkshopTransitionWindow> window);
+    bool workshopTransitionDeadlineMissed() const { return workshopDeadlineMissed.load(std::memory_order_acquire); }
 
     bool isDspActive() const;
     bool hasDspClippingRisk() const;
@@ -150,6 +155,7 @@ public:
     uint32_t renderInterleaved(echo_audio_host::FloatInterleavedRenderTarget target);
     uint32_t renderInterleaved(float* output, uint32_t frameCount, uint32_t outputChannels);
     uint64_t renderPlanar(echo::FloatAudioBuffer& output, int startSample, int frameCount);
+    void installDualTrackMix(std::shared_ptr<DualTrackMixBuffer> mix);
 
     bool push(const float* samples, int frameCount);
     bool pushForGeneration(const float* samples, int frameCount, uint64_t generation);
@@ -262,6 +268,11 @@ public:
     PlaybackSession session_;
 
 private:
+    std::shared_ptr<DualTrackMixBuffer> dualTrackMixOwner_;
+    std::atomic<DualTrackMixBuffer*> dualTrackMix_ { nullptr };
+    std::shared_ptr<const WorkshopTransitionWindow> workshopWindowOwner;
+    std::atomic<const WorkshopTransitionWindow*> workshopWindow { nullptr };
+    std::atomic<bool> workshopDeadlineMissed { false };
     uint64_t renderPlanarUnderLease(echo::FloatAudioBuffer& output, int startSample, int frameCount);
     void prepareRenderScratchBuffers(int maxFramesPerCallback);
     echo_audio_host::NativeFifo& fifoForDeck(int deckSlot);

@@ -69,7 +69,8 @@ public sealed partial class LibraryDatabase
         command.CommandText = """
             UPDATE tracks SET
               title=u.title,sort_key=upper(u.title),artist=u.artist,album=u.album,album_artist=u.album_artist,
-              track_no=u.track_no,disc_no=u.disc_no,year=u.year,genre=u.genre
+              track_no=u.track_no,disc_no=u.disc_no,year=u.year,genre=u.genre,
+              album_key=echo_album_key(tracks.path,u.album,u.album_artist,coalesce(tracks.source_kind,''),coalesce(tracks.source_json,''))
             FROM track_user_tags u WHERE tracks.id=u.track_id AND tracks.path_key=$key;
             UPDATE tracks SET missing=1 WHERE path_key=$key AND id IN(SELECT track_id FROM folder_hidden_tracks);
             DELETE FROM artist_tracks WHERE track_id IN(SELECT id FROM tracks WHERE path_key=$key AND missing=1);

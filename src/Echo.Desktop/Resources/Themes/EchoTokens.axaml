@@ -8,6 +8,7 @@
       <SolidColorBrush x:Key="EchoSubtle">#767e8c</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccent">#4b55e8</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccentText">#3239c7</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDanger">#b3261e</SolidColorBrush>
       <SolidColorBrush x:Key="EchoIconAccent">#4b55e8</SolidColorBrush>
       <SolidColorBrush x:Key="EchoBorder">#24202631</SolidColorBrush>
       <SolidColorBrush x:Key="EchoDivider">#18202631</SolidColorBrush>
@@ -38,6 +39,7 @@
       <SolidColorBrush x:Key="EchoSubtle">#9ea7b3</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccent">#64b5ff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoAccentText">#a8d6ff</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoDanger">#ff9b9f</SolidColorBrush>
       <SolidColorBrush x:Key="EchoIconAccent">#64b5ff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoBorder">#24e4edf7</SolidColorBrush>
       <SolidColorBrush x:Key="EchoDivider">#18e8eef7</SolidColorBrush>

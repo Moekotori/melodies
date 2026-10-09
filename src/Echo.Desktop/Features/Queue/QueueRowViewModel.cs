@@ -3,7 +3,8 @@ using Echo.Playback;
 
 namespace Echo.Desktop.Features.Queue;
 
-public sealed class QueueRowViewModel(QueueTrack track, int index, string? currentId, bool earlier = false, Echo.Desktop.Features.Albums.AlbumArtworkCache? artwork = null)
+public sealed class QueueRowViewModel(QueueTrack track, int index, string? currentId, bool earlier = false,
+    Echo.Desktop.Features.Albums.AlbumArtworkCache? artwork = null, string? badge = null, bool upcoming = false)
 {
     public QueueTrack Track { get; } = track;
     public string ItemId => Track.ItemId;
@@ -19,10 +20,11 @@ public sealed class QueueRowViewModel(QueueTrack track, int index, string? curre
     public string Quality => Track.Metadata?.GetValueOrDefault("codec")?.ToUpperInvariant() ?? Path.GetExtension(Track.FilePath).TrimStart('.').ToUpperInvariant();
     public bool IsCurrent => ItemId == currentId;
     public bool IsNextUp => Track.QueuedNext && !IsCurrent;
-    public bool HasBadge => IsNextUp || Track.RemoveAfterPlay;
+    public bool IsUpcoming => upcoming && !IsCurrent;
+    public bool HasBadge => IsNextUp || Track.RemoveAfterPlay || IsUpcoming;
     public string AudioDetail => string.Join(" · ", new[] { int.TryParse(Track.Metadata?.GetValueOrDefault("bitDepth"), out var bits) && bits > 0 ? bits + " bit" : null,
         double.TryParse(Track.Metadata?.GetValueOrDefault("sampleRate"), NumberStyles.Float, CultureInfo.InvariantCulture, out var hz) && hz > 0 ? (hz / 1000).ToString("0.#", CultureInfo.InvariantCulture) + " kHz" : null }.OfType<string>());
-    public string State => IsCurrent ? "正在播放" : IsNextUp ? "下一首播放" : Track.RemoveAfterPlay ? "播后移除" : earlier ? "已播放" : "";
+    public string State => badge ?? (IsCurrent ? "正在播放" : IsNextUp ? "下一首播放" : Track.RemoveAfterPlay ? "播后移除" : earlier ? "已播放" : "");
     public string Duration => double.TryParse(Track.Metadata?.GetValueOrDefault("duration"), NumberStyles.Float,
         CultureInfo.InvariantCulture, out var seconds) && double.IsFinite(seconds) && seconds > 0 ? Time(seconds) : "--:--";
     internal static string Time(double seconds) => TimeSpan.FromSeconds(Math.Clamp(seconds, 0, 864000)).ToString(seconds >= 3600 ? @"h\:mm\:ss" : @"m\:ss");

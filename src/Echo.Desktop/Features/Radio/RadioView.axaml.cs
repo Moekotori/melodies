@@ -2,6 +2,7 @@ using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Echo.Application.Radio;
@@ -15,7 +16,15 @@ public partial class RadioView : UserControl, IDisposable
     public RadioViewModel Model { get; private set; } = null!;
     public IReadOnlyList<string> Codecs { get; } = ["—", "MP3", "AAC", "OGG", "Opus", "FLAC", "HLS", "WAV"];
     private static readonly FilePickerFileType PlaylistType = new("M3U 电台列表") { Patterns = ["*.m3u", "*.m3u8"], MimeTypes = ["audio/x-mpegurl"] };
-    public RadioView() { InitializeComponent(); SizeChanged += (_, _) => ArrangePage(); KeyDown += OnKey; }
+    public RadioView()
+    {
+        InitializeComponent();
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DropEvent, OnDrop);
+        SizeChanged += (_, _) => ArrangePage();
+        KeyDown += OnKey;
+    }
     public RadioView(ShellViewModel shell) : this()
     {
         Model = new(shell); DataContext = Model;
@@ -25,6 +34,7 @@ public partial class RadioView : UserControl, IDisposable
     }
     private void ModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
+        if (args.PropertyName == nameof(RadioViewModel.DirectoryOpen)) ArrangePage();
         if (args.PropertyName == nameof(RadioViewModel.EditorOpen))
         {
             if (Model.EditorOpen) Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (!disposed) StationNameField.Focus(); });
@@ -33,6 +43,7 @@ public partial class RadioView : UserControl, IDisposable
     }
     private void ArrangePage()
     {
+        var directory = Model?.DirectoryOpen == true;
         var compact = Bounds.Width < 764;
         PageLayout.Margin = new Thickness(compact ? 24 : 32, 28, compact ? 24 : 32, 28);
         var stackHeader = Bounds.Width < 560;
@@ -40,8 +51,8 @@ public partial class RadioView : UserControl, IDisposable
         PageHeader.ColumnDefinitions = new(stackHeader ? "*" : "*,Auto");
         Grid.SetColumn(HeaderTools, stackHeader ? 0 : 1); Grid.SetRow(HeaderTools, stackHeader ? 1 : 0);
         HeaderTools.Margin = stackHeader ? new(0, 14, 0, 0) : default;
-        ServiceNote.IsVisible = !compact || Bounds.Height >= 650;
-        FeatureCard.IsVisible = !compact || Bounds.Height >= 520;
+        ServiceNote.IsVisible = !directory && (!compact || Bounds.Height >= 650);
+        FeatureCard.IsVisible = !directory && (!compact || Bounds.Height >= 520);
         FeatureGrid.RowDefinitions = new(compact ? "Auto,Auto" : "Auto");
         FeatureGrid.ColumnDefinitions = new(compact ? "*" : "1.05*,0.95*");
         Grid.SetColumn(TunerPanel, compact ? 0 : 1); Grid.SetRow(TunerPanel, compact ? 1 : 0);
@@ -56,12 +67,14 @@ public partial class RadioView : UserControl, IDisposable
         var narrowColumns = Bounds.Width - PageLayout.Margin.Left - PageLayout.Margin.Right < 700;
         ColumnHeaders.ColumnDefinitions = new(narrowColumns ? "36,*,0,0,0,96" : "44,*,128,104,90,108");
         FrequencyHeader.IsVisible = GenreHeader.IsVisible = CodecHeader.IsVisible = !narrowColumns;
+        StationLibrary.IsVisible = StationFooter.IsVisible = !directory;
     }
     private void OnEnter(object? sender, RoutedEventArgs args) { if (Model.CanEnter) Model.StageOpen = true; }
     private void OnKey(object? sender, KeyEventArgs args)
     {
         if (args.Key == Key.Escape && Model.EditorOpen) { Model.CloseEditorCommand.Execute(null); args.Handled = true; }
         else if (args.Key == Key.Escape && Model.ConfirmClear) { Model.CancelClearCommand.Execute(null); args.Handled = true; }
+        else if (args.Key == Key.Escape && Model.DirectoryOpen) { Model.ToggleDirectoryCommand.Execute(null); args.Handled = true; }
         else if (args.Key == Key.Escape && Model.StageOpen) { Model.StageOpen = false; args.Handled = true; }
         else if (args.Key == Key.Enter && Model.EditorOpen && args.Source is not ComboBox) { Model.SaveEditorCommand.Execute(null); args.Handled = true; }
     }
@@ -96,6 +109,54 @@ public partial class RadioView : UserControl, IDisposable
                 await using var stream = await file.OpenWriteAsync(); await Task.Run(() => stream.SetLength(0), token);
                 await stream.WriteAsync(Encoding.UTF8.GetBytes(text), token); await stream.FlushAsync(token);
             });
+        }
+        catch (Exception error) { if (!disposed) Model.Message = error.Message; }
+    }
+    private async void OnPaste(object? sender, RoutedEventArgs args)
+    {
+        if (disposed || TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard) return;
+        try
+        {
+            var text = await clipboard.TryGetTextAsync();
+            if (disposed) return;
+            if (string.IsNullOrWhiteSpace(text)) { Model.EditorError = "剪贴板里没有电台地址。"; Model.EditorOpen = true; return; }
+            await Model.UseClipboardAsync(text);
+        }
+        catch (Exception error) { if (!disposed) Model.Message = error.Message; }
+    }
+    private void OnDragOver(object? sender, DragEventArgs args)
+    {
+        args.DragEffects = args.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None;
+        args.Handled = true;
+    }
+    private async void OnDrop(object? sender, DragEventArgs args)
+    {
+        if (Model is null || Model.IsBusy || disposed) return;
+        var files = args.DataTransfer.TryGetFiles()?.OfType<IStorageFile>().Take(8).ToArray();
+        if (files is null || files.Length == 0) return;
+        try
+        {
+            var text = new StringBuilder();
+            foreach (var file in files)
+            {
+                var name = file.Name;
+                if (!name.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase) && !name.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase)
+                    && !name.EndsWith(".pls", StringComparison.OrdinalIgnoreCase) && !name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                await using var stream = await file.OpenReadAsync();
+                var buffer = new byte[RadioPlaylist.MaxBytes + 1];
+                var length = 0;
+                while (length < buffer.Length)
+                {
+                    var read = await stream.ReadAsync(buffer.AsMemory(length));
+                    if (read == 0) break;
+                    length += read;
+                }
+                if (length > RadioPlaylist.MaxBytes) throw new IOException("M3U 文件不能超过 1 MiB。");
+                text.AppendLine(Encoding.UTF8.GetString(buffer, 0, length));
+            }
+            if (text.Length == 0 || disposed) return;
+            await Model.ImportFromAsync(_ => Task.FromResult(text.ToString()));
         }
         catch (Exception error) { if (!disposed) Model.Message = error.Message; }
     }

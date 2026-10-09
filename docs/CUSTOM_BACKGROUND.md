@@ -20,7 +20,7 @@
 - 视频智能暂停响应失焦；最小化/持续播放选项响应窗口可见性。关闭或减少动态效果，以及隐藏/最小化主窗口，都会暂停视频并保留最后一帧。停用、换素材和释放窗口取消解码。
 - 成功加载后才应用背景界面透明度；读取失败恢复普通实色配色，保留选择以便替换或重试。
 
-对照来源为旧工作区只读文件 `src/renderer/pages/settings/appearance/AppWallpaperSettings.tsx`、`wallpaperSettingsModel.ts`、`src/renderer/app/appWallpaperPresentation.ts` 和 `AppLayout.tsx`。适配使用原生 Avalonia 绘制；亮度采用现有明暗覆盖绘制，不宣称与 CSS brightness 逐像素相同。图片定位沿用新项目的百分比边缘定位，未迁入旧版拖拽裁剪弹窗。
+对照来源为旧工作区只读文件 `src/renderer/pages/settings/appearance/AppWallpaperSettings.tsx`、`wallpaperSettingsModel.ts`、`src/renderer/app/appWallpaperPresentation.ts` 和 `AppLayout.tsx`。亮度在后台对像素做乘法，拖动时合并为一次；模糊在视口里按窗口尺寸降采样后再做高斯，不使用每帧全窗 BlurEffect。图片定位沿用百分比边缘定位，未迁入旧版拖拽裁剪弹窗。
 
 ## 职责、资源和回滚
 

@@ -127,8 +127,8 @@ public sealed partial class GenreDetailViewModel : ObservableObject, IDisposable
         catch (Exception) { if (!_lifetime.IsCancellationRequested) Error = Text["genres.playError"]; }
         finally { if (!_lifetime.IsCancellationRequested) IsBusy = false; }
     }
-    private QueueTrack ToQueue(TrackRow track) => new(Guid.NewGuid().ToString("N"), track.Id, track.Source?.AudioPath ?? track.Path,
-        Source: track.Source is { } source ? AudioSource.Local(source.AudioPath, source.StartSeconds, source.EndSeconds) : null,
+    private QueueTrack ToQueue(TrackRow track) => new(Guid.NewGuid().ToString("N"), track.Id, track.Source?.Kind == "remote" ? track.Path : track.Source?.AudioPath ?? track.Path,
+        Source: track.Source?.Kind == "remote" ? new AudioSource("remote", track.Path) : track.Source is { } source ? AudioSource.Local(source.AudioPath, source.StartSeconds, source.EndSeconds) : null,
         Metadata: new Dictionary<string, string?> { ["title"] = track.Title, ["artist"] = track.Artist, ["album"] = track.Album,
             ["duration"] = track.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture), ["codec"] = track.Codec },
         Origin: new("genre", Genre.Name, Genre.Id));

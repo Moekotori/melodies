@@ -29,13 +29,12 @@ public partial class SongsView : UserControl, IDisposable
         trackMenu = new(this, shell, Model); TrackList.ContextMenu = trackMenu.Menu;
         TrackList.AddHandler(InputElement.PointerPressedEvent, OnTrackPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         Model.PreferenceChanged += () => { try { shell.RememberQuery(Model.Preference); } catch (ArgumentException) { } };
+        BindLayout();
         AttachedToVisualTree += (_, _) => _ = Model.LoadAsync();
         DetachedFromVisualTree += (_, _) => Dispose();
     }
     private void AppearanceChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     { if (shell is not null && args.PropertyName == nameof(AppearanceVisualsViewModel.WaveformScrollbar)) ApplyScrollbar(shell); }
-    private void ApplyScrollbar(ShellViewModel owner) => ScrollViewer.SetVerticalScrollBarVisibility(TrackList,
-        owner.AppearanceVisuals.WaveformScrollbar ? Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden : Avalonia.Controls.Primitives.ScrollBarVisibility.Auto);
     public void FocusSearch() => SearchField.Focus();
     private void OnSearchKey(object? sender, KeyEventArgs args)
     {
@@ -47,6 +46,11 @@ public partial class SongsView : UserControl, IDisposable
         if (FilterButton.Flyout is not Flyout flyout) return;
         if (flyout.Content is Echo.Desktop.Features.LibraryDetails.LibraryFilterView panel) panel.ShowAdvancedOptions();
         flyout.ShowAt(FilterButton);
+    }
+    private void OnLayoutPick(object? sender, RoutedEventArgs args)
+    {
+        if (Model is null || sender is not Control { Tag: string layout } || layout is not ("list" or "split" or "dense")) return;
+        Model.Layout = layout; CloseLibraryMenu(); args.Handled = true;
     }
     private void OnCommand(object? sender, RoutedEventArgs args)
     {
@@ -93,5 +97,12 @@ public partial class SongsView : UserControl, IDisposable
         finally { import = null; if (!closed) CancelImport.IsVisible = false; }
     }
     private void OnCancelImport(object? sender, RoutedEventArgs args) => import?.Cancel();
-    public void Dispose() { if (closed) return; closed = true; if (shell is not null) shell.AppearanceVisuals.PropertyChanged -= AppearanceChanged; import?.Cancel(); trackMenu?.Dispose(); trackMenu = null; TrackList.ContextMenu = null; Model?.Dispose(); }
+    public void Dispose()
+    {
+        if (closed) return; closed = true;
+        DetachAlphabet();
+        if (Model is not null) Model.PropertyChanged -= OnModelChanged;
+        Workspace.SizeChanged -= OnWorkspaceSized;
+        if (shell is not null) shell.AppearanceVisuals.PropertyChanged -= AppearanceChanged; import?.Cancel(); trackMenu?.Dispose(); trackMenu = null; TrackList.ContextMenu = null; Model?.Dispose();
+    }
 }

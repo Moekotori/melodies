@@ -5,6 +5,7 @@ using Echo.Desktop.Features.Player;
 using Echo.Playback;
 using Echo.Playback.NativeAudio;
 using Echo.Playback.MediaTransport;
+using Echo.Platform.MacOS;
 using Echo.Platform.Windows;
 using Echo.Contracts.Library;
 using Echo.Desktop.Features.Albums;
@@ -25,9 +26,15 @@ public static class DesktopComposition
     {
         var binary = Environment.GetEnvironmentVariable("ECHO_AUDIO_HOST") ?? Path.Combine(AppContext.BaseDirectory,
             "native", OperatingSystem.IsWindows() ? "echo-audio-host.exe" : "echo-audio-host");
-        IMediaTransport? transport = enableMedia && OperatingSystem.IsWindows() && Environment.GetEnvironmentVariable("ECHO_SMTC_ENABLED") != "0"
-            ? new WindowsSmtcTransport(Environment.GetEnvironmentVariable("ECHO_SMTC_HOST")
-                ?? Path.Combine(AppContext.BaseDirectory, "native", "echo-smtc-host.exe")) : null;
+        IMediaTransport? transport = null;
+        if (enableMedia && Environment.GetEnvironmentVariable("ECHO_SMTC_ENABLED") != "0")
+        {
+            if (OperatingSystem.IsWindows())
+                transport = new WindowsSmtcTransport(Environment.GetEnvironmentVariable("ECHO_SMTC_HOST")
+                    ?? Path.Combine(AppContext.BaseDirectory, "native", "echo-smtc-host.exe"));
+            else if (OperatingSystem.IsMacOS())
+                transport = new MacOsSystemTransport(MacOsSystemTransport.ResolveBinary());
+        }
         var statePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia", "playback.sqlite");
         // This new desktop exposes the native DSP controls; effects remain off until applied.
         var runtime = new PlaybackRuntime(new NativeAudioHost(binary, allowProDsp: true), restorePlayback
@@ -51,26 +58,42 @@ public static class DesktopComposition
         shell.Settings.AttachUserLanguages(userLanguages);
         var player = new PlayerViewModel(playback.LocalZone, shell.Text, playback.BackgroundWork);
         player.AttachTools(playback.SleepTimer, shell.FeaturePreferences);
-        var lyricsSource = new LocalLyricsSource();
+        var remoteFiles = new Echo.Infrastructure.Remote.RemoteFileClients();
+        var remoteSources = new Echo.Application.Remote.RemoteSourceCatalog(restorePlayback
+            ? new ProtectedRemoteConnectionStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ECHO Avalonia", "credentials")) : null, remoteFiles);
+        remoteFiles.BindTokenWriter(remoteSources);
+        playback.LocalZone.Session.AttachRemoteResolver(new Echo.Application.Remote.RemotePlaybackResolver(remoteSources, remoteFiles));
+        var lyricsSource = new Echo.Infrastructure.Remote.RemoteSidecarLyrics(new LocalLyricsSource(), remoteSources.Find, remoteFiles);
         var lyricsSettings = new LocalLyricsPreferencesStore(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia", "lyrics-settings.json"));
         var lyricsAppearance = new LyricsAppearance(lyricsSettings, shell.Text);
         shell.AttachLyrics(lyricsSource, lyricsAppearance);
         var library = albumLibrary is null ? new DesktopLibrary(Environment.GetEnvironmentVariable("ECHO_LIBRARY_DB") ??
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia", "library.sqlite"), playback.BackgroundWork) : null;
-        var artwork = new AlbumArtworkCache(albumArtwork ?? new LocalAlbumArtwork(), playback.BackgroundWork);
+        var artwork = new AlbumArtworkCache(albumArtwork ?? new Echo.Infrastructure.Remote.RemoteSidecarArtwork(new LocalAlbumArtwork(), remoteSources.Find, remoteFiles), playback.BackgroundWork);
         shell.AttachLibrary(albumLibrary ?? library!, artwork, library is null ? null : library.ImportAsync, new LocalDetailResources());
         if (OperatingSystem.IsWindows()) shell.Motion.SystemAllowsAnimation = WindowsAnimationPreference.Read();
+        else if (OperatingSystem.IsMacOS()) shell.Motion.SystemAllowsAnimation = MacOsMotion.AllowsAnimation();
         shell.AttachPlayback(player);
-        var remoteFiles = new Echo.Infrastructure.Remote.RemoteFileClients();
-        var remoteSources = new Echo.Application.Remote.RemoteSourceCatalog(restorePlayback
-            ? new ProtectedRemoteConnectionStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "ECHO Avalonia", "credentials")) : null, remoteFiles);
-        remoteFiles.BindTokenWriter(remoteSources);
+        shell.RestoreConnect();
         shell.AttachRemote(remoteSources, remoteFiles, remoteFiles,
             Environment.GetEnvironmentVariable("ECHO_ONEDRIVE_CLIENT_ID") ?? Environment.GetEnvironmentVariable("ECHO_ONEDRIVE_CLIENT_ID_BUNDLED") ?? "");
+        if (library is not null) shell.AttachRemoteIndex(library);
         var radioStreams = new Echo.Infrastructure.Radio.HttpRadioStreamResolver();
         shell.AttachRadioPlayback(radioStreams);
+        var radioDirectory = new Echo.Infrastructure.Radio.RadioDirectoryClient();
+        var radioMetadata = new Echo.Infrastructure.Radio.IcyMetadataMonitor();
+        shell.AttachRadioServices(radioDirectory, radioMetadata, playback.LocalZone.Session);
+        player.AttachRadioMetadata(radioMetadata);
+        Echo.Infrastructure.Podcast.PodcastLibrary? podcastLibrary = null;
+        Echo.Application.Podcast.PodcastProgressWriter? podcastProgress = null;
+        if (restorePlayback)
+        {
+            podcastLibrary = new(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia", "podcasts.sqlite"));
+            podcastProgress = new(playback.LocalZone.Session, podcastLibrary);
+            shell.AttachPodcasts(podcastLibrary, playback.LocalZone.Session);
+        }
         var listening = shell.HomeLibrary is { } homeLibrary
             ? new DesktopListeningRecorder(playback.LocalZone, homeLibrary, shell.NotifyHomeDataChanged, message =>
                 Avalonia.Threading.Dispatcher.UIThread.Post(() => shell.Notice = shell.Text["home.listenSaveError"])) : null;
@@ -104,6 +127,7 @@ public static class DesktopComposition
             value => shell.Settings.Feedback = value);
         var windowFeatures = new WindowFeatureController(window, shell, settingsRuntime, settingsDialogs);
         var taskbar = OperatingSystem.IsWindows() ? new WindowTaskbarBinding(window, shell, settingsRuntime, settingsDialogs) : null;
+        var macosShell = OperatingSystem.IsMacOS() ? new MacOsShellBinding(window, shell, playback) : null;
         _ = new DiagnosticsModule(settingsRuntime, settingsDialogs, window, shell,
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia"));
         _ = new LibrarySettingsModule(settingsRuntime, settingsDialogs, window, shell);
@@ -111,14 +135,17 @@ public static class DesktopComposition
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia"));
         shell.AttachFeatureSettings(settingsRuntime);
         var floating = new Echo.Desktop.Features.Floating.FloatingWindowController(window, shell,
-            OperatingSystem.IsWindows() ? WindowsFloatingWindow.SetPassthrough : null);
+            OperatingSystem.IsWindows() ? WindowsFloatingWindow.SetPassthrough
+            : OperatingSystem.IsMacOS() ? MacOSFloatingWindow.SetPassthrough : null);
         _ = new FloatingSettingsModule(settingsRuntime, shell);
         var shortcuts = new WindowShortcutBinding(window, shell.Shortcuts,
             OperatingSystem.IsWindows() ? new WindowsGlobalShortcuts() : null,
             restorePlayback ? new JsonShortcutProfileStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ECHO Avalonia", "shortcuts.json")) : null,
             OperatingSystem.IsWindows() ? "应用内按键仅在窗口中生效。全局按键在后台也可使用，支持媒体键与鼠标侧键。"
-                : "应用内快捷键可使用；此平台的自定义全局按键尚未接入。系统媒体控制独立管理。");
+                : OperatingSystem.IsMacOS()
+                    ? "应用内快捷键可使用。菜单栏、程序坞和系统媒体键由 macOS 集成处理；自定义全局按键尚未接入。"
+                    : "应用内快捷键可使用；此平台的自定义全局按键尚未接入。系统媒体控制独立管理。");
         var preferences = restorePlayback ? new WindowPreferencesBinding(window, shell,
             new JsonDesktopPreferencesStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ECHO Avalonia", "preferences.json"))) : null;
@@ -126,7 +153,10 @@ public static class DesktopComposition
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia"), preferences.Capture, preferences.Import);
         shell.AttachFeatureSettings(settingsRuntime);
         window.Activated += (_, _) =>
-        { if (OperatingSystem.IsWindows()) shell.Motion.SystemAllowsAnimation = WindowsAnimationPreference.Read(); };
+        {
+            if (OperatingSystem.IsWindows()) shell.Motion.SystemAllowsAnimation = WindowsAnimationPreference.Read();
+            else if (OperatingSystem.IsMacOS()) shell.Motion.SystemAllowsAnimation = MacOsMotion.AllowsAnimation();
+        };
         window.Opened += (_, _) => { _ = lyricsAppearance.RestoreAsync(CancellationToken.None); };
         window.Opened += async (_, _) =>
         {
@@ -148,13 +178,16 @@ public static class DesktopComposition
             window.BeginExit();
             playback.SleepTimer.SetQuitHandler(null);
             shell.ReleaseSongImport();
-            shell.ReleaseRadioPlayback(); radioStreams.Dispose();
+            player.ReleaseRadioMetadata();
+            shell.ReleaseRadioPlayback();
+            shell.ReleaseRadioServices();
+            radioStreams.Dispose();
             remoteFiles.Dispose();
             userLanguages.Dispose();
             playbackSettings.Dispose(); lyricsSettingsModule.Dispose(); performanceSettings.Dispose(); libraryAutomation.Dispose();
             broadcastSettings.Dispose(); await broadcast.DisposeAsync();
             if (backupSettings is not null) await backupSettings.DisposeAsync();
-            taskbar?.Dispose(); windowFeatures.Dispose(); settingsRuntime.Dispose(); webdavSettings.Dispose();
+            taskbar?.Dispose(); macosShell?.Dispose(); windowFeatures.Dispose(); settingsRuntime.Dispose(); webdavSettings.Dispose();
             floating.Dispose();
             try { await shortcuts.DisposeAsync(); } catch (Exception) { }
             try { if (preferences is not null) await preferences.DisposeAsync(); } catch (Exception) { }
@@ -164,6 +197,8 @@ public static class DesktopComposition
             window.ReleaseLyricsPage();
             try { if (listening is not null) await listening.DisposeAsync(); } catch (Exception) { }
             player.Detach();
+            try { if (podcastProgress is not null) await podcastProgress.DisposeAsync(); } catch (Exception) { }
+            podcastLibrary?.Dispose();
             playback.MediaDiagnosticChanged -= shell.SetMediaTransportDiagnostic;
             playback.PersistenceDiagnosticChanged -= player.SetPersistenceDiagnostic;
             try { if (ownsPlayback) await playback.DisposeAsync(); } catch (Exception) { }

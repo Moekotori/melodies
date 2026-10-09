@@ -24,8 +24,10 @@ public sealed class PlaybackRuntime : IAsyncDisposable
     public SleepTimerService SleepTimer { get; }
     public string? PersistenceError => Volatile.Read(ref persistenceError);
     public string? MediaError => Volatile.Read(ref mediaError);
+    public IMediaAccessory? Accessories => transport as IMediaAccessory;
     public event Action<string?>? PersistenceDiagnosticChanged;
     public event Action<string?>? MediaDiagnosticChanged;
+    public event Action<IReadOnlyList<string>>? FilesOpened;
 
     public PlaybackRuntime(INativeAudio native,
         Func<CancellationToken, Task<IPlaybackCheckpointStore>>? openStore = null, IMediaTransport? transport = null,
@@ -39,6 +41,7 @@ public sealed class PlaybackRuntime : IAsyncDisposable
         if (transport is not null)
         {
             transport.DiagnosticChanged += OnMediaDiagnostic;
+            if (transport is IMediaFileActivation files) files.FilesOpened += OnFilesOpened;
             media = new(LocalZone.Session, transport);
         }
     }
@@ -73,6 +76,7 @@ public sealed class PlaybackRuntime : IAsyncDisposable
     }
 
     private void OnQueueChanged(QueueSnapshot _) => saves.Writer.TryWrite(true);
+    private void OnFilesOpened(IReadOnlyList<string> paths) => FilesOpened?.Invoke(paths);
     private async Task RunSavesAsync()
     {
         await foreach (var signal in saves.Reader.ReadAllAsync().ConfigureAwait(false))
@@ -123,7 +127,11 @@ public sealed class PlaybackRuntime : IAsyncDisposable
         }
         finally
         {
-            if (transport is not null) transport.DiagnosticChanged -= OnMediaDiagnostic;
+            if (transport is not null)
+            {
+                transport.DiagnosticChanged -= OnMediaDiagnostic;
+                if (transport is IMediaFileActivation files) files.FilesOpened -= OnFilesOpened;
+            }
             LocalZone.Session.QueueChanged -= OnQueueChanged;
             saves.Writer.TryComplete();
             try
@@ -142,6 +150,7 @@ public sealed class PlaybackRuntime : IAsyncDisposable
                     if (store is not null) await store.DisposeAsync().ConfigureAwait(false);
                     PersistenceDiagnosticChanged = null;
                     MediaDiagnosticChanged = null;
+                    FilesOpened = null;
                 }
             }
         }

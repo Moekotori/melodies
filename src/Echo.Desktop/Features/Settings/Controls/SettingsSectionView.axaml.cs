@@ -17,6 +17,6 @@ public partial class SettingsSectionView : UserControl
         if (model.IsPlayback)
             ExtraContent.Content = new PlaybackSettingsView { DataContext = model.Shell };
         if (model.ActiveCategory.Id == "general" && model.UserLanguages is { } languages)
-        { UserLanguagesContent.Content = new UserLanguagesView { DataContext = languages }; UserLanguagesContent.IsVisible = true; }
+            UserLanguagesContent.Content = new UserLanguagesView { DataContext = languages };
     }
 }

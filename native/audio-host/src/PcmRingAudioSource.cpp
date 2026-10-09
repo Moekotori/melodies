@@ -1,4 +1,5 @@
 #include "PcmRingAudioSource.h"
+#include "WorkshopTransitionWindow.h"
 
 #include <algorithm>
 #include <cmath>
@@ -346,6 +347,7 @@ uint64_t PcmRingAudioSource::renderPlanarUnderLease(
     // closes admission and advances the generation after this callback began,
     // the callback must not enter the newly published FIFO epoch.
     const uint64_t renderGeneration = session_.generation();
+    auto* dualTrackMix = dualTrackMix_.load(std::memory_order_acquire);
     if (sessionPaused.load(std::memory_order_acquire))
         return 0;
 
@@ -450,6 +452,9 @@ uint64_t PcmRingAudioSource::renderPlanarUnderLease(
         outputOffset += framesRead;
     }
     currentFifo.releaseReadLease(currentReadLease);
+    if (framesReadTotal > 0) {
+        if (dualTrackMix) dualTrackMix->mix(renderBuffer, renderStartSample, static_cast<int>(framesReadTotal));
+    }
     if (gaplessActive && !transparentPassthrough && replayGainProcessor != nullptr && framesReadTotal > 0)
         replayGainProcessor->processBlock(renderBuffer, renderStartSample, static_cast<int>(framesReadTotal));
 #if defined(ECHO_AUDIO_ENGINE_TESTS) && ECHO_AUDIO_ENGINE_TESTS
@@ -485,6 +490,22 @@ uint64_t PcmRingAudioSource::renderPlanarUnderLease(
             : mainInputEnded ? std::max(framesReadTotal, automixFramesRead) : framesReadTotal)
         : framesReadTotal;
 
+    // Replace only the prepared window before the ordinary DSP chain.
+    // Both native decks still consume their source frames normally.
+    const auto* providerWindow = workshopWindow.load(std::memory_order_acquire);
+    if (providerWindow != nullptr && automixPlan.fadeActivated.load(std::memory_order_acquire)
+        && !automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
+    {
+        const uint64_t start = automixPlan.fadeStartFrame.load(std::memory_order_acquire);
+        for (uint64_t frame = 0; frame < renderedFrames; ++frame)
+        {
+            const uint64_t absolute = absoluteStartFrame + frame;
+            if (absolute < start || absolute - start >= providerWindow->frames) continue;
+            for (int channel = 0; channel < renderBuffer.getNumChannels(); ++channel)
+                renderBuffer.getWritePointer(channel, renderStartSample)[frame] =
+                    providerWindow->samples[(absolute - start) * providerWindow->channels + channel];
+        }
+    }
     if (renderedFrames > 0)
         sourceTrackFrames.fetch_add(renderedFrames, std::memory_order_relaxed);
 
@@ -866,7 +887,7 @@ uint64_t PcmRingAudioSource::prepareAutomixDeck(
     double vocalEntryStartProgress,
     AutomixHandoffSchedule handoffSchedule)
 {
-    if (overlapFrames == 0 || session_.isStopRequested())
+    if (session_.isStopRequested())
         return 0;
     // Fade frames live on the host's monotonic render clock. A stale plan can
     // otherwise activate immediately (for example after a previous autonomous
@@ -902,7 +923,7 @@ uint64_t PcmRingAudioSource::prepareAutomixDeck(
     deckAudioAvailable[static_cast<size_t>(nextDeckSlot)].store(false, std::memory_order_release);
     pendingAutomixDeckLease.store(deckLease, std::memory_order_release);
 
-    const auto safeOverlapFrames = std::max<uint64_t>(1, overlapFrames);
+    const auto safeOverlapFrames = overlapFrames;
     const auto releaseFrames = std::max<uint64_t>(1, safeOverlapFrames / 2);
     automixPlan.gapless.store(false, std::memory_order_release);
     gaplessBoundaryFrame.store(UINT64_MAX, std::memory_order_release);
@@ -942,6 +963,31 @@ uint64_t PcmRingAudioSource::prepareAutomixDeck(
             echoFeedback);
     automixPlan.enabled.store(true, std::memory_order_release);
     return deckLease;
+}
+
+void PcmRingAudioSource::installDualTrackMix(std::shared_ptr<DualTrackMixBuffer> mix)
+{
+    std::shared_ptr<DualTrackMixBuffer> retired;
+    {
+        echo_audio_host::RenderEpoch::QuiescenceGuard renderQuiescence(renderEpoch);
+        retired = std::move(dualTrackMixOwner_);
+        dualTrackMixOwner_ = std::move(mix);
+        dualTrackMix_.store(dualTrackMixOwner_.get(), std::memory_order_release);
+    }
+    // Release the fixed ring on the control thread, after all old render leases leave.
+}
+
+void PcmRingAudioSource::installWorkshopTransitionWindow(std::shared_ptr<const WorkshopTransitionWindow> window)
+{
+    std::shared_ptr<const WorkshopTransitionWindow> retired;
+    {
+        echo_audio_host::RenderEpoch::QuiescenceGuard renderQuiescence(renderEpoch);
+        retired = std::move(workshopWindowOwner);
+        workshopWindowOwner = std::move(window);
+        workshopDeadlineMissed.store(false, std::memory_order_release);
+        workshopWindow.store(workshopWindowOwner.get(), std::memory_order_release);
+    }
+    // Release the potentially large vector on this control thread.
 }
 
 bool PcmRingAudioSource::commitAutomixDeck(uint64_t deckLease)
@@ -1753,6 +1799,13 @@ void PcmRingAudioSource::activateAutomixFadeIfReady(uint64_t absoluteStartFrame,
     }
 
     const uint64_t nextLease = pendingAutomixDeckLease.load(std::memory_order_acquire);
+    if (workshopWindow.load(std::memory_order_acquire) != nullptr
+        && (!reachedPlannedWindow || absoluteStartFrame > plannedFadeStartFrame || nextLease == 0
+            || fifoForDeck(static_cast<int>(nextLease & 1u)).getNumReady() <= 0))
+    {
+        workshopDeadlineMissed.store(true, std::memory_order_release);
+        return;
+    }
     if (nextLease == 0
         || fifoForDeck(static_cast<int>(nextLease & 1u)).getNumReady() <= 0)
         return;
@@ -1762,7 +1815,7 @@ void PcmRingAudioSource::activateAutomixFadeIfReady(uint64_t absoluteStartFrame,
         : reachedActivationWindow && echoThrowArmed
             ? plannedFadeStartFrame
             : absoluteStartFrame;
-    const uint64_t overlapFrames = std::max<uint64_t>(1, automixPlan.overlapFrames.load(std::memory_order_acquire));
+    const uint64_t overlapFrames = automixPlan.overlapFrames.load(std::memory_order_acquire);
     const uint64_t releaseFrames = std::max<uint64_t>(
         1,
         automixPlan.gainReleaseEndFrame.load(std::memory_order_acquire)
@@ -2298,6 +2351,12 @@ void PcmRingAudioSource::copyToOutput(
                 / std::max(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
             const float envelope = currentAutomixEnvelope(absoluteFrame)
                 * promotedDeckGainEnvelope(absoluteFrame);
+            if (workshopWindow.load(std::memory_order_acquire) != nullptr
+                && absoluteFrame < automixPlan.fadeStartFrame.load(std::memory_order_acquire))
+            {
+                destination[frame] = sample;
+                continue;
+            }
             if (shapedHandoff)
             {
                 lowState += lowPassCoefficient * (sample - lowState);
@@ -2433,7 +2492,11 @@ void PcmRingAudioSource::addAutomixToOutput(
             }
             else
             {
-                destination[frame] += sample * deckReplayGain * envelope;
+                if (workshopWindow.load(std::memory_order_acquire) != nullptr
+                    && absoluteFrame >= automixPlan.fadeEndFrame.load(std::memory_order_acquire))
+                    destination[frame] = sample;
+                else
+                    destination[frame] += sample * deckReplayGain * envelope;
             }
         }
     }

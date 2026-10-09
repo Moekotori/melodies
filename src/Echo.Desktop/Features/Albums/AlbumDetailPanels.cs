@@ -31,18 +31,24 @@ public partial class AlbumDetailView
                 foreach (var item in page.Items)
                 {
                     request.Token.ThrowIfCancellationRequested();
-                    var body = new StackPanel { Spacing = 10, Width = 170 };
-                    var image = new Image { Width = 170, Height = 170, Stretch = Avalonia.Media.Stretch.Uniform };
+                    var body = new StackPanel { Spacing = 0, Width = 168 };
+                    var image = new Image { Width = 168, Height = 126, Stretch = Avalonia.Media.Stretch.UniformToFill };
                     if (item.IsImage)
                     {
                         var lease = await _artwork!.AcquireAsync(item.Path, request.Token);
                         if (_closed || generation != _panelGeneration) { lease?.Dispose(); return; }
                         if (lease is not null) { _attachments.Add(lease); image.Source = lease.Image; }
                     }
-                    else body.Children.Add(new TextBlock { Text = System.IO.Path.GetExtension(item.Path).ToUpperInvariant(), Height = 170, FontSize = 28 });
+                    else body.Children.Add(new TextBlock { Text = System.IO.Path.GetExtension(item.Path).ToUpperInvariant(), Height = 126, FontSize = 22, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
                     if (item.IsImage) body.Children.Add(image);
-                    body.Children.Add(new TextBlock { Text = item.Name, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis });
-                    var button = new Button { Content = body, Padding = new(0), Margin = new(0, 0, 20, 20) };
+                    body.Children.Add(new TextBlock { Text = item.Name, FontSize = 11, Margin = new(10, 9), TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis });
+                    var card = new Border
+                    {
+                        Child = body, CornerRadius = new(13), ClipToBounds = true, BorderThickness = new(1), Margin = new(0, 0, 12, 12),
+                        BorderBrush = this.TryFindResource("EchoBorder", out var border) ? border as Avalonia.Media.IBrush : null,
+                        Background = this.TryFindResource("EchoField", out var fill) ? fill as Avalonia.Media.IBrush : null
+                    };
+                    var button = new Button { Content = card, Padding = new(0), Background = Avalonia.Media.Brushes.Transparent };
                     ToolTip.SetTip(button, $"打开 {item.Name}"); button.Click += async (_, _) => await OpenResourceAsync(item.Path);
                     Attachments.Children.Add(button);
                 }

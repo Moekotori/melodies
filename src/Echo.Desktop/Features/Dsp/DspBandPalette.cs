@@ -4,9 +4,9 @@ namespace Echo.Desktop.Features.Dsp;
 
 internal static class DspBandPalette
 {
-    private static readonly IBrush[] Colors = [new SolidColorBrush(Color.Parse("#4f9cbc")),
-        new SolidColorBrush(Color.Parse("#bd9851")), new SolidColorBrush(Color.Parse("#9667c1")),
-        new SolidColorBrush(Color.Parse("#599e91")), new SolidColorBrush(Color.Parse("#c17b84")),
-        new SolidColorBrush(Color.Parse("#6489c6"))];
-    public static IBrush Brush(int index) => Colors[Math.Clamp(index / 5, 0, Colors.Length - 1)];
+    private static readonly IBrush[] Colors = [new SolidColorBrush(Color.Parse("#5C6FE6")),
+        new SolidColorBrush(Color.Parse("#3C9EAE")), new SolidColorBrush(Color.Parse("#3E9A6E")),
+        new SolidColorBrush(Color.Parse("#C4923A")), new SolidColorBrush(Color.Parse("#D16B78")),
+        new SolidColorBrush(Color.Parse("#8B68D6")), new SolidColorBrush(Color.Parse("#5E86D4"))];
+    public static IBrush Brush(int index) => Colors[((index % Colors.Length) + Colors.Length) % Colors.Length];
 }

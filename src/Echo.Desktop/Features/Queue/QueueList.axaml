@@ -6,7 +6,7 @@
       <Setter Property="Background" Value="{DynamicResource EchoRow}" />
       <Setter Property="Template">
         <ControlTemplate>
-          <Border Name="RowSelection" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+          <Border Name="RowSelection" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
             <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
           </Border>
         </ControlTemplate>
@@ -24,12 +24,21 @@
     <Style Selector="queue|QueueList.compact icon|GlyphIcon.fullColumn"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector="queue|QueueList.compact queue|QueueArtwork"><Setter Property="Width" Value="40" /><Setter Property="Height" Value="40" /></Style>
     <Style Selector="Border.current"><Setter Property="Background" Value="{DynamicResource EchoQueueActive}" /></Style>
+    <Style Selector="Border.current TextBlock.track-title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Border.upcoming-mark"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Width" Value="3" /><Setter Property="CornerRadius" Value="2" /><Setter Property="Margin" Value="-4,8,0,8" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="IsHitTestVisible" Value="False" /></Style>
+    <Style Selector="StackPanel.row-actions"><Setter Property="Opacity" Value="0" /></Style>
+    <Style Selector="ListBoxItem:pointerover StackPanel.row-actions"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="ListBoxItem:focus-within StackPanel.row-actions"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="Border.current StackPanel.row-actions"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="queue|QueueList:not(.drawer) ListBoxItem"><Setter Property="Margin" Value="0,1" /></Style>
     <Style Selector="ListBoxItem"><Setter Property="Theme" Value="{StaticResource QueueItemTheme}" /><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="64" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
     <Style Selector="queue|QueueList.compact ListBoxItem"><Setter Property="MinHeight" Value="62" /></Style>
     <Style Selector="queue|QueueList.drawer queue|QueueColumnsGrid"><Setter Property="Drawer" Value="True" /></Style>
     <Style Selector="queue|QueueList.drawer ListBoxItem"><Setter Property="MinHeight" Value="58" /></Style>
     <Style Selector="queue|QueueList.drawer Border.queue-row"><Setter Property="Padding" Value="4,7" /></Style>
-    <Style Selector="queue|QueueList.drawer queue|QueueColumnsGrid.list-heading"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector="queue|QueueList.drawer Border.list-heading"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector="queue|QueueList:not(.drawer) icon|GlyphIcon.row-grip"><Setter Property="Opacity" Value="0" /></Style>
+    <Style Selector="queue|QueueList:not(.drawer) ListBoxItem:pointerover icon|GlyphIcon.row-grip"><Setter Property="Opacity" Value="0.45" /></Style>
     <Style Selector="queue|QueueList.drawer TextBlock.drawer-detail"><Setter Property="IsVisible" Value="True" /></Style>
     <Style Selector="queue|QueueList.drawer icon|GlyphIcon.drawer-grip"><Setter Property="IsVisible" Value="True" /></Style>
     <Style Selector="queue|QueueList.drawer StackPanel.row-actions"><Setter Property="IsVisible" Value="False" /></Style>
@@ -39,13 +48,15 @@
     <Style Selector="ListBoxItem.dropTarget.dropAfter /template/ Border#RowSelection"><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
   </UserControl.Styles>
   <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
-    <queue:QueueColumnsGrid Classes="list-heading" Margin="12,0,12,4">
-      <TextBlock Grid.Column="1" Text="#" Classes="muted fullColumn" FontSize="10" />
-      <TextBlock Grid.Column="3" Text="{DynamicResource ui.AlbumDetailView.739ed1896dcd}" Classes="muted" FontSize="10" />
-      <TextBlock Grid.Column="4" Text="{DynamicResource ui.AlbumDetailView.eb11dd93ee99}" Classes="muted fullColumn" FontSize="11" />
-      <TextBlock Grid.Column="5" Text="{Binding SourceHeading}" Classes="muted fullColumn" FontSize="10" />
-      <TextBlock Grid.Column="6" Text="{DynamicResource ui.AlbumDetailView.04a95e0654d3}" Classes="muted fullColumn" FontSize="10" HorizontalAlignment="Right" />
-    </queue:QueueColumnsGrid>
+    <Border Classes="list-heading" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="10,0,10,8" Margin="0,0,0,4">
+      <queue:QueueColumnsGrid>
+        <TextBlock Grid.Column="1" Text="#" Classes="muted fullColumn" FontSize="11" />
+        <TextBlock Grid.Column="3" Text="{DynamicResource ui.AlbumDetailView.739ed1896dcd}" Classes="muted" FontSize="11" />
+        <TextBlock Grid.Column="4" Text="{DynamicResource ui.AlbumDetailView.eb11dd93ee99}" Classes="muted fullColumn" FontSize="11" />
+        <TextBlock Grid.Column="5" Text="{Binding SourceHeading}" Classes="muted fullColumn" FontSize="11" />
+        <TextBlock Grid.Column="6" Text="{DynamicResource ui.AlbumDetailView.04a95e0654d3}" Classes="muted fullColumn" FontSize="11" HorizontalAlignment="Right" />
+      </queue:QueueColumnsGrid>
+    </Border>
     <ListBox Name="Tracks" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0"
              SelectionMode="Multiple" DoubleTapped="OnPlay" SelectionChanged="OnSelectionChanged" KeyDown="OnKeyDown"
              ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
@@ -53,34 +64,41 @@
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="queue:QueueRowViewModel">
           <Border Padding="10,7" Classes="queue-row" Classes.current="{Binding IsCurrent}">
+            <Grid>
+            <Border Classes="upcoming-mark" IsVisible="{Binding IsUpcoming}" />
             <queue:QueueColumnsGrid VerticalAlignment="Center">
-              <icon:GlyphIcon Kind="grip" Width="14" Height="16" Opacity="0.5" Classes="fullColumn drawer-grip" Cursor="SizeNorthSouth" />
+              <icon:GlyphIcon Kind="grip" Width="14" Height="16" Classes="row-grip fullColumn drawer-grip" Cursor="SizeNorthSouth" />
               <Grid Grid.Column="1"><TextBlock Text="{Binding VisibleNumber}" Classes="muted fullColumn" FontSize="11" VerticalAlignment="Center" /><icon:GlyphIcon Kind="music-stat" Width="14" Height="14" Stroke="{DynamicResource EchoAccentText}" IsVisible="{Binding IsCurrent}" /></Grid>
               <queue:QueueArtwork Grid.Column="2" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding ArtworkPath}" Cache="{Binding Artwork}" />
               <StackPanel Grid.Column="3" Spacing="3" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Title}" Classes="heading" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="11.5" MaxWidth="220" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding State}" IsVisible="{Binding HasBadge}" Foreground="{DynamicResource EchoAccentText}" FontSize="10" /></StackPanel>
+                <TextBlock Text="{Binding Title}" Classes="heading track-title" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="12" MaxWidth="240" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /><Border Classes="queue-state" IsVisible="{Binding HasBadge}"><TextBlock Text="{Binding State}" /></Border></StackPanel>
               </StackPanel>
-              <StackPanel Grid.Column="4" Classes="fullColumn" Spacing="4" VerticalAlignment="Center"><Border Classes="queue-chip" HorizontalAlignment="Left"><TextBlock Text="{Binding Quality}" Foreground="{DynamicResource EchoAccentText}" FontSize="10" FontWeight="SemiBold" /></Border><TextBlock Text="{Binding AudioDetail}" Classes="muted" FontSize="10" /></StackPanel>
-              <TextBlock Grid.Column="5" Text="{Binding Source}" Classes="muted fullColumn drawer-detail" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              <TextBlock Grid.Column="6" Text="{Binding Duration}" Classes="muted fullColumn drawer-detail" FontSize="10.5" VerticalAlignment="Center" HorizontalAlignment="Right" />
+              <StackPanel Grid.Column="4" Classes="fullColumn" Spacing="2" VerticalAlignment="Center"><TextBlock Text="{Binding Quality}" Foreground="{DynamicResource EchoAccentText}" FontSize="11" FontWeight="SemiBold" /><TextBlock Text="{Binding AudioDetail}" Classes="muted" FontSize="10" /></StackPanel>
+              <TextBlock Grid.Column="5" Text="{Binding Source}" Classes="muted fullColumn drawer-detail" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="6" Text="{Binding Duration}" Classes="muted fullColumn drawer-detail" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" HorizontalAlignment="Right" />
               <StackPanel Grid.Column="7" Classes="row-actions" Orientation="Horizontal" Spacing="2"><Button Classes="icon" Click="OnRowPlay" ToolTip.Tip="{DynamicResource ui.AlbumTrackRow.79aaf3909d9f}"><icon:GlyphIcon Kind="play" Width="14" Height="14" /></Button><Button Classes="icon" Click="OnRowMenu" ToolTip.Tip="{DynamicResource ui.QueueList.7bbb8a858f8c}"><icon:EchoIcon Scope="player" Kind="more" Width="17" Height="17" /></Button></StackPanel>
               <Button Grid.Column="7" Classes="icon drawer-remove" Click="OnRowRemove" ToolTip.Tip="{DynamicResource ui.QueueList.6135d4159e89}" AutomationProperties.Name="{DynamicResource ui.QueueList.6135d4159e89}"><icon:GlyphIcon Kind="close" Width="12" Height="12" /></Button>
             </queue:QueueColumnsGrid>
+            </Grid>
           </Border>
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>
-    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" IsHitTestVisible="False">
-      <icon:GlyphIcon Kind="queue" Width="36" Height="36" HorizontalAlignment="Center" />
+    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" IsHitTestVisible="False">
+      <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" HorizontalAlignment="Center">
+        <icon:GlyphIcon Kind="queue" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
       <TextBlock Text="{Binding EmptyTitle}" Classes="heading" FontSize="18" HorizontalAlignment="Center" />
-      <TextBlock Text="{Binding EmptyHint}" Classes="muted" FontSize="12" MaxWidth="320" TextWrapping="Wrap" TextAlignment="Center" />
+      <TextBlock Text="{Binding EmptyHint}" Classes="muted" FontSize="12" MaxWidth="280" TextWrapping="Wrap" TextAlignment="Center" />
     </StackPanel>
-    <WrapPanel Grid.Row="2" IsVisible="{Binding HasSelection}" IsEnabled="{Binding !IsBusy}">
-      <TextBlock Text="{Binding SelectionText}" Classes="muted" FontSize="12" VerticalAlignment="Center" Margin="8,0" />
-      <Button Content="{DynamicResource ui.AlbumDetailView.94ca0a7bf933}" Command="{Binding MoveNextCommand}" />
-      <Button Content="{DynamicResource ui.QueueList.315cf5772a85}" Command="{Binding RemoveAfterPlayCommand}" />
-      <Button Content="{DynamicResource ui.QueueList.6135d4159e89}" Command="{Binding RemoveSelectedCommand}" />
-    </WrapPanel>
+    <Border Grid.Row="2" Classes="queue-selection" IsVisible="{Binding HasSelection}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Left">
+      <WrapPanel>
+        <TextBlock Text="{Binding SelectionText}" Classes="muted" FontSize="12" VerticalAlignment="Center" Margin="6,0,4,0" />
+        <Button Classes="queue-tool" Content="{DynamicResource ui.AlbumDetailView.94ca0a7bf933}" Command="{Binding MoveNextCommand}" />
+        <Button Classes="queue-tool" Content="{DynamicResource ui.QueueList.315cf5772a85}" Command="{Binding RemoveAfterPlayCommand}" />
+        <Button Classes="queue-tool" Content="{DynamicResource ui.QueueList.6135d4159e89}" Command="{Binding RemoveSelectedCommand}" />
+      </WrapPanel>
+    </Border>
   </Grid>
 </UserControl>

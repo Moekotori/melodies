@@ -16,6 +16,8 @@ public sealed partial class RemoteViewModel
     [ObservableProperty] private string draftRootPath = "/";
     [ObservableProperty] private string draftClientId = "";
     private OneDriveTokens? draftAuthorization;
+    [ObservableProperty] private bool draftSyncIndex = true;
+    public bool CanSync => SelectedSource?.SyncMode == "index" && !IsBusy;
     public IReadOnlyList<RemoteProviderChoice> ProviderChoices { get; private set; } = [];
     public IReadOnlyList<RemoteAuthChoice> AuthChoices { get; private set; } = [];
     public bool IsMounted => RemoteProviders.IsMounted(DraftProvider);
@@ -57,19 +59,20 @@ public sealed partial class RemoteViewModel
     {
         if (IsBusy || id is null || !RemoteProviders.All.Contains(id)) return;
         editingId = null; DraftProvider = id; DraftAuth = AuthChoices[0]; DraftName = ""; DraftUrl = ""; DraftUser = ""; DraftPassword = "";
-        DraftUserId = ""; DraftRootPath = "/"; DraftClientId = shell.OneDriveClientId; draftAuthorization = null;
+        DraftUserId = ""; DraftRootPath = "/"; DraftSyncIndex = id != "onedrive"; DraftClientId = shell.OneDriveClientId; draftAuthorization = null;
         ProviderPickerOpen = false; EditorError = ""; RefreshProviderState(); EditorOpen = true;
     }
     [RelayCommand] private void CloseProviderPicker() => ProviderPickerOpen = false;
     private void RestoreProvider(RemoteConnection source)
     {
         DraftProvider = source.Provider; DraftAuth = AuthChoices.FirstOrDefault(x => x.Id == source.AuthMode) ?? AuthChoices[0];
-        DraftUserId = source.UserId; DraftRootPath = source.RootPath; DraftClientId = source.OneDrive?.ClientId ?? shell.OneDriveClientId;
+        DraftUserId = source.UserId; DraftRootPath = source.RootPath; DraftSyncIndex = source.SyncMode == "index"; DraftClientId = source.OneDrive?.ClientId ?? shell.OneDriveClientId;
         draftAuthorization = source.OneDrive; RefreshProviderState();
     }
     private RemoteConnection DraftConnection(string id) => new(id, DraftName,
         IsOneDrive ? "https://graph.microsoft.com/v1.0/" : DraftUrl, IsMounted || IsOneDrive ? "" : DraftUser,
-        IsMounted || IsOneDrive ? "" : DraftPassword, DraftProvider, DraftAuth?.Id ?? "password", DraftUserId, DraftRootPath, draftAuthorization);
+        IsMounted || IsOneDrive ? "" : DraftPassword, DraftProvider, DraftAuth?.Id ?? "password", DraftUserId, DraftRootPath, draftAuthorization,
+        DraftSyncIndex ? "index" : "browse");
     public Task AuthorizeOneDriveAsync(Func<Uri, CancellationToken, Task> openBrowser) => RunAsync(async token =>
     {
         if (!IsOneDrive || shell.RemoteAuthorization is null) throw new IOException("OneDrive 登录服务尚未装配。");

@@ -22,7 +22,9 @@ public sealed partial class PlaybackSessionCoordinator
                 if (KnownSourceRate(track) is not null) continue;
                 try
                 {
-                    var rate = await sourceProbe.ReadSampleRateAsync(track.Source ?? AudioSource.Local(track.FilePath), budget.Token).ConfigureAwait(false);
+                    var playable = AudioSource.Playable(track);
+                    if (playable.Kind == "remote") continue;
+                    var rate = await sourceProbe.ReadSampleRateAsync(playable, budget.Token).ConfigureAwait(false);
                     if (rate is > 0) RememberSourceRate(track, rate.Value);
                 }
                 catch (OperationCanceledException) when (budget.IsCancellationRequested) { break; }

@@ -40,7 +40,22 @@
       </Grid></Grid>
       <Button Name="LibraryButton" Grid.Column="1" Classes="icon" ToolTip.Tip="{DynamicResource query.actions}" VerticalAlignment="Center">
         <icon:GlyphIcon Kind="more" Width="18" Height="18" />
-        <Button.Flyout><MenuFlyout><MenuItem Header="{DynamicResource query.moreFilters}" Click="OnAdvancedFilters" /><Separator /><MenuItem Header="{DynamicResource query.import}" Click="OnImport" /><MenuItem Header="{DynamicResource query.refresh}" Command="{Binding RefreshCommand}" /><Separator /><MenuItem Header="{DynamicResource query.play}" Command="{Binding PlayCommand}" /><Separator /><MenuItem Header="{DynamicResource query.previous}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" /><MenuItem Header="{DynamicResource query.next}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" /></MenuFlyout></Button.Flyout>
+        <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterClasses="libraryPopup"><StackPanel Width="248" Margin="8" Spacing="2">
+          <TextBlock Text="{DynamicResource songs.layout}" Classes="muted" FontSize="11" Margin="8,4,0,6" />
+          <Grid ColumnDefinitions="*,*,*" ColumnSpacing="2" Margin="0,0,0,6">
+            <Button Grid.Column="0" Tag="list" Classes="layoutChoice" Classes.active="{Binding IsListLayout}" Content="{DynamicResource songs.layout.list}" ToolTip.Tip="{DynamicResource songs.layout.listHint}" Click="OnLayoutPick" />
+            <Button Grid.Column="1" Tag="split" Classes="layoutChoice" Classes.active="{Binding IsSplitLayout}" Content="{DynamicResource songs.layout.split}" ToolTip.Tip="{DynamicResource songs.layout.splitHint}" Click="OnLayoutPick" />
+            <Button Grid.Column="2" Tag="dense" Classes="layoutChoice" Classes.active="{Binding IsDenseLayout}" Content="{DynamicResource songs.layout.dense}" ToolTip.Tip="{DynamicResource songs.layout.denseHint}" Click="OnLayoutPick" />
+          </Grid>
+          <Button Classes="songTool" Classes.active="{Binding Alphabet}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnAlphabetToggle" ToolTip.Tip="{DynamicResource songs.alphabetHint}" Content="{DynamicResource songs.alphabet}" />
+          <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="0,4,0,6" />
+          <Button Classes="songTool" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="{DynamicResource query.moreFilters}" Click="OnAdvancedFilters" />
+          <Button Classes="songTool" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="{DynamicResource query.import}" Click="OnImport" />
+          <Button Classes="songTool" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="{DynamicResource query.refresh}" Command="{Binding RefreshCommand}" />
+          <Button Classes="songTool" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="{DynamicResource query.play}" Command="{Binding PlayCommand}" />
+          <Button Classes="songTool" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="{DynamicResource query.previous}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" />
+          <Button Classes="songTool" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="{DynamicResource query.next}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" />
+        </StackPanel></Flyout></Button.Flyout>
       </Button>
       <Button Name="FilterButton" Grid.Column="2" Classes="songTool" Classes.active="{Binding Filters.HasActive}" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource query.filters}">
         <StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="filter" Width="16" Height="16" /><TextBlock Text="{DynamicResource query.filters}" VerticalAlignment="Center" /><TextBlock Text="{Binding Filters.ActiveCount}" FontSize="10" VerticalAlignment="Center" IsVisible="{Binding Filters.HasActive}" /><icon:GlyphIcon Kind="chevron-down" Width="10" Height="10" Stroke="{DynamicResource EchoMuted}" /></StackPanel>
@@ -53,11 +68,28 @@
       <TextBlock Name="ImportStatus" Classes="muted" TextWrapping="Wrap" IsVisible="False" />
       <Button Name="CancelImport" Content="{DynamicResource query.cancel}" Click="OnCancelImport" IsVisible="False" HorizontalAlignment="Left" />
     </StackPanel>
-    <Grid Grid.Row="3">
-      <icon:WaveformScrollBar Target="{Binding #TrackList}" Width="24" HorizontalAlignment="Right" IsVisible="{Binding $parent[local:SongsView].Appearance.WaveformScrollbar}" ZIndex="2" AutomationProperties.Name="波形滚动条" />
+    <Grid Name="Workspace" Grid.Row="3">
+      <Grid Name="ListPane" RowDefinitions="Auto,*">
+      <Grid>
+        <Grid Name="DenseHeader" ColumnDefinitions="*,*,*,110,56" ColumnSpacing="10" Margin="4,0,8,4" Height="28" IsVisible="{Binding IsDenseLayout}">
+          <TextBlock Text="{DynamicResource query.sort.Title}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="{DynamicResource query.sort.Artist}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <TextBlock Name="DenseAlbumHeader" Grid.Column="2" Text="{DynamicResource query.sort.Album}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <TextBlock Name="DenseSpecHeader" Grid.Column="3" Text="{DynamicResource songs.column.spec}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <TextBlock Name="DenseDurationHeader" Grid.Column="4" Text="{DynamicResource query.sort.Duration}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
+        </Grid>
+        <Grid Name="SplitHeader" ColumnDefinitions="44,*,*,56" ColumnSpacing="12" Margin="8,0,8,4" Height="28" IsVisible="{Binding IsSplitLayout}">
+          <TextBlock Grid.Column="1" Text="{DynamicResource query.sort.Title}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="{DynamicResource query.sort.Artist}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="3" Text="{DynamicResource query.sort.Duration}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
+        </Grid>
+      </Grid>
+      <Grid Grid.Row="1">
+      <icon:WaveformScrollBar Name="Waveform" Target="{Binding #TrackList}" Width="24" HorizontalAlignment="Right" IsVisible="False" ZIndex="2" AutomationProperties.Name="波形滚动条" />
+      <local:SongsAlphabetRail Name="AlphabetRail" IsVisible="{Binding Alphabet}" ActiveLetter="{Binding AlphabetLetter}" HorizontalAlignment="Right" VerticalAlignment="Stretch" ZIndex="3" AutomationProperties.Name="{DynamicResource songs.alphabet}" />
       <ListBox Name="TrackList" Classes="songList" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected, Mode=TwoWay}" DoubleTapped="OnDoubleTapped" KeyDown="OnTrackKey" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
-        <ListBox.ItemTemplate><DataTemplate x:DataType="library:TrackRow"><local:SongTrackRow Artwork="{Binding $parent[local:SongsView].Artwork}" Player="{Binding $parent[local:SongsView].Player}" /></DataTemplate></ListBox.ItemTemplate>
+        <ListBox.ItemTemplate><DataTemplate x:DataType="library:TrackRow"><local:SongTrackRow Layout="{Binding $parent[local:SongsView].Layout}" Artwork="{Binding $parent[local:SongsView].Artwork}" Player="{Binding $parent[local:SongsView].Player}" /></DataTemplate></ListBox.ItemTemplate>
       </ListBox>
       <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="360" Margin="0,0,0,0">
         <icon:GlyphIcon Kind="search" Width="26" Height="26" HorizontalAlignment="Center" Stroke="{DynamicResource EchoSubtle}" />
@@ -65,6 +97,9 @@
         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center"><Button Name="ResetQueryButton" Content="{DynamicResource songs.resetQuery}" Command="{Binding ResetQueryCommand}" Classes="songTool" IsVisible="{Binding HasQuery}" /><Button Content="{DynamicResource query.import}" Click="OnImport" Classes="songTool" /></StackPanel>
       </StackPanel>
       <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" Height="2" VerticalAlignment="Top" />
+      </Grid>
+      </Grid>
+      <local:SongsTrackInspector Name="Inspector" IsVisible="False" />
     </Grid>
   </Grid>
 </UserControl>

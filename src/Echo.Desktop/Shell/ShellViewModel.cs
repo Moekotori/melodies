@@ -17,7 +17,7 @@ public sealed partial class ShellViewModel : ObservableObject
         new("albums", "专辑", "library"), new("album-artists", "专辑艺术家", "library"),
         new("folders", "文件夹", "library"), new("playlists", "收藏与歌单", "library")];
     public ObservableCollection<NavigationItem> SourceItems { get; } = [
-        new("remote", "网盘 / 远程", "sources"), new("radio", "电台", "sources"),
+        new("remote", "网盘 / 远程", "sources"), new("connect", "连接", "sources"), new("radio", "电台", "sources"), new("podcasts", "播客", "sources"),
         new("workshop", "创意工坊", "sources"), new("dsp", "音效处理", "sources")];
     public ObservableCollection<NavigationItem> PlaybackItems { get; } = [
         new("queue", "队列", "playback"), new("history", "历史", "playback"),
@@ -70,7 +70,7 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(RecentEmptyTitle)); OnPropertyChanged(nameof(RecentEmptyDescription));
         OnPropertyChanged(nameof(QuickSettingsTitle));
     }
-    public void ReleaseLocalization() { LibraryItems.CollectionChanged -= SidebarLibraryChanged; FeaturePreferences.Changed -= OnResidencyPreferencesChanged; Shortcuts.Dispose(); Text.Changed -= RefreshLanguage; Motion.ReleaseLocalization(); LyricsAppearance.ReleaseLocalization(); }
+    public void ReleaseLocalization() { DisposeConnect(); LibraryItems.CollectionChanged -= SidebarLibraryChanged; FeaturePreferences.Changed -= OnResidencyPreferencesChanged; Shortcuts.Dispose(); Text.Changed -= RefreshLanguage; Motion.ReleaseLocalization(); LyricsAppearance.ReleaseLocalization(); }
 
     [RelayCommand]
     private void Navigate(string? id)

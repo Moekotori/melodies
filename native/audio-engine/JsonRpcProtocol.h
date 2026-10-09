@@ -33,6 +33,8 @@ public:
         double startSeconds,
         nlohmann::json& result)>;
     static void setOpenSourceCallback(OpenSourceCallback callback);
+    using MixBalanceCallback = std::function<bool(const nlohmann::json&, nlohmann::json&)>;
+    static void setMixBalanceCallback(MixBalanceCallback callback);
 
     using PauseCallback = std::function<bool(bool pause, uint64_t expectedOperationId)>;
     static void setPauseCallback(PauseCallback callback);
@@ -90,6 +92,7 @@ private:
     static WriteCallback writeCallback;
     static OpenFileCallback openFileCallback;
     static OpenSourceCallback openSourceCallback;
+    static MixBalanceCallback mixBalanceCallback;
     static PauseCallback pauseCallback;
     static SeekCallback seekCallback;
     static StopCallback stopCallback;

@@ -5,20 +5,20 @@ namespace Echo.Desktop.Features.Settings.Catalog;
 public static partial class SettingsCatalog
 {
     private static IReadOnlyList<SettingsSectionDefinition> Integrations() => [
-        Section("状态展示与直播输出", Toggle("discord-presence", "Discord 状态"), Toggle("obs-browser-source", "浏览器源输出"), Toggle("stage-api", "Stage API"),
+        InTab("状态与联动", "状态展示与直播输出", Toggle("discord-presence", "Discord 状态"), Toggle("obs-browser-source", "浏览器源输出"), Toggle("stage-api", "Stage API"),
             Action("broadcast-links", "直播输出地址", "复制浏览器源地址", "复制状态接口地址", "查看状态")),
-        Section("Windows 媒体与任务栏", Action("smtc", "Windows 媒体控件", "重启 SMTC"), Toggle("smtc-lyrics", "SMTC 歌词显示"),
+        InTab("状态与联动", "Windows 媒体与任务栏", Action("smtc", "Windows 媒体控件", "重启 SMTC"), Toggle("smtc-lyrics", "SMTC 歌词显示"),
             Toggle("taskbar-mini-player", "任务栏迷你播放器", true), Action("taskbar-mini-player-advanced", "高级设置", "展开"),
             Toggle("taskbar-progress-enabled", "显示任务栏播放进度", true),
             Action("taskbar-playback", "任务栏播放进度", "刷新状态")),
-        Section("网络代理", Select("network-proxy", "网络代理", "关闭", "关闭", "系统代理", "手动代理")),
-        Section("Last.fm 记录", Toggle("lastfm", "Last.fm"), Action("lastfm-connection", "Last.fm 连接", "连接 Last.fm", "刷新状态"),
+        InTab("状态与联动", "移动设备联动", Action("connect", "Echo Link", "连接设备")),
+        InTab("状态与联动", "OBS WebSocket", Action("obs-websocket", "OBS WebSocket", "配置连接")),
+        InTab("状态与联动", "Bitfocus Companion", Action("companion", "Bitfocus Companion", "配置连接")),
+        InTab("听歌记录", "Last.fm 记录", Toggle("lastfm", "Last.fm"), Action("lastfm-connection", "Last.fm 连接", "连接 Last.fm", "刷新状态"),
             Toggle("lastfm-now-playing", "Last.fm Now Playing", true), Toggle("lastfm-scrobbling", "Last.fm Scrobbling", true)),
-        Section("ListenBrainz 记录", Toggle("listenbrainz", "ListenBrainz"), Action("listenbrainz-connection", "用户令牌", "配置令牌")),
-        Section("移动设备联动", Action("connect", "Echo Link", "连接设备")),
-        Section("OBS WebSocket", Action("obs-websocket", "OBS WebSocket", "配置连接")),
-        Section("Bitfocus Companion", Action("companion", "Bitfocus Companion", "配置连接")),
-        Section("网络与隐私", Toggle("disable-network-access", "禁用网络访问"))];
+        InTab("听歌记录", "ListenBrainz 记录", Toggle("listenbrainz", "ListenBrainz"), Action("listenbrainz-connection", "用户令牌", "配置令牌")),
+        InTab("网络与隐私", "网络代理", Select("network-proxy", "网络代理", "关闭", "关闭", "系统代理", "手动代理")),
+        InTab("网络与隐私", "网络与隐私", Toggle("disable-network-access", "禁用网络访问"))];
 
     private static IReadOnlyList<SettingsSectionDefinition> Steam() => [
         Section("动态状态", Choices("steam-presence", "Steam 动态状态", ["关闭", "基础", "详细"])),

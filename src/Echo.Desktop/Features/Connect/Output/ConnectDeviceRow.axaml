@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icon="using:Echo.Desktop.Controls" xmlns:local="using:Echo.Desktop.Features.Connect.Output"
+             x:Class="Echo.Desktop.Features.Connect.Output.ConnectDeviceRow" x:DataType="local:ConnectDeviceItem">
+  <Border Classes="connect-row" Classes.current="{Binding IsCurrent}">
+    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+      <StackPanel Spacing="2" VerticalAlignment="Center">
+        <TextBlock Text="{Binding Name}" FontSize="14" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="connect-tool" Command="{Binding PinCommand}" Padding="8,0" ToolTip.Tip="固定" AutomationProperties.Name="固定设备">
+        <icon:GlyphIcon Kind="{Binding PinIcon}" Width="15" Height="15" Stroke="{DynamicResource EchoMuted}" />
+      </Button>
+      <Button Grid.Column="2" Classes="connect-tool" Command="{Binding HideCommand}" Content="{Binding HideLabel}" AutomationProperties.Name="{Binding HideLabel}" />
+      <Button Grid.Column="3" Classes="connect-primary" Command="{Binding UseCommand}" Content="{Binding UseLabel}" IsEnabled="{Binding CanUse}" AutomationProperties.Name="{Binding UseLabel}" />
+    </Grid>
+  </Border>
+</UserControl>

@@ -1,1 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" /><ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><InternalsVisibleTo Include="Echo.PodcastSmoke" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" /><ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" /></ItemGroup>
+</Project>

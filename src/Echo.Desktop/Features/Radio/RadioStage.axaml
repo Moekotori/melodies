@@ -6,8 +6,10 @@
     <Button HorizontalAlignment="Left" Click="OnBack"><StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="chevron-left" Width="16" Height="16" /><TextBlock Text="返回全部电台" VerticalAlignment="Center" /></StackPanel></Button>
     <StackPanel Grid.Row="1" MaxWidth="760" HorizontalAlignment="Stretch" VerticalAlignment="Center" Spacing="20">
       <TextBlock Text="{Binding Status}" Classes="muted" FontSize="13" HorizontalAlignment="Center" />
+      <local:RadioStereoMeters Height="132" Playing="{Binding MetersActive}" TickBrush="{DynamicResource EchoSubtle}" AccentBrush="{DynamicResource EchoAccentText}" />
       <TextBlock Text="{Binding FeatureName}" FontSize="40" Classes="heading" TextAlignment="Center" TextWrapping="Wrap" />
       <TextBlock Text="{Binding FeatureDescription}" Classes="muted" TextAlignment="Center" TextWrapping="Wrap" />
+      <StackPanel Spacing="4"><TextBlock Text="{Binding ProgrammeTitle}" FontSize="22" Classes="heading" TextAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding ProgrammeTitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /><TextBlock Text="{Binding ProgrammeLine}" Classes="muted" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" /></StackPanel>
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16"><TextBlock Text="NET" Foreground="{DynamicResource EchoAccentText}" VerticalAlignment="Bottom" Margin="0,0,0,16" /><TextBlock Text="{Binding Frequency}" FontSize="84" Classes="heading" FontWeight="Regular" /></StackPanel>
       <local:RadioTunerScale Height="50" Value="{Binding TunerValue}" TickBrush="{DynamicResource EchoSubtle}" AccentBrush="{DynamicResource EchoAccentText}" />
       <Button HorizontalAlignment="Center" Classes="primary" Command="{Binding ListenCommand}" IsEnabled="{Binding CanListen}"><StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="{Binding PlayIcon}" Width="17" Height="17" Stroke="{DynamicResource EchoOnAccent}" /><TextBlock Text="{Binding PlayLabel}" VerticalAlignment="Center" /></StackPanel></Button>

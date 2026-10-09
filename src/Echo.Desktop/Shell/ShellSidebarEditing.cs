@@ -9,7 +9,7 @@ namespace Echo.Desktop.Shell;
 public sealed partial class ShellViewModel
 {
     private static readonly string[] DefaultSidebarOrder =
-        ["home", "songs", "artists", "genres", "albums", "album-artists", "folders", "playlists", "remote", "radio", "workshop", "dsp", "queue", "history", "listening"];
+        ["home", "songs", "artists", "genres", "albums", "album-artists", "folders", "playlists", "remote", "connect", "radio", "podcasts", "workshop", "dsp", "queue", "history", "listening"];
 
     [ObservableProperty] private bool isSidebarEditing;
     public SidebarLayoutPreferences SidebarLayout => new(AllItems().Select(x => x.Id).ToArray(), AllItems().Where(x => x.IsHidden).Select(x => x.Id).ToArray());
@@ -44,7 +44,9 @@ public sealed partial class ShellViewModel
         // Ignore unknown/duplicate ids and keep new entries, including future bundled rows.
         var savedOrder = layout?.Order;
         string[] previousDefault = ["home", "songs", "artists", "folders", "albums", "genres", "remote", "radio", "dsp", "workshop", "queue", "history", "playlists", "listening"];
-        var order = (savedOrder is null || savedOrder.SequenceEqual(previousDefault) ? DefaultSidebarOrder : savedOrder)
+        string[] radioDefault = ["home", "songs", "artists", "genres", "albums", "album-artists", "folders", "playlists", "remote", "connect", "radio", "workshop", "dsp", "queue", "history", "listening"];
+        var legacy = savedOrder is null || savedOrder.SequenceEqual(previousDefault) || savedOrder.SequenceEqual(radioDefault);
+        var order = (legacy ? DefaultSidebarOrder : savedOrder)
             .Take(64).Distinct(StringComparer.Ordinal).ToArray();
         var hidden = (layout?.Hidden ?? []).Take(64).ToHashSet(StringComparer.Ordinal);
         foreach (var group in SidebarGroups())

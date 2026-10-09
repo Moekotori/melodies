@@ -12,40 +12,73 @@ public sealed partial class DspModule : ObservableObject
     public string? ReadMethod { get; }
     public string? WriteMethod { get; }
     public IReadOnlyList<DspParameterDefinition> Parameters { get; }
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsActive))] private string status = "未读取";
+    public IReadOnlyList<DspToggleDefinition> Toggles { get; init; } = [];
+    public IReadOnlyList<DspChoiceDefinition> Choices { get; init; } = [];
+    public bool ConfiguresOutput => Id is "src" or "sdm";
+    public bool EditsEqualizer => Id is "eq" or "headphone";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsActive)), NotifyPropertyChangedFor(nameof(Detail))] private string status = "未读取";
     public bool IsActive => Status == "已启用";
-    public string Icon => Id switch { "listening" or "headphone" => "headphones", "rack" => "queue", "replayGain" or "compressor" => "music-stat", "headroom" or "eq" => "sliders", "src" or "sdm" or "stereoField" => "waves", "room" => "monitor", "safety" => "lock", "crossfeed" => "link", _ => "shuffle" };
+    public bool ShowsDetail => Id is not ("listening" or "rack");
+    public string Detail => !ShowsDetail ? "" : Status == "旁路" ? "已旁路" : Status;
+    public bool HasBadge => Id == "sdm";
+    public string Badge => "测试版";
+    public string Icon => Id switch
+    {
+        "listening" => "sparkles", "rack" => "sequence", "replayGain" or "headroom" or "compressor" => "gauge",
+        "src" or "channel" => "speaker", "sdm" or "room" or "stereoField" => "waves", "eq" => "sliders",
+        "headphone" or "crossfeed" => "headphones", "safety" => "lock", "channelMatrix" => "link", _ => "sliders",
+    };
     public DspModule(string id, string title, string description, string group, string? read = null,
         string? write = null, params DspParameterDefinition[] parameters)
-    { Id = id; Title = title; Description = description; Group = group; ReadMethod = read; WriteMethod = write; Parameters = parameters; Status = read is null ? "待迁移" : "未读取"; }
+    { Id = id; Title = title; Description = description; Group = group; ReadMethod = read; WriteMethod = write; Parameters = parameters; Status = read is null && id is not ("listening" or "src" or "sdm") ? "待迁移" : "未读取"; }
 }
 
 public sealed record DspParameterDefinition(string Key, string Label, double Minimum, double Maximum, double Step, string Unit);
+public sealed record DspToggleDefinition(string Key, string Label);
+public sealed record DspChoiceDefinition(string Key, string Label, params DspChoice[] Options);
 public sealed record DspChoice(string Key, string Label);
 
 internal static class DspModuleCatalog
 {
     public static IReadOnlyList<DspModule> Create() => [
-        new("listening", "聆听方案", "按聆听场景组织音效与输出方案。", "总览"),
-        new("rack", "DSP 机架", "查看原生处理顺序及固定输出保护阶段。", "总览", "dspRack.getState"),
-        new("replayGain", "ReplayGain", "依据歌曲或专辑增益标签统一播放响度。", "电平", "replayGain.getConfig", "replayGain.setConfig",
+        new("listening", "听音方案", "把当前处理链存成方案，之后一键套回原生宿主。", "总览"),
+        new("rack", "DSP Rack", "调整实际处理顺序。后面的保护阶段固定不动。", "总览", "dspRack.getState", "dspRack.setState"),
+        new("replayGain", "音量均衡", "按曲目或专辑增益统一播放响度。", "电平", "replayGain.getConfig", "replayGain.setConfig",
             new DspParameterDefinition("preampDb", "额外增益", -12, 12, 0.1, "dB")),
-        new("headroom", "增益与余量", "为处理链预留峰值空间，减少过载。", "电平", "dsp.getState", "dsp.setHeadroom",
+        new("headroom", "Headroom", "为处理链预留峰值空间。", "电平", "dsp.getState", "dsp.setHeadroom",
             new DspParameterDefinition("headroomDb", "处理链增益", -12, 12, 0.1, "dB")),
-        new("src", "ECHO SRC", "采样率转换与滤波器配置。", "转换"),
-        new("sdm", "ECHO SDM", "PCM → SDM 调制与 DSD 输出。", "转换"),
-        new("eq", "参数均衡器", "调整频率、增益与 Q 值，塑造你的声音。", "音色", "eq.getState", "eq.setState"),
-        new("headphone", "耳机校正", "匹配耳机频响与目标曲线。", "音色"),
-        new("room", "房间校正", "使用脉冲响应进行卷积校正。", "空间"),
-        new("channel", "声道控制", "左右增益、平衡与延时。", "空间", "channelBalance.getState", "channelBalance.setState",
+        new("src", "升频", "整数倍升频和 PCM 抖动。应用时会重配当前输出。", "采样转换", null, "output.configure") {
+            Choices = [
+                new("ratio", "升频", new DspChoice("1", "关闭"), new DspChoice("2", "2×"), new DspChoice("4", "4×")),
+                new("ditherMode", "抖动", new DspChoice("off", "关闭"), new DspChoice("tpdf", "TPDF"), new DspChoice("highpass-tpdf", "高通 TPDF"), new DspChoice("ns-5", "噪声整形 5"), new DspChoice("ns-9", "噪声整形 9"), new DspChoice("ultra-shaped", "超整形")),
+                new("ditherBits", "量化位深", new DspChoice("16", "16 bit"), new DspChoice("24", "24 bit"))] },
+        new("sdm", "DSD 转换", "把 PCM 调制成 DoP。需要独占或 ASIO，应用时会重配输出。", "采样转换", null, "output.configure") {
+            Choices = [
+                new("outputFormat", "输出格式", new DspChoice("pcm", "PCM"), new DspChoice("dop24le", "DoP")),
+                new("qualityProfile", "调制质量", new DspChoice("safe", "安全"), new DspChoice("hifi", "Hi-Fi"), new DspChoice("reference", "参考"), new DspChoice("insane", "极致"), new DspChoice("adaptive", "自适应")),
+                new("extraLoop", "决策环路", new DspChoice("off", "关闭"), new DspChoice("extra", "Extra"), new DspChoice("horizon", "Horizon"))] },
+        new("eq", "参数 EQ", "频段、前级与预设。", "音色", "eq.getState", "eq.setState"),
+        new("headphone", "耳机校正", "导入频响曲线，按 31 段参数 EQ 套用，之后还能继续改。", "音色", "eq.getState", "eq.setState"),
+        new("room", "房间校正", "导入脉冲响应，调整增益后卷积进播放。", "空间与输出", "roomCorrection.getState", "roomCorrection.setEnabled",
+            new DspParameterDefinition("trimDb", "脉冲增益", -24, 6, 0.1, "dB")),
+        new("channel", "声道工具", "左右增益、平衡、延时和分频补偿。", "空间与输出", "channelBalance.getState", "channelBalance.setState",
             new("balance", "左右平衡", -1, 1, 0.01, ""), new("leftGainDb", "左声道增益", -12, 6, 0.1, "dB"),
             new("rightGainDb", "右声道增益", -12, 6, 0.1, "dB"), new("leftDelayMs", "左声道延时", 0, 10, 0.1, "ms"),
-            new("rightDelayMs", "右声道延时", 0, 10, 0.1, "ms")),
-        new("safety", "输出保护", "原生安全限幅与削波风险。", "空间", "dsp.getState", "dsp.setSafetyLimiter"),
+            new("rightDelayMs", "右声道延时", 0, 10, 0.1, "ms"),
+            new("low.left", "低频 · 左", -6, 3, 0.1, "dB"), new("low.right", "低频 · 右", -6, 3, 0.1, "dB"),
+            new("mid.left", "中频 · 左", -6, 3, 0.1, "dB"), new("mid.right", "中频 · 右", -6, 3, 0.1, "dB"),
+            new("high.left", "高频 · 左", -6, 3, 0.1, "dB"), new("high.right", "高频 · 右", -6, 3, 0.1, "dB")) {
+            Toggles = [new("swapLeftRight", "交换左右"), new("invertLeft", "反相左"), new("invertRight", "反相右"), new("constantPower", "等功率平衡")],
+            Choices = [new("monoMode", "单声道", new DspChoice("off", "关闭"), new DspChoice("sum", "混合"), new DspChoice("left", "仅左"), new DspChoice("right", "仅右"))] },
+        new("safety", "输出安全", "原生安全限幅与削波风险。", "空间与输出", "dsp.getState", "dsp.setSafetyLimiter"),
         new("compressor", "压缩器", "控制动态范围与瞬态。", "高级", "compressor.getState", "compressor.setState",
             new("thresholdDb", "阈值", -72, 0, 0.1, "dB"), new("ratio", "压缩比", 1, 40, 0.1, ":1"),
             new("attackMs", "启动时间", 0.1, 500, 0.1, "ms"), new("releaseMs", "释放时间", 5, 5000, 1, "ms"),
-            new("kneeDb", "拐点", 0, 24, 0.1, "dB"), new("makeupDb", "补偿增益", -24, 24, 0.1, "dB"), new("mix", "干湿比例", 0, 1, 0.01, "")),
+            new("kneeDb", "拐点", 0, 24, 0.1, "dB"), new("makeupDb", "补偿增益", -24, 24, 0.1, "dB"), new("mix", "干湿比例", 0, 1, 0.01, ""),
+            new("rangeDb", "最大衰减", 0, 72, 0.1, "dB"), new("stereoLink", "立体声链接", 0, 1, 0.01, ""),
+            new("sidechainHighpassHz", "侧链高通", 20, 400, 1, "Hz")) {
+            Toggles = [new("sidechainHighpassEnabled", "启用侧链高通"), new("autoRelease", "自动释放")],
+            Choices = [new("detectorMode", "检测", new DspChoice("peak", "峰值"), new DspChoice("rms", "RMS"))] },
         new("crossfeed", "交叉馈送", "让耳机中的左右声道自然交融。", "高级", "crossfeed.getState", "crossfeed.setState",
             new("amount", "混合强度", 0, 1, 0.01, ""), new("cutoffHz", "截止频率", 100, 2000, 1, "Hz")),
         new("stereoField", "立体声场", "控制宽度、中置与侧向能量。", "高级", "stereoField.getState", "stereoField.setState",

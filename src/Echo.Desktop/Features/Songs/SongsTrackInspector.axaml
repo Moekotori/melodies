@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icon="using:Echo.Desktop.Controls" xmlns:local="using:Echo.Desktop.Features.Songs"
+             x:Class="Echo.Desktop.Features.Songs.SongsTrackInspector" x:DataType="local:SongsViewModel"
+             AutomationProperties.Name="{DynamicResource songs.inspector}">
+  <UserControl.Styles>
+    <Style Selector="Button.albumMate">
+      <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="3,7" /><Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="CornerRadius" Value="5" />
+    </Style>
+    <Style Selector="Button.albumMate:pointerover, Button.albumMate.current"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  </UserControl.Styles>
+  <Border Name="Frame" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1,0,0,0" Padding="18,0,4,8">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Name="EmptyText" Text="{DynamicResource songs.inspector.empty}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+        <StackPanel Name="Details" IsVisible="False" Spacing="0">
+          <Border Width="280" Height="280" HorizontalAlignment="Left" Background="{DynamicResource EchoPlaceholder}" CornerRadius="8" ClipToBounds="True">
+            <Image Name="Cover" Stretch="UniformToFill" />
+          </Border>
+          <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0">
+            <StackPanel Spacing="4">
+              <TextBlock Name="TitleText" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource EchoHeading}" />
+              <TextBlock Name="ArtistText" FontSize="14" Classes="muted" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Name="PlayButton" Grid.Column="1" Classes="icon" Width="42" Height="42" MinHeight="42" CornerRadius="21" Background="{DynamicResource EchoAccent}" VerticalAlignment="Center" Click="OnPlay" ToolTip.Tip="{DynamicResource query.playTrack}" AutomationProperties.Name="{DynamicResource query.playTrack}">
+              <icon:GlyphIcon Kind="play-solid" Width="16" Height="16" Stroke="White" />
+            </Button>
+          </Grid>
+          <StackPanel Margin="0,18,0,0" Spacing="8">
+            <Grid ColumnDefinitions="58,*"><TextBlock Text="{DynamicResource query.sort.Album}" Classes="muted" FontSize="13" /><TextBlock Name="AlbumValue" Grid.Column="1" FontSize="13" TextWrapping="Wrap" /></Grid>
+            <Grid ColumnDefinitions="58,*"><TextBlock Text="{DynamicResource songs.column.spec}" Classes="muted" FontSize="13" /><TextBlock Name="SpecValue" Grid.Column="1" FontSize="13" TextWrapping="Wrap" /></Grid>
+            <Grid ColumnDefinitions="58,*"><TextBlock Text="{DynamicResource query.sort.Duration}" Classes="muted" FontSize="13" /><TextBlock Name="DurationValue" Grid.Column="1" FontSize="13" /></Grid>
+            <Grid Name="GenreRow" ColumnDefinitions="58,*" IsVisible="False"><TextBlock Text="{DynamicResource query.genreLabel}" Classes="muted" FontSize="13" /><TextBlock Name="GenreValue" Grid.Column="1" FontSize="13" TextWrapping="Wrap" /></Grid>
+          </StackPanel>
+          <StackPanel Name="AlbumSection" Margin="0,18,0,8" IsVisible="False" Spacing="6">
+            <TextBlock Text="{DynamicResource songs.inspector.sameAlbum}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" />
+            <StackPanel Name="AlbumHost" Spacing="0" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </Border>
+</UserControl>

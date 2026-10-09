@@ -19,15 +19,19 @@ public sealed partial class PlaybackSessionCoordinator
     {
         QueueTrack? previous = null;
         var current = snapshot.Current;
-        var historyIndex = history.Length - 1;
+        var fromAlbum = false;
         if (!shuffle && current is { QueuedNext: false, Origin.Kind: "album" })
         {
             var index = Array.FindIndex(queue, x => x.ItemId == current.ItemId);
             previous = queue.Take(Math.Max(0, index)).LastOrDefault(x => !x.QueuedNext && x.Origin?.Id == current.Origin.Id);
-            historyIndex = previous is null ? -1 : Array.FindLastIndex(history, x => x.ItemId == previous.ItemId);
+            fromAlbum = previous is not null;
         }
-        else previous = history.LastOrDefault();
+        // An album still steps backward through itself. At its start, history remains available.
+        if (previous is null) previous = history.LastOrDefault();
         if (previous is null) return;
+        var historyIndex = fromAlbum
+            ? Array.FindLastIndex(history, x => x.ItemId == previous.ItemId)
+            : Math.Max(0, history.Length - 1);
         var trimmed = history.Take(Math.Max(0, historyIndex)).ToArray();
         var items = queue;
         if (!items.Any(x => x.ItemId == previous.ItemId))

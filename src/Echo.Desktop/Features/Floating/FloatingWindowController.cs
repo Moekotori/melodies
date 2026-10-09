@@ -31,6 +31,7 @@ public sealed class FloatingWindowController : IDisposable
         shell.Floating.PreferencesChanged += Apply; shell.Floating.ResetRequested += Reset;
         shell.Floating.RestoreRequested += RestoreMain;
         shell.Floating.MinimizeRequested += MinimizeMain;
+        shell.Floating.PropertyChanged += TypographyChanged;
         geometry.Tick += SaveGeometry;
         main.Screens.Changed += ScreensChanged;
     }
@@ -65,19 +66,19 @@ public sealed class FloatingWindowController : IDisposable
                     var policy = new MotionPolicy(shell.Text);
                     var window = new DesktopLyricsWindow(shell, lyrics, policy); LyricsWindow = window;
                     BindLifetime(window, false, policy);
-                    FloatingWindowPlacement.Place(window, main, settings.LyricsBounds, false);
+                    window.UsePassthrough(passthrough);
+                    DesktopLyricsPlacement.Apply(window, main, settings, settings.LyricsBounds);
                     window.Show();
                 }
             }
             if (MiniWindow is not null) MiniWindow.Topmost = settings.MiniTopmost;
             if (LyricsWindow is not null)
             {
-                LyricsWindow.Opacity = double.IsFinite(settings.Opacity) ? Math.Clamp(settings.Opacity, .2, 1) : 1;
+                LyricsWindow.UsePassthrough(passthrough);
                 if (settings.LyricsLocked && passthrough is null)
                 { settings.LyricsLocked = false; settings.Diagnostic = shell.Text["floating.unsupported"]; }
-                if (passthrough is not null && LyricsWindow.TryGetPlatformHandle() is { } handle && !passthrough(handle.Handle, settings.LyricsLocked))
-                { settings.LyricsLocked = false; settings.Diagnostic = shell.Text["floating.lockFailed"]; }
-                LyricsWindow.ApplyLock(settings.LyricsLocked);
+                if (!LyricsWindow.ApplyLock(settings.LyricsLocked))
+                { settings.LyricsLocked = false; settings.Diagnostic = shell.Text["floating.lockFailed"]; LyricsWindow.ApplyLock(false); }
                 UpdateLyricsVisibility();
             }
             if (MiniWindow is null && LyricsWindow is null && lyrics is not null)
@@ -97,6 +98,7 @@ public sealed class FloatingWindowController : IDisposable
             visibilityDocument = lyrics.Document;
             trackHasText = lyrics.Document.Lines.Any(line => !string.IsNullOrWhiteSpace(line.Text));
         }
+        shell.Floating.CanNudgeLyrics = lyrics.Document.IsSynced && trackHasText;
         var show = !shell.Floating.HideWithoutLyrics || lyrics.IsLoading || trackHasText;
         if (show && !window.IsVisible) window.Show();
         else if (!show && window.IsVisible) window.Hide();
@@ -143,7 +145,7 @@ public sealed class FloatingWindowController : IDisposable
     private void Reset()
     {
         if (MiniWindow is { } mini) FloatingWindowPlacement.Place(mini, main, null, true);
-        if (LyricsWindow is { } desktop) FloatingWindowPlacement.Place(desktop, main, null, false);
+        if (LyricsWindow is { } desktop) DesktopLyricsPlacement.Apply(desktop, main, shell.Floating, null);
     }
     private void ScreensChanged(object? sender, EventArgs e)
     {
@@ -153,8 +155,16 @@ public sealed class FloatingWindowController : IDisposable
             Interlocked.Exchange(ref screenUpdateQueued, 0);
             if (disposed) return;
             if (MiniWindow is { } mini) FloatingWindowPlacement.Place(mini, main, FloatingWindowPlacement.Capture(mini), true);
-            if (LyricsWindow is { } desktop) FloatingWindowPlacement.Place(desktop, main, FloatingWindowPlacement.Capture(desktop), false);
+            if (LyricsWindow is { } desktop) DesktopLyricsPlacement.Apply(desktop, main, shell.Floating, FloatingWindowPlacement.Capture(desktop));
         });
+    }
+    private void TypographyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (disposed || shell.Floating.Restoring || LyricsWindow is not { } window) return;
+        if (e.PropertyName is nameof(FloatingWindowsViewModel.FontSize) or nameof(FloatingWindowsViewModel.SecondarySize)
+            or nameof(FloatingWindowsViewModel.ScalePercent) or nameof(FloatingWindowsViewModel.DoubleLine)
+            or nameof(FloatingWindowsViewModel.TextDirection))
+            DesktopLyricsPlacement.Apply(window, main, shell.Floating, FloatingWindowPlacement.Capture(window));
     }
     private void RestoreMain()
     {
@@ -169,7 +179,7 @@ public sealed class FloatingWindowController : IDisposable
         SaveGeometry(null, EventArgs.Empty); disposed = true; geometry.Stop(); geometry.Tick -= SaveGeometry;
         main.Screens.Changed -= ScreensChanged;
         shell.Floating.PreferencesChanged -= Apply; shell.Floating.ResetRequested -= Reset; shell.Floating.RestoreRequested -= RestoreMain;
-        shell.Floating.MinimizeRequested -= MinimizeMain;
+        shell.Floating.MinimizeRequested -= MinimizeMain; shell.Floating.PropertyChanged -= TypographyChanged;
         var mini = MiniWindow; var desktop = LyricsWindow; MiniWindow = null; LyricsWindow = null;
         mini?.Close(); desktop?.Close();
         if (lyrics is not null) { lyrics.Changed -= LyricsChanged; lyrics.Dispose(); lyrics = null; }

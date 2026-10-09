@@ -575,6 +575,8 @@ nlohmann::json JsonRpcProtocol::buildCompressorTelemetry(const CompressorProcess
 JsonRpcProtocol::WriteCallback JsonRpcProtocol::writeCallback;
 JsonRpcProtocol::OpenFileCallback JsonRpcProtocol::openFileCallback = nullptr;
 JsonRpcProtocol::OpenSourceCallback JsonRpcProtocol::openSourceCallback = nullptr;
+JsonRpcProtocol::MixBalanceCallback JsonRpcProtocol::mixBalanceCallback = nullptr;
+void JsonRpcProtocol::setMixBalanceCallback(MixBalanceCallback callback) { mixBalanceCallback = std::move(callback); }
 JsonRpcProtocol::PauseCallback JsonRpcProtocol::pauseCallback;
 JsonRpcProtocol::SeekCallback JsonRpcProtocol::seekCallback;
 JsonRpcProtocol::StopCallback JsonRpcProtocol::stopCallback;
@@ -1313,6 +1315,17 @@ std::string JsonRpcProtocol::handleJsonLine(
 
     // ── Audio File Methods ──
 
+    if (method == "audio.mixBalance")
+    {
+        const auto* request = getParamsObject(params);
+        if (!request || !mixBalanceCallback) return createJsonRpcError(id, -32602, "Mix unavailable");
+        nlohmann::json result;
+        try {
+            return mixBalanceCallback(*request, result)
+                ? createJsonRpcResponse(id, result)
+                : createJsonRpcError(id, -32000, "Mix unavailable or stale");
+        } catch (...) { return createJsonRpcError(id, -32000, "Mix control failed"); }
+    }
     if (method == "audio.openSource")
     {
         const auto* paramsObj = getParamsObject(params);

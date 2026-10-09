@@ -124,8 +124,8 @@ public sealed partial class ArtistDetailViewModel : ObservableObject, IDisposabl
         catch (Exception) { if (!_lifetime.IsCancellationRequested) Error = "播放失败，请检查音源和输出设备。"; }
         finally { if (!_lifetime.IsCancellationRequested) IsBusy = false; }
     }
-    private QueueTrack ToQueue(TrackRow track) => new(Guid.NewGuid().ToString("N"), track.Id, track.Source?.AudioPath ?? track.Path,
-        Source: track.Source is { } source ? AudioSource.Local(source.AudioPath, source.StartSeconds, source.EndSeconds) : null,
+    private QueueTrack ToQueue(TrackRow track) => new(Guid.NewGuid().ToString("N"), track.Id, track.Source?.Kind == "remote" ? track.Path : track.Source?.AudioPath ?? track.Path,
+        Source: track.Source?.Kind == "remote" ? new AudioSource("remote", track.Path) : track.Source is { } source ? AudioSource.Local(source.AudioPath, source.StartSeconds, source.EndSeconds) : null,
         Metadata: new Dictionary<string, string?> { ["title"] = track.Title, ["artist"] = track.Artist, ["album"] = track.Album,
             ["duration"] = track.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture), ["codec"] = track.Codec },
         Origin: new("artist", Artist.Name, Artist.Id), SampleRate: track.SampleRate > 0 ? track.SampleRate : null);

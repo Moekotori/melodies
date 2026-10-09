@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using Avalonia.Styling;
 using Echo.Desktop.Theming;
 
@@ -40,7 +39,7 @@ public partial class ThemeWallpaperPreview : UserControl
     {
         if (args.PropertyName is nameof(ThemeViewModel.WallpaperPreview) or nameof(ThemeViewModel.EditorSection) or nameof(ThemeViewModel.IsPortraitWallpaperActive)) Refresh();
         else if (args.PropertyName == nameof(ThemeViewModel.WallpaperFrameVersion) && _model?.IsBackgroundSection == true)
-            PreviewWallpaper.InvalidateVisual();
+            PreviewWallpaper.ContentRevision = _model.WallpaperFrameVersion;
     }
     private void PreviewLight(object? sender, RoutedEventArgs args) => SetTone(false);
     private void PreviewDark(object? sender, RoutedEventArgs args) => SetTone(true);
@@ -59,8 +58,8 @@ public partial class ThemeWallpaperPreview : UserControl
         PreviewWallpaper.Image = model.WallpaperPreview;
         PreviewWallpaper.Fit = framing.Fit; PreviewWallpaper.PositionX = framing.X / 100; PreviewWallpaper.PositionY = framing.Y / 100;
         PreviewWallpaper.Zoom = framing.Fit is "Uniform" or "UniformToFill" ? framing.Zoom / 100 : 1;
-        PreviewWallpaper.Brightness = a.WallpaperBrightness / 100; PreviewWallpaper.Opacity = p.WallpaperOpacity / 100;
-        PreviewWallpaper.Effect = p.WallpaperBlur > 0 ? new BlurEffect { Radius = p.WallpaperBlur } : null;
+        PreviewWallpaper.Blur = p.WallpaperBlur; PreviewWallpaper.Opacity = p.WallpaperOpacity / 100;
+        PreviewWallpaper.ContentRevision = model.WallpaperFrameVersion;
         PreviewWallpaper.InvalidateVisual(); EmptyPreview.IsVisible = model.WallpaperPreview is null;
         LightPreview.Classes.Set("selected", !_dark); DarkPreview.Classes.Set("selected", _dark);
     }

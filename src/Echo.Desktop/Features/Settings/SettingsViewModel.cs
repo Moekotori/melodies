@@ -42,11 +42,15 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     }
     [RelayCommand] private void SelectCategory(string? id)
     {
+        var requested = id;
+        id = requested switch { "about" => "general", "accessibility" => "appearance", "experimental" => "advancedCustom", _ => requested };
         var category = _categories.FirstOrDefault(category => category.Id == id);
         if (category is null || category == ActiveCategory) return;
         ActiveCategory.IsActive = false; ActiveCategory = category; category.IsActive = true;
         foreach (var group in NavigationGroups) group.IsActive = group.Items.Any(item => item.IsActive);
-        Feedback = ""; BuildSections(); SectionVersion++;
+        Feedback = "";
+        ActiveTab = requested switch { "about" => "版本与文档", "accessibility" => "无障碍", _ => "" };
+        BuildSections(); SectionVersion++;
         OnPropertyChanged(nameof(IsAppearance)); OnPropertyChanged(nameof(IsPlayback));
     }
     [RelayCommand] private void Back() => Shell.LeaveSettingsCommand.Execute(null);
@@ -54,7 +58,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [RelayCommand] private void OpenResult(SettingsSearchResult? result)
     {
         if (result is null) return;
-        SelectCategory(result.CategoryId); Query = "";
+        var tab = TabForRow(result.CategoryId, result.RowId);
+        SelectCategory(result.CategoryId);
+        if (tab.Length > 0 && ActiveTab != tab) { ActiveTab = tab; BuildSections(); }
+        Query = "";
         if (result.CategoryId == "shortcuts" && result.RowId.StartsWith("shortcut-", StringComparison.Ordinal))
             Shell.Shortcuts.Query = result.RowId["shortcut-".Length..];
         foreach (var row in Sections.SelectMany(section => section.Rows)) row.IsHighlighted = row.Id == result.RowId;
@@ -86,8 +93,13 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             _lyrics = Shell.LyricsAppearance; _lyrics.PropertyChanged += OnLyricsChanged;
         }
         var migrated = new[] { "theme", "theme-schedule", "invert-mode", "theme-preset", "theme-custom", "wallpaper", "appearance-typography", "font-chinese", "font-fallback", "appearance-reset", "page-text-color", "album-cover-shape", "artist-wall-artwork", "rainbow-mode" };
-        Sections = ActiveCategory.Definition.Sections.Select(section => new SettingsSectionViewModel(Shell.Text.Translate(section.Title),
-            section.Rows.Where(row => !IsAppearance || !migrated.Contains(row.Id)).Select(CreateRow).ToArray())).Where(section => section.Rows.Count > 0).ToArray();
+        var prepared = ActiveCategory.Definition.Sections.Select(section => (
+            Section: section,
+            Tab: section.Tab.Length == 0 ? section.Title : section.Tab,
+            Rows: section.Rows.Where(row => PlatformSettingVisibility.IsAvailable(row.Id) && (!IsAppearance || !migrated.Contains(row.Id))).ToArray())).ToArray();
+        PublishTabs(prepared.Select(item => (item.Tab, item.Rows.Length > 0)).ToArray());
+        Sections = prepared.Where(item => item.Rows.Length > 0 && (!HasTabs || item.Tab == ActiveTab))
+            .Select(item => new SettingsSectionViewModel(Shell.Text.Translate(item.Section.Title), HasTabs ? Shell.Text.Translate(item.Tab) : "", item.Rows.Select(CreateRow).ToArray())).ToArray();
     }
 
     private SettingRowViewModel CreateRow(SettingDefinition definition)
@@ -103,6 +115,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             or "audio-visual-spectrum" or "sidebar-layout" or "player-top-waveform" or "player-energy-progress" or "songs-waveform-scrollbar" or "home-waveform-visualizer" or "theme" or "disable-all-animations" or "appearance-reset" or "smtc" or "about-community"
             or "lyrics-font-size" or "lyrics-secondary-size" or "lyrics-translation" or "lyrics-romanization"
             or "lyrics-context" or "lyrics-word-highlight" or "lyrics-font" or "lyrics-page-style";
+        if (definition.Id == "theme" && OperatingSystem.IsMacOS() && definition.Options is { } themeOptions && definition.Value != "亚克力")
+            definition = definition with { Options = themeOptions.Where(option => option != "亚克力").ToArray() };
         if (definition.Id == "language") definition = definition with { Options = Shell.Text.Languages.Select(language => language.Code).ToArray(), Value = Shell.Text.Preference };
         if (definition.Id == "lyrics-font") definition = definition with { Options = Shell.LyricsAppearance.Fonts.ToArray(), Value = Shell.LyricsAppearance.Font };
         if (definition.Id == "lyrics-page-style") definition = definition with { Options = Shell.LyricsAppearance.Styles.Select(style => style.Label).ToArray(), Value = Shell.LyricsAppearance.SelectedStyle.Label };
@@ -148,6 +162,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
                 break;
             case "appearance-reset": Shell.IsDark = false; Shell.UiScalePercent = 100; Shell.SidebarAutoHideEnabled = false; Shell.IsSidebarExpanded = true; break;
             case "smtc": Shell.RetryMediaTransportCommand.Execute(null); break;
+            case "connect": Shell.OpenConnect("mobile"); break;
             case "about-community": ExternalLinkRequested?.Invoke(action); break;
             default: Feedback = Shell.Text.Translate("此功能暂未接入。"); break;
         }

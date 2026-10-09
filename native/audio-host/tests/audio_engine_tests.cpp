@@ -6,6 +6,7 @@
 #include "../../audio-engine/SdmNtfDesign.h"
 #include "../../audio-engine/SdmPreModulator.h"
 #include "listening_volume_tests.h"
+#include "workshop_transition_tests.h"
 #include "asio_queue_channel_tests.h"
 
 #ifdef _WIN32
@@ -43,6 +44,7 @@
 #include "../src/DopRingSource.h"
 #include "../src/NativeDsdRingSource.h"
 #include "../src/AudioDaemon.h"
+#include "daemon_seek_end_tests.h"
 #include "../src/AutomixTempoProcessor.h"
 #include "../../audio-engine/JsonRpcProtocol.h"
 
@@ -8566,6 +8568,7 @@ int main(int argc, char** argv)
         { "Channel balance band gain compensation", testChannelBalanceBandGainCompensation },
         { "DSP chain bypass preserves dry buffer", testDspChainBypassPreservesDryBuffer },
         { "Workshop bitcrusher processes and bypasses safely", testWorkshopBitcrusherProcessesAndBypassesSafely },
+        { "Workshop transition window and hard cut preserve outside samples", testWorkshopTransitionWindow },
         { "Workshop chiptune is deterministic and console-like", testWorkshopChiptuneStylizerIsDeterministicAndConsoleLike },
         { "Workshop chiptune preserves dynamics", testWorkshopChiptunePreservesDynamics },
         { "Workshop chiptune smooths gain changes", testWorkshopChiptuneGainChangesAreSmoothed },
@@ -8643,6 +8646,7 @@ int main(int argc, char** argv)
         { "libav PCM stream decoder maps native output format", testLibavPcmStreamDecoderMapsToNativeOutputFormat },
         { "libav PCM stream decoder decodes DSD containers to PCM", testLibavPcmStreamDecoderDecodesDsdContainersToPcm },
         { "libav PCM stream decoder seek cancel and invalid file", testLibavPcmStreamDecoderSeekCancelAndInvalidFile },
+        { "daemon seek tail normalization", testDaemonSeekAtFileEnd },
         { "PCM idle does not count underrun before PCM", testPcmIdleDoesNotCountUnderrunBeforePcm },
         { "PCM pause retains buffered frames", testPcmSourcePauseRetainsBufferedFrames },
         { "PCM initial play gate waits without consuming", testPcmInitialPlayGateWaitsForPrebufferWithoutConsumingFirstFrames },

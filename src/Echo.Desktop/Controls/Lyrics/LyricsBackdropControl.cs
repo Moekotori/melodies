@@ -16,7 +16,7 @@ public sealed class LyricsBackdropControl : Control, IDisposable
     private int line = int.MinValue;
     private bool closed;
     private long lastFrame;
-    private double phase;
+    private double phase = -1;
     public LyricsBackdropControl()
     {
         IsHitTestVisible = false; ClipToBounds = true;
@@ -47,14 +47,16 @@ public sealed class LyricsBackdropControl : Control, IDisposable
     }
     public void UpdateClock(double positionMs, bool animate)
     {
-        if (closed || !animate || model?.Appearance.SelectedStyle.Layout != LyricsLayout.Light || Stopwatch.GetElapsedTime(lastFrame).TotalMilliseconds < 34) return;
-        lastFrame = Stopwatch.GetTimestamp(); phase = Math.Sin(positionMs / 5000) * 48; InvalidateVisual();
+        if (closed || model?.Appearance.SelectedStyle.Layout != LyricsLayout.Light) return;
+        if (!animate) { if (phase >= 0) { phase = -1; InvalidateVisual(); } return; }
+        if (Stopwatch.GetElapsedTime(lastFrame).TotalMilliseconds < 34) return;
+        lastFrame = Stopwatch.GetTimestamp(); phase = positionMs; InvalidateVisual();
     }
     public override void Render(DrawingContext context)
-    { if (model is not null && !closed) painter.Draw(context, new Rect(Bounds.Size), model.Cover, line, phase); }
+    { if (model is not null && !closed) painter.Draw(context, new Rect(Bounds.Size), model.Cover, phase); }
     public void Dispose()
     {
-        if (closed) return; closed = true;
+        if (closed) return; closed = true; painter.Dispose();
         if (model is not null)
         { model.Changed -= Changed; model.PropertyChanged -= PropertyChangedModel; model.Appearance.PropertyChanged -= PropertyChangedAppearance; }
         model = null;

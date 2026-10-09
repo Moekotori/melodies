@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,11 +18,14 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
     private readonly PlayerViewModel? player;
     private readonly RadioPlaybackService? playback;
     private readonly ShellViewModel shell;
+    private readonly IRadioMetadataMonitor? metadata;
+    private readonly RadioCoverLoader covers = new();
     private readonly CancellationTokenSource lifetime = new();
     private readonly CancellationToken token;
     private bool disposed;
     private string? editingId;
     private string? failedStationId;
+    public RadioDirectoryModel Directory { get; }
     public ObservableCollection<RadioStationRowModel> Rows { get; } = [];
     [ObservableProperty] private RadioStation? selected;
     [ObservableProperty] private string search = "";
@@ -34,6 +38,16 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string draftDescription = "";
     [ObservableProperty] private string draftCodec = "—";
     [ObservableProperty] private string draftGenre = "—";
+    [ObservableProperty] private string draftCover = "";
+    [ObservableProperty] private string draftVideo = "";
+    [ObservableProperty] private string draftHomepage = "";
+    [ObservableProperty] private string probeSummary = "";
+    [ObservableProperty] private bool isProbing;
+    [ObservableProperty] private bool directoryOpen;
+    [ObservableProperty] private Bitmap? cover;
+    [ObservableProperty] private string programmeTitle = "";
+    [ObservableProperty] private string programmeArtist = "";
+    [ObservableProperty] private bool metersActive;
     [ObservableProperty] private string editorError = "";
     [ObservableProperty] private bool confirmClear;
     [ObservableProperty] private bool stageOpen;
@@ -45,7 +59,30 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
     public string FavoriteCount => catalog.Stations.Count(station => station.Favorite).ToString();
     public string CountText => $"{catalog.Stations.Count} 个电台";
     public string FeatureName => Selected?.Name ?? "还没有电台";
-    public string FeatureDescription => Selected?.Description ?? "添加电台，收藏喜欢的声音。";
+    public string FeatureDescription
+    {
+        get
+        {
+            var snapshot = player?.Session.Snapshot;
+            if (Selected is not null && snapshot is not null && RadioPlaybackService.IsCurrent(snapshot, Selected.Id)
+                && metadata is not null && metadata.StreamUrl == snapshot.Current?.Source?.Uri && metadata.StreamTitle is { Length: > 0 } title)
+                return title;
+            return Selected?.Description is { Length: > 0 } text ? text : "添加电台，收藏喜欢的声音。";
+        }
+    }
+    public string ProgrammeLine
+    {
+        get
+        {
+            if (ProgrammeTitle.Length == 0) return "正在等待节目信息";
+            var who = ProgrammeArtist.Length > 0 ? ProgrammeArtist : Selected?.Name ?? "";
+            var facts = "";
+            if (Selected is { BitrateKbps: > 0 } station) facts = $"{station.Codec} · {station.BitrateKbps} kbps";
+            else if (Selected?.Codec is { Length: > 0 } codec && codec != "—") facts = codec;
+            if (who.Length == 0) return facts;
+            return facts.Length == 0 ? who : who + " · " + facts;
+        }
+    }
     public string Frequency => Selected is null ? "---" : RadioStationRowModel.FrequencyFor(Selected.Url).ToString("000");
     public int TunerValue => Selected is null ? 500 : RadioStationRowModel.FrequencyFor(Selected.Url);
     public bool CanListen => playback is not null && Selected is not null && !IsBusy;
@@ -58,8 +95,13 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
 
     public RadioViewModel(ShellViewModel shell)
     {
-        this.shell = shell; token = lifetime.Token; catalog = shell.Radio; player = shell.Player; playback = shell.RadioPlayback; catalog.Changed += CatalogChanged;
+        this.shell = shell; token = lifetime.Token; catalog = shell.Radio; player = shell.Player; playback = shell.RadioPlayback; metadata = shell.RadioMetadata;
+        Directory = new(catalog, shell.RadioDirectory, () => DirectoryOpen = false);
+        catalog.Changed += CatalogChanged;
         shell.RadioStageRequested += OpenCurrentStage;
+        shell.Motion.PropertyChanged += MotionChanged;
+        covers.Changed += CoverChanged;
+        if (metadata is not null) metadata.Changed += MetadataChanged;
         if (playback is not null) playback.Changed += ConnectionChanged;
         if (player is not null) player.PropertyChanged += PlayerChanged;
         RefreshRows();
@@ -67,6 +109,9 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
     public Task LoadAsync() => RunAsync(() => catalog.LoadAsync(token));
     private void CatalogChanged() => Dispatcher.UIThread.Post(() => { if (!disposed) RefreshRows(); });
     private void ConnectionChanged() => Dispatcher.UIThread.Post(() => { if (!disposed) UpdatePlayback(); });
+    private void MetadataChanged() => Dispatcher.UIThread.Post(() => { if (!disposed) { RefreshRows(); } });
+    private void MotionChanged(object? sender, PropertyChangedEventArgs args) { if (!disposed) ApplyProgramme(); }
+    private void CoverChanged() { if (!disposed) Cover = covers.Image; }
     private void PlayerChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName is nameof(PlayerViewModel.PlayIcon) or nameof(PlayerViewModel.Subtitle)
@@ -85,8 +130,9 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
         {
             index++;
             if (FavoritesOnly && !station.Favorite) continue;
-            if (Search.Length > 0 && !(station.Name + " " + station.Description + " " + station.Genre).Contains(Search, StringComparison.OrdinalIgnoreCase)) continue;
-            Rows.Add(new(station, index));
+            var live = LiveTitle(station);
+            if (Search.Length > 0 && !(station.Name + " " + station.Description + " " + station.Genre + " " + live).Contains(Search, StringComparison.OrdinalIgnoreCase)) continue;
+            Rows.Add(new(station, index, live));
         }
         foreach (var name in new[] { nameof(AllCount), nameof(FavoriteCount), nameof(CountText), nameof(IsEmpty), nameof(EmptyTitle), nameof(EmptyHint) }) OnPropertyChanged(name);
         UpdatePlayback();
@@ -97,6 +143,7 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
     partial void OnSelectedChanged(RadioStation? value)
     {
         foreach (var name in new[] { nameof(FeatureName), nameof(FeatureDescription), nameof(Frequency), nameof(TunerValue), nameof(CanListen) }) OnPropertyChanged(name);
+        covers.Show(value?.CoverUrl);
         UpdatePlayback();
     }
     private void UpdatePlayback()
@@ -116,6 +163,14 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
         PlayIcon = IsSelectedPlaying || connecting ? "pause-solid" : "play";
         if (current && snapshot?.Status == PlaybackStatus.Faulted && Message.Length == 0) Message = snapshot.Error ?? "电台连接失败，请重试或编辑地址。";
         OnPropertyChanged(nameof(CanEnter));
+        ApplyProgramme();
+    }
+    partial void OnStageOpenChanged(bool value) => ApplyProgramme();
+    private string? LiveTitle(RadioStation station)
+    {
+        var snapshot = player?.Session.Snapshot;
+        return snapshot is not null && RadioPlaybackService.IsCurrent(snapshot, station.Id)
+            && metadata is not null && metadata.StreamUrl == snapshot.Current?.Source?.Uri ? metadata.StreamTitle : null;
     }
     [RelayCommand] private void ShowAll() => FavoritesOnly = false;
     [RelayCommand] private void ShowFavorites() => FavoritesOnly = true;
@@ -131,7 +186,9 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
             if (playback.IsConnecting(station.Id) || RadioPlaybackService.IsCurrent(state, station.Id)
                 && state.Status is PlaybackStatus.Playing or PlaybackStatus.Loading)
                 await playback.StopAsync(station.Id, token);
-            else await playback.StartAsync(station, token);
+            else if (await playback.StartAsync(station, token) is { } info && !disposed)
+                try { await catalog.UpdateAsync(items => items.Select(item => item.Id == station.Id ? RadioCatalog.ApplyProbe(item, info) : item), token); }
+                catch (Exception error) when (error is ArgumentException or IOException) { }
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { if (!disposed) { failedStationId = station.Id; Message = error.Message; } }
@@ -163,6 +220,8 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
         if (IsBusy || disposed) return;
         editingId = station?.Id; DraftName = station?.Name ?? ""; DraftUrl = station?.Url ?? "";
         DraftDescription = station?.Description ?? ""; DraftGenre = station?.Genre ?? "—"; DraftCodec = station?.Codec ?? "—";
+        DraftCover = station?.CoverUrl ?? ""; DraftVideo = station?.VideoUrl ?? ""; DraftHomepage = station?.Homepage ?? "";
+        draftBitrate = station?.BitrateKbps ?? 0; ProbeSummary = "";
         EditorError = ""; EditorOpen = true;
     }
     [RelayCommand] private void Add() => Edit();
@@ -173,8 +232,10 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
         IsBusy = true; EditorError = "";
         try
         {
+            var previous = catalog.Stations.FirstOrDefault(item => item.Id == editingId);
             var station = new RadioStation(editingId ?? Guid.NewGuid().ToString("N"), DraftName, RadioCatalog.NormalizeUrl(DraftUrl),
-                DraftDescription.Trim(), DraftGenre.Trim(), DraftCodec.Trim(), catalog.Stations.FirstOrDefault(item => item.Id == editingId)?.Favorite ?? false);
+                DraftDescription.Trim(), DraftGenre.Trim(), DraftCodec.Trim(), previous?.Favorite ?? false,
+                DraftCover.Trim(), DraftVideo.Trim(), DraftHomepage.Trim(), draftBitrate > 0 ? draftBitrate : previous?.BitrateKbps ?? 0);
             await catalog.UpdateAsync(items => editingId is null ? items.Append(station) : items.Select(item => item.Id == editingId ? station : item), token);
             RefreshRows(); Selected = catalog.Stations.First(item => item.Id == station.Id); EditorOpen = false;
         }
@@ -199,7 +260,15 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
         if (disposed) return; disposed = true; lifetime.Cancel(); lifetime.Dispose();
         catalog.Changed -= CatalogChanged; if (player is not null) player.PropertyChanged -= PlayerChanged;
         if (playback is not null) playback.Changed -= ConnectionChanged;
+        if (metadata is not null) metadata.Changed -= MetadataChanged;
+        shell.Motion.PropertyChanged -= MotionChanged;
         shell.RadioStageRequested -= OpenCurrentStage;
+        covers.Changed -= CoverChanged;
+        Cover = null;
+        Directory.Dispose();
+        covers.Dispose();
+        probeLifetime?.Cancel();
+        probeLifetime?.Dispose();
         Rows.Clear();
     }
 }

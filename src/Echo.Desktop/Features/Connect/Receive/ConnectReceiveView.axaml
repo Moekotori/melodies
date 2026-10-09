@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:connect="using:Echo.Desktop.Features.Connect" xmlns:local="using:Echo.Desktop.Features.Connect.Receive"
+             x:Class="Echo.Desktop.Features.Connect.Receive.ConnectReceiveView" x:DataType="local:ConnectReceiveViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="16" Margin="0,4,8,28" MaxWidth="720" HorizontalAlignment="Left">
+      <connect:ConnectServiceCardView DataContext="{Binding Renderer}" />
+      <Border Classes="connect-card" IsVisible="{Binding Listening}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="手机可访问的描述地址" Classes="connect-kicker" />
+          <TextBox Text="{Binding ListenAddress}" IsReadOnly="True" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="connect-tool" Content="复制地址" Click="OnCopyAddress" />
+            <Button Classes="connect-tool" Content="停止正在接收的音频" Command="{Binding StopIncomingCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <connect:ConnectServiceCardView DataContext="{Binding AirPlay}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -1,13 +1,59 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ControlTheme x:Key="WallpaperExpanderHeader" TargetType="ToggleButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="2,11" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Name="HeaderSurface" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Content="{TemplateBinding Content}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover /template/ Border#HeaderSurface"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#HeaderSurface"><Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    </ControlTheme>
+    <ControlTheme x:Key="WallpaperExpander" TargetType="Expander">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <StackPanel>
+            <ToggleButton Name="PART_toggle" Theme="{StaticResource WallpaperExpanderHeader}" Classes="wallpaper-expander" IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch">
+              <Grid ColumnDefinitions="*,14">
+                <TextBlock Text="{TemplateBinding Header}" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource EchoText}" VerticalAlignment="Center" />
+                <Path Name="Chevron" Classes="chevron" Grid.Column="1" Data="M 2,3 L 6,7 L 10,3" Stroke="{DynamicResource EchoMuted}" StrokeThickness="1.4" Width="12" Height="8" Stretch="Uniform" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="50%,50%" />
+              </Grid>
+            </ToggleButton>
+            <ContentPresenter Name="PART_ContentPresenter" IsVisible="{TemplateBinding IsExpanded}" Content="{TemplateBinding Content}" />
+          </StackPanel>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+  </Styles.Resources>
   <Style Selector="TextBlock.wallpaper-label"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
-  <Style Selector="TextBlock.wallpaper-value"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
-  <Style Selector="Button.wallpaper-preview-tone"><Setter Property="Background" Value="Transparent" /><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="Padding" Value="9,5" /><Setter Property="CornerRadius" Value="4" /></Style>
-  <Style Selector="Button.wallpaper-preview-tone.selected"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="TextBlock.wallpaper-value"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontWeight" Value="Medium" /></Style>
+  <Style Selector="TextBlock.wallpaper-kicker"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Border.wallpaper-stage"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="12" /><Setter Property="ClipToBounds" Value="True" /><Setter Property="BoxShadow" Value="0 10 28 0 #12000000" /></Style>
+  <Style Selector="Border.wallpaper-tone"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Padding" Value="2" /></Style>
+  <Style Selector="Button.wallpaper-preview-tone"><Setter Property="Background" Value="Transparent" /><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="Padding" Value="10,5" /><Setter Property="CornerRadius" Value="5" /><Setter Property="MinHeight" Value="28" /></Style>
+  <Style Selector="Button.wallpaper-preview-tone.selected"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Button.wallpaper-preview-tone:pointerover"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="Border.wallpaper-file"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="12,11" /></Style>
+  <Style Selector="Border.wallpaper-card"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="14,12,14,8" /></Style>
+  <Style Selector="Border.wallpaper-rule"><Setter Property="Height" Value="1" /><Setter Property="Background" Value="{DynamicResource EchoDivider}" /><Setter Property="Opacity" Value="0.7" /><Setter Property="Margin" Value="0,2" /></Style>
   <Style Selector=":is(ListBox).wallpaper-options"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="0" /></Style>
-  <Style Selector=":is(ListBox).wallpaper-options ListBoxItem"><Setter Property="Padding" Value="11,7" /><Setter Property="Margin" Value="0,0,5,5" /><Setter Property="FontSize" Value="12" /></Style>
-  <Style Selector=":is(ListBox).wallpaper-options ListBoxItem /template/ Border#ChoiceSurface"><Setter Property="BorderThickness" Value="1" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="CornerRadius" Value="5" /><Setter Property="BoxShadow" Value="0 0 0 0 Transparent" /></Style>
+  <Style Selector=":is(ListBox).wallpaper-options ListBoxItem"><Setter Property="Padding" Value="10,6" /><Setter Property="Margin" Value="0,0,6,6" /><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector=":is(ListBox).wallpaper-options ListBoxItem /template/ Border#ChoiceSurface"><Setter Property="BorderThickness" Value="1" /><Setter Property="BorderBrush" Value="Transparent" /><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="CornerRadius" Value="999" /><Setter Property="BoxShadow" Value="0 0 0 0 Transparent" /></Style>
+  <Style Selector=":is(ListBox).wallpaper-options ListBoxItem:pointerover /template/ Border#ChoiceSurface"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
   <Style Selector=":is(ListBox).wallpaper-options ListBoxItem:selected /template/ Border#ChoiceSurface"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="Background" Value="{DynamicResource EchoField}" /></Style>
-  <Style Selector=":is(ListBox).wallpaper-options ListBoxItem:selected"><Setter Property="Foreground" Value="{DynamicResource EchoAccent}" /></Style>
-  <Style Selector="Slider.wallpaper-slider"><Setter Property="MinHeight" Value="18" /><Setter Property="Height" Value="24" /></Style>
-  <Style Selector="Expander.wallpaper-more"><Setter Property="BorderThickness" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector=":is(ListBox).wallpaper-options ListBoxItem:selected"><Setter Property="Foreground" Value="{DynamicResource EchoAccent}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Slider.wallpaper-slider"><Setter Property="MinHeight" Value="18" /><Setter Property="Height" Value="22" /></Style>
+  <Style Selector="Expander.wallpaper-more"><Setter Property="Theme" Value="{StaticResource WallpaperExpander}" /></Style>
+  <Style Selector="ToggleButton.wallpaper-expander:checked Path.chevron"><Setter Property="RenderTransform" Value="rotate(180deg)" /></Style>
 </Styles>

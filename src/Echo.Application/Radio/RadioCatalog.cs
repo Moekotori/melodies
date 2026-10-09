@@ -65,8 +65,49 @@ public sealed class RadioCatalog(IRadioStationStore? store = null)
                 throw new ArgumentException("电台资料过长或无效。");
             var url = NormalizeUrl(item.Url);
             if (!urls.Add(url)) throw new ArgumentException("这个电台地址已在列表中。");
-            result[i] = item with { Name = item.Name.Trim(), Url = url };
+            if (item.BitrateKbps is < 0 or > 10_000) throw new ArgumentException("电台码率无效。");
+            result[i] = item with
+            {
+                Name = item.Name.Trim(), Url = url, Description = item.Description.Trim(),
+                Genre = string.IsNullOrWhiteSpace(item.Genre) ? "—" : item.Genre.Trim(),
+                Codec = string.IsNullOrWhiteSpace(item.Codec) ? "—" : item.Codec.Trim(),
+                CoverUrl = OptionalUrl(item.CoverUrl), VideoUrl = OptionalUrl(item.VideoUrl), Homepage = OptionalUrl(item.Homepage)
+            };
         }
         return result;
     }
+
+    public static RadioStation ApplyProbe(RadioStation station, RadioStreamInfo info)
+    {
+        var host = Uri.TryCreate(station.Url, UriKind.Absolute, out var uri) ? uri.Host : "";
+        var name = station.Name.Trim();
+        if ((name.Length == 0 || name.Equals(host, StringComparison.OrdinalIgnoreCase)) && !string.IsNullOrWhiteSpace(info.Name))
+            name = info.Name.Trim();
+        var description = station.Description;
+        if (description.Length == 0 && !string.IsNullOrWhiteSpace(info.Description)) description = info.Description.Trim();
+        var genre = (station.Genre is "" or "—") && !string.IsNullOrWhiteSpace(info.Genre) ? info.Genre.Trim() : station.Genre;
+        var codec = (station.Codec is "" or "—") && !string.IsNullOrWhiteSpace(info.Codec) && info.Codec != "—" ? info.Codec.Trim() : station.Codec;
+        var homepage = station.Homepage.Length == 0 && !string.IsNullOrWhiteSpace(info.Homepage) ? info.Homepage.Trim() : station.Homepage;
+        var bitrate = station.BitrateKbps > 0 ? station.BitrateKbps : Math.Clamp(info.BitrateKbps ?? 0, 0, 10_000);
+        return station with
+        {
+            Name = Limit(name, 160), Description = Limit(description, 512), Genre = Limit(genre, 80),
+            Codec = Limit(codec, 16), Homepage = homepage, BitrateKbps = bitrate
+        };
+    }
+
+    public static RadioStation FromDirectory(RadioDirectoryStation station)
+    {
+        var tags = station.Tags.Trim();
+        return new(Guid.NewGuid().ToString("N"), Limit(station.Name.Trim(), 160), NormalizeUrl(station.Url),
+            Genre: tags.Length == 0 ? "—" : Limit(tags, 80), Codec: MapCodec(station.Codec), BitrateKbps: Math.Clamp(station.Bitrate, 0, 10_000));
+    }
+
+    private static string OptionalUrl(string? value) => string.IsNullOrWhiteSpace(value) ? "" : NormalizeUrl(value);
+    private static string Limit(string value, int max) => value.Length <= max ? value : value[..max];
+    private static string MapCodec(string value) => value.Trim().ToUpperInvariant() switch
+    {
+        "MP3" or "MPEG" => "MP3", "AAC" or "AAC+" => "AAC", "OGG" or "VORBIS" => "OGG", "OPUS" => "Opus",
+        "FLAC" => "FLAC", "HLS" => "HLS", "WAV" => "WAV", "" => "—", var other => Limit(other, 16)
+    };
 }

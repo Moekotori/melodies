@@ -44,14 +44,7 @@ internal static class AlbumSchema
             CREATE TRIGGER albums_fts_delete AFTER DELETE ON albums BEGIN
               INSERT INTO albums_fts(albums_fts,rowid,title,artist) VALUES('delete',old.rowid,old.title,old.artist);
             END;
-            CREATE TRIGGER tracks_album_insert AFTER INSERT ON tracks WHEN new.missing=0 BEGIN
-            """ + "\n" + Add("new") + " END; " +
-            "CREATE TRIGGER tracks_album_delete AFTER DELETE ON tracks WHEN old.missing=0 BEGIN " + Remove("old") + " END; " +
-            """
-            CREATE TRIGGER tracks_album_update AFTER UPDATE OF album,album_artist,artist,duration,codec,year,missing ON tracks
-            WHEN old.album_key IS NOT new.album_key OR old.duration IS NOT new.duration OR
-                 old.codec IS NOT new.codec OR old.year IS NOT new.year OR old.missing IS NOT new.missing BEGIN
-            """ + "\n" + Remove("old") + Add("new") + " END; PRAGMA user_version=2;";
+            """ + TrackTriggers + " PRAGMA user_version=2;";
         command.ExecuteNonQuery();
         transaction.Commit();
     }
@@ -68,7 +61,7 @@ internal static class AlbumSchema
           lossless_count=lossless_count+excluded.lossless_count,
           year=(SELECT year FROM tracks WHERE album_key={row}.album_key AND missing=0 ORDER BY year DESC LIMIT 1),
           added=max(added,excluded.added);
-        """;
+        """ + AlbumDisplay.Refresh($"id={row}.album_key");
 
     private static string Remove(string row) => $"""
         UPDATE albums SET track_count=track_count-1,duration=max(0,duration-{row}.duration),
@@ -76,5 +69,16 @@ internal static class AlbumSchema
           year=(SELECT year FROM tracks WHERE album_key={row}.album_key AND missing=0 ORDER BY year DESC LIMIT 1)
           WHERE id={row}.album_key AND {row}.missing=0;
         DELETE FROM albums WHERE id={row}.album_key AND track_count=0;
-        """;
+        """ + AlbumDisplay.Refresh($"id={row}.album_key");
+
+    internal static string TrackTriggers => """
+        CREATE TRIGGER tracks_album_insert AFTER INSERT ON tracks WHEN new.missing=0 BEGIN
+        """ + "\n" + Add("new") + " END; " +
+        "CREATE TRIGGER tracks_album_delete AFTER DELETE ON tracks WHEN old.missing=0 BEGIN " + Remove("old") + " END; " +
+        """
+        CREATE TRIGGER tracks_album_update AFTER UPDATE OF album,album_artist,artist,duration,codec,year,missing ON tracks
+        WHEN old.album_key IS NOT new.album_key OR old.album IS NOT new.album OR old.album_artist IS NOT new.album_artist
+             OR old.artist IS NOT new.artist OR old.duration IS NOT new.duration OR old.codec IS NOT new.codec
+             OR old.year IS NOT new.year OR old.missing IS NOT new.missing BEGIN
+        """ + "\n" + Remove("old") + Add("new") + " END;";
 }

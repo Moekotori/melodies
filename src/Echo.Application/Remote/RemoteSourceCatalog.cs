@@ -9,7 +9,8 @@ public sealed class RemoteSourceCatalog(IRemoteConnectionStore? store, IRemoteFi
     private readonly SemaphoreSlim lane = new(1, 1);
     private volatile RemoteConnection[] connections = [];
     private bool loaded;
-    public IReadOnlyList<RemoteSourceInfo> Sources => connections.Select(x => new RemoteSourceInfo(x.Id, x.Name, x.BaseUrl, x.Username, x.Provider)).ToArray();
+    public IReadOnlyList<RemoteSourceInfo> Sources => connections.Select(x => new RemoteSourceInfo(x.Id, x.Name, x.BaseUrl, x.Username, x.Provider, x.SyncMode ?? "browse")).ToArray();
+    public RemoteConnection? Find(string id) => connections.FirstOrDefault(x => x.Id == id);
     public RemoteConnection GetConnection(string id) => connections.FirstOrDefault(x => x.Id == id)
         ?? throw new ArgumentException("这个来源已被移除，请重新选择。");
     public async Task LoadAsync(CancellationToken token)
@@ -73,6 +74,8 @@ public sealed class RemoteSourceCatalog(IRemoteConnectionStore? store, IRemoteFi
     }
     public static RemoteConnection Validate(RemoteConnection source)
     {
+        if (source.SyncMode is not (null or "" or "index" or "browse")) throw new ArgumentException("同步方式无效。离线镜像尚未提供。");
+        source = source with { SyncMode = source.SyncMode == "index" ? "index" : "browse" };
         if (string.IsNullOrWhiteSpace(source.Id) || source.Id.Length > 80 || string.IsNullOrWhiteSpace(source.Name) || source.Name.Length > 100
             || source.Username is null || source.Password is null || source.BaseUrl is null || source.RootPath is null || source.UserId is null
             || source.Username.Length > 256 || source.Password.Length > 16384 || source.Username.Contains(':')
@@ -88,6 +91,7 @@ public sealed class RemoteSourceCatalog(IRemoteConnectionStore? store, IRemoteFi
         if (!Uri.TryCreate(source.BaseUrl.Trim(), UriKind.Absolute, out var uri)
             || uri.Scheme is not ("http" or "https") || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0)
             throw new ArgumentException("请填写 HTTP / HTTPS 服务地址，账号与密码使用独立字段。");
+        RemoteEndpointPolicy.Require(uri, source.Username.Length > 0 || source.Password.Length > 0);
         if (source.Provider == "webdav" && source.Password.Length > 4096) throw new ArgumentException("WebDAV 密码过长。");
         if (RemoteProviders.IsMediaServer(source.Provider) && source.AuthMode is "token" or "apiKey" && source.Password.Length == 0)
             throw new ArgumentException("请填写媒体服务器的 API Key 或访问 Token。");

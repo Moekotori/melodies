@@ -37,8 +37,9 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
     {
         if (target is AlbumRow album)
         {
-            var view = new AlbumDetailView(album, shell.AlbumLibrary!, shell.AlbumArtwork!, shell.Player, shell.DetailResources);
+            var view = new AlbumDetailView(album, shell.AlbumLibrary!, shell.AlbumArtwork!, shell.Player, shell.DetailResources, shell.Text);
             view.Back += GoBack; view.ArtistRequested += name => _ = ResolveArtistAsync(name);
+            view.GenreRequested += name => _ = ResolveGenreAsync(name);
             view.AlbumRequested += OpenAlbum;
             view.PersonalStateChanged += (id, favorite, rating) =>
             {
@@ -73,6 +74,22 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
         }
         catch (OperationCanceledException) { }
         catch (Exception) { if (!_closed) shell.Notice = "艺术家读取失败，请重试。"; }
+        finally { if (ReferenceEquals(_resolve, request)) _resolve = null; }
+    }
+    private async Task ResolveGenreAsync(string name)
+    {
+        if (shell.GenreLibrary is not { } library || _closed) return;
+        _resolve?.Cancel(); using var request = new CancellationTokenSource(); _resolve = request;
+        try
+        {
+            var page = await library.GetGenresAsync(new(Search: name[..Math.Min(128, name.Length)]), request.Token);
+            if (_closed || request.IsCancellationRequested) return;
+            var canonical = name.Normalize(System.Text.NormalizationForm.FormKC).Trim();
+            var genre = page.Items.FirstOrDefault(item => item.Name.Normalize(System.Text.NormalizationForm.FormKC).Trim().Equals(canonical, StringComparison.OrdinalIgnoreCase));
+            if (genre is not null) OpenGenre(genre); else shell.Notice = "没有找到对应的流派，请刷新曲库。";
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception) { if (!_closed) shell.Notice = "流派读取失败，请重试。"; }
         finally { if (ReferenceEquals(_resolve, request)) _resolve = null; }
     }
     public void GoBack()

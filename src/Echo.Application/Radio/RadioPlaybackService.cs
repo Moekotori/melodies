@@ -14,8 +14,9 @@ public sealed class RadioPlaybackService(PlaybackSessionCoordinator session, IRa
     private bool disposed;
     public event Action? Changed;
     public bool IsConnecting(string stationId) { lock (gate) return connectingId == stationId; }
+    public Task<RadioStreamInfo> ProbeAsync(string url, CancellationToken token) => resolver.ResolveAsync(url, token);
 
-    public async Task StartAsync(RadioStation station, CancellationToken token)
+    public async Task<RadioStreamInfo?> StartAsync(RadioStation station, CancellationToken token)
     {
         CancellationTokenSource request; long version;
         var initial = session.Snapshot;
@@ -32,7 +33,7 @@ public sealed class RadioPlaybackService(PlaybackSessionCoordinator session, IRa
             request.Token.ThrowIfCancellationRequested();
             // A local playback/seek command issued during the probe takes priority over this late result.
             var now = session.Snapshot;
-            if (now.Current?.ItemId != initial.Current?.ItemId || now.OperationId != initial.OperationId || now.Status != initial.Status) return;
+            if (now.Current?.ItemId != initial.Current?.ItemId || now.OperationId != initial.OperationId || now.Status != initial.Status) return null;
             var metadata = new Dictionary<string, string?>
             {
                 ["title"] = station.Name, ["artist"] = info.Description ?? station.Description,
@@ -47,11 +48,12 @@ public sealed class RadioPlaybackService(PlaybackSessionCoordinator session, IRa
             Task play;
             lock (gate)
             {
-                if (disposed || version != generation || request.IsCancellationRequested) return;
+                if (disposed || version != generation || request.IsCancellationRequested) return null;
                 probe = null; opening = true;
                 play = session.PlayAsync(track, token); // Queue admission happens before a concurrent Stop.
             }
             await play.ConfigureAwait(false);
+            return info;
         }
         finally
         {

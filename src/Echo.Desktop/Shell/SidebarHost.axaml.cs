@@ -7,9 +7,11 @@ using Echo.Desktop.Motion;
 
 namespace Echo.Desktop.Shell;
 
-// One retained navigation view, one finite compositor lane, no hover timer.
+// One retained navigation view. The drawer and its peek handle share one sliding strip.
 public partial class SidebarHost : UserControl
 {
+    private const double DrawerWidth = 220;
+    private const double DrawerPeek = 22;
     private readonly MotionLane _motion = new();
     private ShellViewModel? _model;
     private Window? _window;
@@ -63,18 +65,35 @@ public partial class SidebarHost : UserControl
         var opening = _model.IsSidebarDrawerOpen;
         if (!opening) _returnFocus = null;
         var generation = ++_generation;
-        var opacity = _wasOpen || _motion.IsRunning ? MotionLane.CurrentOpacity(NavigationPanel) : 0;
-        var transform = _wasOpen || _motion.IsRunning ? MotionLane.Current(NavigationPanel) : MotionLane.At(x: -220);
+        var spatial = _model.Motion.UseSpatialMotion;
+        var running = _wasOpen || _motion.IsRunning;
+        var slideFrom = spatial ? running ? MotionLane.Current(DrawerSlide) : MotionLane.At(x: -DrawerWidth) : MotionLane.At();
+        var panelOpacity = running ? MotionLane.CurrentOpacity(NavigationPanel) : 0;
         _motion.Cancel(); _wasOpen = opening;
-        Width = 220; NavigationPanel.Width = 220; NavigationPanel.IsVisible = true;
+        Width = DrawerWidth; NavigationPanel.Width = DrawerWidth; NavigationPanel.IsVisible = true;
+        NavigationPanel.Opacity = spatial ? 1 : panelOpacity;
         NavigationPanel.IsHitTestVisible = opening; NavigationPanel.IsEnabled = true;
         KeyboardNavigation.SetTabNavigation(NavigationPanel, opening ? KeyboardNavigationMode.Cycle : KeyboardNavigationMode.None);
         if (!opening && NavigationPanel.IsKeyboardFocusWithin) _window?.FocusManager?.Focus(null);
-        EdgeReveal.IsVisible = false;
-        await _motion.PlayAsync(NavigationPanel, opacity, opening ? 1 : 0,
-            _model.Motion.UseSpatialMotion ? transform : MotionLane.At(),
-            MotionLane.At(x: !opening && _model.Motion.UseSpatialMotion ? -220 : 0),
-            _model.Motion.UseSpatialMotion ? opening ? MotionTokens.Reveal : MotionTokens.Exit : MotionTokens.Reduced, preserveGeometry: true);
+        EdgeReveal.IsHitTestVisible = false;
+        EdgeReveal.IsEnabled = false;
+        if (spatial)
+        {
+            // The handle sits on the drawer's trailing edge and parks in the peek when closed.
+            DrawerSlide.Width = DrawerWidth + DrawerPeek;
+            EdgeReveal.Margin = new Avalonia.Thickness(DrawerWidth, 0, 0, 0);
+            EdgeReveal.IsVisible = true;
+            DrawerSlide.Opacity = 1;
+            await _motion.PlayAsync(DrawerSlide, 1, 1, slideFrom, MotionLane.At(x: opening ? 0 : -DrawerWidth),
+                opening ? MotionTokens.Drawer : MotionTokens.DrawerExit, MotionTokens.DrawerEasing, preserveGeometry: true);
+        }
+        else
+        {
+            DrawerSlide.Width = double.NaN;
+            DrawerSlide.RenderTransform = MotionLane.At();
+            EdgeReveal.IsVisible = false;
+            await _motion.PlayAsync(NavigationPanel, panelOpacity, opening ? 1 : 0, MotionLane.At(), MotionLane.At(), MotionTokens.Reduced, preserveGeometry: true);
+        }
         if (generation == _generation) Settle();
     }
     private void Settle()
@@ -87,10 +106,13 @@ public partial class SidebarHost : UserControl
         if (!drawer) _focusRevealAfterClose = false;
         _wasOpen = drawer && open;
         IsVisible = !suppressed;
-        Width = drawer ? open ? 220 : 22 : _model?.SidebarReservedWidth ?? 0;
-        NavigationPanel.Width = drawer ? 220 : Width;
+        Width = drawer ? open ? DrawerWidth : DrawerPeek : _model?.SidebarReservedWidth ?? 0;
+        NavigationPanel.Width = drawer ? DrawerWidth : Width;
         NavigationPanel.IsVisible = open; NavigationPanel.IsHitTestVisible = open; NavigationPanel.IsEnabled = open;
         NavigationPanel.Opacity = 1; NavigationPanel.RenderTransform = MotionLane.At();
+        DrawerSlide.Width = double.NaN; DrawerSlide.Opacity = 1; DrawerSlide.RenderTransform = MotionLane.At();
+        EdgeReveal.Margin = new Avalonia.Thickness(0);
+        EdgeReveal.IsHitTestVisible = true; EdgeReveal.IsEnabled = true;
         KeyboardNavigation.SetTabNavigation(NavigationPanel, drawer ? KeyboardNavigationMode.Cycle : KeyboardNavigationMode.Continue);
         EdgeReveal.IsVisible = drawer && !open;
         if (EdgeReveal.IsVisible && _focusRevealAfterClose) { _focusRevealAfterClose = false; RevealButton.Focus(NavigationMethod.Tab); }

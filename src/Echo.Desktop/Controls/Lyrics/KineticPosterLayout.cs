@@ -12,6 +12,7 @@ internal sealed class KineticPosterLayout : IDisposable
     private int word = -1;
     private double width, fontSize;
     private TextLayout? passed, current, future, label;
+    private Pen rule = new(Brushes.Transparent, 2);
     private IBrush? ink, accent;
     public void Draw(DrawingContext dc, LyricLine value, double position, Rect area, double size, IBrush body, IBrush highlight, double viewportWidth = 1440)
     {
@@ -36,6 +37,7 @@ internal sealed class KineticPosterLayout : IDisposable
             passed = Shape(string.Concat(value.Words.Take(index).Select(w => w.Text)), sideFont, Math.Clamp(viewportWidth * .05, 44, 88) * size / 36, body, sideWidth, TextAlignment.Right);
             future = Shape(string.Concat(value.Words.Skip(index + 1).Select(w => w.Text)), sideFont, Math.Clamp(viewportWidth * .05, 44, 88) * size / 36, body, sideWidth, TextAlignment.Left);
             label = Shape("NOW", font, 10, highlight, centerWidth, TextAlignment.Center);
+            rule = new Pen(highlight, 2);
         }
         var centerX = area.X + (area.Width - centerWidth) / 2;
         var mid = area.Y + area.Height / 2;
@@ -43,7 +45,7 @@ internal sealed class KineticPosterLayout : IDisposable
         current!.Draw(dc, new(centerX, mid - current.Height / 2));
         using (dc.PushOpacity(0.84)) future!.Draw(dc, new(centerX + centerWidth + sidePadding, mid - future.Height / 2 + 22));
         label!.Draw(dc, new(centerX, area.Y + 12));
-        dc.DrawLine(new Pen(highlight, 2), new(centerX + centerWidth * 0.27, area.Bottom - 12), new(centerX + centerWidth * 0.73, area.Bottom - 12));
+        dc.DrawLine(rule, new(centerX + centerWidth * 0.27, area.Bottom - 12), new(centerX + centerWidth * 0.73, area.Bottom - 12));
     }
     private static TextLayout Shape(string text, Typeface typeface, double size, IBrush brush, double width, TextAlignment alignment)
         => new(text, typeface, size, brush, textAlignment: alignment, textWrapping: TextWrapping.Wrap, maxWidth: width,

@@ -1,10 +1,73 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:player="using:Echo.Desktop.Features.Player" xmlns:icon="using:Echo.Desktop.Controls">
   <Style Selector="FlyoutPresenter.signal-path-presenter">
     <Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
-    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="CornerRadius" Value="12" />
     <Setter Property="MaxWidth" Value="400" />
     <Setter Property="MaxHeight" Value="540" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="player|SignalPathPanel TextBlock.eyebrow">
+    <Setter Property="Foreground" Value="{DynamicResource EchoSubtle}" /><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.value">
+    <Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="LineHeight" Value="18" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.value.highlight"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="player|SignalPathPanel TextBlock.detail">
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="11" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="LineHeight" Value="16" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.hero">
+    <Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Border.hairline"><Setter Property="Height" Value="1" /><Setter Property="Background" Value="{DynamicResource EchoDivider}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.pill">
+    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="7,2" /><Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Border.pill TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="player|SignalPathPanel Border.chip">
+    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="99" /><Setter Property="Padding" Value="8,3" /><Setter Property="Margin" Value="0,0,6,6" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Border.chip TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="player|SignalPathPanel Border.chip TextBlock.chip-label"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.chip TextBlock.chip-value"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="player|SignalPathPanel Border.chip.active">
+    <Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Border.chip.active TextBlock.chip-value"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.note">
+    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+    <Setter Property="BorderThickness" Value="2,0,0,0" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="10,8" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Border.badge">
+    <Setter Property="Width" Value="28" /><Setter Property="Height" Value="28" /><Setter Property="CornerRadius" Value="14" />
+    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Button.close">
+    <Setter Property="Width" Value="28" /><Setter Property="Height" Value="28" /><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="7" /><Setter Property="Background" Value="{DynamicResource EchoField}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Button.close:pointerover">
+    <Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Button.close:pointerover icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="player|SignalPathPanel Button.link">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="2,3" />
+    <Setter Property="MinHeight" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Expander">
+    <Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoSubtle}" /><Setter Property="Padding" Value="0" />
+    <Style.Resources>
+      <SolidColorBrush x:Key="ExpanderHeaderBackground">Transparent</SolidColorBrush>
+      <SolidColorBrush x:Key="ExpanderHeaderBorderBrush">Transparent</SolidColorBrush>
+      <SolidColorBrush x:Key="ExpanderContentBackground">Transparent</SolidColorBrush>
+      <SolidColorBrush x:Key="ExpanderContentBorderBrush">Transparent</SolidColorBrush>
+    </Style.Resources>
   </Style>
 </Styles>

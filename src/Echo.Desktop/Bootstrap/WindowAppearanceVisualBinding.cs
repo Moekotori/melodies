@@ -19,7 +19,7 @@ internal sealed class WindowAppearanceVisualBinding : IDisposable
     private readonly Window window;
     private readonly ShellViewModel shell;
     private readonly PlayerViewModel? player;
-    private readonly IAppearanceMedia decoder = new AppearanceMediaDecoder(AppearanceMediaPath.Resolve());
+    private readonly IAppearanceMedia decoder = new AppearanceMediaDecoder(AppearanceMediaPath.Resolve(), AppearanceMediaPath.AnalysisHost());
     private readonly Channel<Request> requests = Channel.CreateBounded<Request>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly CancellationTokenSource lifetime = new();
     private CancellationTokenSource? active;

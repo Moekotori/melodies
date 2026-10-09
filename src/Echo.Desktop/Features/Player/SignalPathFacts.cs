@@ -22,3 +22,5 @@ internal static class SignalPathFacts
 
 public sealed record SignalPathFact(string Label, string Value, string Detail = "", bool Highlight = false);
 public sealed record SignalPathNode(string Icon, string Title, string Value, string Detail);
+public sealed record SignalPathChip(string Label, string Value, bool Active);
+public sealed record SignalPathInsight(string Title, string Detail, string Advice);

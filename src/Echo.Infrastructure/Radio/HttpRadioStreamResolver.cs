@@ -53,8 +53,11 @@ public sealed class HttpRadioStreamResolver : IRadioStreamResolver, IDisposable
                 if (type.Contains("html", StringComparison.Ordinal) || type.Contains("json", StringComparison.Ordinal) || type.StartsWith("text/", StringComparison.Ordinal))
                     throw new IOException("这个地址返回网页或文字，请填写音频流或 M3U / PLS 地址。");
                 var bitrate = Header(response, "icy-br", 16);
+                string? homepage = null;
+                if (Header(response, "icy-url", 2048) is { } page)
+                    try { homepage = RadioHttpAddress.Normalize(page); } catch (IOException) { }
                 return new(final.AbsoluteUri, codec, Header(response, "icy-name", 160), Header(response, "icy-description", 512),
-                    Header(response, "icy-genre", 80), int.TryParse(bitrate, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && number is > 0 and < 100000 ? number : null);
+                    Header(response, "icy-genre", 80), int.TryParse(bitrate, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && number is > 0 and < 100000 ? number : null, homepage);
             }
             throw new IOException("电台列表嵌套超过 4 层，请使用直接音频流地址。");
         }
