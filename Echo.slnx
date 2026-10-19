@@ -3,6 +3,9 @@
     <Project Path="src/Echo.Contracts/Echo.Contracts.csproj" />
     <Project Path="src/Echo.Audio.Contracts/Echo.Audio.Contracts.csproj" />
     <Project Path="src/Echo.Audio.Client/Echo.Audio.Client.csproj" />
+    <Project Path="src/Echo.Output.Contracts/Echo.Output.Contracts.csproj" />
+    <Project Path="src/Echo.Output.Client/Echo.Output.Client.csproj" />
+    <Project Path="src/Echo.Output.Host/Echo.Output.Host.csproj" />
     <Project Path="src/Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" />
     <Project Path="src/Echo.Playback/Echo.Playback.csproj" />
     <Project Path="src/Echo.Application/Echo.Application.csproj" />
@@ -24,5 +27,6 @@
     <Project Path="tests/Echo.Core.Smoke/Echo.Core.Smoke.csproj" />
     <Project Path="tests/Echo.Core.IpcSmoke/Echo.Core.IpcSmoke.csproj" />
     <Project Path="tests/Echo.Core.RemoteSmoke/Echo.Core.RemoteSmoke.csproj" />
+    <Project Path="tests/Echo.NetworkOutput.Smoke/Echo.NetworkOutput.Smoke.csproj" />
   </Folder>
 </Solution>

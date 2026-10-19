@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../Echo.Output.Contracts/Echo.Output.Contracts.csproj" /><ProjectReference Include="../Echo.Core.Transport/Echo.Core.Transport.csproj" /><ProjectReference Include="../Echo.Audio.Client/Echo.Audio.Client.csproj" /></ItemGroup></Project>

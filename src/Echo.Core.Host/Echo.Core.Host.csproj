@@ -2,6 +2,7 @@
   <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Echo.Core/Echo.Core.csproj" />
+    <ProjectReference Include="../Echo.Output.Client/Echo.Output.Client.csproj" />
     <ProjectReference Include="../Echo.Audio.Client/Echo.Audio.Client.csproj" />
     <ProjectReference Include="../Echo.Platform/Echo.Platform.csproj" />
   </ItemGroup>

@@ -13,9 +13,15 @@ public interface ICoreRequestHandler
     event Action? Changed;
     event Action<CoreMessage>? Notice;
     Task<JsonElement> DispatchAsync(string method, JsonElement payload, string role, CancellationToken token);
+    ValueTask ConnectedAsync(CorePeer peer, CancellationToken token) => ValueTask.CompletedTask;
+    ValueTask DisconnectedAsync(CorePeer peer) => ValueTask.CompletedTask;
+    Task<JsonElement> DispatchForPeerAsync(string method, JsonElement payload, CorePeer peer, CancellationToken token)
+        => DispatchAsync(method, payload, peer.Role, token);
 }
 
-public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handler) : IAsyncDisposable
+public sealed record CorePeer(Guid ConnectionId, Guid ClientId, string Role);
+
+public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handler, string remoteRole = "remote-control", bool reliableNotices = false) : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, (Stream Stream, Task Task)> clients = new();
     private readonly SemaphoreSlim requestBudget = new(16, 16);
@@ -23,6 +29,7 @@ public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandle
     private readonly SemaphoreSlim clientBudget = new(CoreProtocol.MaximumClients, CoreProtocol.MaximumClients);
     private readonly CancellationTokenSource stop = new();
     public int ClientCount => clients.Count;
+    public void Disconnect(Guid connectionId) { if (clients.TryGetValue(connectionId, out var peer)) peer.Stream.Dispose(); }
 
     public async Task RunAsync(CancellationToken token)
     {
@@ -59,14 +66,16 @@ public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandle
     private async Task ServeAsync(Guid id, Stream pipe, TaskCompletionSource completion, CancellationToken token, RemoteCoreAccess? remote)
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
+        CorePeer? peer = null;
         var calls = new ConcurrentDictionary<long, (CancellationTokenSource Cancel, Task Task)>();
         var writes = new SemaphoreSlim(1, 1);
         var signals = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
-        var notices = Channel.CreateBounded<CoreMessage>(new BoundedChannelOptions(16) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
+        var notices = Channel.CreateBounded<CoreMessage>(new BoundedChannelOptions(16) { FullMode = reliableNotices ? BoundedChannelFullMode.Wait : BoundedChannelFullMode.DropOldest, SingleReader = true });
         void Changed() => signals.Writer.TryWrite(true);
         void Notice(CoreMessage notice)
         {
-            if (remote is null || notice.Method is "library.listening" or "radio.changed" or "core.quit") notices.Writer.TryWrite(notice);
+            if (remote is null || remoteRole != "remote-control" || notice.Method is "library.listening" or "radio.changed" or "core.quit")
+                if (!notices.Writer.TryWrite(notice) && reliableNotices) pipe.Dispose();
         }
         Task? updates = null, notifications = null;
         async Task Write(CoreMessage message)
@@ -84,11 +93,13 @@ public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandle
             if (remote is not null) pipe = await RemoteCoreTransport.AcceptAsync(pipe, remote, handshakeLimit.Token).ConfigureAwait(false);
             var first = await CoreFrames.ReadAsync(pipe, handshakeLimit.Token, 4096).ConfigureAwait(false);
             if (first is null || first.Kind != "hello") return;
-            var hello = CoreJson.Read<CoreHello>(first.Payload);
-            if (hello.Version != CoreProtocol.Version || hello.Identity != endpoint.Identity || (remote is null ? hello.Role is not ("control" or "bridge") : !remote.Authorize(hello)))
+            var hello = JsonSerializer.Deserialize(first.Payload, CoreWireJson.Default.CoreHello)!;
+            if (hello.Version != CoreProtocol.Version || hello.Identity != endpoint.Identity || (remote is null ? hello.Role is not ("control" or "bridge") : hello.Role != remoteRole || !remote.Authorize(hello)))
             { await Write(new("welcome", Failure: new("incompatible", "Core 协议、身份或角色不匹配。"))).ConfigureAwait(false); return; }
-            await Write(new("welcome", Payload: CoreJson.Value(new CoreWelcome(CoreProtocol.Version, handler.Instance,
-                endpoint.Identity, System.Diagnostics.Stopwatch.Frequency)), Playback: BridgePlaybackProjection.Apply(handler.Capture(), hello.Role))).ConfigureAwait(false);
+            peer = new(id, hello.ClientId, hello.Role);
+            await handler.ConnectedAsync(peer, handshakeLimit.Token).ConfigureAwait(false);
+            await Write(new("welcome", Payload: JsonSerializer.SerializeToElement(new CoreWelcome(CoreProtocol.Version, handler.Instance,
+                endpoint.Identity, System.Diagnostics.Stopwatch.Frequency), CoreWireJson.Default.CoreWelcome), Playback: BridgePlaybackProjection.Apply(handler.Capture(), hello.Role))).ConfigureAwait(false);
             if (remote is not null) remoteClients[id] = (hello, pipe);
             handler.Changed += Changed; handler.Notice += Notice;
             Changed();
@@ -134,7 +145,7 @@ public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandle
                 {
                     try
                     {
-                        var response = await handler.DispatchAsync(operation.Method, operation.Payload, hello.Role, cancellation.Token).ConfigureAwait(false);
+                        var response = await handler.DispatchForPeerAsync(operation.Method, operation.Payload, peer, cancellation.Token).ConfigureAwait(false);
                         var state = operation.Method.StartsWith("playback.", StringComparison.Ordinal) || operation.Method.StartsWith("sleep.", StringComparison.Ordinal) ? handler.Capture() : null;
                         await Write(new("response", operation.Id, Payload: response, Playback: BridgePlaybackProjection.Apply(state, hello.Role))).ConfigureAwait(false);
                     }
@@ -158,6 +169,7 @@ public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandle
             foreach (var call in calls.Values) try { call.Cancel.Cancel(); } catch (ObjectDisposedException) { }
             try { await Task.WhenAll(calls.Values.Select(call => call.Task)).ConfigureAwait(false); } catch (Exception) { }
             foreach (var work in new[] { updates, notifications }) if (work is not null) try { await work.ConfigureAwait(false); } catch (Exception) { }
+            if (peer is not null) try { await handler.DisconnectedAsync(peer).ConfigureAwait(false); } catch (Exception) { }
             writes.Dispose(); remoteClients.TryRemove(id, out _); clients.TryRemove(id, out _); clientBudget.Release(); completion.TrySetResult();
         }
     }

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Echo.Core.Client/Echo.Core.Client.csproj" />
+    <ProjectReference Include="../../src/Echo.Output.Contracts/Echo.Output.Contracts.csproj" />
+    <ProjectReference Include="../../src/Echo.Core.Host/Echo.Core.Host.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../src/Echo.Output.Host/Echo.Output.Host.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

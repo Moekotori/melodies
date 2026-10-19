@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Echo.Core.Transport;
 
-internal static class RemoteCoreTransport
+public static class RemoteCoreTransport
 {
     public static async Task<Stream> ConnectAsync(RemoteCoreProfile profile, CancellationToken token)
     {

@@ -8,21 +8,22 @@ for (var index = 0; index < args.Length; index++)
 {
     if (!args[index].StartsWith("--", StringComparison.Ordinal) || index + 1 >= args.Length || !options.TryAdd(args[index][2..], args[++index])) return 2;
 }
-if (options.Keys.Any(key => key is not ("data" or "db" or "native-root" or "persistent" or "media" or "idle-seconds" or "remote-listen" or "pair-client" or "remote-host" or "remote-port" or "revoke-client"))) return 2;
+if (options.Keys.Any(key => key is not ("data" or "db" or "native-root" or "persistent" or "media" or "idle-seconds" or "remote-listen" or "pair-client" or "remote-host" or "remote-port" or "revoke-client" or "pair-output-media" or "output-connection" or "output-media-listen" or "output-media-client-id" or "local-output"))) return 2;
 var directory = Path.GetFullPath(options.GetValueOrDefault("data") ?? CoreEndpoint.Default.Directory);
 var endpoint = new CoreEndpoint(directory, Path.GetFullPath(options.GetValueOrDefault("db") ?? Path.Combine(directory, "library.sqlite")));
 Directory.CreateDirectory(Path.GetDirectoryName(endpoint.LibraryPath)!);
 Directory.CreateDirectory(directory);
-if (options.ContainsKey("pair-client") || options.ContainsKey("revoke-client"))
+if (options.ContainsKey("pair-client") || options.ContainsKey("pair-output-media") || options.ContainsKey("revoke-client"))
 {
     try
     {
-        if (options.ContainsKey("pair-client") && options.ContainsKey("revoke-client")) return 2;
-        if (options.TryGetValue("pair-client", out var pairing))
+        if (new[] { "pair-client", "pair-output-media", "revoke-client" }.Count(options.ContainsKey) != 1) return 2;
+        var mediaPairing = options.ContainsKey("pair-output-media");
+        if (options.TryGetValue(mediaPairing ? "pair-output-media" : "pair-client", out var pairing))
         {
             if (!options.TryGetValue("remote-host", out var host) || !int.TryParse(options.GetValueOrDefault("remote-port"), out var port)) return 2;
-            RemoteCoreAccess.Pair(endpoint, host, port, pairing);
-            Console.WriteLine($"Core control paired: {RemoteCoreProfile.Load(pairing).ClientId}. Pairing file contains a secret; transfer it privately.");
+            RemoteCoreAccess.Pair(endpoint, host, port, pairing, mediaPairing ? "output-media" : "remote-control");
+            Console.WriteLine($"{(mediaPairing ? "Output media" : "Core control")} paired: {RemoteCoreProfile.Load(pairing).ClientId}. Pairing file contains a secret; transfer it privately.");
         }
         else RemoteCoreAccess.Revoke(endpoint, Guid.Parse(options["revoke-client"]));
         return 0;
@@ -52,8 +53,9 @@ await using (ownership)
     try
     {
         using var remoteAccess = remoteAddress is null ? null : RemoteCoreAccess.Open(endpoint);
+        var output = CoreOutputOptions.Parse(options, endpoint);
         var native = Path.GetFullPath(options.GetValueOrDefault("native-root") ?? Path.Combine(AppContext.BaseDirectory, "native"));
-        await using var runtime = HostComposition.Create(endpoint, native, options.GetValueOrDefault("persistent") != "0", options.GetValueOrDefault("media") != "0");
+        await using var runtime = HostComposition.Create(endpoint, native, options.GetValueOrDefault("persistent") != "0", options.GetValueOrDefault("media") != "0", output);
         await runtime.StartAsync(shutdown.Token);
         // Claim the existing writer lock before advertising readiness, including when no Control has browsed yet.
         _ = await runtime.Library.GetTracksAsync(new(Limit: 1), shutdown.Token);

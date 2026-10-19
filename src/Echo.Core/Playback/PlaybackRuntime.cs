@@ -33,11 +33,11 @@ public sealed class PlaybackRuntime : IPlaybackRuntime
 
     public PlaybackRuntime(INativeAudio native,
         Func<CancellationToken, Task<IPlaybackCheckpointStore>>? openStore = null, IMediaTransport? transport = null,
-        IPlaybackSourceProbe? sourceProbe = null, IPlaybackFileResolver? fileResolver = null)
+        IPlaybackSourceProbe? sourceProbe = null, IPlaybackFileResolver? fileResolver = null, string zoneName = "本机")
     {
         this.openStore = openStore;
         this.transport = transport;
-        LocalZone = new(PlaybackZone.LocalId, "本机", new PlaybackSessionCoordinator(native, sourceProbe, fileResolver));
+        LocalZone = new(PlaybackZone.LocalId, zoneName, new PlaybackSessionCoordinator(native, sourceProbe, fileResolver));
         SleepTimer = new(LocalZone.Session);
         BackgroundWork = new(LocalZone.Session);
         if (transport is not null)

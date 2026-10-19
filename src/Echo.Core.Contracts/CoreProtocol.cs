@@ -30,7 +30,7 @@ public sealed record CoreWelcome(int Version, Guid Instance, string Identity, lo
 public sealed record CoreFailure(string Code, string Message, bool OutcomeUnknown = false);
 public sealed record CorePlaybackFrame(long Serial, PlaybackStateSnapshot State, bool VolumeLocked,
     string PlaybackRateMode, bool CanUndo, bool GeneratedDsdAllowed, SegmentLoopState? SegmentLoop,
-    SleepTimerState Sleep, string? PersistenceError, string? MediaError, bool HasQueue = true, Echo.Contracts.Tasks.BackgroundAdmissionSnapshot? Admission = null);
+    SleepTimerState Sleep, string? PersistenceError, string? MediaError, bool HasQueue = true, Echo.Contracts.Tasks.BackgroundAdmissionSnapshot? Admission = null, string? ZoneName = null);
 public sealed record CoreTaskRequest(string Path, FolderScanOptions? Options = null, FolderTrackQuery? Resources = null, ScanRequest? Scan = null, string? Scanner = null, string? RemoteSourceId = null, string? Maintenance = null, Guid Id = default, IReadOnlyList<string>? Paths = null, string? BackupPath = null);
 public sealed record CoreTaskStart(Guid Id);
 public sealed record CoreTaskCancel(Guid Id);

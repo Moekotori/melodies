@@ -50,7 +50,7 @@ internal sealed partial class CoreDispatch : ICoreRequestHandler, IAsyncDisposab
             var playback = runtime.Playback;
             var session = playback.LocalZone.Session;
             return new(++serial, session.State, session.VolumeLocked, session.PlaybackRateMode, session.CanUndoQueueEdit,
-                session.GeneratedDsdAllowed, session.SegmentLoop, playback.SleepTimer.State, playback.PersistenceError, playback.MediaError, Admission: playback.BackgroundWork.Snapshot);
+                session.GeneratedDsdAllowed, session.SegmentLoop, playback.SleepTimer.State, playback.PersistenceError, playback.MediaError, Admission: playback.BackgroundWork.Snapshot, ZoneName: playback.LocalZone.Name);
         }
     }
 

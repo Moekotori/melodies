@@ -58,6 +58,7 @@ public sealed class CoreConnection : ICoreServices
     }
     public static async Task<CoreConnection> ConnectRemoteAsync(RemoteCoreProfile profile, CancellationToken token = default)
     {
+        if (profile.Role != "remote-control") throw new ArgumentException("该配对文件不用于 Control。");
         var wire = await CoreWireClient.ConnectRemoteAsync(profile, token).ConfigureAwait(false);
         var connection = new CoreConnection(wire, null, "remote-control"); wire.Start(); return connection;
     }

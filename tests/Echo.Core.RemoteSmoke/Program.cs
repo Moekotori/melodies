@@ -20,6 +20,10 @@ var endpoint = new CoreEndpoint(root, Path.Combine(root, "library.sqlite"));
 var probe = new TcpListener(IPAddress.Loopback, 0); probe.Start(); var port = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop();
 var pairing = Path.Combine(root, "control.echo-core-client.json");
 RemoteCoreAccess.Pair(endpoint, "127.0.0.1", port, pairing);
+// Previous remote-control pairing files had no role field; preserve their constructor default.
+File.WriteAllText(pairing, File.ReadAllText(pairing).Replace(",\"role\":\"remote-control\"", "", StringComparison.Ordinal));
+var grantsFile = Path.Combine(root, "remote-access", "clients.json");
+File.WriteAllText(grantsFile, File.ReadAllText(grantsFile).Replace(",\"role\":\"remote-control\"", "", StringComparison.Ordinal));
 var profile = RemoteCoreProfile.Load(pairing);
 Check(!profile.ToString().Contains(profile.AccessToken, StringComparison.Ordinal), "Pairing secret exposed by diagnostics");
 if (!OperatingSystem.IsWindows()) Check((File.GetUnixFileMode(pairing) & (UnixFileMode.GroupRead | UnixFileMode.OtherRead)) == 0, "Pairing file is not private");

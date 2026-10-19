@@ -18,12 +18,15 @@ def reachable(name):
   seen.add(current);todo.extend(graph.get(current,[]))
  return seen
 rules={
- 'Echo.Desktop':{'Echo.Core','Echo.Core.Host','Echo.Bridge','Echo.Bridge.Host','Echo.Audio.Client','Echo.Playback'},
+ 'Echo.Desktop':{'Echo.Core','Echo.Core.Host','Echo.Bridge','Echo.Bridge.Host','Echo.Audio.Client','Echo.Playback','Echo.Output.Client','Echo.Output.Host'},
  'Echo.Bridge.Host':{'Echo.Core','Echo.Core.Host','Echo.Infrastructure','Echo.Desktop','Echo.Audio.Client','Echo.Playback'},
+ 'Echo.Output.Host':{'Echo.Core','Echo.Core.Host','Echo.Desktop','Echo.Visuals','Echo.Infrastructure','Echo.Playback','Echo.Core.Client','Echo.Output.Client'},
+ 'Echo.Output.Client':{'Echo.Core','Echo.Core.Host','Echo.Output.Host','Echo.Desktop','Echo.Infrastructure','Echo.Playback','Echo.Audio.Client','Echo.Core.Client'},
+ 'Echo.Output.Contracts':{'Echo.Core','Echo.Core.Contracts','Echo.Core.Transport','Echo.Output.Client','Echo.Output.Host','Echo.Desktop','Echo.Infrastructure','Echo.Playback','Echo.Playback.Contracts','Echo.Audio.Client'},
  'Echo.Core.Host':{'Echo.Desktop','Echo.Visuals'},
  'Echo.Core.Contracts':{'Echo.Core','Echo.Core.Client','Echo.Infrastructure','Echo.Application','Echo.Platform','Echo.Desktop','Echo.Playback'},
- 'Echo.Application':{'Echo.Core','Echo.Infrastructure','Echo.Desktop','Echo.Platform','Echo.Audio.Client','Echo.Playback'},
- 'Echo.Playback':{'Echo.Desktop','Echo.Infrastructure','Echo.Platform','Echo.Audio.Client','Echo.Core'},
+ 'Echo.Application':{'Echo.Core','Echo.Infrastructure','Echo.Desktop','Echo.Platform','Echo.Audio.Client','Echo.Playback','Echo.Output.Client','Echo.Output.Host'},
+ 'Echo.Playback':{'Echo.Desktop','Echo.Infrastructure','Echo.Platform','Echo.Audio.Client','Echo.Core','Echo.Output.Client','Echo.Output.Host'},
 }
 for name,forbidden in rules.items():
  overlap=reachable(name)&forbidden

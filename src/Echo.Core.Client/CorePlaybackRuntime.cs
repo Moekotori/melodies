@@ -30,7 +30,7 @@ internal sealed class CorePlaybackRuntime : IPlaybackRuntime
     internal CorePlaybackRuntime(CoreWireClient wire, Func<Task> reconnect, bool remote = false)
     {
         this.wire = wire; this.reconnect = reconnect; this.remote = remote; session = new(wire); timer = new(wire); accessory = new(wire);
-        LocalZone = new(PlaybackZone.LocalId, remote ? "Core 输出" : "本机", session);
+        LocalZone = new(PlaybackZone.LocalId, wire.InitialPlayback?.ZoneName ?? (remote ? "Core 输出" : "本机"), session);
         admission = new(wire); BackgroundWork = admission;
         wire.Received += Receive; wire.Disconnected += OnDisconnected;
     }

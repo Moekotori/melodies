@@ -1,6 +1,6 @@
 # 远程 Control
 
-2026-10-19。远程桌面/CLI 现在可以通过配对的 TLS 连接使用同一个 Core；音频仍在 Core 所在机器的原生宿主输出。此功能不等于远程音频 Output，也不提供 RAAT 兼容或多 Zone 同步。
+2026-10-19。远程桌面/CLI 现在可以通过配对的 TLS 连接使用同一个 Core；默认音频在 Core 所在机器的原生宿主输出；可显式绑定 [独立网络 Output](NETWORK_OUTPUT.md)。此功能不等于远程音频 Output，也不提供 RAAT 兼容或多 Zone 同步。
 
 ## 所有者启动与配对
 
@@ -70,7 +70,7 @@ dotnet src/Echo.Core.Host/bin/Release/net10.0/Echo.Core.Host.dll \
 ## 传输与生命周期
 
 - 采用 [.NET SslStream](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream?view=net-10.0) 的 TLS 1.2/1.3；控制端严格校验配对文件中的证书 SHA-256 指纹和证书有效期。信任由所有者发放的文件建立，不从未验证的网络发现结果自动信任证书。
-- 配对访问密钥为随机 256 位，只在 TLS 建立后用于握手。Core 仅存密钥哈希，并用固定时间比较验证；网络端固定为 `remote-control` 角色，不能改角色获得本机权限。
+- 配对访问密钥为随机 256 位，只在 TLS 建立后用于握手。Core 仅存密钥哈希，并用固定时间比较验证；远程 Control 入口只接受 `remote-control` 角色；输出控制和只读媒体分别使用独立角色，不能修改客户端文件中的角色提权。
 - 配对文件 Unix 权限 0600，服务端目录 0700；Windows 写入时设置仅当前用户 ACL。macOS 使用平台支持的默认密钥导入方式；其他平台采用 EphemeralKeySet。证书对象随 owner 生命周期释放；没有自行持久导入客户端证书。
 - 本地 IPC 与 TLS 合计最多 8 个活动连接，TLS 和应用握手共用 5 秒期限。每连接 pending、普通/播放控制请求预算、4 KiB 握手、1 MiB 请求、8 MiB 响应、5 秒写入期限及合并订阅沿用同一实现。
 - 撤销表最多 16 项/32 KiB，读取失败即拒绝访问并断开现有远程连接；只在显式网络服务运行时启用每秒检查。

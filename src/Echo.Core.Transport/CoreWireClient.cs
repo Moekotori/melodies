@@ -42,8 +42,8 @@ public sealed class CoreWireClient : IAsyncDisposable
     public static async Task<CoreWireClient> ConnectRemoteAsync(RemoteCoreProfile profile, CancellationToken token)
     {
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(token); limit.CancelAfter(TimeSpan.FromSeconds(10));
-        var opened = await OpenAsync(null, "remote-control", limit.Token, profile).ConfigureAwait(false);
-        return new(opened.Pipe, null, "remote-control", profile) { Welcome = opened.Welcome, InitialPlayback = LocalClock(opened.Playback) };
+        var opened = await OpenAsync(null, profile.Role, limit.Token, profile).ConfigureAwait(false);
+        return new(opened.Pipe, null, profile.Role, profile) { Welcome = opened.Welcome, InitialPlayback = LocalClock(opened.Playback) };
     }
 
     private static async Task<(Stream Pipe, CoreWelcome Welcome, CorePlaybackFrame? Playback)> OpenAsync(CoreEndpoint? endpoint, string role, CancellationToken token, RemoteCoreProfile? remote = null)
@@ -58,10 +58,10 @@ public sealed class CoreWireClient : IAsyncDisposable
                 var local = new NamedPipeClientStream(".", endpoint!.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
                 pipe = local; await local.ConnectAsync(token).ConfigureAwait(false);
             }
-            await CoreFrames.WriteAsync(pipe, new("hello", Payload: CoreJson.Value(new CoreHello(CoreProtocol.Version, identity, role, remote?.ClientId ?? Guid.NewGuid(), remote?.AccessToken))), token).ConfigureAwait(false);
+            await CoreFrames.WriteAsync(pipe, new("hello", Payload: JsonSerializer.SerializeToElement(new CoreHello(CoreProtocol.Version, identity, role, remote?.ClientId ?? Guid.NewGuid(), remote?.AccessToken), CoreWireJson.Default.CoreHello)), token).ConfigureAwait(false);
             var reply = await CoreFrames.ReadAsync(pipe, token).ConfigureAwait(false) ?? throw new IOException("Core handshake closed.");
             if (reply.Failure is { } error) throw new CoreRemoteException(error.Code, error.Message);
-            var welcome = CoreJson.Read<CoreWelcome>(reply.Payload);
+            var welcome = JsonSerializer.Deserialize(reply.Payload, CoreWireJson.Default.CoreWelcome)!;
             if (reply.Kind != "welcome" || welcome.Version != CoreProtocol.Version || welcome.Identity != identity)
                 throw new CoreRemoteException("incompatible", "Core 版本或曲库身份不匹配。");
             return (pipe, welcome, reply.Playback);

@@ -10,7 +10,7 @@ public sealed class RemoteCoreAccess : IDisposable
     private readonly string grantsPath;
     private RemoteCoreGrant[] grants = [];
     public X509Certificate2 Certificate { get; }
-    public bool HasPairedControls => Volatile.Read(ref grants).Any(grant => grant.ExpiresUtc > DateTimeOffset.UtcNow);
+    public bool HasPairedControls => Volatile.Read(ref grants).Any(grant => grant.Role == "remote-control" && grant.ExpiresUtc > DateTimeOffset.UtcNow);
     private RemoteCoreAccess(CoreEndpoint endpoint)
     {
         var directory = Path.Combine(endpoint.Directory, "remote-access");
@@ -33,13 +33,13 @@ public sealed class RemoteCoreAccess : IDisposable
     }
     public bool Authorize(CoreHello hello)
     {
-        if (hello.Role != "remote-control" || hello.AccessToken is not { Length: 64 } secret || !secret.All(char.IsAsciiHexDigit)) return false;
+        if (hello.AccessToken is not { Length: 64 } secret || !secret.All(char.IsAsciiHexDigit)) return false;
         var grant = Volatile.Read(ref grants).FirstOrDefault(item => item.ClientId == hello.ClientId);
-        if (grant is null || grant.ExpiresUtc <= DateTimeOffset.UtcNow || grant.TokenSha256.Length != 64) return false;
+        if (grant is null || grant.Role != hello.Role || grant.ExpiresUtc <= DateTimeOffset.UtcNow || grant.TokenSha256.Length != 64) return false;
         try { return CryptographicOperations.FixedTimeEquals(SHA256.HashData(Convert.FromHexString(secret)), Convert.FromHexString(grant.TokenSha256)); }
         catch (FormatException) { return false; }
     }
-    public static void Pair(CoreEndpoint endpoint, string host, int port, string destination)
+    public static void Pair(CoreEndpoint endpoint, string host, int port, string destination, string role = "remote-control")
     {
         var directory = Path.Combine(endpoint.Directory, "remote-access");
         if (OperatingSystem.IsWindows()) Directory.CreateDirectory(directory);
@@ -60,11 +60,11 @@ public sealed class RemoteCoreAccess : IDisposable
         if (current.Length >= 16) throw new InvalidOperationException("Core 配对已满，请先撤销旧客户端。");
         var secret = RandomNumberGenerator.GetBytes(32);
         var profile = new RemoteCoreProfile(host, port, endpoint.Identity, access.Certificate.GetCertHashString(HashAlgorithmName.SHA256),
-            Guid.NewGuid(), Convert.ToHexString(secret), DateTimeOffset.UtcNow.AddDays(90));
+            Guid.NewGuid(), Convert.ToHexString(secret), DateTimeOffset.UtcNow.AddDays(90), role);
         profile.Validate();
         // Never overwrite an existing client file; a failed grant write leaves an unusable file, not an unknown authorized client.
         PrivatePairingFile.Write(destination, profile, RemoteAccessJson.Default.RemoteCoreProfile);
-        var grant = new RemoteCoreGrant(profile.ClientId, Convert.ToHexString(SHA256.HashData(secret)), profile.ExpiresUtc);
+        var grant = new RemoteCoreGrant(profile.ClientId, Convert.ToHexString(SHA256.HashData(secret)), profile.ExpiresUtc, role);
         PrivatePairingFile.Write(access.grantsPath, current.Append(grant).ToArray(), RemoteAccessJson.Default.RemoteCoreGrantArray, true);
         CryptographicOperations.ZeroMemory(secret);
     }
