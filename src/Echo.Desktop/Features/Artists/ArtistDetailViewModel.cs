@@ -25,18 +25,40 @@ public sealed partial class ArtistDetailViewModel : ObservableObject, IDisposabl
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanPlay))] private bool isBusy;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanPlay))] private bool isLoading;
     public bool CanPlay => !IsBusy && !IsLoading && Tracks.Count > 0;
-    [ObservableProperty] private bool albumsSelected;
     [ObservableProperty] private int activeTab;
     [ObservableProperty] private int sortIndex;
     [ObservableProperty] private bool descending;
     public ArtistRow Artist { get; }
-    public string Meta => $"{Artist.TrackCount:N0} 首曲目     |     {Artist.AlbumCount:N0} 张专辑";
+    public ArtistOverviewViewModel Overview { get; }
+    private readonly Localization.LocalizationService? _text;
+    public string Meta => _text?.Format("artist.detail.format.meta", Artist.TrackCount, Artist.AlbumCount, ArtistOverviewViewModel.FormatDuration(Artist.DurationSeconds, _text))
+        ?? $"{Artist.TrackCount:N0} 首曲目  ·  {Artist.AlbumCount:N0} 张专辑  ·  {ArtistOverviewViewModel.FormatDuration(Artist.DurationSeconds)}";
     public string DurationLabel => $"{TimeSpan.FromSeconds(Artist.DurationSeconds).TotalMinutes:N0} 分钟";
     public string Duration => DurationLabel;
-    public bool IsOverview => !AlbumsSelected;
-    public bool IsAlbums => AlbumsSelected;
-    partial void OnActiveTabChanged(int value) => AlbumsSelected = value == 1;
-    partial void OnAlbumsSelectedChanged(bool value) { OnPropertyChanged(nameof(IsOverview)); OnPropertyChanged(nameof(IsAlbums)); }
+    public bool IsOverview => ActiveTab == 0;
+    public bool IsAlbums => ActiveTab == 1;
+    public bool IsTracks => ActiveTab == 2;
+    public bool ShowTracks => !IsAlbums;
+    public IReadOnlyList<AlbumTrackItem> VisibleTracks => IsOverview ? Tracks.Take(6).ToArray() : Tracks;
+    public double TrackListHeight => IsOverview ? Math.Min(6, Tracks.Count) * 57 : 448;
+    public bool IsEmpty => !IsLoading && Error.Length == 0 && Tracks.Count == 0;
+    partial void OnTracksChanging(IReadOnlyList<AlbumTrackItem> value)
+    { foreach (var item in Tracks) item.PropertyChanged -= OnTrackState; }
+    partial void OnTracksChanged(IReadOnlyList<AlbumTrackItem> value)
+    {
+        foreach (var item in value) item.PropertyChanged += OnTrackState;
+        OnPropertyChanged(nameof(VisibleTracks)); OnPropertyChanged(nameof(TrackListHeight)); OnPropertyChanged(nameof(IsEmpty));
+    }
+    private void OnTrackState(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName != nameof(AlbumTrackItem.Favorite) || sender is not AlbumTrackItem item) return;
+        _revision = null;
+        Overview.ApplyFavoriteChange(item.Favorite);
+    }
+    partial void OnActiveTabChanged(int value)
+    {
+        foreach (var name in new[] { nameof(IsOverview), nameof(IsAlbums), nameof(IsTracks), nameof(ShowTracks), nameof(VisibleTracks), nameof(TrackListHeight) }) OnPropertyChanged(name);
+    }
     partial void OnSortIndexChanged(int value) => _ = LoadAsync();
     partial void OnDescendingChanged(bool value) => _ = LoadAsync();
     public string PageText => $"{_offset / 200 + 1} / {Math.Max(1, (Artist.TrackCount + 199) / 200)}";
@@ -44,13 +66,16 @@ public sealed partial class ArtistDetailViewModel : ObservableObject, IDisposabl
     public bool CanNext => _offset + 200 < Artist.TrackCount && !IsLoading;
     public bool HasMultiplePages => Artist.TrackCount > 200;
     partial void OnIsBusyChanged(bool value) { OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext)); }
-    partial void OnIsLoadingChanged(bool value) { OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext)); }
-    public ArtistDetailViewModel(ArtistRow artist, IArtistLibrary library, IAlbumPersonalState? personal, PlayerViewModel player)
+    partial void OnIsLoadingChanged(bool value) { OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext)); OnPropertyChanged(nameof(IsEmpty)); }
+    public ArtistDetailViewModel(ArtistRow artist, IArtistLibrary library, IAlbumPersonalState? personal, PlayerViewModel player, Localization.LocalizationService? text = null)
     {
         Artist = artist; _library = library; _personal = personal; _player = player;
+        _text = text; Overview = new(artist, library, text);
+        if (_text is not null) _text.Changed += OnLanguage;
         _playingId = player.Session.Snapshot.Current?.TrackId;
         player.Session.Changed += OnPlayback;
     }
+    private void OnLanguage() => OnPropertyChanged(nameof(Meta));
     private void OnPlayback(PlaybackSnapshot snapshot)
     {
         if (Interlocked.Exchange(ref _playingId, snapshot.Current?.TrackId) == snapshot.Current?.TrackId) return;
@@ -129,5 +154,5 @@ public sealed partial class ArtistDetailViewModel : ObservableObject, IDisposabl
         Metadata: new Dictionary<string, string?> { ["title"] = track.Title, ["artist"] = track.Artist, ["album"] = track.Album,
             ["duration"] = track.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture), ["codec"] = track.Codec },
         Origin: new("artist", Artist.Name, Artist.Id), SampleRate: track.SampleRate > 0 ? track.SampleRate : null);
-    public void Dispose() { if (_closed) return; _closed = true; _player.Session.Changed -= OnPlayback; _request?.Cancel(); _lifetime.Cancel(); ++_generation; Tracks = []; }
+    public void Dispose() { if (_closed) return; _closed = true; if (_text is not null) _text.Changed -= OnLanguage; _player.Session.Changed -= OnPlayback; _request?.Cancel(); _lifetime.Cancel(); ++_generation; Tracks = []; Overview.Dispose(); }
 }

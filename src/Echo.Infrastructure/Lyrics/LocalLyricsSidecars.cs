@@ -11,11 +11,11 @@ internal static class LocalLyricsSidecars
     public static (string? Translation, string? Romanization) Companions(string primary, CancellationToken cancellation)
     {
         var directory = Path.GetDirectoryName(primary) ?? "";
-        var stem = Path.GetFileNameWithoutExtension(primary);
+        var stem = Stem(primary);
         var tagged = Parse(primary);
         if (tagged is not null) stem = tagged.Value.Stem;
         string? translation = null; string? romanization = null;
-        var preferred = Path.GetExtension(primary);
+        var preferred = Extension(primary) ?? Path.GetExtension(primary);
         foreach (var extension in new[] { preferred }.Concat(LocalLyricsSource.Extensions).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             cancellation.ThrowIfCancellationRequested();
@@ -70,12 +70,18 @@ internal static class LocalLyricsSidecars
 
     private static (string Stem, bool Romanization)? Parse(string path)
     {
-        if (!LocalLyricsSource.Extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)) return null;
-        var stem = Path.GetFileNameWithoutExtension(path);
+        if (Extension(path) is null) return null;
+        var stem = Stem(path);
         var separator = stem.LastIndexOfAny(['.', '_', '-']);
         if (separator <= 0) return null;
         var tag = stem[(separator + 1)..];
         if (RomanizationTags.Contains(tag)) return (stem[..separator], true);
         return TranslationTags.Contains(tag) ? (stem[..separator], false) : null;
+    }
+    private static string? Extension(string path) => LocalLyricsSource.Extensions.FirstOrDefault(extension => path.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
+    private static string Stem(string path)
+    {
+        var file = Path.GetFileName(path);
+        return Extension(path) is { } extension ? file[..^extension.Length] : Path.GetFileNameWithoutExtension(path);
     }
 }

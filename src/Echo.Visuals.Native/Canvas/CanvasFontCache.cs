@@ -6,7 +6,8 @@ using SkiaSharp;
 namespace Echo.Visuals.Canvas;
 
 // Shared by a scene's surfaces: 64 CSS font styles, each with at most 12 resolved typefaces.
-internal sealed partial class CanvasFontCache : IDisposable
+// Returned fonts are borrowed until the next cache operation. The scene disposes the cache, not individual fonts.
+public sealed partial class CanvasFontCache : IDisposable
 {
     private sealed class Style(float size, SKFontStyle weight, string[] families) : IDisposable
     {

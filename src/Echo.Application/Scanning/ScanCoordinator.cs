@@ -99,7 +99,7 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
                         entry = new(file, ScanEntryKind.Error, ExistingId: existing?.Id, ErrorCode: issue);
                     else if (file.Unavailable)
                         entry = new(file, ScanEntryKind.Error, ExistingId: existing?.Id, ErrorCode: "cloud_file_unavailable");
-                    else if (!request.Force && existing is { Missing: false, ParserVersion: TrackMetadata.ParserVersion } &&
+                    else if (!request.Force && existing is { Missing: false } && existing.ParserVersion == TrackMetadata.VersionFor(file) &&
                         StringComparer.Ordinal.Equals(existing.Path, file.Path) &&
                         existing.DependencyStamp == file.Source?.Stamp &&
                         existing.SizeBytes == file.SizeBytes && existing.ModifiedTicks == file.ModifiedTicks)
@@ -133,7 +133,8 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
         }
         catch
         {
-            status = cancellation.IsCancellationRequested ? ScanStatus.Cancelled : ScanStatus.Failed;
+            var serviceFailure = failure is MetadataReadException { IsInfrastructureFailure: true };
+            status = cancellation.IsCancellationRequested && !serviceFailure ? ScanStatus.Cancelled : ScanStatus.Failed;
             errorCode = status == ScanStatus.Cancelled ? "cancelled" : failure switch
             {
                 UnauthorizedAccessException => "directory_access_denied",

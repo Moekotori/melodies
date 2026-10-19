@@ -163,7 +163,7 @@ public sealed partial class PlaybackSessionCoordinator
         if (value.Long("queueRevision") != revision || value.Text("fromItemId") != snapshot.Current?.ItemId) return;
         var next = queue.FirstOrDefault(x => x.ItemId == value.Text("toItemId") && x.TrackId == value.Text("toTrackId"));
         var operation = value.Long("operationId");
-        if (next is null || operation <= 0) return;
+        if (next is null || operation <= snapshot.OperationId) return;
         var previous = snapshot.Current;
         CompleteTransition(previous, next);
         positionBase = value.Number("sourcePositionSeconds");

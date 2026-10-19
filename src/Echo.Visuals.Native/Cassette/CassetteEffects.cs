@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Numerics;
 using SkiaSharp;
 
@@ -25,9 +24,4 @@ internal sealed class CassetteEffect : IDisposable
     { children[name] = shader; Set(name + "_size", [width, height]); }
     public SKShader Shader() => effect.ToShader(uniforms, children);
     public void Dispose() { uniforms.Dispose(); effect.Dispose(); }
-    public static float[] Vector(JsonElement json, string name, params float[] fallback)
-        => json.TryGetProperty(name, out var value) ? value.EnumerateArray().Select(v => v.GetSingle()).ToArray() : fallback;
-    public static float Scalar(JsonElement json, string name, float fallback = 0)
-        => json.TryGetProperty(name, out var value) ? value.GetSingle() : fallback;
-    public static bool Flag(JsonElement json, string name) => json.TryGetProperty(name, out var value) && value.GetBoolean();
 }

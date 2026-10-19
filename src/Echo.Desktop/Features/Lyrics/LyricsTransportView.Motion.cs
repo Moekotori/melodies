@@ -22,10 +22,12 @@ public partial class LyricsTransportView
     {
         StopMotion();
         var policy = shell?.Motion;
-        var fade = policy?.CanAnimate == true ? policy.Duration(TimeSpan.FromMilliseconds(190)) : TimeSpan.Zero;
-        var contentFade = policy?.CanAnimate == true ? policy.Duration(TimeSpan.FromMilliseconds(120)) : TimeSpan.Zero;
-        ExpandedLayout.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = contentFade, Easing = new SplineEasing(.22, 0, .2, 1) }];
-        IdleSurface.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = fade, Easing = new SplineEasing(.22, 0, .2, 1) }];
+        if (!UsesCapsuleChoreography && policy?.CanAnimate == true)
+        {
+            var fade = policy.Duration(TimeSpan.FromMilliseconds(120));
+            ExpandedLayout.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = fade, Easing = new SplineEasing(.22, 0, .2, 1) }];
+            IdleSurface.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = fade, Easing = new SplineEasing(.22, 0, .2, 1) }];
+        }
         ApplyPresentation();
     }
     private void UpdateContentClip()
@@ -45,13 +47,18 @@ public partial class LyricsTransportView
     {
         var expanded = Display == LyricsPlayerDisplay.Expanded;
         var hidden = Display == LyricsPlayerDisplay.Hidden;
-        BarSurface.IsHitTestVisible = expanded;
-        KeyboardNavigation.SetTabNavigation(BarSurface, expanded ? KeyboardNavigationMode.Continue : KeyboardNavigationMode.None);
-        ExpandedLayout.Opacity = expanded ? 1 : 0;
-        IdleSurface.Opacity = Display == LyricsPlayerDisplay.Compact ? 1 : 0;
+        SetExpandedInteraction(expanded && (!UsesCapsuleChoreography || ExpandedLayout.Opacity >= .5));
+        if (!UsesCapsuleChoreography)
+        {
+            expandedContentOffset.Y = idleContentOffset.Y = 0;
+            ExpandedLayout.Opacity = expanded ? 1 : 0;
+            IdleSurface.Opacity = Display == LyricsPlayerDisplay.Compact ? 1 : 0;
+        }
         IdleSurface.IsHitTestVisible = Display == LyricsPlayerDisplay.Compact;
         if (Model?.Appearance.MiniPlayer != false) AnimateCapsule(expanded ? 1 : 0);
         else { CapsuleSurface.Transitions = null; ClearCapsuleMotion(); CapsuleSurface.Expansion = expanded ? 1 : 0; }
+        UpdateMorphContent();
+        UpdateContentClip();
         TransportLayout.IsHitTestVisible = !hidden;
         AnimatePlayerFrame(hidden);
     }

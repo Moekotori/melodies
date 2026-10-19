@@ -3,7 +3,7 @@ using Echo.Contracts.Scanning;
 
 namespace Echo.Infrastructure.Files;
 
-internal static class IgnoredCueProtection
+internal static class StoredCueProtection
 {
     public static IEnumerable<FileSnapshot> Read(FileSnapshot definition, ILibraryStore? store,
         FolderSourceSet suppressed, FolderSourceSet? deferred, CancellationToken cancellation)

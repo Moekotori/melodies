@@ -9,6 +9,15 @@ public sealed record TrackMetadata(
 {
     // Version changes invalidate incremental metadata reuse.
     public const int ParserVersion = 3;
+
+    // Upgrade only affected physical sources, including CUE/osu backed by WAV.
+    public static int VersionFor(FileSnapshot file)
+    {
+        var extension = System.IO.Path.GetExtension((file.Source?.AudioPath ?? file.Path).AsSpan());
+        return extension.Equals(".wav", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".wave", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".bwf", StringComparison.OrdinalIgnoreCase) ? 4 : ParserVersion;
+    }
 }
 public sealed record KnownTrack(string Id, long SizeBytes, long ModifiedTicks, int ParserVersion, bool Missing,
     string Path = "", string? DependencyStamp = null);

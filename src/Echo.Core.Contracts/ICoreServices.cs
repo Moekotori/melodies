@@ -7,7 +7,7 @@ using Echo.Contracts.Scanning;
 
 namespace Echo.Core.Contracts;
 
-public interface ICoreLibrary : ITrackLibrary, IAlbumLibrary, IArtistLibrary, IGenreLibrary,
+public interface ICoreLibrary : ITrackLibrary, IAlbumLibrary, IArtistLibrary, IArtistInformationClient, IGenreLibrary,
     IFolderLibrary, IAlbumPersonalState, IPlayerTrackLibrary, IHomeLibrary, IFolderOperations,
     IFolderWorkbench, IPlaylistLibrary, IRemoteTrackIndex, IHistoryLibrary, ILibraryMaintenance, ILibraryReview, IAlbumMetadata
 {

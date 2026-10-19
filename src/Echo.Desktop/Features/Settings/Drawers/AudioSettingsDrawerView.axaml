@@ -4,7 +4,7 @@
              x:Class="Echo.Desktop.Features.Settings.Drawers.AudioSettingsDrawerView" x:DataType="shell:ShellViewModel">
   <UserControl.Resources><drawers:OutputDevicePresentation x:Key="DevicePresentation" /></UserControl.Resources>
   <Grid RowDefinitions="*,Auto">
-    <TabControl Name="AudioTabs" Classes="drawer-tabs" Margin="22,14,22,0" SelectionChanged="OnCategoryChanged"
+    <TabControl Name="AudioTabs" Classes="drawer-tabs" Margin="0,14,0,0" SelectionChanged="OnCategoryChanged"
                 HorizontalContentAlignment="Stretch" IsEnabled="{Binding !Player.AudioSettings.IsApplying}">
       <TabItem Header="{DynamicResource ui.PlaybackSettingsView.6538fe3f7e82}">
         <ScrollViewer Classes="drawer-scroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">

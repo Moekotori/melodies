@@ -30,6 +30,7 @@ internal sealed class ControlledSearchLibrary : IAlbumLibrary, ITrackLibrary, IA
     public Task<byte[]?> ReadAsync(string samplePath, CancellationToken cancellation) => Task.FromResult<byte[]?>(null);
     public Task<TrackPage> GetAlbumTracksAsync(AlbumTrackQuery query, CancellationToken token = default) => throw new NotSupportedException();
     public Task<TrackPage> GetArtistTracksAsync(ArtistTrackQuery query, CancellationToken token = default) => throw new NotSupportedException();
+    public Task<ArtistInsights> GetArtistInsightsAsync(string id, ArtistGrouping grouping, CancellationToken cancellation = default) => throw new NotSupportedException();
     public Task<AlbumPage> GetArtistAlbumsAsync(string id, ArtistGrouping grouping, AlbumQuery query, CancellationToken token = default) => throw new NotSupportedException();
     public Task<TrackPage> GetGenreTracksAsync(GenreTrackQuery query, CancellationToken token = default) => throw new NotSupportedException();
     public Task<AlbumPage> GetGenreAlbumsAsync(string id, AlbumQuery query, CancellationToken token = default) => throw new NotSupportedException();

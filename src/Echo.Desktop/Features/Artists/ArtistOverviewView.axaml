@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:artists="using:Echo.Desktop.Features.Artists" xmlns:library="using:Echo.Contracts.Library" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Artists.ArtistOverviewView" x:DataType="artists:ArtistOverviewViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.section"><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+    <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="12" /></Style>
+    <Style Selector="Button.highlight"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="12,10" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Background" Value="Transparent" /></Style>
+    <Style Selector="Button.highlight:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+    <Style Selector="Button.highlight:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    <Style Selector="UniformGrid > StackPanel"><Setter Property="Margin" Value="0,0,12,14" /></Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="30">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <StackPanel Spacing="5"><TextBlock Text="{DynamicResource artist.detail.heading}" Classes="section" /><TextBlock Text="{Binding ListeningStatus}" Classes="label" TextWrapping="Wrap" /></StackPanel>
+      <Button Grid.Column="1" Classes="content-link" Content="{DynamicResource artist.detail.refresh}" Command="{Binding RefreshCommand}" VerticalAlignment="Top" />
+    </Grid>
+    <TextBlock Text="{Binding LocalErrorText}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding LocalError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <UniformGrid Columns="4" Name="ListeningFacts">
+      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource artist.detail.plays}" Classes="label" /><TextBlock Text="{Binding Plays}" FontSize="26" Foreground="{DynamicResource EchoHeading}" /></StackPanel>
+      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource artist.detail.listened}" Classes="label" /><TextBlock Text="{Binding Listened}" FontSize="22" Foreground="{DynamicResource EchoHeading}" /></StackPanel>
+      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource artist.detail.favorites}" Classes="label" /><TextBlock Text="{Binding FavoriteText}" FontSize="26" Foreground="{DynamicResource EchoHeading}" /></StackPanel>
+      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource artist.detail.years}" Classes="label" /><TextBlock Text="{Binding Years}" FontSize="20" Foreground="{DynamicResource EchoHeading}" /></StackPanel>
+    </UniformGrid>
+    <Border Height="1" Background="{DynamicResource EchoDivider}" />
+    <Grid Name="Introduction" ColumnDefinitions="*,250" RowDefinitions="Auto,Auto" ColumnSpacing="40" RowSpacing="20">
+      <StackPanel Spacing="14" Name="BiographyPanel">
+        <TextBlock Text="{DynamicResource artist.detail.about}" Classes="section" />
+        <SelectableTextBlock Name="BiographyText" Text="{Binding Biography}" FontSize="14" LineHeight="25" TextWrapping="Wrap" MaxHeight="{Binding BiographyHeight}" ClipToBounds="True" />
+        <Button Classes="content-link" Content="{Binding BiographyAction}" Command="{Binding ToggleBiographyCommand}" IsVisible="{Binding HasBiography}" HorizontalAlignment="Left" Padding="0" />
+        <TextBlock Text="{Binding Attribution}" Classes="label" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding OnlineNoticeText}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding OnlineNotice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+      <StackPanel Name="OnlineFacts" Grid.Column="1" Spacing="16">
+        <TextBlock Text="{DynamicResource artist.detail.profile}" Classes="section" IsVisible="{Binding HasFacts}" />
+        <ItemsControl ItemsSource="{Binding Facts}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistFact">
+          <StackPanel Spacing="5" Margin="0,0,0,14"><TextBlock Text="{Binding Label}" Classes="label" /><SelectableTextBlock Text="{Binding Value}" FontSize="14" TextWrapping="Wrap" /></StackPanel>
+        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <ItemsControl ItemsSource="{Binding Information.Links}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistLink">
+          <Button Classes="content-link" Content="{Binding Label}" Tag="{Binding Url}" Click="OnExternal" HorizontalAlignment="Left" Padding="0,4" />
+        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <TextBlock Text="{Binding Updated}" Classes="label" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+    <StackPanel Spacing="12" IsVisible="{Binding HasTopTracks}">
+      <TextBlock Text="{DynamicResource artist.detail.topTracks}" Classes="section" />
+      <ItemsControl ItemsSource="{Binding TopTracks}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistHighlight">
+        <Button Classes="highlight" Tag="{Binding Track}" Click="OnTrack"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="16"><StackPanel Spacing="5"><TextBlock Text="{Binding Track.Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Detail}" Classes="label" /></StackPanel><icon:GlyphIcon Grid.Column="1" Kind="play" Width="16" Height="16" VerticalAlignment="Center" /></Grid></Button>
+      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    </StackPanel>
+    <StackPanel Spacing="12" IsVisible="{Binding HasDiscover}">
+      <TextBlock Text="{Binding DiscoverLabel}" Classes="section" />
+      <ItemsControl ItemsSource="{Binding Insights.DiscoverAlbums}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:AlbumRow">
+        <Button Classes="highlight" Tag="{Binding}" Click="OnAlbum"><Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="12"><icon:GlyphIcon Kind="disc" Width="25" Height="25" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Artist}" Classes="label" TextTrimming="CharacterEllipsis" /></StackPanel><TextBlock Grid.Column="2" Text="{Binding Year}" Classes="label" VerticalAlignment="Center" /></Grid></Button>
+      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    </StackPanel>
+    <StackPanel Spacing="14" IsVisible="{Binding HasRelations}">
+      <TextBlock Text="{DynamicResource artist.detail.collaborators}" Classes="section" />
+      <ItemsControl ItemsSource="{Binding Insights.RelatedArtists}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistRelation">
+        <Button Classes="highlight" Tag="{Binding Artist}" Click="OnArtist" Width="220" Margin="0,0,12,8"><Grid ColumnDefinitions="38,*" ColumnSpacing="10"><icon:GlyphIcon Kind="artists" Width="24" Height="24" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="{Binding Artist.Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding SharedTracks}" Classes="label" /></StackPanel></Grid></Button>
+      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    </StackPanel>
+    <StackPanel Spacing="12" IsVisible="{Binding HasCollaborations}">
+      <TextBlock Text="{DynamicResource artist.detail.collaborations}" Classes="section" />
+      <ItemsControl ItemsSource="{Binding Collaborations}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistHighlight">
+        <Button Classes="highlight" Tag="{Binding Track}" Click="OnTrack"><StackPanel Spacing="5"><TextBlock Text="{Binding Track.Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Detail}" Classes="label" TextTrimming="CharacterEllipsis" /></StackPanel></Button>
+      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    </StackPanel>
+    <StackPanel Spacing="12" IsVisible="{Binding HasOnlineRelations}">
+      <TextBlock Text="{DynamicResource artist.detail.relations}" Classes="section" />
+      <ItemsControl ItemsSource="{Binding Relations}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistOnlineRelation">
+        <Button Classes="highlight" Tag="{Binding Url}" Click="OnExternal" Margin="0,0,12,8"><StackPanel Spacing="5"><TextBlock Text="{Binding Name}" FontWeight="Medium" /><TextBlock Text="{Binding Role}" Classes="label" /></StackPanel></Button>
+      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    </StackPanel>
+    <StackPanel Spacing="12">
+      <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource artist.detail.events}" Classes="section" /><TextBlock Grid.Column="1" Text="MusicBrainz" Classes="label" VerticalAlignment="Center" /></Grid>
+      <TextBlock Text="{Binding EventsStatus}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding !HasEvents}" />
+      <ItemsControl ItemsSource="{Binding Information.Events}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistEvent">
+        <Button Classes="highlight" Tag="{Binding Url}" Click="OnExternal"><Grid ColumnDefinitions="110,*" ColumnSpacing="18"><TextBlock Text="{Binding Date}" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{Binding Name}" FontWeight="Medium" TextWrapping="Wrap" /><TextBlock Text="{Binding Venue}" Classes="label" /></StackPanel></Grid></Button>
+      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

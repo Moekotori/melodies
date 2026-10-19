@@ -46,7 +46,7 @@ internal static class FormatFixtures
         await RunAsync(ffmpeg, ["-hide_banner", "-v", "error", "-y", "-f", "lavfi", "-i", "color=black:s=16x16:r=10", "-t", "0.2", "-an", "-c:v", "libvpx-vp9", video], token);
         return fixtures;
     }
-    private static async Task RunAsync(string executable, string[] arguments, CancellationToken token)
+    internal static async Task RunAsync(string executable, string[] arguments, CancellationToken token)
     {
         var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);

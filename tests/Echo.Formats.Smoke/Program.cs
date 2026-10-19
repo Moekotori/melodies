@@ -17,6 +17,10 @@ await FormatCapabilities.CheckAsync(args[1], token);
 if (args.Contains("--capabilities-only")) { Console.WriteLine("PASS native/managed built-in format parity and deployed FFmpeg capability"); return; }
 var root = Path.GetFullPath(Path.Combine("misc", "formats", Guid.NewGuid().ToString("N")));
 Directory.CreateDirectory(root);
+if (args.Contains("--wave-only"))
+{
+    await WaveVariants.CheckAsync(args[0], root, args[1], token); return;
+}
 var legacyText = await File.ReadAllTextAsync(Path.Combine(args[3], "src", "shared", "constants", "audioExtensions.ts"), token);
 var declaration = legacyText[..legacyText.IndexOf("] as const", StringComparison.Ordinal)];
 var legacy = Regex.Matches(declaration, "'(?<extension>\\.[a-z0-9]+)'").Select(x => x.Groups["extension"].Value).ToArray();

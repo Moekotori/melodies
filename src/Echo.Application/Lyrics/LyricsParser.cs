@@ -86,7 +86,8 @@ public static partial class LyricsParser
                     var words = LegacyLyricsParser.IsTrc(content)
                         ? LegacyLyricsParser.ParseTrc(content, firstStart) : ParseEnhanced(content);
                     if (start != firstStart) words = words.Select(w => w with { StartMs = w.StartMs + start - firstStart, EndMs = w.EndMs + start - firstStart }).ToArray();
-                    lines.Add(new(LegacyLyricsParser.CleanTrc(WordStamp().Replace(content, "")), start, double.MaxValue, words));
+                    var end = LegacyLyricsParser.IsTrc(content) && words.Count > 0 ? words[^1].EndMs : double.MaxValue;
+                    lines.Add(new(LegacyLyricsParser.CleanTrc(WordStamp().Replace(content, "")), start, end, words));
                 }
             }
             else if (!MetadataTag().IsMatch(row)) plain.Add(new(row, 0, 0, []));
@@ -126,11 +127,14 @@ public static partial class LyricsParser
             for (var j = 0; j < line.Words.Count; j++)
             {
                 var word = line.Words[j];
+                var wordText = word.Text;
+                if (j == 0 && !line.Text.StartsWith(' ')) wordText = wordText.TrimStart();
+                if (j == line.Words.Count - 1 && !line.Text.EndsWith(' ')) wordText = wordText.TrimEnd();
                 if (word.Text.Length == 0 || !double.IsFinite(word.StartMs) || word.StartMs < line.StartMs || word.StartMs >= end) continue;
                 var wordEnd = word.EndMs;
                 if (wordEnd <= word.StartMs || !double.IsFinite(wordEnd) || wordEnd == double.MaxValue)
                     wordEnd = j + 1 < line.Words.Count ? line.Words[j + 1].StartMs : end;
-                words.Add(word with { EndMs = Math.Max(word.StartMs, Math.Min(wordEnd, end)) });
+                words.Add(word with { Text = wordText, EndMs = Math.Max(word.StartMs, Math.Min(wordEnd, end)) });
             }
             result[i] = line with { EndMs = Math.Max(line.StartMs, end), Words = words };
         }

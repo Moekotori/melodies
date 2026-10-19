@@ -62,6 +62,14 @@ internal static class NativeScannerRecoveryProbe
                 Check(report.Status == ScanStatus.Failed && report.ErrorCode == "native_cleanup_unconfirmed" && report.MarkedMissing == 0,
                     "unconfirmed native cleanup must stop the pipeline before replacement work");
             }
+            using var stopped = CancellationTokenSource.CreateLinkedTokenSource(token);
+            await using (var db = await LibraryDatabase.OpenAsync(Path.Combine(root, "cancel-cleanup.sqlite"), token))
+            {
+                var report = await new ScanCoordinator(db, new DirectoryDiscovery(), () => new CleanupFailure(stopped.Cancel))
+                    .ScanAsync(new(root, Workers: 1, DetectMissing: true), cancellation: stopped.Token);
+                Check(report.Status == ScanStatus.Failed && report.ErrorCode == "native_cleanup_unconfirmed" && report.MarkedMissing == 0,
+                    "user cancellation hid unconfirmed process cleanup");
+            }
             Console.WriteLine("PASS real scanner subprocess recovery: three crashes then healthy, eight-attempt limit, incompatible protocol, and fatal cleanup policy");
         }
         finally
@@ -73,10 +81,10 @@ internal static class NativeScannerRecoveryProbe
         }
     }
 
-    private sealed class CleanupFailure : IMetadataReader
+    private sealed class CleanupFailure(Action? before = null) : IMetadataReader
     {
-        public ValueTask<TrackMetadata> ReadAsync(FileSnapshot file, CancellationToken token) =>
-            throw new MetadataReadException("native_cleanup_unconfirmed");
+        public ValueTask<TrackMetadata> ReadAsync(FileSnapshot file, CancellationToken token)
+        { before?.Invoke(); throw new MetadataReadException("native_cleanup_unconfirmed"); }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
     private static void Check(bool value, string message) { if (!value) throw new InvalidOperationException(message); }

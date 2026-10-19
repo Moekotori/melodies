@@ -46,7 +46,6 @@ function __encode(bytes){
 NativeContext.prototype.putImageData=function(data,x,y){__canvas(this.canvas.nativeId,'pixelBytes',__encode(data.data),data.width,data.height,x,y);};
 
 class AbortController{constructor(){this.signal={aborted:false};}abort(){this.signal.aborted=true;}}
-function __assetCanvas(id){const value=JSON.parse(__asset(id));const canvas=new NativeCanvas(value.id,value.width,value.height);canvas.naturalWidth=value.width;canvas.naturalHeight=value.height;return canvas;}
 // Avoid re-sending identical paint state for every glyph/path; save/restore invalidates the single native state cache.
 NativeContext.prototype.apply=function(){
  const values=[__token(this.fillStyle),__token(this.strokeStyle),this.globalAlpha,this.lineWidth,this.font,this.textAlign,this.textBaseline,this.globalCompositeOperation,this.lineCap,this.lineJoin,this.filter,this.shadowColor,this.shadowBlur,this.shadowOffsetX,this.shadowOffsetY,this.imageSmoothingEnabled];
@@ -56,6 +55,3 @@ NativeContext.prototype.apply=function(){
 const __restore=NativeContext.prototype.restore;
 NativeContext.prototype.restore=function(){__restore.call(this);this.__lastStyle=null;};
 function __sourcePointer(x,y,press){globalThis.__seek=-1;SourceLyrics.pointer(x,y,press);return globalThis.__seek;}
-
-
-function __sourceCover(id,width,height){const canvas=new NativeCanvas(id,width,height);try{SourceLyrics.cover(canvas);}finally{canvas.dispose();}}

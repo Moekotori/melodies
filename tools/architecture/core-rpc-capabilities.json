@@ -1835,6 +1835,43 @@
           null
         ]
       ]
+    },
+    {
+      "method": "library.GetArtistInsightsAsync",
+      "result": "Task<ArtistInsights>",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "ArtistGrouping",
+          "grouping",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetArtistInformationAsync",
+      "result": "Task<ArtistInformation>",
+      "parameters": [
+        [
+          "ArtistInformationRequest",
+          "request",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
     }
   ]
 }

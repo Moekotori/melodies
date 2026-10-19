@@ -154,7 +154,7 @@ internal static class DetailUiSmoke
             window.Width = 1440; Settle();
             Click(detail.FindControl<Button>("ArtistLink")!);
             Until(() => wall.GetVisualDescendants().OfType<ArtistDetailView>().Any());
-            Check(wall.Margin == new Thickness(42, 24, 42, 0), "leaving album detail restores the browse inset");
+            Check(wall.Margin == default, "artist detail keeps its scroll viewport at the window edge");
             var artist = wall.GetVisualDescendants().OfType<ArtistDetailView>().Single();
             var artistModel = (ArtistDetailViewModel)artist.DataContext!;
             Until(() => artistModel.Tracks.Count == 200 && !artistModel.IsLoading);

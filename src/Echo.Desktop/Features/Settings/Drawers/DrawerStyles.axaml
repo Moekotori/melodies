@@ -1,4 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
   <Styles.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -8,7 +8,7 @@
       <ControlTheme x:Key="DrawerTabsTheme" TargetType="TabControl">
         <Setter Property="ItemsPanel"><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></Setter>
         <Setter Property="Template"><ControlTemplate>
-          <Grid RowDefinitions="44,*"><Border Background="{DynamicResource DrawerInset}" CornerRadius="12" Padding="4"><ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" /></Border>
+          <Grid RowDefinitions="44,*"><Border Margin="22,0" Background="{DynamicResource DrawerInset}" CornerRadius="12" Padding="4"><ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" /></Border>
             <ContentPresenter Name="PART_SelectedContentHost" Grid.Row="1" Content="{TemplateBinding SelectedContent}" ContentTemplate="{TemplateBinding SelectedContentTemplate}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
           </Grid>
         </ControlTemplate></Setter>
@@ -71,15 +71,17 @@
   <Style Selector="ListBox.drawer-devices"><Setter Property="Background" Value="{DynamicResource DrawerInset}" /><Setter Property="BorderBrush" Value="{DynamicResource DrawerStroke}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="14" /><Setter Property="Padding" Value="5" /></Style>
   <Style Selector="TextBlock.drawer-section"><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
   <Style Selector="Border.drawer-row"><Setter Property="MinHeight" Value="48" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="0,0,0,1" /><Setter Property="Padding" Value="2,10" /></Style>
-  <Style Selector="Button.drawer-help"><Setter Property="Width" Value="22" /><Setter Property="Height" Value="26" /><Setter Property="MinHeight" Value="26" /><Setter Property="Padding" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.drawer-help"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="BorderBrush" Value="Transparent" /><Setter Property="Width" Value="22" /><Setter Property="Height" Value="26" /><Setter Property="MinHeight" Value="26" /><Setter Property="Padding" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
   <Style Selector="Button.drawer-action"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="13,7" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Background" Value="{DynamicResource DrawerControl}" /><Setter Property="BorderBrush" Value="{DynamicResource DrawerStroke}" /><Setter Property="BorderThickness" Value="1" /></Style>
   <Style Selector="ComboBox"><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="36" /><Setter Property="Background" Value="{DynamicResource DrawerControl}" /><Setter Property="BorderBrush" Value="{DynamicResource DrawerStroke}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /><Setter Property="CornerRadius" Value="10" /></Style>
   <Style Selector="NumericUpDown"><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="36" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Background" Value="{DynamicResource DrawerControl}" /><Setter Property="BorderBrush" Value="{DynamicResource DrawerStroke}" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
   <Style Selector="Button.drawer-close"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="{DynamicResource DrawerInset}" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="CornerRadius" Value="10" /></Style>
-  <Style Selector="Button.drawer-close:pointerover, Button.drawer-help:pointerover"><Setter Property="Background" Value="{DynamicResource DrawerHover}" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+  <Style Selector="Button.drawer-close:pointerover"><Setter Property="Background" Value="{DynamicResource DrawerHover}" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+  <Style Selector="Button.drawer-help:pointerover, Button.drawer-help:focus-visible"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></Style>
+  <Style Selector="Button.drawer-help:pointerover icon|GlyphIcon, Button.drawer-help:focus-visible icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
   <Style Selector="Button.drawer-action.drawer-primary"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Foreground" Value="{DynamicResource EchoPage}" /><Setter Property="BorderThickness" Value="0" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
   <Style Selector="TextBox.drawer-search"><Setter Property="FontSize" Value="12" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
   <Style Selector="TemplatedControl.drawer-match"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
   <Style Selector="Slider"><Setter Property="Theme" Value="{DynamicResource DrawerSliderTheme}" /></Style>
-  <Style Selector="ScrollViewer.drawer-scroll"><Setter Property="Padding" Value="0,0,12,0" /></Style>
+  <Style Selector="ScrollViewer.drawer-scroll"><Setter Property="Margin" Value="0,0,4,0" /><Setter Property="Padding" Value="22,0,18,0" /></Style>
 </Styles>

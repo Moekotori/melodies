@@ -8,6 +8,7 @@ using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(15));
 ParserSmoke.Run();
 var root = Path.GetFullPath(Path.Combine("misc/lyrics-compatibility", Guid.NewGuid().ToString("N")));
 Directory.CreateDirectory(root);
+await FormatCoverageSmoke.Run(root, limit.Token);
 await using var source = new LocalLyricsSource();
 await File.WriteAllTextAsync(Path.Combine(root, "Song.mp3.lrc"), "[offset:100]\n[00:01.00]Hello\n[00:03.00]world", limit.Token);
 await File.WriteAllTextAsync(Path.Combine(root, "Song.mp3.t.lrc"), "[offset:300]\n[00:01.20]你好\n[00:03.20]世界", limit.Token);

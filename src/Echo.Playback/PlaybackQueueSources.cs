@@ -8,6 +8,7 @@ public sealed partial class PlaybackSessionCoordinator
 
     private async Task<(QueueTrack[] Items, string Repeat)> PrepareNativeQueueAsync(QueueTrack[] projected, string? current, RepeatMode mode)
     {
+        (projected, mode) = ProjectPlayableQueue(projected, current, mode);
         if (deviceConfiguration?.Text("outputMode") != "asio"
             || (deviceConfiguration?.Child("processing")?.Text("outputFormat") ?? "pcm") != "pcm")
             return (projected.Select(x => x with { SampleRate = KnownSourceRate(x) }).ToArray(), mode.ToString().ToLowerInvariant());
@@ -46,5 +47,14 @@ public sealed partial class PlaybackSessionCoordinator
             foreach (var key in sourceRates.Keys.Where(x => !active.Contains(x)).ToArray()) sourceRates.Remove(key);
         }
         sourceRates[track.ItemId] = rate;
+    }
+
+    private void TrimSourceFacts(QueueTrack[] items)
+    {
+        if (sourceRates.Count == 0 && durations.Count == 0) return;
+        var active = items.Select(item => item.ItemId).ToHashSet(StringComparer.Ordinal);
+        if (snapshot.Current is { } current) active.Add(current.ItemId);
+        foreach (var key in sourceRates.Keys.Where(key => !active.Contains(key)).ToArray()) sourceRates.Remove(key);
+        foreach (var key in durations.Keys.Where(key => !active.Contains(key)).ToArray()) durations.Remove(key);
     }
 }

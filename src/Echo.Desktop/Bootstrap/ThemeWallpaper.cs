@@ -130,7 +130,7 @@ internal sealed partial class ThemeWallpaper : IDisposable
                     }
                 }
                 catch (OperationCanceledException) when (request.Cancellation.IsCancellationRequested) { }
-                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException or OperationCanceledException or JsonException or System.ComponentModel.Win32Exception)
+                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException or OperationCanceledException or JsonException or System.Net.Http.HttpRequestException or System.ComponentModel.Win32Exception)
                 {
                     await Dispatcher.UIThread.InvokeAsync(() => { if (Current(request)) { ClearMedia(); _theme.WallpaperStatus = error is InvalidDataException ? error.Message : "背景无法读取，请重新选择或切换素材后重试"; } });
                 }

@@ -37,6 +37,24 @@ internal static class ScanCoverageProbe
                 $"ignored definition lost indexed segments: embedded={embedded}, {report.Status}, failed={report.Failed}, inserted={report.Inserted}, missing={report.MarkedMissing}, visible={page.Items.Count}");
         }
 
+        var cross = Path.Combine(root, "broken-cross-directory");
+        Directory.CreateDirectory(Path.Combine(cross, "sheets")); Directory.CreateDirectory(Path.Combine(cross, "audio"));
+        CueFixtures.Wave(Path.Combine(cross, "audio", "disc.wav"));
+        var crossCue = Path.Combine(cross, "sheets", "album.cue");
+        await File.WriteAllTextAsync(crossCue, "FILE '../audio/disc.wav' WAVE\nTRACK 01 AUDIO\nINDEX 01 0\nTRACK 02 AUDIO\nINDEX 01 75", token);
+        await using (var db = await LibraryDatabase.OpenAsync(Path.Combine(root, "broken-cross.sqlite"), token))
+        {
+            ScanCoordinator Scanner() => new(db, new LegacyFolderDiscovery(db), () => new LocalMetadataReader());
+            Check((await Scanner().ScanAsync(new(cross), cancellation: token)).Inserted == 2, "cross-directory protection seed");
+            await File.WriteAllTextAsync(crossCue, "", token);
+            CueFixtures.Wave(Path.Combine(cross, "audio", "other.wav"));
+            var broken = await Scanner().ScanAsync(new(cross, DetectMissing: true), cancellation: token);
+            var visible = await db.GetTracksAsync(new(20), token);
+            Check(broken.Status == ScanStatus.Completed && broken.Failed == 1 && broken.Inserted == 1 && broken.MarkedMissing == 0
+                && visible.Items.Count == 3 && visible.Items.Count(x => x.Source?.Kind == "cue") == 2,
+                "unreadable CUE lost cross-directory sources from its existing index");
+        }
+
         var longLabels = Path.Combine(root, "long-labels"); Directory.CreateDirectory(longLabels);
         var audio = Path.Combine(longLabels, "disc.wav"); CueFixtures.Wave(audio);
         var label = new string('曲', 512);

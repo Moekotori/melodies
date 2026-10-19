@@ -17,11 +17,11 @@ public sealed partial class LibraryDatabase
         // Snapshot the list so callers cannot clear a queued batch before execution.
         var owned = entries.ToArray();
         var fingerprint = ScanBatchFingerprint.Compute(owned);
-        return _writer.QueueAsync(connection => WriteBatch(connection, jobId, sequence, owned, fingerprint, cancellation),
+        return _writer.QueueAsync(connection => WriteBatch(connection, _writer.ScanAlbums, jobId, sequence, owned, fingerprint, cancellation),
             false, cancellation);
     }
 
-    private static BatchReceipt WriteBatch(SqliteConnection connection, string jobId, long sequence,
+    private static BatchReceipt WriteBatch(SqliteConnection connection, ScanAlbumMaintenance maintenance, string jobId, long sequence,
         IReadOnlyList<ScanEntry> entries, string fingerprint, CancellationToken cancellation)
     {
         using var transaction = connection.BeginTransaction();
@@ -48,32 +48,27 @@ public sealed partial class LibraryDatabase
         }
         if (sequence != last + 1) throw new InvalidOperationException("Scan batches must be sequential.");
 
-        using var upsert = Prepared(connection, transaction, UpsertSql,
-            ["$id","$path","$key","$size","$mtime","$version","$title","$sort","$artist","$album",
-             "$albumArtist","$duration","$codec","$rate","$bits","$track","$disc","$year","$genre",
-             "$source","$stamp","$physical","$kind","$bitrate","$bpm"]);
-        using var seen = Prepared(connection, transaction,
-            "INSERT OR IGNORE INTO scan_seen(scan_id,path_key) VALUES($job,$key)", ["$job","$key"]);
-        using var error = Prepared(connection, transaction,
+        using var metadata = entries.Any(entry => entry.Kind == ScanEntryKind.Metadata)
+            ? new ScanMetadataBatch(connection, transaction, maintenance) : null;
+        using var seen = presence ? Prepared(connection, transaction,
+            "INSERT OR IGNORE INTO scan_seen(scan_id,path_key) VALUES($job,$key)", ["$job","$key"]) : null;
+        using var error = entries.Any(entry => entry.Kind == ScanEntryKind.Error) ? Prepared(connection, transaction,
             "INSERT INTO scan_errors(scan_id,ordinal,path,code) VALUES($job,$n,$path,$code)",
-            ["$job","$n","$path","$code"]);
+            ["$job","$n","$path","$code"]) : null;
         var inserted = 0; var updated = 0; var unchanged = 0; var failed = 0;
-        using var artists = new ArtistIndexWriter(connection, transaction);
-        using var userState = CreateTrackUserStateCommand(connection, transaction);
-        using var reconciliation = new VirtualAudioReconciliation(connection, transaction);
         foreach (var entry in entries)
         {
             cancellation.ThrowIfCancellationRequested();
             if (presence)
             {
-                seen.Parameters[0].Value = jobId; seen.Parameters[1].Value = entry.File.PathKey;
+                seen!.Parameters[0].Value = jobId; seen.Parameters[1].Value = entry.File.PathKey;
                 seen.ExecuteNonQuery();
             }
             if (entry.Kind == ScanEntryKind.Error)
             {
                 if (priorFailures + failed < 64)
                 {
-                    error.Parameters[0].Value = jobId; error.Parameters[1].Value = priorFailures + failed;
+                    error!.Parameters[0].Value = jobId; error.Parameters[1].Value = priorFailures + failed;
                     error.Parameters[2].Value = entry.File.Path;
                     error.Parameters[3].Value = entry.ErrorCode ?? "metadata_failed";
                     error.ExecuteNonQuery();
@@ -83,26 +78,10 @@ public sealed partial class LibraryDatabase
             }
             if (entry.Kind == ScanEntryKind.Unchanged) { unchanged++; continue; }
             if (entry.Kind == ScanEntryKind.Preserved) { if (entry.ExistingId is not null) unchanged++; continue; }
-            var metadata = entry.Metadata!;
-            object?[] values =
-            [
-                entry.ExistingId ?? Guid.CreateVersion7().ToString("N"), entry.File.Path, entry.File.PathKey,
-                entry.File.SizeBytes, entry.File.ModifiedTicks, TrackMetadata.ParserVersion,
-                metadata.Title, metadata.Title.ToUpperInvariant(), metadata.Artist, metadata.Album, metadata.AlbumArtist,
-                metadata.DurationSeconds, metadata.Codec, metadata.SampleRate, metadata.BitDepth,
-                metadata.TrackNumber, metadata.DiscNumber, metadata.Year, metadata.Genre,
-                TrackSourceJson.Encode(entry.File.Source), entry.File.Source?.Stamp,
-                entry.File.Source?.AudioPath, entry.File.Source?.Kind, metadata.Bitrate, metadata.Bpm
-            ];
-            for (var i = 0; i < values.Length; i++) upsert.Parameters[i].Value = values[i] ?? DBNull.Value;
-            if (upsert.ExecuteNonQuery() == 0)
-                throw new MetadataReadException("path_case_identity_required");
-            userState.Parameters[0].Value = entry.File.PathKey;
-            userState.ExecuteNonQuery();
-            artists.Update(entry.File.PathKey, cancellation);
-            reconciliation.Apply(entry, artists, cancellation);
+            metadata!.Write(entry, cancellation);
             if (entry.ExistingId is null) inserted++; else updated++;
         }
+        metadata?.Complete(cancellation);
         job.Parameters.AddWithValue("$inserted", inserted);
         job.Parameters.AddWithValue("$updated", updated);
         job.Parameters.AddWithValue("$unchanged", unchanged);
@@ -128,7 +107,7 @@ public sealed partial class LibraryDatabase
         return new(inserted, updated, unchanged, failed, revision);
     }
 
-    private static SqliteCommand Prepared(SqliteConnection connection, SqliteTransaction transaction,
+    internal static SqliteCommand Prepared(SqliteConnection connection, SqliteTransaction transaction,
         string sql, string[] parameters)
     {
         var command = connection.CreateCommand();
@@ -168,7 +147,7 @@ public sealed partial class LibraryDatabase
         if (characters > 512 * 1024) throw new ArgumentException("Scan payload exceeds 1 MiB of text.");
     }
 
-    private const string UpsertSql = """
+    internal const string UpsertSql = """
         INSERT INTO tracks(id,path,path_key,size_bytes,modified_ticks,parser_version,title,sort_key,artist,
           album,album_artist,duration,codec,sample_rate,bit_depth,track_no,disc_no,year,genre,updated_at,
           source_json,dependency_stamp,physical_path,source_kind,bitrate,bpm,album_key)

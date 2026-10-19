@@ -153,6 +153,7 @@ public sealed partial class LibraryCore(string path, IBackgroundWorkAdmission? a
         }
         try
         {
+            if (_artistInformation is not null) await _artistInformation.DisposeAsync().ConfigureAwait(false);
             if (_folderWatch is not null) await _folderWatch.DisposeAsync().ConfigureAwait(false);
             if (scan is not null) { try { await scan.ConfigureAwait(false); } catch (Exception) { } }
         }

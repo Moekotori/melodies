@@ -63,6 +63,7 @@ export class SceneTextureCache {
     const normalized = name.replace(/\\/gu, '/').replace(/\.tex$/iu, '');
     let cached = this.textures.get(normalized);
     if (!cached) {
+      if (this.textures.size >= 256) throw new Error('scene-texture-count-budget');
       cached = this.loadTexture(normalized).catch((error: unknown) => {
         console.warn(`[scene] texture ${normalized} failed`, error);
         return null;

@@ -120,3 +120,5 @@ public sealed record PodcastsEpisodesRequest(PodcastEpisodeQuery Query);
 public sealed record PodcastsEpisodeRequest(string Id);
 public sealed record PodcastsMarkPlayedRequest(string Id, bool Played);
 public sealed record PodcastsSaveProgressRequest(string Id, double Position, bool Ended);
+public sealed record LibraryGetArtistInsightsRequest(string Id, ArtistGrouping Grouping);
+public sealed record LibraryGetArtistInformationRequest(ArtistInformationRequest Request);

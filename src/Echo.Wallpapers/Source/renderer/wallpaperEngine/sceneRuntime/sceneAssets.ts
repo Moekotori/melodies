@@ -8,6 +8,7 @@ const encodePath = (path: string): string =>
 export class SceneAssets {
   private readonly jsonCache = new Map<string, Promise<unknown | null>>();
   private readonly textCache = new Map<string, Promise<string | null>>();
+  private textBytes = 0;
 
   constructor(readonly root: string) {}
 
@@ -39,7 +40,15 @@ export class SceneAssets {
   text(path: string): Promise<string | null> {
     let cached = this.textCache.get(path);
     if (!cached) {
-      cached = fetch(this.fileUrl(path)).then((response) => (response.ok ? response.text() : null));
+      if (this.textCache.size >= 1024) throw new Error('scene-asset-count-budget');
+      cached = fetch(this.fileUrl(path)).then((response) => {
+        if (!response.ok) return null;
+        const bytes = Number(response.headers.get('Content-Length'));
+        if (!Number.isFinite(bytes) || bytes < 0 || bytes > 4 * 1024 * 1024 || this.textBytes + bytes > 16 * 1024 * 1024)
+          throw new Error('scene-text-budget');
+        this.textBytes += bytes;
+        return response.text();
+      });
       this.textCache.set(path, cached);
     }
     return cached;

@@ -49,7 +49,7 @@ internal static class AlbumSchema
         transaction.Commit();
     }
 
-    private static string Add(string row) => $"""
+    private static string Add(string row, bool deferred) => $"""
         INSERT INTO albums(id,title,artist,sort_key,artist_key,track_count,duration,lossless_count,year,added)
           SELECT {row}.album_key,coalesce(nullif(trim({row}.album),''),'未知专辑'),
             coalesce(nullif({row}.album_credit,''),'未知艺术家'),
@@ -61,24 +61,30 @@ internal static class AlbumSchema
           lossless_count=lossless_count+excluded.lossless_count,
           year=(SELECT year FROM tracks WHERE album_key={row}.album_key AND missing=0 ORDER BY year DESC LIMIT 1),
           added=max(added,excluded.added);
-        """ + AlbumDisplay.Refresh($"id={row}.album_key");
+        """ + Refresh(row, deferred);
 
-    private static string Remove(string row) => $"""
+    private static string Remove(string row, bool deferred) => $"""
         UPDATE albums SET track_count=track_count-1,duration=max(0,duration-{row}.duration),
           lossless_count=lossless_count-(lower({row}.codec) IN ('flac','alac','wav','aiff','ape','wv')),
           year=(SELECT year FROM tracks WHERE album_key={row}.album_key AND missing=0 ORDER BY year DESC LIMIT 1)
           WHERE id={row}.album_key AND {row}.missing=0;
         DELETE FROM albums WHERE id={row}.album_key AND track_count=0;
-        """ + AlbumDisplay.Refresh($"id={row}.album_key");
+        """ + Refresh(row, deferred);
 
-    internal static string TrackTriggers => """
+    private static string Refresh(string row, bool deferred) =>
+        (deferred ? $"INSERT OR IGNORE INTO scan_album_dirty SELECT {row}.album_key WHERE echo_scan_deferred();\n" : "") +
+        AlbumDisplay.Refresh($"id={row}.album_key" + (deferred ? " AND NOT echo_scan_deferred()" : ""));
+
+    internal static string TrackTriggers => BuildTriggers(false);
+    internal static string DeferredTrackTriggers => BuildTriggers(true);
+    private static string BuildTriggers(bool deferred) => """
         CREATE TRIGGER tracks_album_insert AFTER INSERT ON tracks WHEN new.missing=0 BEGIN
-        """ + "\n" + Add("new") + " END; " +
-        "CREATE TRIGGER tracks_album_delete AFTER DELETE ON tracks WHEN old.missing=0 BEGIN " + Remove("old") + " END; " +
+        """ + "\n" + Add("new", deferred) + " END; " +
+        "CREATE TRIGGER tracks_album_delete AFTER DELETE ON tracks WHEN old.missing=0 BEGIN " + Remove("old", deferred) + " END; " +
         """
         CREATE TRIGGER tracks_album_update AFTER UPDATE OF album,album_artist,artist,duration,codec,year,missing ON tracks
         WHEN old.album_key IS NOT new.album_key OR old.album IS NOT new.album OR old.album_artist IS NOT new.album_artist
              OR old.artist IS NOT new.artist OR old.duration IS NOT new.duration OR old.codec IS NOT new.codec
              OR old.year IS NOT new.year OR old.missing IS NOT new.missing BEGIN
-        """ + "\n" + Remove("old") + Add("new") + " END;";
+        """ + "\n" + Remove("old", deferred) + Add("new", deferred) + " END;";
 }

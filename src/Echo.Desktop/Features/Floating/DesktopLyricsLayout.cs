@@ -120,7 +120,7 @@ public static class DesktopLyricsLayout
         var wordCount = 0;
         for (var i = 0; i < words.Count; i++)
             if (words[i].Text.Length > 0) wordCount++;
-        if (wordHighlight && wordCount > 1)
+        if (wordHighlight && wordCount > 0)
         {
             if (adjusted <= FirstWordStart(words)) return 0;
             var total = 0;

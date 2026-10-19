@@ -15,13 +15,23 @@ public partial class ArtistDetailView : UserControl, IDisposable
     private readonly AlbumWallViewport _wall;
     private readonly CancellationTokenSource _lifetime = new();
     private AlbumArtworkCache.Lease? _portrait;
+    private LibraryDetails.DetailPageInsetLease? _pageInset;
     private bool _closed, _visible = true;
     public event Action? Back;
     public event Action<AlbumRow>? OpenAlbum;
-    public ArtistDetailView() { InitializeComponent(); _model = null!; _albums = null!; _wall = null!; }
+    public event Action<ArtistRow>? OpenArtist;
+    public ArtistDetailView()
+    {
+        InitializeComponent(); _model = null!; _albums = null!; _wall = null!;
+        AttachedToVisualTree += (_, _) => _pageInset ??= LibraryDetails.DetailPageInsetLease.Acquire(this);
+        DetachedFromVisualTree += (_, _) => { _pageInset?.Dispose(); _pageInset = null; };
+    }
     public ArtistDetailView(ArtistRow artist, ShellViewModel shell) : this()
     {
-        _model = new(artist, shell.ArtistLibrary!, shell.AlbumLibrary as IAlbumPersonalState, shell.Player); DataContext = _model;
+        _model = new(artist, shell.ArtistLibrary!, shell.AlbumLibrary as IAlbumPersonalState, shell.Player, shell.Text); DataContext = _model;
+        OverviewPanel.PlayTrack += track => _ = _model.PlayTrackAsync(track);
+        OverviewPanel.OpenArtist += target => OpenArtist?.Invoke(target);
+        OverviewPanel.OpenAlbum += album => OpenAlbum?.Invoke(album);
         _albums = new(shell.AlbumLibrary!, artist); _wall = new(_albums, shell.AlbumArtwork!);
         _wall.OpenAlbum += album => OpenAlbum?.Invoke(album);
         var albumArea = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
@@ -36,7 +46,9 @@ public partial class ArtistDetailView : UserControl, IDisposable
         SizeChanged += (_, _) =>
         {
             var narrow = Bounds.Width < 760;
-            Hero.Height = Math.Clamp((TopLevel.GetTopLevel(this)?.Bounds.Height ?? 900) * .43, narrow ? 280 : 340, narrow ? 360 : 420);
+            var inset = Bounds.Width < 800 ? 22d : 42d;
+            PageContent.Margin = new(inset, 20, inset, 36);
+            Hero.Height = Math.Clamp((TopLevel.GetTopLevel(this)?.Bounds.Height ?? 900) * .35, narrow ? 280 : 300, narrow ? 340 : 360);
             HeroMark.FontSize = Math.Clamp(Bounds.Width * .13, 72, 156);
             var pageWidth = TopLevel.GetTopLevel(this)?.Bounds.Width ?? Bounds.Width;
             var titleLength = artist.Name.EnumerateRunes().Count();
@@ -44,9 +56,9 @@ public partial class ArtistDetailView : UserControl, IDisposable
                 : titleLength > 36 ? Math.Clamp(pageWidth * .028, 30, 40) : Math.Clamp(pageWidth * .032, 32, 46);
             if (narrow) ArtistTitle.FontSize = Math.Min(34, ArtistTitle.FontSize);
             ArtistTitle.LineHeight = ArtistTitle.FontSize * 1.18;
-            HeroCopy.Margin = new(narrow ? 24 : 32);
+            HeroCopy.Margin = new(narrow ? 24 : 40);
         };
-        _ = _model.LoadAsync(); if (artist.PortraitPath is { } portraitPath) _ = LoadPortraitAsync(shell.AlbumArtwork!, portraitPath);
+        _ = _model.LoadAsync(); _ = _model.Overview.LoadAsync(); if (artist.PortraitPath is { } portraitPath) _ = LoadPortraitAsync(shell.AlbumArtwork!, portraitPath);
     }
     private async Task LoadPortraitAsync(AlbumArtworkCache cache, string path)
     {
@@ -70,6 +82,7 @@ public partial class ArtistDetailView : UserControl, IDisposable
     public void Dispose()
     {
         if (_closed) return; _closed = true; _lifetime.Cancel(); _model.Dispose(); _wall.Dispose(); _albums.Dispose();
-        Portrait.Source = null; _portrait?.Dispose(); _portrait = null; Back = null; OpenAlbum = null;
+        Portrait.Source = null; _portrait?.Dispose(); _portrait = null; Back = null; OpenAlbum = null; OpenArtist = null;
+        _pageInset?.Dispose(); _pageInset = null;
     }
 }

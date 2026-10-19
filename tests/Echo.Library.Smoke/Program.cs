@@ -2,6 +2,16 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 if (args.Length == 0 && ScannerFaultHost.TryRun()) return;
+if (args.Length > 0 && args[0] == "scan-throughput")
+{
+    using var throughputBudget = new CancellationTokenSource(TimeSpan.FromSeconds(55));
+    await ScanThroughputProbe.RunAsync(Path.GetFullPath(args[1]), args[2], throughputBudget.Token); return;
+}
+if (args.Length > 0 && args[0] == "wave-compatibility")
+{
+    using var waveBudget = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+    await WaveCompatibilityProbe.RunAsync(Path.GetFullPath(args[1]), waveBudget.Token); return;
+}
 if (args.Length > 0 && args[0] == "scanner-recovery")
 {
     using var recoveryBudget = new CancellationTokenSource(TimeSpan.FromSeconds(25));

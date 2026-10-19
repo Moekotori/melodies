@@ -8,8 +8,8 @@ namespace Echo.Desktop.Features.Lyrics;
 
 public partial class LyricsTransportView
 {
-    internal const int CapsuleCollapseMilliseconds = 280;
-    private const int CapsuleExpandMilliseconds = 340;
+    internal const int CapsuleCollapseMilliseconds = 300;
+    private const int CapsuleExpandMilliseconds = 380;
     private MotionChannel? capsuleChannel;
     private TimeSpan capsuleDuration;
     private long capsuleStarted;
@@ -34,8 +34,10 @@ public partial class LyricsTransportView
         var distance = Math.Clamp(Math.Sqrt(Math.Abs(target - current)), .4, 1);
         var duration = policy.Duration(TimeSpan.FromMilliseconds(target > current ? CapsuleExpandMilliseconds : CapsuleCollapseMilliseconds));
         capsuleDuration = TimeSpan.FromMilliseconds(duration.TotalMilliseconds * distance);
-        capsuleChannel = MotionChannel.Create(current, target, capsuleDuration,
-            new SplineEasing(.24, 0, .18, 1), velocity, bounded: true);
+        var curve = target > current
+            ? new SplineEasing(.2, 0, .18, 1)
+            : new SplineEasing(.36, 0, .24, 1);
+        capsuleChannel = MotionChannel.Create(current, target, capsuleDuration, curve, velocity, bounded: true);
         CapsuleSurface.Transitions = [new DoubleTransition
         {
             Property = LyricsPlayerSurface.ExpansionProperty,

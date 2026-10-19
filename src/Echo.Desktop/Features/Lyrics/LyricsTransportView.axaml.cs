@@ -21,8 +21,13 @@ public partial class LyricsTransportView : UserControl
     {
         InitializeComponent();
         ExpandedLayout.Clip = contentClip;
+        ExpandedLayout.RenderTransform = expandedContentOffset;
+        IdleSurface.RenderTransform = idleContentOffset;
         CapsuleSurface.PropertyChanged += (_, e) =>
-        { if (e.Property == Controls.Lyrics.LyricsPlayerSurface.ExpansionProperty || e.Property == BoundsProperty) UpdateContentClip(); };
+        {
+            if (e.Property == Controls.Lyrics.LyricsPlayerSurface.ExpansionProperty || e.Property == BoundsProperty)
+            { UpdateMorphContent(); UpdateContentClip(); }
+        };
         ExpandedLayout.SizeChanged += (_, _) => UpdateContentClip();
         signalFlyout = SignalPathPanel.Create(MoreButton, () => Model?.Player,
             () => shell?.OpenQuickSettingsCommand.Execute("audio"));

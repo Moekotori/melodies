@@ -53,6 +53,7 @@ for group,files in [('Playback',[ROOT/'src/Echo.Playback.Contracts/IPlaybackSess
 manifest=json.loads((ROOT/'tools/architecture/core-rpc-capabilities.json').read_text())
 approved={entry['method']:entry for entry in manifest['operations']}
 entries=[op for op in entries if op['key'] in approved]
+entries.sort(key=lambda op: list(approved).index(op['key']))
 for op in entries:
  expected=approved[op['key']]
  actual={'method':op['key'],'result':op['ret'],'parameters':[list(parameter) for parameter in op['params']]}

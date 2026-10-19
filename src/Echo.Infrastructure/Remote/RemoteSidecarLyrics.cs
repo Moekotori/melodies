@@ -1,4 +1,4 @@
-using System.Text;
+using Echo.Infrastructure.Lyrics;
 using Echo.Contracts.Lyrics;
 using Echo.Contracts.Remote;
 
@@ -6,7 +6,7 @@ namespace Echo.Infrastructure.Remote;
 
 public sealed class RemoteSidecarLyrics(ILyricsSource local, Func<string, RemoteConnection?> source, IRemoteFileClient files) : ILyricsSource, IAsyncDisposable
 {
-    private static readonly string[] Extensions = [".lrc", ".ttml", ".txt"];
+    private static IReadOnlyList<string> Extensions => LyricsFileFormats.Extensions;
     public async Task<LyricsText?> ReadAsync(string audioPath, string? explicitPath, CancellationToken cancellation)
     {
         if (!RemoteTrackPaths.TrySplit(audioPath, out var sourceId, out var remotePath))
@@ -36,9 +36,12 @@ public sealed class RemoteSidecarLyrics(ILyricsSource local, Func<string, Remote
             catch (OperationCanceledException) { throw; }
             catch (Exception) { }
             if (bytes is not { Length: > 0 }) continue;
-            var text = Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF');
-            if (text.Length == 0 || text.Length > 512 * 1024) continue;
-            return new(text, Path.GetExtension(name), Path.GetFileName(name));
+            try
+            {
+                var text = await LocalLyricsReader.DecodeAsync(bytes, name, cancellation).ConfigureAwait(false);
+                if (!string.IsNullOrWhiteSpace(text.Text)) return text;
+            }
+            catch (Exception error) when (error is InvalidDataException or ArgumentException or IOException) { }
         }
         return null;
     }

@@ -14,6 +14,7 @@ internal sealed class SqliteLane : IAsyncDisposable
     private readonly TaskCompletionSource _stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _waitingAdmissions;
     private volatile bool _closed;
+    internal ScanAlbumMaintenance ScanAlbums { get; } = new();
 
     public SqliteLane(string path, bool readOnly, Action<SqliteConnection>? initialize = null)
     {
@@ -57,6 +58,7 @@ internal sealed class SqliteLane : IAsyncDisposable
             };
             using var connection = new SqliteConnection(settings.ToString());
             connection.Open();
+            ScanAlbums.Register(connection);
             connection.CreateFunction<string, string>("echo_fold", Echo.Infrastructure.Search.LibrarySearchSchema.Fold, isDeterministic: true);
             connection.CreateFunction<string, string?>("echo_directory", value => Path.GetDirectoryName(value), isDeterministic: true);
             connection.CreateFunction<string, string>("echo_folder_prefix", Echo.Infrastructure.Files.LibraryPath.RootPrefix, isDeterministic: true);

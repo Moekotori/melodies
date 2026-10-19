@@ -22,8 +22,11 @@ public sealed class LyricsPlayerSurface : Control
         {
             var progress = Math.Clamp(Expansion, 0, 1);
             var compact = Math.Min(CompactWidth, Bounds.Width);
-            var width = compact + (Bounds.Width - compact) * progress;
-            var height = 34 + (Bounds.Height - 34) * progress;
+            // Let the horizontal opening lead the lift, while keeping both ends at rest.
+            var widthProgress = progress + .12 * progress * (1 - progress);
+            var heightProgress = progress * progress * (3 - 2 * progress);
+            var width = compact + (Bounds.Width - compact) * widthProgress;
+            var height = 34 + (Bounds.Height - 34) * heightProgress;
             return new Rect((Bounds.Width - width) / 2, Bounds.Height - height, width, height);
         }
     }

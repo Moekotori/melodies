@@ -10,6 +10,7 @@ public sealed partial class PlaybackSessionCoordinator : IPlaybackSession
     private readonly IPlaybackSourceProbe? sourceProbe;
     private readonly IPlaybackFileResolver? fileResolver;
     private IRemoteAudioResolver? remoteResolver;
+    private AudioSource? currentPlayableSource;
     private readonly PlaybackCommandLane lane = new();
     private QueueTrack[] queue = [];
     private IReadOnlyList<QueueTrack> queueView = Array.Empty<QueueTrack>();
@@ -114,6 +115,7 @@ public sealed partial class PlaybackSessionCoordinator : IPlaybackSession
         var opened = await native.CallAsync(method, Params(new JsonArray(request))).ConfigureAwait(false);
         var op = opened.Long("operationId");
         if (op <= 0) throw new IOException("Native 未返回 operationId");
+        currentPlayableSource = source;
         RememberSourceRate(track, (int)opened.Long("sourceSampleRate", track.SampleRate ?? 0));
         var confirmation = ArmOutputConfirmation(op);
         positionBase = opened.Number("startSeconds");
@@ -212,6 +214,8 @@ public sealed partial class PlaybackSessionCoordinator : IPlaybackSession
     }
     private void Publish(PlaybackSnapshot state)
     {
+        if (state.Current?.ItemId != snapshot.Current?.ItemId
+            || state.Status is PlaybackStatus.Stopped or PlaybackStatus.Ended or PlaybackStatus.Faulted) currentPlayableSource = null;
         var previousItem = snapshot.Current?.ItemId;
         if (segmentLoop is { } loop && (loop.ItemId != state.Current?.ItemId
             || state.Status is PlaybackStatus.Stopped or PlaybackStatus.Ended or PlaybackStatus.Faulted))

@@ -322,6 +322,16 @@ internal sealed partial class CoreDispatch
                 var args = CoreJson.Read<LibraryFindTrackByPathRequest>(payload);
                 return CoreJson.Value(await library.FindTrackByPathAsync(args.Path, token).ConfigureAwait(false));
             }
+            case "library.GetArtistInsightsAsync":
+            {
+                var args = CoreJson.Read<LibraryGetArtistInsightsRequest>(payload);
+                return CoreJson.Value(await library.GetArtistInsightsAsync(args.Id, args.Grouping, token).ConfigureAwait(false));
+            }
+            case "library.GetArtistInformationAsync":
+            {
+                var args = CoreJson.Read<LibraryGetArtistInformationRequest>(payload);
+                return CoreJson.Value(await library.GetArtistInformationAsync(args.Request, token).ConfigureAwait(false));
+            }
             default: return null;
         }
     }

@@ -1,57 +1,56 @@
-using System.Text.Json;
 using Echo.Visuals.Cassette;
 using Echo.Visuals.SourceRuntime;
-using Jint.Runtime.Interop;
 using Echo.Visuals.Canvas;
 using SkiaSharp;
 
 namespace Echo.Visuals;
 
-// A source scene owns one bounded interpreter and one raster pool on its serialized worker.
+// A source scene owns its resources on one serialized worker. Cassette is fully managed; Blossom still uses the source runtime.
 public sealed class SourceLyricsEngine : IDisposable
 {
-    private readonly ISourceScript script;
-    private readonly CanvasPool canvases = new();
-    private readonly CassetteScenePainter? cassette;
+    private readonly ISourceScript? script;
+    private readonly CanvasPool? canvases;
+    private readonly bool nativeCassette;
+    private readonly CancellationToken cancellation;
+    private CassetteEngine? cassette;
+    private bool disposed;
     public SourceLyricsEngine(string mode, string accent = "#5b97dc", CancellationToken cancellation = default)
     {
         if (mode is not ("blossom" or "cassette")) throw new ArgumentOutOfRangeException(nameof(mode));
+        this.cancellation = cancellation;
+        nativeCassette = mode == "cassette";
+        if (nativeCassette) return;
+        canvases = new();
         script = OperatingSystem.IsMacOS() ? new NativeSourceScript(cancellation) : new ManagedSourceScript(cancellation);
         try
         {
             script.Function("__canvas", canvases.Invoke);
             script.Set("__accent", accent);
-            if (mode == "cassette")
-            {
-                cassette = new(canvases, file => Read("Resources.SourceLyrics." + file));
-                script.Function("__cassette", cassette.Invoke);
-                using var index = JsonDocument.Parse(Read("Resources.SourceLyrics.asset-index.json"));
-                var assets = index.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString()!);
-                script.Function("__asset", args =>
-                {
-                    var name = assets[args[0].AsString()];
-                    using var stream = typeof(SourceLyricsEngine).Assembly.GetManifestResourceStream("Echo.Visuals.Resources.SourceLyrics.Cassette." + name)
-                        ?? throw new FileNotFoundException(name);
-                    using var bitmap = SKBitmap.Decode(stream) ?? throw new InvalidDataException(name);
-                    var id = canvases.Import(bitmap);
-                    return $"{{\"id\":{id},\"width\":{bitmap.Width},\"height\":{bitmap.Height}}}";
-                });
-            }
             script.Execute(Read("Runtime.canvas-shim.js"));
             script.Execute(Read("Runtime.source-scene-host.js"));
             script.Execute(Read("Resources.SourceLyrics." + mode + ".js"));
         }
-        catch { script.Dispose(); cassette?.Dispose(); canvases.Dispose(); throw; }
+        catch { script.Dispose(); canvases.Dispose(); throw; }
     }
     public string Build(string projectJson, int width, int height)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         if (projectJson.Length > 262144 || width is < 1 or > 8192 || height is < 1 or > 8192
             || (long)width * height > 33_554_432) throw new InvalidDataException("Source lyric scene budget exceeded.");
-        return script.Invoke("__sourceBuild", projectJson, width, height).AsString();
+        if (nativeCassette)
+        {
+            cassette?.Dispose(); cassette = null;
+            var next = new CassetteEngine(cancellation);
+            try { var result = next.Build(projectJson, width, height); cassette = next; return result; }
+            catch { next.Dispose(); throw; }
+        }
+        return script!.Invoke("__sourceBuild", projectJson, width, height).AsString();
     }
     public void SetCover(byte[] encoded)
     {
-        if (cassette is null) return;
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (!nativeCassette) return;
+        if (cassette is null) throw new InvalidOperationException("Build the source scene first.");
         if (encoded.Length > 4 * 1024 * 1024) throw new InvalidDataException("Source scene artwork budget exceeded.");
         using var data = SKData.CreateCopy(encoded);
         using var codec = SKCodec.Create(data) ?? throw new InvalidDataException("Source scene artwork is invalid.");
@@ -64,29 +63,32 @@ public sealed class SourceLyricsEngine : IDisposable
             var side = Math.Min(image.Width,image.Height);
             canvas.DrawBitmap(image,SKRect.Create((image.Width-side)/2f,(image.Height-side)/2f,side,side),SKRect.Create(256,256),paint);
         }
-        var id = canvases.Import(square);
-        script.Invoke("__sourceCover", id, 256, 256);
+        cassette.SetCover(square);
     }
     public SKPicture Draw(double positionMs, bool motion, double nowMs, double elapsedMs, bool playing = false)
     {
-        if (cassette is not null)
-        {
-            script.Invoke("__sourceDraw", positionMs, motion, nowMs, elapsedMs, playing);
-            return cassette.TakePicture();
-        }
-        var id = (int)script.Invoke("__sourceCanvas").AsNumber();
-        var target = canvases.Get(id); target.EnablePicture();
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (nativeCassette) return (cassette ?? throw new InvalidOperationException("Build the source scene first.")).Draw(positionMs, motion, nowMs, elapsedMs, playing);
+        var id = (int)script!.Invoke("__sourceCanvas").AsNumber();
+        var target = canvases!.Get(id); target.EnablePicture();
         script.Invoke("__sourceDraw", positionMs, motion, nowMs, elapsedMs, playing);
         return target.CapturePicture();
     }
-    public double Pointer(double x, double y, bool press) => script.Invoke("__sourcePointer", x, y, press).AsNumber();
+    public double Pointer(double x, double y, bool press)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        return nativeCassette ? (cassette ?? throw new InvalidOperationException("Build the source scene first.")).Pointer(x, y, press)
+            : script!.Invoke("__sourcePointer", x, y, press).AsNumber();
+    }
     public void Dispose()
     {
-        try { script.Invoke("__sourceDispose"); }
+        if (disposed) return; disposed = true;
+        if (nativeCassette) { cassette?.Dispose(); cassette = null; return; }
+        try { script!.Invoke("__sourceDispose"); }
         catch (OperationCanceledException) { /* Host cancellation already transfers cleanup to the native owners below. */ }
         catch (InvalidOperationException) { /* A failed scene may no longer accept its script cleanup entry. */ }
         catch (Jint.Runtime.JavaScriptException) { /* The pool still owns all native resources after a script fault. */ }
-        finally { script.Dispose(); cassette?.Dispose(); canvases.Dispose(); }
+        finally { script!.Dispose(); canvases!.Dispose(); }
     }
     private static string Read(string suffix)
     {

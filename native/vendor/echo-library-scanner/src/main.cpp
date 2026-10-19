@@ -807,22 +807,6 @@ static std::optional<std::string> cleanChunkText(const unsigned char* bytes, std
   return cleanMetadataText(std::string(reinterpret_cast<const char*>(bytes), size));
 }
 
-static void addRiffInfoTag(std::map<std::string, std::vector<std::string>>& tags, const std::string& id, const std::optional<std::string>& value) {
-  if (id == "INAM") {
-    addTextTag(tags, "title", value);
-  } else if (id == "IART") {
-    addTextTag(tags, "artist", value);
-  } else if (id == "IPRD") {
-    addTextTag(tags, "album", value);
-  } else if (id == "IGNR") {
-    addTextTag(tags, "genre", value);
-  } else if (id == "ITRK") {
-    addTextTag(tags, "tracknumber", value);
-  } else if (id == "ICRD" || id == "IYEAR") {
-    addTextTag(tags, "date", value);
-  }
-}
-
 #ifdef _WIN32
 static std::wstring utf8ToWide(const std::string& value) {
   if (value.empty()) {
@@ -1368,136 +1352,6 @@ static void applyVorbisTags(
   const std::string& filePath,
   NativeMetadataResult& result
 );
-
-static void parseWaveInfoList(const std::vector<unsigned char>& block, std::map<std::string, std::vector<std::string>>& tags) {
-  if (block.size() < 4 || std::string(reinterpret_cast<const char*>(block.data()), 4) != "INFO") {
-    return;
-  }
-
-  for (std::size_t offset = 4; offset + 8 <= block.size();) {
-    const std::string id(reinterpret_cast<const char*>(block.data() + offset), 4);
-    const std::uint32_t size = readLe32(block.data() + offset + 4);
-    offset += 8;
-    if (size > block.size() - offset) {
-      break;
-    }
-
-    addRiffInfoTag(tags, id, cleanChunkText(block.data() + offset, size));
-    offset += size + (size % 2U);
-  }
-}
-
-static std::optional<NativeMetadataResult> readWaveMetadata(const std::string& filePath, std::string& unsupportedReason) {
-  std::ifstream stream(pathFromUtf8(filePath), std::ios::binary);
-  if (!stream.is_open()) {
-    unsupportedReason = "native metadata reader could not open file";
-    return std::nullopt;
-  }
-
-  unsigned char header[12] = {};
-  if (!readExact(stream, header, sizeof(header))) {
-    unsupportedReason = "native metadata reader could not read WAV header";
-    return std::nullopt;
-  }
-  const std::string riffId(reinterpret_cast<const char*>(header), 4);
-  const std::string waveId(reinterpret_cast<const char*>(header + 8), 4);
-  if ((riffId != "RIFF" && riffId != "RF64") || waveId != "WAVE") {
-    unsupportedReason = "native metadata reader currently supports RIFF/RF64 WAVE only";
-    return std::nullopt;
-  }
-
-  NativeMetadataResult result;
-  initializeTechnicalSources(result, "WAV", "filename_fallback");
-  std::map<std::string, std::vector<std::string>> tags;
-  std::uint16_t audioFormat = 0;
-  std::uint16_t bitsPerSample = 0;
-  std::uint32_t sampleRate = 0;
-  std::uint32_t byteRate = 0;
-  std::uint64_t dataBytes = 0;
-  bool sawFmt = false;
-
-  constexpr std::uint32_t maxSmallWaveChunkBytes = 2U * 1024U * 1024U;
-  for (int chunkIndex = 0; chunkIndex < 100000; chunkIndex += 1) {
-    unsigned char chunkHeader[8] = {};
-    if (!readExact(stream, chunkHeader, sizeof(chunkHeader))) {
-      break;
-    }
-    const std::string id(reinterpret_cast<const char*>(chunkHeader), 4);
-    const std::uint32_t size = readLe32(chunkHeader + 4);
-
-    if (id == "id3 " || id == "ID3 ") {
-      unsupportedReason = "native metadata reader delegates WAV ID3 metadata to TypeScript";
-      return std::nullopt;
-    }
-
-    if (id == "fmt " && size <= maxSmallWaveChunkBytes) {
-      std::vector<unsigned char> chunk(size);
-      if (!readExact(stream, chunk)) {
-        break;
-      }
-      if (chunk.size() >= 16) {
-        sawFmt = true;
-        audioFormat = readLe16(chunk.data());
-        sampleRate = readLe32(chunk.data() + 4);
-        byteRate = readLe32(chunk.data() + 8);
-        bitsPerSample = readLe16(chunk.data() + 14);
-      }
-    } else if (id == "LIST" && size <= maxSmallWaveChunkBytes) {
-      std::vector<unsigned char> chunk(size);
-      if (!readExact(stream, chunk)) {
-        break;
-      }
-      parseWaveInfoList(chunk, tags);
-    } else {
-      if (id == "data") {
-        dataBytes = size;
-      }
-      stream.seekg(static_cast<std::streamoff>(size), std::ios::cur);
-      if (!stream.good()) {
-        break;
-      }
-    }
-
-    if ((size % 2U) != 0) {
-      stream.seekg(1, std::ios::cur);
-      if (!stream.good()) {
-        break;
-      }
-    }
-  }
-
-  if (!sawFmt || sampleRate == 0) {
-    unsupportedReason = "native metadata reader found no usable WAV fmt chunk";
-    return std::nullopt;
-  }
-
-  if (audioFormat == 1) {
-    result.codec = "PCM";
-  } else if (audioFormat == 3) {
-    result.codec = "IEEE_FLOAT";
-  } else if (audioFormat == 0xfffeU) {
-    result.codec = "WAVE_FORMAT_EXTENSIBLE";
-  }
-  result.sources["codec"] = "technical";
-  result.sampleRate = static_cast<int>(sampleRate);
-  result.sources["sampleRate"] = "technical";
-  if (bitsPerSample > 0) {
-    result.bitDepth = static_cast<int>(bitsPerSample);
-    result.sources["bitDepth"] = "technical";
-  }
-  if (byteRate > 0) {
-    result.bitrate = static_cast<int>(byteRate * 8U);
-    result.sources["bitrate"] = "technical";
-    if (dataBytes > 0 && dataBytes < 0xffffffffULL) {
-      result.duration = static_cast<double>(dataBytes) / static_cast<double>(byteRate);
-      result.sources["duration"] = "technical";
-    }
-  }
-
-  applyVorbisTags(tags, filePath, result);
-  result.hasVorbisComments = !tags.empty();
-  return result;
-}
 
 static double parseAiffExtendedSampleRate(const unsigned char* bytes) {
   const std::uint16_t exponent = static_cast<std::uint16_t>(((bytes[0] & 0x7fU) << 8U) | bytes[1]);
@@ -2808,9 +2662,8 @@ static std::optional<NativeMetadataResult> readMp4Metadata(const std::string& fi
 static std::optional<NativeMetadataResult> readNativeMetadata(const std::string& filePath, std::string& unsupportedReason, bool allowUntaggedMp3) {
   const std::string extension = asciiLower(pathToUtf8(pathFromUtf8(filePath).extension()));
   std::optional<NativeMetadataResult> result;
-  if (extension == ".wav") {
-    result = readWaveMetadata(filePath, unsupportedReason);
-  } else if (extension == ".aiff" || extension == ".aif") {
+  // Basic WAV is handled by the managed scanner. Go straight to the bounded codec probe here.
+  if (extension == ".aiff" || extension == ".aif") {
     result = readAiffMetadata(filePath, unsupportedReason);
   } else if (extension == ".ogg" || extension == ".opus") {
     result = readOggMetadata(filePath, unsupportedReason);
@@ -2824,7 +2677,7 @@ static std::optional<NativeMetadataResult> readNativeMetadata(const std::string&
     unsupportedReason = "native metadata reader currently supports WAV, AIFF, Ogg/Opus, FLAC, MP3, and M4A/MP4/ALAC only";
   }
 
-  if (!result || result->duration <= 0 || !result->sampleRate || *result->sampleRate <= 0 || result->codec == "WAV") {
+  if (!result || result->duration <= 0 || !result->sampleRate || *result->sampleRate <= 0) {
     NativeMetadataResult fallback = result.value_or(NativeMetadataResult{});
     if (fillFfmpegAudioMetadata(filePath, fallback, unsupportedReason)) result = std::move(fallback);
   }

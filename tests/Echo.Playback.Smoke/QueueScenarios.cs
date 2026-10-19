@@ -199,7 +199,10 @@ internal static class QueueScenarios
             && plan.GetProperty("toItemId").GetString() == "b"
             && native.AutomixRequest.Value[0].GetProperty("nextSource").GetProperty("uri").GetString() == b,
             "automix uses the analysis-unavailable short crossfade");
-        native.Emit("audio.transitionCommitted", "{\"queueRevision\":1,\"operationId\":9,\"fromItemId\":\"a\",\"fromTrackId\":\"track-a\",\"toItemId\":\"b\",\"toTrackId\":\"track-b\",\"outputFrame\":480000,\"sourcePositionSeconds\":0.25}");
+        var queueRevision = native.LastQueue.GetProperty("revision").GetInt64();
+        native.Emit("audio.transitionCommitted", $$"""
+            {"queueRevision":{{queueRevision}},"operationId":9,"fromItemId":"a","fromTrackId":"track-a","toItemId":"b","toTrackId":"track-b","outputFrame":480000,"sourcePositionSeconds":0.25}
+            """);
         await session.SetVolumeAsync(0.3);
         Check(session.Snapshot.Current?.ItemId == "b" && session.Snapshot.OperationId == 9
             && Math.Abs(session.Snapshot.PositionSeconds - 0.25) < 0.001, "automix commit adopts the incoming track");

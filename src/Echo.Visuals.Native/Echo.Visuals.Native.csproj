@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><PackageReference Include="SkiaSharp" /></ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources/SourceLyrics/*" LogicalName="Echo.Visuals.Resources.SourceLyrics.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Resources/SourceLyrics/Cassette/*" LogicalName="Echo.Visuals.Resources.SourceLyrics.Cassette.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

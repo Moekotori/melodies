@@ -4,7 +4,7 @@ namespace Echo.Infrastructure.Lyrics;
 
 public sealed class LocalLyricsSource : ILyricsSource, IAsyncDisposable
 {
-    internal static readonly string[] Extensions = [".ttml", ".yrc", ".qrc", ".krc", ".lrc", ".srt", ".vtt", ".txt"];
+    internal static IReadOnlyList<string> Extensions => LyricsFileFormats.Extensions;
     private readonly SemaphoreSlim reader = new(1);
     public async Task<LyricsText?> ReadAsync(string audioPath, string? explicitPath, CancellationToken cancellation)
     {

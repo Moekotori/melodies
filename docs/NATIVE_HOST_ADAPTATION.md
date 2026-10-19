@@ -48,3 +48,18 @@ Windows 预编译运行库此前没有 `hostIdentity`，被当前 Core 拒绝，
 实际 Windows / Realtek 共享输出通过静音 WAV 的播放、暂停、seek/resume、EOF/FIFO、同音源 occurrence、宿主恢复及释放检查。`Echo.Playback.Smoke` 可用 `--device-index 1` 显式指定本机测试设备；索引以当次设备枚举为准。另用隔离数据目录验证已打包 Core、类型化 Control 和新宿主的播放链路，并通过 Core 查询曲库副本后对一首实际 MP3 做静音解码输出。
 
 当次默认 Mini-i 设备的 WASAPI 初始化返回 `0x800700aa`（设备忙），未通过该设备播放验收；没有更改用户输出设置或停止其他音频程序。CUDA 仅确认编译能力保留，未做 GPU DSP、专业输出、跨平台或听感验收。验证日志在本地忽略目录 `misc/playback-repair/`。
+
+## 音频链路后续审查（2026-10-19）
+
+只读对照本机 ECHOSteam `1906021d4e860e7c3d479617590d2dda3095c6ac`，重点参考 `NativeDaemonLifecycle`、`DaemonAudioBackend`、`DaemonQueuePreparation` 和 `AutomixTransitionReconciler`。修复均落在 Core 侧 Playback 与 Audio.Client，未改变 Control、Bridge 或原生音频数据面的 owner。
+
+- 启动取消、ready 超时和协议失败共用有界子进程清理，后续启动可以建立新宿主。
+- 专业输出确认直接观察同 epoch / operation 的原生错误和连接故障，保留早于 open 回执到达的错误；不再将明确失败拖到 PCM / render 超时。
+- 位置事件内的音源探测异常转为可观察故障，命令 lane 保持可用，停止及释放不会一起卡住。
+- `remote://` 保留为 Core 业务身份。只有当前已打开的解析结果进入原生队列，遇到未解析的下一首时由 Core 接续 EOF；不预先解析整队列，不把结果写入存档。网络端预取和远程无缝播放不在本次交付范围。
+- AutoMix 丢弃 operation 小于等于当前操作的迟到 commit，避免覆盖较新的 seek；合法的新 commit 继续接受。
+- 队列变化时清理不再相关的时长与采样率记录，只保留队列及当前曲目的有界事实，避免长会话累计旧 occurrence 的键。
+
+新增回归检查覆盖上述故障，包含取消启动后的真实子进程释放、早到解码错误、传输故障、命令 lane 存活、迟到 commit、1010 次队列替换和远程安全身份。修正原队列检查中已过时的固定 revision，使其使用实际宿主队列回执。定向检查及原有 FIFO、历史、撤销、循环、重复 / 迟到 EOF 检查通过。
+
+当前源码连接真实 Windows / Realtek 的静音输出检查通过，覆盖 FIFO、同源 occurrence 和远程业务身份经本地夹具解析后的 EOF 接续；此前本轮完整原生短测还覆盖暂停、seek/resume、drain 与崩溃恢复。后续完整测试工程构建受并行艺术家模块的接口及未构建引用阻断，最终使用 `misc/audio-chain-audit/focused/` 直接链接实际测试文件和当前音频项目验证，没有修改或排除生产业务代码来掩盖错误。本轮未重新发布 AOT Core / Desktop，也未验证真实网盘、专业驱动、DSD、GPU DSP、跨机器输出或听感。日志位于 `misc/audio-chain-audit/`。

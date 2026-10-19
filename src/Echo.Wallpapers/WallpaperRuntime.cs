@@ -99,13 +99,13 @@ public sealed class WallpaperRuntime
         var messages = new List<string>(4);
         if (timeline)
         {
-        messages.Add(Form(w =>
-        {
-            w.WriteString("type", "echo-we:media"); w.WriteStartObject("properties"); w.WriteString("title", state.Title); w.WriteString("artist", state.Artist);
-            w.WriteString("albumTitle", state.Album); w.WriteString("contentType", "music"); w.WriteEndObject();
-        }));
-        messages.Add(Form(w => { w.WriteString("type", "echo-we:playback"); w.WriteNumber("state", state.Playback); }));
-        messages.Add(Form(w => { w.WriteString("type", "echo-we:timeline"); w.WriteNumber("position", state.Position); w.WriteNumber("duration", state.Duration); }));
+            messages.Add(Form(w =>
+            {
+                w.WriteString("type", "echo-we:media"); w.WriteStartObject("properties"); w.WriteString("title", state.Title); w.WriteString("artist", state.Artist);
+                w.WriteString("albumTitle", state.Album); w.WriteString("contentType", "music"); w.WriteEndObject();
+            }));
+            messages.Add(Form(w => { w.WriteString("type", "echo-we:playback"); w.WriteNumber("state", state.Playback); }));
+            messages.Add(Form(w => { w.WriteString("type", "echo-we:timeline"); w.WriteNumber("position", state.Position); w.WriteNumber("duration", state.Duration); }));
         }
         if (audio) messages.Add(Form(w =>
         {

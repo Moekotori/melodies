@@ -3,6 +3,14 @@ using System.Text.Json;
 using Echo.Playback;
 using Echo.Playback.NativeAudio;
 
+if (args.Contains("--rpc-stdin-fd")) { await NativeStartupChecks.RunFixtureAsync(); return; }
+if (args.Contains("--chain-audit"))
+{
+    foreach (var check in new Func<Task>[] { NativeStartupChecks.RunAsync, AudioChainRegressionChecks.RunAsync, RemoteQueueRegressionChecks.RunAsync })
+        try { await check(); }
+        catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; }
+    return;
+}
 if (args.Contains("--framing-only")) { await NativeJsonFramingChecks.RunAsync(); return; }
 if (args.Contains("--adapter-contracts")) { NativeAdapterContractChecks.Run(); return; }
 
@@ -63,6 +71,7 @@ await using (var player = new PlaybackSessionCoordinator(host))
     await UntilAsync(() => player.Snapshot.Status == PlaybackStatus.Playing, 2500);
     Check(host.ProcessId != oldPid, "host recovery reused dead process");
     await QueueScenarios.NativeAsync(player, a, b);
+    await RemoteQueueRegressionChecks.NativeAsync(player, a, b);
     var checkpoint = await player.ExportCheckpointAsync();
     await using var restored = new PlaybackSessionCoordinator(new FakeHost());
     await restored.RestoreCheckpointAsync(checkpoint);
@@ -123,6 +132,9 @@ sealed class FakeHost : INativeAudio
         Calls.Add(method);
         if (method == "queue.set")
         {
+            if (parameters!.Value.GetProperty("items").EnumerateArray().Any(item => item.TryGetProperty("source", out var source)
+                && source.ValueKind == JsonValueKind.Object && source.GetProperty("kind").GetString() == "remote"))
+                throw new IOException("Native only accepts local/http source descriptors");
             if (RejectQueueOnce) { RejectQueueOnce = false; return Task.FromResult(JsonDocument.Parse("{}").RootElement.Clone()); }
             LastQueue = parameters!.Value.Clone();
         }

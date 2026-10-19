@@ -56,7 +56,7 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
         }
         else if (target is ArtistRow artist)
         {
-            var view = new ArtistDetailView(artist, shell); view.Back += GoBack; view.OpenAlbum += OpenAlbum;
+            var view = new ArtistDetailView(artist, shell); view.Back += GoBack; view.OpenAlbum += OpenAlbum; view.OpenArtist += OpenArtist;
             Content = view; view.SetWindowVisible(_visible);
         }
     }

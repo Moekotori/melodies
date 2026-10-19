@@ -24,6 +24,7 @@ using SkiaSharp;
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions())
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
 if (args.Contains("--local-compatibility")) { CompatibilityUiSmoke.Run(); return; }
+if (args.Contains("--word-highlighting")) { WordHighlightUiSmoke.Run(); return; }
 var watch = Stopwatch.StartNew();
 var root = Path.GetFullPath(args.Length > 0 ? args[0] : "misc/lyrics-migration"); Directory.CreateDirectory(root);
 using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(40));

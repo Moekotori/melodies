@@ -15,6 +15,13 @@ internal static class LocalLyricsReader
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete,
             8192, FileOptions.Asynchronous | FileOptions.SequentialScan);
         var bytes = await ReadBoundedAsync(stream, cancellation).ConfigureAwait(false);
+        return await DecodeAsync(bytes, path, cancellation).ConfigureAwait(false);
+    }
+
+    internal static async Task<LyricsText> DecodeAsync(byte[] bytes, string path, CancellationToken cancellation)
+    {
+        cancellation.ThrowIfCancellationRequested();
+        if (bytes.Length > MaxBytes) throw new InvalidDataException("歌词文件超过 1 MiB。");
         var format = Path.GetExtension(path);
         if (bytes.AsSpan().StartsWith("krc1"u8))
         {

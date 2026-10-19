@@ -32,8 +32,9 @@ public sealed class LocalMetadataReader(string? nativeScanner = null) : IMetadat
             extension.Equals(".wave", StringComparison.OrdinalIgnoreCase) || extension.Equals(".bwf", StringComparison.OrdinalIgnoreCase))
         {
             try { return WaveMetadataReader.Read(file, cancellation); }
-            catch (MetadataReadException e) when (e.Code is "unsupported_wave_container" or "unsupported_wave_codec" or "wave_extended_tags" or "wave_tag_encoding")
-            { /* RF64, compressed WAV and non-basic tags use the native reader. */ }
+            catch (MetadataReadException e) when (e.Code is "unsupported_wave_container" or "unsupported_wave_codec" or
+                "wave_extended_tags" or "wave_tag_encoding" or "wave_complex_data")
+            { /* Compressed/big-endian WAV and extended structures use the bounded native reader. */ }
         }
         if (extension.Equals(".flac", StringComparison.OrdinalIgnoreCase) || extension.Equals(".fla", StringComparison.OrdinalIgnoreCase))
         {

@@ -82,6 +82,7 @@ public sealed partial class PlaybackSessionCoordinator
     {
         Volatile.Write(ref queue, items);
         Volatile.Write(ref queueView, Array.AsReadOnly(items));
+        TrimSourceFacts(items);
     }
 
     private async Task SendQueueAsync(QueueTrack[] items, string? current, RepeatMode mode)

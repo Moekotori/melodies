@@ -26,9 +26,9 @@ public sealed partial class NativeAudioHost(string executable, bool allowProDsp 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(disposed != 0, this);
-        if (Interlocked.Exchange(ref started, 1) == 0)
+        try
         {
-            try
+            if (Interlocked.Exchange(ref started, 1) == 0)
             {
                 if (process is not null)
                 {
@@ -37,6 +37,7 @@ public sealed partial class NativeAudioHost(string executable, bool allowProDsp 
                     foreach (var task in new[] { readerTask, stderrTask })
                         if (task is not null) try { await task.ConfigureAwait(false); } catch (Exception) { }
                     process.Dispose();
+                    process = null;
                 }
                 ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 bootstrapReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -65,18 +66,21 @@ public sealed partial class NativeAudioHost(string executable, bool allowProDsp 
                     if (!initialized.Flag("accepted") || initialized.Long("channels") != OutputChannels) throw new IOException("原生声道初始化未确认");
                 }
             }
-            catch (Exception e) { Break(e); throw; }
+            var r = await ready.Task.WaitAsync(TimeSpan.FromSeconds(12), cancellationToken).ConfigureAwait(false);
+            NativeHostProtocol.Validate(r);
+            Capabilities = r.Child("capabilities");
+            HostIdentity = r.Child("hostIdentity");
         }
-        var r = await ready.Task.WaitAsync(TimeSpan.FromSeconds(12), cancellationToken).ConfigureAwait(false);
-        try { NativeHostProtocol.Validate(r); }
-        catch (IOException error)
+        catch (Exception error)
         {
             Break(error);
-            if (process is { HasExited: false }) process.Kill(entireProcessTree: true);
+            if (process is { HasExited: false })
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            }
             throw;
         }
-        Capabilities = r.Child("capabilities");
-        HostIdentity = r.Child("hostIdentity");
     }
 
     private async Task ReadOutputAsync()

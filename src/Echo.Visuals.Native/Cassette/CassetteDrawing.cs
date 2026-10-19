@@ -11,13 +11,12 @@ internal readonly record struct CassetteLayerOptions(double Alpha = 1, double Ro
 
 internal readonly record struct CassettePalette(Vector3 Base, Vector3 Sub, Vector3 Highlight, Vector3 Halo, float HaloAlpha)
 {
-    internal static readonly CassettePalette[] Phases =
-    [
-        new(new(1,1,1), new(.93f,.95f,1), new(1,.56f,.83f), new(.23f,.11f,.39f), .78f),
-        new(new(1,1,1), new(1,.94f,.98f), new(1,.88f,.56f), new(.29f,.13f,.44f), .72f),
-        new(new(.96f,.95f,1), new(.85f,.9f,1), new(.97f,.49f,1), new(.09f,.18f,.55f), .8f)
-    ];
-    internal static readonly Vector3[] Fallbacks = [new(.55f,.8f,.9f), new(.78f,.6f,.85f), new(.12f,.18f,.45f)];
+    // Keep source precision through phase blending; convert to float only at the shader boundary.
+    internal static ReadOnlySpan<double> Source =>
+    [1,1,1, .93,.95,1, 1,.56,.83, .23,.11,.39, .78,
+     1,1,1, 1,.94,.98, 1,.88,.56, .29,.13,.44, .72,
+     .96,.95,1, .85,.9,1, .97,.49,1, .09,.18,.55, .8];
+    internal static ReadOnlySpan<double> Fallbacks => [.55,.8,.9, .78,.6,.85, .12,.18,.45];
 }
 
 internal static class CassetteResources

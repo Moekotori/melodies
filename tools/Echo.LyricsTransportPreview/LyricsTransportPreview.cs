@@ -2,9 +2,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Echo.Desktop.Features.Lyrics;
+using Echo.Desktop.Controls.Lyrics;
 using Echo.Desktop.Features.Player;
 using Echo.Desktop.Motion;
 using Echo.Desktop.Shell;
@@ -34,6 +36,7 @@ internal static class LyricsTransportPreview
             Move(50, 26); Pump(430);
             Check(transport.Display == LyricsPlayerDisplay.Expanded, "near pointer expands paused player");
             Capture("expanded");
+            CheckCapsuleChoreography();
             Move(50, -54); Pump(650);
             Check(transport.IsCompact, "medium distance retains only time and progress");
             Capture("compact");
@@ -78,6 +81,56 @@ internal static class LyricsTransportPreview
             appearance.ReleaseLocalization(); shell.Motion.ReleaseLocalization();
         }
         void Move(double x, double y) => window.MouseMove(transport.TranslatePoint(new Point(x, y), window)!.Value);
+        void CheckCapsuleChoreography()
+        {
+            var surface = transport.FindControl<LyricsPlayerSurface>("CapsuleSurface")!;
+            var expanded = transport.FindControl<Grid>("ExpandedLayout")!;
+            var idle = transport.FindControl<Border>("IdleSurface")!;
+            var bar = transport.FindControl<Border>("BarSurface")!;
+            transport.Present(LyricsPlayerDisplay.Compact);
+            var width = surface.CapsuleBounds.Width;
+            for (var frame = 0; frame < 8; frame++)
+            {
+                Pump(40);
+                Check(surface.CapsuleBounds.Width <= width + .1, "collapse width remains monotonic");
+                width = surface.CapsuleBounds.Width;
+                Check(!(expanded.Opacity > .05 && idle.Opacity > .05), "expanded and idle ink never overlap");
+                Check(!bar.IsHitTestVisible, "collapsing controls cannot receive invisible clicks");
+                Capture($"collapse-{frame:00}");
+            }
+            Check(surface.Expansion < .001 && idle.Opacity > .999 && expanded.Opacity < .001, "collapse settles into compact contents");
+            transport.Present(LyricsPlayerDisplay.Expanded);
+            width = surface.CapsuleBounds.Width;
+            for (var frame = 0; frame < 10; frame++)
+            {
+                Pump(40);
+                Check(surface.CapsuleBounds.Width >= width - .1, "expansion width remains monotonic");
+                width = surface.CapsuleBounds.Width;
+                Check(!(expanded.Opacity > .05 && idle.Opacity > .05), "opening ink follows capsule without overlap");
+                Capture($"expand-{frame:00}");
+            }
+            Check(surface.Expansion > .999 && expanded.Opacity > .999 && bar.IsHitTestVisible, "expansion settles with usable controls");
+            transport.Present(LyricsPlayerDisplay.Compact); Pump(95);
+            var pose = surface.Expansion;
+            var ink = expanded.Opacity;
+            transport.Present(LyricsPlayerDisplay.Expanded);
+            Check(Math.Abs(surface.Expansion - pose) < .025 && Math.Abs(expanded.Opacity - ink) < .05, "rapid reversal preserves geometry and ink");
+            Pump(430);
+            Check(surface.Expansion > .999 && expanded.Opacity > .999, "reversal settles expanded");
+            transport.Present(LyricsPlayerDisplay.Compact); Pump(55);
+            shell.Motion.SelectedChoice = shell.Motion.Choices.First(c => c.Mode == MotionMode.Reduced);
+            transport.Present(LyricsPlayerDisplay.Expanded);
+            Check(surface.Expansion == 1 && expanded.RenderTransform!.Value == Matrix.Identity, "reduced motion has no spatial residue");
+            Pump(100);
+            Check(expanded.Opacity > .999, "reduced fade settles");
+            shell.Motion.SelectedChoice = shell.Motion.Choices.First(c => c.Mode == MotionMode.Off);
+            transport.Present(LyricsPlayerDisplay.Compact);
+            Check(surface.Expansion == 0 && expanded.Opacity == 0 && idle.Opacity == 1, "motion off settles immediately");
+            transport.Present(LyricsPlayerDisplay.Expanded);
+            shell.Motion.SelectedChoice = shell.Motion.Choices.First(c => c.Mode == MotionMode.Full);
+            Pump(30);
+            Console.WriteLine("PASS capsule choreography: finite phase ordering, settled poses, continuous reversal, interaction gating, reduced/off reset.");
+        }
         void Capture(string name)
         {
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();

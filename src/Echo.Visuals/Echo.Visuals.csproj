@@ -2,6 +2,7 @@
   <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" />
+    <ProjectReference Include="../Echo.Visuals.Native/Echo.Visuals.Native.csproj" />
     <PackageReference Include="Jint" />
     <PackageReference Include="SkiaSharp" />
   </ItemGroup>

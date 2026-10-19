@@ -9,7 +9,7 @@ public sealed record WallpaperEngineProject(string Folder, string Title, string 
     {
         "video" => MediaPath is not null && WallpaperMediaFile.IsVideo(MediaPath),
         "image" => MediaPath is not null && WallpaperMediaFile.IsImage(MediaPath),
-        "scene" => EntryName is not null && (PackagePath is not null || MediaPath is not null),
+        "scene" => EntryName is not null && (PackagePath is not null || MediaPath is not null && Path.GetExtension(MediaPath).Equals(".json", StringComparison.OrdinalIgnoreCase)),
         "web" => MediaPath is not null && Path.GetExtension(MediaPath).ToLowerInvariant() is ".html" or ".htm",
         _ => false
     };
@@ -41,6 +41,7 @@ public sealed record WallpaperEngineProject(string Folder, string Title, string 
         var title = Text("title");
         if (string.IsNullOrEmpty(title)) title = Path.GetFileName(folder);
         var entry = rawEntry?.Replace('\\', '/');
+        if (kind == "scene" && (string.IsNullOrEmpty(entry) || entry.EndsWith(".pkg", StringComparison.OrdinalIgnoreCase))) entry = "scene.json";
         if (entry is null || entry.Length > 1024 || entry.StartsWith('/') || entry.Contains(':') || entry.Split('/').Any(p => p is "" or "." or "..")) entry = null;
         return new(folder, title.Length > 200 ? title[..200] : title, kind, media, ResolveFile(folder, Text("preview")), entry, ResolveFile(folder, "scene.pkg"));
     }

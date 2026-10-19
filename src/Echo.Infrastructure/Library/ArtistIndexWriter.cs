@@ -5,7 +5,7 @@ namespace Echo.Infrastructure.Library;
 // Prepared once per scan batch or migration. All membership and aggregate changes share its transaction.
 internal sealed class ArtistIndexWriter : IDisposable
 {
-    private readonly SqliteCommand _track, _delete, _insert, _membership, _peers, _dropAlbumArtist;
+    private readonly SqliteCommand _track, _delete, _insert, _membership, _peers, _dropAlbumArtist, _album;
     public ArtistIndexWriter(SqliteConnection connection, SqliteTransaction transaction)
     {
         _track = Prepare("""
@@ -15,9 +15,17 @@ internal sealed class ArtistIndexWriter : IDisposable
         _delete = Prepare("DELETE FROM artist_tracks WHERE track_id=$track", ["$track"]);
         _insert = Prepare("INSERT INTO artist_tracks(grouping,artist_id,name,track_id,album_id,duration,added) VALUES($group,$artist,$name,$track,$album,$duration,$added)",
             ["$group", "$artist", "$name", "$track", "$album", "$duration", "$added"]);
-        _membership = Prepare("SELECT name FROM artist_tracks WHERE grouping=1 AND album_id=$album", ["$album"]);
-        _peers = Prepare("SELECT id,duration,updated_at FROM tracks WHERE album_key=$album AND missing=0 AND id!=$id", ["$album", "$id"]);
+        _membership = Prepare("""
+            SELECT DISTINCT a.artist_id FROM artist_tracks a
+            WHERE a.grouping=1 AND a.album_id=$album AND EXISTS(
+              SELECT 1 FROM tracks t WHERE t.id=a.track_id AND length(trim(t.album_artist))=0) LIMIT 65
+            """, ["$album"]);
+        _peers = Prepare("""
+            SELECT id,duration,updated_at FROM tracks WHERE album_key=$album AND missing=0
+              AND length(trim(album_artist))=0 AND id>$after AND id!=$id ORDER BY id LIMIT 128
+            """, ["$album", "$after", "$id"]);
         _dropAlbumArtist = Prepare("DELETE FROM artist_tracks WHERE track_id=$track AND grouping=1", ["$track"]);
+        _album = Prepare("SELECT artist FROM albums WHERE id=$album", ["$album"]);
         SqliteCommand Prepare(string sql, string[] parameters)
         {
             var command = connection.CreateCommand(); command.Transaction = transaction; command.CommandText = sql;
@@ -25,7 +33,7 @@ internal sealed class ArtistIndexWriter : IDisposable
             command.Prepare(); return command;
         }
     }
-    public void Update(string pathKey, CancellationToken cancellation)
+    public void Update(string pathKey, CancellationToken cancellation, bool align = true)
     {
         _track.Parameters[0].Value = pathKey;
         string id, credit, rawAlbumArtist, albumLevel, album;
@@ -38,7 +46,12 @@ internal sealed class ArtistIndexWriter : IDisposable
         }
         var shared = string.IsNullOrWhiteSpace(rawAlbumArtist) ? albumLevel : rawAlbumArtist;
         Replace(id, credit, shared, album, duration, added, cancellation);
-        if (string.IsNullOrWhiteSpace(rawAlbumArtist)) Align(album, id, shared, cancellation);
+        if (align && string.IsNullOrWhiteSpace(rawAlbumArtist)) Align(album, id, shared, cancellation);
+    }
+    public void AlignAlbum(string album, CancellationToken cancellation)
+    {
+        _album.Parameters[0].Value = album;
+        if (_album.ExecuteScalar() is string shared) Align(album, "", shared, cancellation);
     }
     public void Replace(string id, string credit, string albumCredit, string album, double duration, long added, CancellationToken cancellation)
     {
@@ -52,17 +65,23 @@ internal sealed class ArtistIndexWriter : IDisposable
         _membership.Parameters[0].Value = album;
         var actual = new HashSet<string>(StringComparer.Ordinal);
         using (var reader = _membership.ExecuteReader())
-            while (reader.Read()) actual.Add(ArtistCredits.Key(reader.GetString(0)));
+            while (reader.Read()) actual.Add(reader.GetString(0));
         if (actual.Count == expected.Length && expected.All(name => actual.Contains(ArtistCredits.Key(name)))) return;
-        _peers.Parameters[0].Value = album; _peers.Parameters[1].Value = currentId;
-        var peers = new List<(string Id, double Duration, long Added)>();
-        using (var reader = _peers.ExecuteReader())
-            while (reader.Read()) peers.Add((reader.GetString(0), reader.GetDouble(1), reader.GetInt64(2)));
-        foreach (var peer in peers)
+        _peers.Parameters[0].Value = album; _peers.Parameters[1].Value = ""; _peers.Parameters[2].Value = currentId;
+        while (true)
         {
             cancellation.ThrowIfCancellationRequested();
-            _dropAlbumArtist.Parameters[0].Value = peer.Id; _dropAlbumArtist.ExecuteNonQuery();
-            Insert(1, shared, peer.Id, album, peer.Duration, peer.Added, cancellation);
+            var peers = new List<(string Id, double Duration, long Added)>(128);
+            using (var reader = _peers.ExecuteReader())
+                while (reader.Read()) peers.Add((reader.GetString(0), reader.GetDouble(1), reader.GetInt64(2)));
+            if (peers.Count == 0) break;
+            foreach (var peer in peers)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                _dropAlbumArtist.Parameters[0].Value = peer.Id; _dropAlbumArtist.ExecuteNonQuery();
+                Insert(1, shared, peer.Id, album, peer.Duration, peer.Added, cancellation);
+            }
+            _peers.Parameters[1].Value = peers[^1].Id;
         }
     }
     private void Insert(int grouping, string source, string id, string album, double duration, long added, CancellationToken cancellation)
@@ -83,6 +102,6 @@ internal sealed class ArtistIndexWriter : IDisposable
     public void Dispose()
     {
         _track.Dispose(); _delete.Dispose(); _insert.Dispose();
-        _membership.Dispose(); _peers.Dispose(); _dropAlbumArtist.Dispose();
+        _membership.Dispose(); _peers.Dispose(); _dropAlbumArtist.Dispose(); _album.Dispose();
     }
 }

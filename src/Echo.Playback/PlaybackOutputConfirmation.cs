@@ -8,11 +8,14 @@ public sealed partial class PlaybackSessionCoordinator
     {
         public TaskCompletionSource PcmReady { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Rendered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<Exception> Failure { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public long ResumeAnchor = -1;
     }
     private sealed record PcmReadyIdentity(long Epoch, long Operation);
+    private sealed record OutputFailureIdentity(long Epoch, long Operation, Exception Error);
     private OutputConfirmation? outputConfirmation;
     private PcmReadyIdentity? lastPcmReady;
+    private OutputFailureIdentity? lastOutputFailure;
 
     private void ArmResumeConfirmation()
     {
@@ -33,6 +36,8 @@ public sealed partial class PlaybackSessionCoordinator
         Volatile.Write(ref outputConfirmation, confirmation);
         var pcm = Volatile.Read(ref lastPcmReady);
         if (pcm?.Epoch == confirmation.Epoch && pcm.Operation == operation) confirmation.PcmReady.TrySetResult();
+        var failure = Volatile.Read(ref lastOutputFailure);
+        if (failure?.Epoch == confirmation.Epoch && failure.Operation == operation) confirmation.Failure.TrySetResult(failure.Error);
         return confirmation;
     }
 
@@ -40,8 +45,19 @@ public sealed partial class PlaybackSessionCoordinator
     {
         var operation = value.Long("operationId");
         if (method == "audio.firstPcm") Volatile.Write(ref lastPcmReady, new(epoch, operation));
+        OutputFailureIdentity? failure = null;
+        if (method == "audio.error")
+        {
+            failure = new(epoch, operation, new IOException(value.Text("message") ?? "原生播放失败"));
+            Volatile.Write(ref lastOutputFailure, failure);
+        }
         var confirmation = Volatile.Read(ref outputConfirmation);
         if (confirmation?.Epoch != epoch || confirmation.Operation != operation) return;
+        if (failure is not null)
+        {
+            confirmation.Failure.TrySetResult(failure.Error);
+            return;
+        }
         if (confirmation.Resume)
         {
             if (method != "audio.position") return;
@@ -61,16 +77,24 @@ public sealed partial class PlaybackSessionCoordinator
         try
         {
             // Wait for decoder readiness separately; slow sources must not be mislabeled as driver failures.
-            await confirmation.PcmReady.Task.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-            await confirmation.Rendered.Task.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+            await WaitForOutputStageAsync(confirmation, confirmation.PcmReady.Task, TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            await WaitForOutputStageAsync(confirmation, confirmation.Rendered.Task, TimeSpan.FromSeconds(3)).ConfigureAwait(false);
         }
-        catch (TimeoutException error)
+        catch (Exception error)
         {
             try { await native.CallAsync("audio.stop", OperationParams()).ConfigureAwait(false); } catch (Exception) { }
             Publish(snapshot with { Status = PlaybackStatus.Faulted, OperationId = 0 });
+            if (error is not TimeoutException) throw;
             throw new IOException(confirmation.PcmReady.Task.IsCompleted
                 ? "驱动已打开，但未确认音频帧输出；请检查驱动或切回系统共享输出"
                 : "输出已打开，但解码尚未提供音频；请检查音源后重试", error);
         }
+    }
+
+    private static async Task WaitForOutputStageAsync(OutputConfirmation confirmation, Task stage, TimeSpan timeout)
+    {
+        await Task.WhenAny(stage, confirmation.Failure.Task).WaitAsync(timeout).ConfigureAwait(false);
+        if (confirmation.Failure.Task.IsCompletedSuccessfully) throw await confirmation.Failure.Task.ConfigureAwait(false);
+        await stage.ConfigureAwait(false);
     }
 }

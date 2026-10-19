@@ -58,7 +58,7 @@ public partial class LyricsView : UserControl, IDisposable
             var files = await top.StorageProvider.OpenFilePickerAsync(new()
             {
                 Title = shell.Text.Translate("导入歌词"), AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType(shell.Text.Translate("歌词文件")) { Patterns = ["*.lrc", "*.yrc", "*.qrc", "*.krc", "*.ttml", "*.srt", "*.vtt", "*.txt"] }]
+                FileTypeFilter = [new FilePickerFileType(shell.Text.Translate("歌词文件")) { Patterns = Echo.Contracts.Lyrics.LyricsFileFormats.DialogPatterns }]
             });
             if (!closed && files.Count > 0 && files[0].TryGetLocalPath() is { } path) await Model.ImportAsync(path);
         }

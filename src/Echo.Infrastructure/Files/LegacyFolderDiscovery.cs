@@ -26,7 +26,7 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null, bool recu
                 if (ignored?.Invoke(cue.Path) == true)
                 {
                     if (Path.GetExtension(cue.Path).Equals(".cue", StringComparison.OrdinalIgnoreCase))
-                        foreach (var preserved in IgnoredCueProtection.Read(cue, store, suppressed, deferred, cancellation)) yield return preserved;
+                        foreach (var preserved in StoredCueProtection.Read(cue, store, suppressed, deferred, cancellation)) yield return preserved;
                     continue;
                 }
                 if (Path.GetExtension(cue.Path).Equals(".osu", StringComparison.OrdinalIgnoreCase))
@@ -40,6 +40,8 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null, bool recu
                 }
                 catch (Exception error) when (error is MetadataReadException or IOException or UnauthorizedAccessException)
                 { tracks = [cue with { Issue = Code(error) }]; deferred.Add(LibraryPath.Key(directory)); }
+                if (tracks.Any(track => track.Issue is not null))
+                    foreach (var preserved in StoredCueProtection.Read(cue, store, suppressed, deferred, cancellation)) yield return preserved;
                 foreach (var track in tracks)
                     yield return Included(track) ? track : track with { Source = null, PreserveExisting = true };
             }
@@ -101,7 +103,7 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null, bool recu
                     if (Path.GetExtension(file.Path).Equals(".flac", StringComparison.OrdinalIgnoreCase) ||
                         Path.GetExtension(file.Path).Equals(".fla", StringComparison.OrdinalIgnoreCase))
                     {
-                        foreach (var preserved in IgnoredCueProtection.Read(file, store, suppressed, null, cancellation)) yield return preserved;
+                        foreach (var preserved in StoredCueProtection.Read(file, store, suppressed, null, cancellation)) yield return preserved;
                     }
                     yield return file with { PreserveExisting = true };
                     continue;

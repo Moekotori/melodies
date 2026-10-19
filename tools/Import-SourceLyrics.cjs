@@ -7,11 +7,11 @@ const root=path.resolve(__dirname,'..'),target=path.join(root,'src/Echo.Visuals/
 fs.mkdirSync(target,{recursive:true});
 (async()=>{
  const metadata=[];
- for(const mode of ['blossom','cassette','background']) {
+ // Cassette's behavior is maintained in C#; only its artwork and shader resources are imported below.
+ for(const mode of ['blossom','background']) {
   const result=await esbuild.build({entryPoints:[path.join(__dirname,'SourceLyrics',mode+'-entry.ts')],bundle:true,format:'iife',globalName:mode==='background'?'SourceBackground':'SourceLyrics',target:'es2022',write:false,metafile:true,
    plugins:[{name:'native-lyrics',setup(build){
     build.onResolve({filter:/^SOURCE\//},a=>({path:path.join(source,'src/renderer/components/lyrics',a.path.slice(7)+'.ts')}));
-    build.onResolve({filter:/^\.\/cassetteRenderer$/},()=>({path:path.join(__dirname,'SourceLyrics/cassette-renderer.ts')}));
     build.onResolve({filter:/lyricsResourceLifecycle$/},()=>({path:'resource-owner',namespace:'native'}));
     build.onResolve({filter:/appearancePreferences$/},()=>({path:'font-list',namespace:'native'}));
     build.onResolve({filter:/\.(?:webp\?no-inline|png)$/},a=>({path:a.path,namespace:'image'}));
@@ -33,12 +33,13 @@ fs.mkdirSync(target,{recursive:true});
   }
  }
  const images=path.join(source,'src/renderer/assets/lyrics-cassette');
- const assets=path.join(target,'Cassette');fs.mkdirSync(assets,{recursive:true});
+ const nativeTarget=path.join(root,'src/Echo.Visuals.Native/Resources/SourceLyrics');
+ const assets=path.join(nativeTarget,'Cassette');fs.mkdirSync(assets,{recursive:true});
  for(const name of fs.readdirSync(images).filter(n=>n.endsWith('.webp'))) {
   const file=path.join(images,name);fs.copyFileSync(file,path.join(assets,name));
   metadata.push({scene:'cassette-art',source:path.relative(source,file),sha256:crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')});
  }
- await require('./SourceLyrics/shaders.cjs')(source,target,esbuild);
+ await require('./SourceLyrics/shaders.cjs')(source,nativeTarget,esbuild);
  const geometric=path.join(target,'Geometric');fs.mkdirSync(geometric,{recursive:true});
  const copyBackgroundAsset=(file,destination)=>{
   fs.copyFileSync(file,destination);

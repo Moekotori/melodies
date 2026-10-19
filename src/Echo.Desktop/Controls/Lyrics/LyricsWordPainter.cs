@@ -20,7 +20,7 @@ internal sealed class LyricsWordPainter
         var upcoming = highlight && layout.Words.Count > 0 ? style switch
         {
             LyricsLayout.Light => .46, LyricsLayout.WordFocus => .44,
-            LyricsLayout.CoverRight => .56, LyricsLayout.CoverLeft => .94, _ => 1
+            LyricsLayout.CoverRight => .56, LyricsLayout.CoverLeft => .55, _ => .46
         } : 1;
         var entering = style == LyricsLayout.KineticChars && entryAge < 1020;
         if (!entering || layout.Words.Count == 0)

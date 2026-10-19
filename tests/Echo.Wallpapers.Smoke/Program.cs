@@ -83,7 +83,7 @@ async Task Render(string manifest, string label, bool dynamic)
         using var image = SkiaSharp.SKBitmap.Decode(encoded);
         Check(image is not null && image.Width is 320 or 400 && image.Height is 180 or 240, "real browser frame dimensions");
         if (original is null) { original = encoded.ToArray(); File.WriteAllBytes(Path.Combine(root, label + "-first.jpg"), encoded); }
-        else changed |= !original.SequenceEqual(encoded);
+        else if (image!.Width == 320) changed |= !original.SequenceEqual(encoded);
         if (frames >= 4) first.TrySetResult();
         if (image!.Width == 400) { File.WriteAllBytes(Path.Combine(root, label + "-resumed.jpg"), encoded); resumed.TrySetResult(); }
         return Task.CompletedTask;

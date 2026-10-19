@@ -39,7 +39,12 @@ public sealed partial class PlaybackSessionCoordinator
             {
                 Interlocked.Exchange(ref positionQueued, 0);
                 var position = Interlocked.Exchange(ref latestPosition, null);
-                if (position is not null && position.Epoch == transportEpoch) await ApplyNotificationAsync(method, position.Value).ConfigureAwait(false);
+                try
+                {
+                    if (position is not null && position.Epoch == transportEpoch)
+                        await ApplyNotificationAsync(method, position.Value).ConfigureAwait(false);
+                }
+                catch (Exception error) { Publish(snapshot with { Status = PlaybackStatus.Faulted, Error = error.Message }); }
             })) return;
             Interlocked.Exchange(ref positionQueued, 0);
             return; // Position is lossy; structural events are never silently dropped.
@@ -56,6 +61,8 @@ public sealed partial class PlaybackSessionCoordinator
     {
         if (suppressNativeEvents) return;
         var epoch = Volatile.Read(ref transportEpoch);
+        var confirmation = Volatile.Read(ref outputConfirmation);
+        if (confirmation?.Epoch == epoch) confirmation.Failure.TrySetResult(error);
         _ = lane.InvokeAsync(() =>
         {
             if (epoch != transportEpoch) return Task.CompletedTask;

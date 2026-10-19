@@ -77,4 +77,6 @@ public sealed partial class CoreLibraryClient
     public Task SetAlbumStateAsync(string id, bool favorite, int rating, CancellationToken cancellation) => wire.CallAsync("library.SetAlbumStateAsync", CoreJson.Value(new LibrarySetAlbumStateRequest(id, favorite, rating)), cancellation);
     public Task SetTrackFavoriteAsync(string id, bool favorite, CancellationToken cancellation) => wire.CallAsync("library.SetTrackFavoriteAsync", CoreJson.Value(new LibrarySetTrackFavoriteRequest(id, favorite)), cancellation);
     public Task<TrackRow?> FindTrackByPathAsync(string path, CancellationToken cancellation) => wire.CallAsync<TrackRow?>("library.FindTrackByPathAsync", CoreJson.Value(new LibraryFindTrackByPathRequest(path)), cancellation);
+    public Task<ArtistInsights> GetArtistInsightsAsync(string id, ArtistGrouping grouping, CancellationToken cancellation = default) => wire.CallAsync<ArtistInsights>("library.GetArtistInsightsAsync", CoreJson.Value(new LibraryGetArtistInsightsRequest(id, grouping)), cancellation);
+    public Task<ArtistInformation> GetArtistInformationAsync(ArtistInformationRequest request, CancellationToken cancellation = default) => wire.CallAsync<ArtistInformation>("library.GetArtistInformationAsync", CoreJson.Value(new LibraryGetArtistInformationRequest(request)), cancellation);
 }

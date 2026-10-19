@@ -1,5 +1,6 @@
 import { SceneAssets } from './sceneAssets';
 import { SceneRenderer, type SceneRuntimeConfig } from './sceneRenderer';
+import { installSceneBudget } from './sceneBudget';
 
 /** Scenes stay within 30 fps and follow the host's lower background budgets. */
 const defaultFrameIntervalMs = 1000 / 30;
@@ -26,6 +27,10 @@ const start = async (): Promise<void> => {
     window.parent.postMessage({ type: 'echo-we:static-ready' }, '*');
     return;
   }
+  installSceneBudget(gl);
+  const fail = (): void => window.parent.postMessage({ type: 'echo-we:static-ready' }, '*');
+  window.addEventListener('error', fail);
+  window.addEventListener('unhandledrejection', fail);
   const renderer = await SceneRenderer.load(gl, canvas, new SceneAssets(new URL('./', window.location.href).href), config);
   // The host forwards the cursor only to scenes that react to it.
   if (renderer.wantsPointer) window.parent.postMessage({ type: 'echo-we:pointer-wanted' }, '*');

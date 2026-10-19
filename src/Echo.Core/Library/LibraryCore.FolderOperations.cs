@@ -65,7 +65,7 @@ public sealed partial class LibraryCore : IFolderOperations
             }, cancellation).ConfigureAwait(false);
         }
         finally { _resourceCheck.Release(); }
-        static bool HasLyrics(string path) => new[] { ".lrc", ".lrcx", ".ttml", ".srt", ".vtt", ".ass", ".krc", ".yrc", ".qrc", ".lys" }
+        static bool HasLyrics(string path) => Echo.Contracts.Lyrics.LyricsFileFormats.Extensions.Concat([".lys"])
             .Any(extension => File.Exists(Path.ChangeExtension(path, extension)));
     }
 

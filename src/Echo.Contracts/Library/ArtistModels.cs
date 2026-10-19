@@ -13,6 +13,7 @@ public sealed record ArtistTrackQuery(string ArtistId, ArtistGrouping Grouping, 
 
 public interface IArtistLibrary
 {
+    Task<ArtistInsights> GetArtistInsightsAsync(string id, ArtistGrouping grouping, CancellationToken cancellation = default);
     Task<ArtistPage> GetArtistsAsync(ArtistQuery query, CancellationToken cancellation = default);
     Task<TrackPage> GetArtistTracksAsync(ArtistTrackQuery query, CancellationToken cancellation = default);
     Task<AlbumPage> GetArtistAlbumsAsync(string artistId, ArtistGrouping grouping, AlbumQuery query, CancellationToken cancellation = default);
