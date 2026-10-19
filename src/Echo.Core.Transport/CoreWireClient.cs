@@ -9,8 +9,9 @@ namespace Echo.Core.Transport;
 /// <summary>A bounded connection. Disconnect fails pending calls; mutating calls are never automatically replayed.</summary>
 public sealed class CoreWireClient : IAsyncDisposable
 {
-    private NamedPipeClientStream pipe;
-    private readonly CoreEndpoint endpoint;
+    private Stream pipe;
+    private readonly CoreEndpoint? endpoint;
+    private readonly RemoteCoreProfile? remote;
     private readonly string role;
     private readonly SemaphoreSlim reconnecting = new(1, 1);
     private int connected = 1;
@@ -21,6 +22,7 @@ public sealed class CoreWireClient : IAsyncDisposable
     private readonly SemaphoreSlim slots = new(CoreProtocol.MaximumPendingPerClient);
     private readonly ConcurrentDictionary<long, TaskCompletionSource<CoreMessage>> pending = new();
     private Task? reader;
+    private Task? heartbeat;
     private long nextId;
     private int closed;
     public CoreWelcome Welcome { get; private set; } = null!;
@@ -28,8 +30,8 @@ public sealed class CoreWireClient : IAsyncDisposable
     public event Action<CoreMessage>? Received;
     public event Action<Exception>? Disconnected;
 
-    private CoreWireClient(NamedPipeClientStream pipe, CoreEndpoint endpoint, string role)
-    { this.pipe = pipe; this.endpoint = endpoint; this.role = role; }
+    private CoreWireClient(Stream pipe, CoreEndpoint? endpoint, string role, RemoteCoreProfile? remote = null)
+    { this.pipe = pipe; this.endpoint = endpoint; this.role = role; this.remote = remote; }
 
     public static async Task<CoreWireClient> ConnectAsync(CoreEndpoint endpoint, string role, CancellationToken token)
     {
@@ -37,21 +39,34 @@ public sealed class CoreWireClient : IAsyncDisposable
         return new(opened.Pipe, endpoint, role) { Welcome = opened.Welcome, InitialPlayback = opened.Playback };
     }
 
-    private static async Task<(NamedPipeClientStream Pipe, CoreWelcome Welcome, CorePlaybackFrame? Playback)> OpenAsync(CoreEndpoint endpoint, string role, CancellationToken token)
+    public static async Task<CoreWireClient> ConnectRemoteAsync(RemoteCoreProfile profile, CancellationToken token)
     {
-        var pipe = new NamedPipeClientStream(".", endpoint.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(token); limit.CancelAfter(TimeSpan.FromSeconds(10));
+        var opened = await OpenAsync(null, "remote-control", limit.Token, profile).ConfigureAwait(false);
+        return new(opened.Pipe, null, "remote-control", profile) { Welcome = opened.Welcome, InitialPlayback = LocalClock(opened.Playback) };
+    }
+
+    private static async Task<(Stream Pipe, CoreWelcome Welcome, CorePlaybackFrame? Playback)> OpenAsync(CoreEndpoint? endpoint, string role, CancellationToken token, RemoteCoreProfile? remote = null)
+    {
+        Stream? pipe = null;
         try
         {
-            await pipe.ConnectAsync(token).ConfigureAwait(false);
-            await CoreFrames.WriteAsync(pipe, new("hello", Payload: CoreJson.Value(new CoreHello(CoreProtocol.Version, endpoint.Identity, role, Guid.NewGuid()))), token).ConfigureAwait(false);
+            var identity = remote?.Identity ?? endpoint!.Identity;
+            if (remote is not null) pipe = await RemoteCoreTransport.ConnectAsync(remote, token).ConfigureAwait(false);
+            else
+            {
+                var local = new NamedPipeClientStream(".", endpoint!.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                pipe = local; await local.ConnectAsync(token).ConfigureAwait(false);
+            }
+            await CoreFrames.WriteAsync(pipe, new("hello", Payload: CoreJson.Value(new CoreHello(CoreProtocol.Version, identity, role, remote?.ClientId ?? Guid.NewGuid(), remote?.AccessToken))), token).ConfigureAwait(false);
             var reply = await CoreFrames.ReadAsync(pipe, token).ConfigureAwait(false) ?? throw new IOException("Core handshake closed.");
             if (reply.Failure is { } error) throw new CoreRemoteException(error.Code, error.Message);
             var welcome = CoreJson.Read<CoreWelcome>(reply.Payload);
-            if (welcome.Version != CoreProtocol.Version || welcome.Identity != endpoint.Identity)
+            if (reply.Kind != "welcome" || welcome.Version != CoreProtocol.Version || welcome.Identity != identity)
                 throw new CoreRemoteException("incompatible", "Core 版本或曲库身份不匹配。");
             return (pipe, welcome, reply.Playback);
         }
-        catch { pipe.Dispose(); throw; }
+        catch { pipe?.Dispose(); throw; }
     }
 
     public async Task ReconnectAsync(CancellationToken token = default)
@@ -67,10 +82,10 @@ public sealed class CoreWireClient : IAsyncDisposable
                 try
                 {
                     using var limit = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token); limit.CancelAfter(1000);
-                    var opened = await OpenAsync(endpoint, role, limit.Token).ConfigureAwait(false);
-                    pipe.Dispose(); pipe = opened.Pipe; Welcome = opened.Welcome; InitialPlayback = opened.Playback;
+                    var opened = await OpenAsync(endpoint, role, limit.Token, remote).ConfigureAwait(false);
+                    pipe.Dispose(); pipe = opened.Pipe; Welcome = opened.Welcome; InitialPlayback = remote is null ? opened.Playback : LocalClock(opened.Playback);
                     Volatile.Write(ref connected, 1);
-                    Notify(new("event", Method: "core.reconnected", Playback: opened.Playback, Payload: CoreJson.Empty));
+                    Notify(new("event", Method: "core.reconnected", Playback: InitialPlayback, Payload: CoreJson.Empty));
                     reader = Task.Run(ReadAsync); return;
                 }
                 catch (Exception error) when (attempt < 2 && !lifetime.IsCancellationRequested && error is IOException or OperationCanceledException)
@@ -80,7 +95,38 @@ public sealed class CoreWireClient : IAsyncDisposable
         finally { reconnecting.Release(); }
     }
 
-    public void Start() => reader ??= ReadAsync();
+    public void Start()
+    {
+        reader ??= ReadAsync();
+        if (remote is not null) heartbeat ??= HeartbeatAsync();
+    }
+
+    private async Task HeartbeatAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stop.Token).ConfigureAwait(false))
+            {
+                if (!IsConnected) continue;
+                var observed = pipe;
+                try
+                {
+                    using var limit = CancellationTokenSource.CreateLinkedTokenSource(stop.Token); limit.CancelAfter(5000);
+                    await CallAsync("core.info", CoreJson.Empty, limit.Token).ConfigureAwait(false);
+                }
+                catch (CoreRemoteException error) when (error.Code == "busy") { }
+                catch (Exception)
+                {
+                    if (stop.IsCancellationRequested) return;
+                    if (ReferenceEquals(pipe, observed))
+                        try { observed.Dispose(); } catch (IOException) { }
+                }
+            }
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+        catch (ObjectDisposedException) when (stop.IsCancellationRequested) { }
+    }
 
     public async Task<JsonElement> CallAsync(string method, JsonElement payload, CancellationToken token = default)
     {
@@ -103,6 +149,7 @@ public sealed class CoreWireClient : IAsyncDisposable
             try { result = await reply.Task.WaitAsync(deadline.Token).ConfigureAwait(false); }
             catch (OperationCanceledException)
             {
+                if (remote is not null && !token.IsCancellationRequested && !stop.IsCancellationRequested) pipe.Dispose();
                 // Cancel only this connection's request. Accepted Core jobs have independent task IDs.
                 _ = CancelRequestAsync(id);
                 throw;
@@ -130,16 +177,22 @@ public sealed class CoreWireClient : IAsyncDisposable
 
     private async Task SendAsync(CoreMessage message, CancellationToken token)
     {
+        var destination = pipe;
         await writes.WaitAsync(token).ConfigureAwait(false);
-        try { await CoreFrames.WriteAsync(pipe, message, token).ConfigureAwait(false); }
+        try
+        {
+            if (!ReferenceEquals(destination, pipe) || !IsConnected) throw new CoreRemoteException("disconnected", "Core 连接已变更，旧请求未重发。", true);
+            await CoreFrames.WriteAsync(destination, message, token).ConfigureAwait(false);
+        }
         finally { writes.Release(); }
     }
 
     private async Task ReadAsync()
     {
+        var observed = pipe;
         try
         {
-            while (await CoreFrames.ReadAsync(pipe, stop.Token).ConfigureAwait(false) is { } message)
+            while (await CoreFrames.ReadAsync(observed, stop.Token).ConfigureAwait(false) is { } message)
             {
                 // A command reply publishes confirmed state before its awaiting control resumes.
                 Notify(message);
@@ -149,7 +202,7 @@ public sealed class CoreWireClient : IAsyncDisposable
         }
         catch (Exception error)
         {
-            if (Volatile.Read(ref closed) == 0)
+            if (Volatile.Read(ref closed) == 0 && ReferenceEquals(pipe, observed))
             {
                 Volatile.Write(ref connected, 0);
                 foreach (var item in pending.Values)
@@ -159,8 +212,13 @@ public sealed class CoreWireClient : IAsyncDisposable
         }
     }
 
+    private static CorePlaybackFrame? LocalClock(CorePlaybackFrame? frame) => frame is null ? null : frame with
+    { State = frame.State with { ClockTimestamp = System.Diagnostics.Stopwatch.GetTimestamp(), Level = null } };
+
     private void Notify(CoreMessage message)
     {
+        // Stopwatch epochs/frequencies belong to each machine. Anchor the received observation locally.
+        if (remote is not null && message.Playback is not null) message = message with { Playback = LocalClock(message.Playback) };
         if (Received is not { } handlers) return;
         foreach (Action<CoreMessage> handler in handlers.GetInvocationList()) try { handler(message); } catch (Exception) { }
     }
@@ -172,6 +230,7 @@ public sealed class CoreWireClient : IAsyncDisposable
         pipe.Dispose();
         foreach (var item in pending.Values) item.TrySetException(new ObjectDisposedException(nameof(CoreWireClient)));
         if (reader is not null) await reader.ConfigureAwait(false);
+        if (heartbeat is not null) await heartbeat.ConfigureAwait(false);
         stop.Dispose();
         Received = null; Disconnected = null;
     }

@@ -128,7 +128,7 @@ public static class DesktopComposition
             if (preferences is not null) await preferences.RestoreAsync();
             if (corePreferences is not null) await corePreferences.RestoreAsync();
             await userLanguages.ReloadAsync();
-            try { await playbackSettings.StartupAsync(); } catch (Exception error) { if (!window.IsExitRequested) shell.Settings.Feedback = error.Message; }
+            try { await playbackSettings.StartupAsync(restore: core?.IsRemote != true); } catch (Exception error) { if (!window.IsExitRequested) shell.Settings.Feedback = error.Message; }
         };
         window.Opened += (_, _) => { _ = shortcuts.RestoreAsync(); };
         var closing = false;

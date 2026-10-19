@@ -69,6 +69,7 @@ internal sealed partial class CoreDispatch : ICoreRequestHandler, IAsyncDisposab
 
     public async Task<JsonElement> DispatchAsync(string method, JsonElement payload, string role, CancellationToken token)
     {
+        if (role == "remote-control" && await DispatchRemoteControlAsync(method, payload, token).ConfigureAwait(false) is { } remoteResult) return remoteResult;
         // The LAN bridge gets transport and bounded read capabilities, never credentials, SQL, maintenance or library mutations.
         if (role == "bridge" && !BridgeAllowed(method)) throw new UnauthorizedAccessException();
         if (method.StartsWith("playback.", StringComparison.Ordinal))

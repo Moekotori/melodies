@@ -6,7 +6,7 @@ using Echo.Core.Transport;
 
 namespace Echo.Core.Client;
 
-internal sealed class CoreResourceClient(CoreWireClient wire) : IAlbumArtwork, ILyricsSource, IDetailResources
+internal sealed class CoreResourceClient(CoreWireClient wire, bool allowLocalOpen) : IAlbumArtwork, ILyricsSource, IDetailResources
 {
     public async Task<byte[]?> ReadAsync(string samplePath, CancellationToken cancellation)
         => (await wire.CallAsync<CoreBytes>("resource.read", CoreJson.Value(new CoreReadResource("artwork", samplePath)), cancellation).ConfigureAwait(false)).Bytes;
@@ -20,6 +20,7 @@ internal sealed class CoreResourceClient(CoreWireClient wire) : IAlbumArtwork, I
     public Task OpenAsync(string path, CancellationToken cancellation)
     {
         cancellation.ThrowIfCancellationRequested();
+        if (!allowLocalOpen) throw new NotSupportedException("远程文件不能通过本机路径打开。");
         if (!Path.IsPathFullyQualified(path)) throw new ArgumentException("Expected an absolute resource path.");
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); return Task.CompletedTask;
     }

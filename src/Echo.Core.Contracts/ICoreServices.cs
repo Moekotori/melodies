@@ -19,6 +19,7 @@ public interface ICoreLibrary : ITrackLibrary, IAlbumLibrary, IArtistLibrary, IG
 
 public interface ICoreServices : IAsyncDisposable
 {
+    bool IsRemote { get; }
     Echo.Bridge.IBridgeRuntime Bridge { get; }
     ICoreSettings Settings { get; }
     Echo.Contracts.Backup.IDataBackup Backup { get; }

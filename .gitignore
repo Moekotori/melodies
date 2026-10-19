@@ -23,3 +23,6 @@ id_ed25519
 .vs/
 *.user
 *.suo
+
+# Owner-issued remote Control pairing files contain access secrets
+*.echo-core-client.json

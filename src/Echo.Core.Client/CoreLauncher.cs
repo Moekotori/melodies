@@ -8,6 +8,11 @@ public static class CoreLauncher
     public static async Task<CoreConnection> ConnectAsync(CoreEndpoint? endpoint = null, bool launch = true,
         string role = "control", string? hostPath = null, CancellationToken token = default)
     {
+        if (endpoint is null && Environment.GetEnvironmentVariable("ECHO_CORE_CONNECTION_FILE") is { Length: > 0 } pairedFile)
+        {
+            if (role != "control") throw new NotSupportedException("远程配对文件只能用于 Control。");
+            return await CoreConnection.ConnectRemoteAsync(RemoteCoreProfile.Load(pairedFile), token).ConfigureAwait(false);
+        }
         endpoint ??= CoreEndpoint.Default;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
         deadline.CancelAfter(TimeSpan.FromSeconds(12));

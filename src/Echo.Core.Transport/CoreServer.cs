@@ -15,7 +15,7 @@ public interface ICoreRequestHandler
     Task<JsonElement> DispatchAsync(string method, JsonElement payload, string role, CancellationToken token);
 }
 
-public sealed class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handler) : IAsyncDisposable
+public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handler) : IAsyncDisposable
 {
     private readonly ConcurrentDictionary<Guid, (Stream Stream, Task Task)> clients = new();
     private readonly SemaphoreSlim requestBudget = new(16, 16);
@@ -31,26 +31,32 @@ public sealed class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handle
         {
             while (!lifetime.IsCancellationRequested)
             {
-                await clientBudget.WaitAsync(lifetime.Token).ConfigureAwait(false);
                 NamedPipeServerStream? pipe = null;
                 try
                 {
-                    pipe = new NamedPipeServerStream(endpoint.PipeName, PipeDirection.InOut, CoreProtocol.MaximumClients,
+                    // One listening pipe in addition to admitted clients; all transports share the same budget.
+                    pipe = new NamedPipeServerStream(endpoint.PipeName, PipeDirection.InOut, CoreProtocol.MaximumClients + 1,
                         PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
                     await pipe.WaitForConnectionAsync(lifetime.Token).ConfigureAwait(false);
                 }
-                catch { pipe?.Dispose(); clientBudget.Release(); throw; }
-                if (clients.Count >= CoreProtocol.MaximumClients) { pipe.Dispose(); clientBudget.Release(); continue; }
-                var id = Guid.NewGuid();
-                var accepted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                clients[id] = (pipe, accepted.Task);
-                _ = ServeAsync(id, pipe, accepted, lifetime.Token);
+                catch { pipe?.Dispose(); throw; }
+                Admit(pipe, lifetime.Token);
             }
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
     }
 
-    private async Task ServeAsync(Guid id, NamedPipeServerStream pipe, TaskCompletionSource completion, CancellationToken token)
+    private bool Admit(Stream stream, CancellationToken token, RemoteCoreAccess? remote = null)
+    {
+        if (!clientBudget.Wait(0)) { stream.Dispose(); return false; }
+        var id = Guid.NewGuid();
+        var accepted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        clients[id] = (stream, accepted.Task);
+        _ = ServeAsync(id, stream, accepted, token, remote);
+        return true;
+    }
+
+    private async Task ServeAsync(Guid id, Stream pipe, TaskCompletionSource completion, CancellationToken token, RemoteCoreAccess? remote)
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
         var calls = new ConcurrentDictionary<long, (CancellationTokenSource Cancel, Task Task)>();
@@ -58,7 +64,10 @@ public sealed class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handle
         var signals = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
         var notices = Channel.CreateBounded<CoreMessage>(new BoundedChannelOptions(16) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
         void Changed() => signals.Writer.TryWrite(true);
-        void Notice(CoreMessage notice) => notices.Writer.TryWrite(notice);
+        void Notice(CoreMessage notice)
+        {
+            if (remote is null || notice.Method is "library.listening" or "radio.changed" or "core.quit") notices.Writer.TryWrite(notice);
+        }
         Task? updates = null, notifications = null;
         async Task Write(CoreMessage message)
         {
@@ -72,13 +81,15 @@ public sealed class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handle
         {
             using var handshakeLimit = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
             handshakeLimit.CancelAfter(TimeSpan.FromSeconds(5));
+            if (remote is not null) pipe = await RemoteCoreTransport.AcceptAsync(pipe, remote, handshakeLimit.Token).ConfigureAwait(false);
             var first = await CoreFrames.ReadAsync(pipe, handshakeLimit.Token, 4096).ConfigureAwait(false);
             if (first is null || first.Kind != "hello") return;
             var hello = CoreJson.Read<CoreHello>(first.Payload);
-            if (hello.Version != CoreProtocol.Version || hello.Identity != endpoint.Identity || hello.Role is not ("control" or "bridge"))
+            if (hello.Version != CoreProtocol.Version || hello.Identity != endpoint.Identity || (remote is null ? hello.Role is not ("control" or "bridge") : !remote.Authorize(hello)))
             { await Write(new("welcome", Failure: new("incompatible", "Core 协议、身份或角色不匹配。"))).ConfigureAwait(false); return; }
             await Write(new("welcome", Payload: CoreJson.Value(new CoreWelcome(CoreProtocol.Version, handler.Instance,
                 endpoint.Identity, System.Diagnostics.Stopwatch.Frequency)), Playback: BridgePlaybackProjection.Apply(handler.Capture(), hello.Role))).ConfigureAwait(false);
+            if (remote is not null) remoteClients[id] = (hello, pipe);
             handler.Changed += Changed; handler.Notice += Notice;
             Changed();
             updates = Task.Run(async () =>
@@ -106,6 +117,7 @@ public sealed class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handle
             _ = notifications.ContinueWith(faulted => { _ = faulted.Exception; try { lifetime.Cancel(); pipe.Dispose(); } catch (ObjectDisposedException) { } }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
             while (await CoreFrames.ReadAsync(pipe, lifetime.Token, CoreProtocol.MaximumRequestBytes).ConfigureAwait(false) is { } request)
             {
+                if (remote is not null && !remote.Authorize(hello)) throw new UnauthorizedAccessException();
                 if (request.Instance != handler.Instance)
                 { await Write(new("response", request.Id, Failure: new("core_changed", "Core 实例已变更，旧请求未执行。", true))).ConfigureAwait(false); continue; }
                 if (request.Kind == "cancel") { if (calls.TryGetValue(request.Id, out var running)) running.Cancel.Cancel(); continue; }
@@ -146,7 +158,7 @@ public sealed class CoreServer(CoreEndpoint endpoint, ICoreRequestHandler handle
             foreach (var call in calls.Values) try { call.Cancel.Cancel(); } catch (ObjectDisposedException) { }
             try { await Task.WhenAll(calls.Values.Select(call => call.Task)).ConfigureAwait(false); } catch (Exception) { }
             foreach (var work in new[] { updates, notifications }) if (work is not null) try { await work.ConfigureAwait(false); } catch (Exception) { }
-            writes.Dispose(); clients.TryRemove(id, out _); clientBudget.Release(); completion.TrySetResult();
+            writes.Dispose(); remoteClients.TryRemove(id, out _); clients.TryRemove(id, out _); clientBudget.Release(); completion.TrySetResult();
         }
     }
 

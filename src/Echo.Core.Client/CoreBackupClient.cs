@@ -2,7 +2,7 @@ using Echo.Contracts.Backup;
 using Echo.Core.Contracts;
 using Echo.Core.Transport;
 namespace Echo.Core.Client;
-internal sealed class CoreBackupClient(CoreWireClient wire, CoreEndpoint endpoint) : IDataBackup
+internal sealed class CoreBackupClient(CoreWireClient wire, CoreEndpoint? endpoint) : IDataBackup
 {
     public event Action<string>? Status { add { } remove { } }
     public async Task CreateAsync(string destination, CancellationToken token)
@@ -16,6 +16,7 @@ internal sealed class CoreBackupClient(CoreWireClient wire, CoreEndpoint endpoin
         => wire.CallAsync("backup.configure", CoreJson.Value(new BackupSchedule(enabled, directory, hours, retention)), token);
     public async Task PrepareRestoreAsync(CancellationToken token)
     {
+        if (endpoint is null) throw new NotSupportedException("请在 Core 所在机器恢复备份。");
         await wire.CallAsync("core.shutdown", CoreJson.Empty, token).ConfigureAwait(false);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token); timeout.CancelAfter(TimeSpan.FromSeconds(10));
         while (true)

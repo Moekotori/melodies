@@ -8,7 +8,7 @@ namespace Echo.Core.Client;
 
 public sealed partial class BridgeClientRuntime : IBridgeRuntime
 {
-    private readonly CoreEndpoint endpoint;
+    private readonly CoreEndpoint? endpoint;
     private readonly SemaphoreSlim connecting = new(1, 1);
     private readonly CancellationTokenSource stop = new();
     private CoreWireClient? wire;
@@ -21,8 +21,8 @@ public sealed partial class BridgeClientRuntime : IBridgeRuntime
     public IBridgeMqtt Mqtt { get; }
     public IBridgeHqPlayer HqPlayer { get; }
     public string TrackCaption() => Volatile.Read(ref state).TrackCaption;
-    public BridgeClientRuntime(CoreEndpoint endpoint)
-    { this.endpoint = endpoint with { Service = "bridge" }; Cast = new CastClient(this); Receiver = new ReceiverClient(this); Link = new LinkClient(this); Mqtt = new MqttClient(this); HqPlayer = new HqClient(this); }
+    public BridgeClientRuntime(CoreEndpoint? endpoint)
+    { this.endpoint = endpoint is null ? null : endpoint with { Service = "bridge" }; Cast = new CastClient(this); Receiver = new ReceiverClient(this); Link = new LinkClient(this); Mqtt = new MqttClient(this); HqPlayer = new HqClient(this); }
     public void Use(IBridgePreferences store)
     {
         if (preferences is not null) preferences.Changed -= PreferencesChanged;
@@ -35,6 +35,7 @@ public sealed partial class BridgeClientRuntime : IBridgeRuntime
     public void Restore() => _ = RestoreAsync();
     private async Task RestoreAsync()
     {
+        if (endpoint is null) return;
         try
         {
             var settings = preferences?.Values.Where(pair => pair.Key.StartsWith("connect.", StringComparison.Ordinal)).Take(64).ToDictionary(pair => pair.Key, pair => pair.Value);
@@ -47,6 +48,7 @@ public sealed partial class BridgeClientRuntime : IBridgeRuntime
     }
     private async Task<CoreWireClient> WireAsync(CancellationToken token)
     {
+        if (endpoint is null) throw new NotSupportedException("远程控制端暂不提供连接服务管理。");
         await connecting.WaitAsync(token).ConfigureAwait(false);
         try
         {

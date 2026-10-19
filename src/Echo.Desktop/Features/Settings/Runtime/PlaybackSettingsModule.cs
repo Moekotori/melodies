@@ -100,10 +100,10 @@ public sealed class PlaybackSettingsModule : IDisposable
         using var json = JsonDocument.Parse(config.ToJsonString());
         await playback.LocalZone.Session.ConfigureOutputAsync(json.RootElement, token);
     }
-    public async Task StartupAsync()
+    public async Task StartupAsync(bool restore = true)
     {
         await playback.StartAsync(lifetime.Token);
-        await RestoreAsync();
+        if (restore) await RestoreAsync();
 
     }
     private void PreferencesChanged(string id) { }

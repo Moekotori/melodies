@@ -14,7 +14,8 @@ namespace Echo.Core.Client;
 public sealed class CoreConnection : ICoreServices
 {
     private readonly CoreWireClient wire;
-    private readonly CoreEndpoint endpoint;
+    private readonly CoreEndpoint? endpoint;
+    public bool IsRemote => endpoint is null;
     private readonly string role;
     private readonly CorePlaybackRuntime playback;
     private readonly CoreRadioClient radioClient;
@@ -41,11 +42,11 @@ public sealed class CoreConnection : ICoreServices
     public event Action? ListeningChanged;
     public event Action<string>? ListeningDiagnostic;
 
-    private CoreConnection(CoreWireClient wire, CoreEndpoint endpoint, string role)
+    private CoreConnection(CoreWireClient wire, CoreEndpoint? endpoint, string role)
     {
-        this.wire = wire; this.endpoint = endpoint; this.role = role; Settings = new CoreSettingsClient(wire); Backup = new CoreBackupClient(wire, endpoint); Bridge = new BridgeClientRuntime(endpoint); playback = new(wire, () => ReconnectAsync()); Library = new(wire); RemoteSources = new(wire); Podcasts = new CorePodcastClient(wire);
+        this.wire = wire; this.endpoint = endpoint; this.role = role; Settings = new CoreSettingsClient(wire); Backup = new CoreBackupClient(wire, endpoint); Bridge = new BridgeClientRuntime(endpoint); playback = new(wire, () => ReconnectAsync(), endpoint is null); Library = new(wire); RemoteSources = new(wire); Podcasts = new CorePodcastClient(wire);
         Radio = new RadioCatalog(new CoreRadioStore(wire)); radioClient = new(wire); Broadcast = new CoreBroadcastClient(wire);
-        var resources = new CoreResourceClient(wire); Lyrics = resources; Artwork = resources; Details = resources;
+        var resources = new CoreResourceClient(wire, endpoint is not null); Lyrics = resources; Artwork = resources; Details = resources;
         wire.Received += Receive;
     }
 
@@ -54,6 +55,11 @@ public sealed class CoreConnection : ICoreServices
         var wire = await CoreWireClient.ConnectAsync(endpoint, role, token).ConfigureAwait(false);
         var connection = new CoreConnection(wire, endpoint, role); wire.Start();
         return connection;
+    }
+    public static async Task<CoreConnection> ConnectRemoteAsync(RemoteCoreProfile profile, CancellationToken token = default)
+    {
+        var wire = await CoreWireClient.ConnectRemoteAsync(profile, token).ConfigureAwait(false);
+        var connection = new CoreConnection(wire, null, "remote-control"); wire.Start(); return connection;
     }
     private void Receive(CoreMessage message)
     {
@@ -67,7 +73,10 @@ public sealed class CoreConnection : ICoreServices
     { try { await Radio.RefreshAsync(CancellationToken.None).ConfigureAwait(false); } catch (Exception) { } }
     public async Task ReconnectAsync(CancellationToken token = default)
     {
-        await using var probe = await CoreLauncher.ConnectAsync(endpoint, role: role, token: token).ConfigureAwait(false);
+        if (endpoint is not null)
+        {
+            await using var probe = await CoreLauncher.ConnectAsync(endpoint, role: role, token: token).ConfigureAwait(false);
+        }
         await wire.ReconnectAsync(token).ConfigureAwait(false);
         if (role == "control") await StartAsync(token).ConfigureAwait(false);
     }
@@ -75,6 +84,7 @@ public sealed class CoreConnection : ICoreServices
     public Task ShutdownAsync(CancellationToken token = default) => wire.CallAsync("core.shutdown", CoreJson.Empty, token);
     public async Task StartAsync(CancellationToken token = default)
     {
+        if (IsRemote) return;
         try { await RemoteSources.LoadAsync(token).ConfigureAwait(false); }
         catch (CoreRemoteException error) when (error.Code == "failed") { /* Source editing exposes its own failure; local playback remains usable. */ }
         await radioClient.InitializeAsync(token).ConfigureAwait(false);

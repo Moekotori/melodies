@@ -15,6 +15,7 @@ try
         Console.WriteLine("list --db FILE [--search TEXT] [--limit 100]\nstats --db FILE\nissues --db FILE --job ID [--limit 16]");
         Console.WriteLine("albums --db FILE [--search TEXT] [--limit 100]\nalbum-metadata --db FILE --id ID");
         Console.WriteLine("set-album-metadata --db FILE --id ID --field title|artist --source user|online --value TEXT\nclear-album-metadata --db FILE --id ID --field title|artist --source user|online");
+        Console.WriteLine("远程 Control：用 --connection FILE 替代 --db；FILE 为 Core 所有者签发的配对文件。远程只开放浏览和播放控制能力。");
         return 0;
     }
     var command = args[0];
@@ -39,12 +40,16 @@ try
         "issues" => ["db", "job", "limit"],
         _ => ["db"]
     };
-    if (options.Keys.Any(key => !allowed.Contains(key))) throw new ArgumentException("Unknown option.");
+    if (options.Keys.Any(key => !allowed.Append("connection").Contains(key))) throw new ArgumentException("Unknown option.");
     string Required(string key) => options.TryGetValue(key, out var value) ? value : throw new ArgumentException("Missing --" + key);
     int Number(string key, int fallback) => options.TryGetValue(key, out var value) ? int.Parse(value, System.Globalization.CultureInfo.InvariantCulture) : fallback;
-    var databasePath = Path.GetFullPath(Required("db"));
-    await using var core = await CoreLauncher.ConnectAsync(new CoreEndpoint(Path.GetDirectoryName(databasePath)!, databasePath),
-        hostPath: ServiceExecutable.Resolve(Path.Combine(AppContext.BaseDirectory, "core"), "Echo.Core.Host", "ECHO_CORE_HOST"), token: cancellation.Token);
+    if (options.ContainsKey("db") && options.ContainsKey("connection")) throw new ArgumentException("--db 与 --connection 不能同时使用。");
+    var pairedPath = options.GetValueOrDefault("connection");
+    var databasePath = options.TryGetValue("db", out var selectedDatabase) ? Path.GetFullPath(selectedDatabase) : null;
+    await using var core = pairedPath is not null
+        ? await CoreConnection.ConnectRemoteAsync(RemoteCoreProfile.Load(pairedPath), cancellation.Token)
+        : await CoreLauncher.ConnectAsync(databasePath is null ? null : new CoreEndpoint(Path.GetDirectoryName(databasePath)!, databasePath),
+            hostPath: ServiceExecutable.Resolve(Path.Combine(AppContext.BaseDirectory, "core"), "Echo.Core.Host", "ECHO_CORE_HOST"), token: cancellation.Token);
     var database = core.Library;
     if (command is "album-metadata" or "set-album-metadata" or "clear-album-metadata")
     {

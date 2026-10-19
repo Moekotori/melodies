@@ -22,7 +22,10 @@ public static class CoreProtocol
 
 public sealed record CoreMessage(string Kind, long Id = 0, string Method = "", JsonElement Payload = default,
     CoreFailure? Failure = null, CorePlaybackFrame? Playback = null, Guid Instance = default);
-public sealed record CoreHello(int Version, string Identity, string Role, Guid ClientId);
+public sealed record CoreHello(int Version, string Identity, string Role, Guid ClientId, string? AccessToken = null)
+{
+    public override string ToString() => $"Core hello: {Role} (credentials omitted)";
+}
 public sealed record CoreWelcome(int Version, Guid Instance, string Identity, long ClockFrequency);
 public sealed record CoreFailure(string Code, string Message, bool OutcomeUnknown = false);
 public sealed record CorePlaybackFrame(long Serial, PlaybackStateSnapshot State, bool VolumeLocked,

@@ -14,6 +14,7 @@ internal sealed class CorePlaybackRuntime : IPlaybackRuntime
     private readonly CorePlaybackClient session;
     private readonly CoreSleepTimer timer;
     private readonly CoreMediaAccessory accessory;
+    private readonly bool remote;
     private readonly CoreBackgroundAdmission admission;
     private string? persistenceError, mediaError;
     public PlaybackZone LocalZone { get; }
@@ -21,15 +22,15 @@ internal sealed class CorePlaybackRuntime : IPlaybackRuntime
     public ISleepTimer SleepTimer => timer;
     public string? PersistenceError => persistenceError;
     public string? MediaError => mediaError;
-    public IMediaAccessory? Accessories => accessory;
+    public IMediaAccessory? Accessories => remote ? null : accessory;
     public event Action<string?>? PersistenceDiagnosticChanged;
     public event Action<string?>? MediaDiagnosticChanged;
     public event Action<IReadOnlyList<string>>? FilesOpened;
 
-    internal CorePlaybackRuntime(CoreWireClient wire, Func<Task> reconnect)
+    internal CorePlaybackRuntime(CoreWireClient wire, Func<Task> reconnect, bool remote = false)
     {
-        this.wire = wire; this.reconnect = reconnect; session = new(wire); timer = new(wire); accessory = new(wire);
-        LocalZone = new(PlaybackZone.LocalId, "本机", session);
+        this.wire = wire; this.reconnect = reconnect; this.remote = remote; session = new(wire); timer = new(wire); accessory = new(wire);
+        LocalZone = new(PlaybackZone.LocalId, remote ? "Core 输出" : "本机", session);
         admission = new(wire); BackgroundWork = admission;
         wire.Received += Receive; wire.Disconnected += OnDisconnected;
     }

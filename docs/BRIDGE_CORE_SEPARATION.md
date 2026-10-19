@@ -22,9 +22,9 @@ Echo.Desktop ── Bridge 客户端 IPC ── Echo.Bridge.Host
 
 Bridge 按需启动，只有启用了保存的服务或用户执行连接功能时才创建进程。Core、Bridge 和音频宿主各有独立入口。Control 断开只释放本连接和展示资源；已经接受的任务、播放和已启用的桥接服务继续运行。显式停止播放、取消任务、停止共享和关闭 Core 分开定义。
 
-Core 空闲退出同时检查连接、播放、已接受任务、目录监听、OBS 输出和定时备份，不以窗口数量决定退出。默认空闲期限为 60 秒，显式关闭走管理命令。没有安装系统服务或开机启动项。暂停队列通过 checkpoint 保存后可以空闲退出；活动 watcher 和已配置的定时备份保留 Core。
+Core 空闲退出同时检查连接、播放、已接受任务、目录监听、OBS 输出和定时备份，不以窗口数量决定退出。默认空闲期限为 60 秒，显式关闭走管理命令。显式网络监听且仍有有效配对时，Core 保持可供远程接入，撤销全部配对后恢复普通空闲规则。没有安装系统服务或开机启动项。暂停队列通过 checkpoint 保存后可以空闲退出；活动 watcher 和已配置的定时备份保留 Core。
 
-参考 [Roon 架构](https://help.roonlabs.com/portal/en/kb/articles/architecture)的 Server／Control／Output 分工和 [Roon Bridge](https://help.roonlabs.com/portal/en/kb/articles/roonbridge)的部署思想。这里实现的是 ECHO 现有业务和现有连接协议的服务化，**不是 RAAT 兼容实现**。V1 的 Core 管理通道只开放当前用户本地 IPC；跨机器原生 PCM Output、远程桌面 Control 传输、多 Zone 分组同步尚未实现。现有 DLNA/HQPlayer 送出仍使用其既有协议，不能将其验收推断成原生网络输出已完成。
+参考 [Roon 架构](https://help.roonlabs.com/portal/en/kb/articles/architecture)的 Server／Control／Output 分工和 [Roon Bridge](https://help.roonlabs.com/portal/en/kb/articles/roonbridge)的部署思想。这里实现的是 ECHO 现有业务和现有连接协议的服务化，**不是 RAAT 兼容实现**。Core 默认只开放当前用户本地 IPC；已增加显式启用、配对和证书固定的 [TLS 远程 Control](REMOTE_CONTROL.md)。跨机器原生 PCM Output、多 Zone 分组同步尚未实现。现有 DLNA/HQPlayer 送出仍使用其既有协议，不能将其验收推断成原生网络输出已完成。
 
 ## 项目和依赖
 
@@ -62,7 +62,7 @@ Desktop 不引用 Core 实现、具体 Playback 或 Audio.Client。Bridge.Host �
 | IPC 身份 | 当前用户 named pipe；Unix 使用短端点名适应 macOS socket 路径限制；完整曲库身份仍在握手中核对 |
 | 握手 | 协议版本、曲库身份、角色、客户端身份、Core instance/epoch、单调时钟频率 |
 | 请求身份 | 本连接请求 ID + Core instance；旧实例请求拒绝执行，迟到响应不会覆盖新实例状态 |
-| 连接 | 最多 8 个；接受前预留槽位，满额不摧毁现有 owner |
+| 连接 | 最多 8 个；握手前准入，本地 IPC 与 TLS 共用预算，满额不摧毁现有 owner |
 | pending | 每连接最多 8 个，其中普通数据最多 6 个；服务保留 8 个播放控制通道，普通请求最多 16 个 |
 | 大小 | 握手 4 KiB、请求 1 MiB、完整响应帧 8 MiB；长度在分配消息缓冲前校验 |
 | 订阅 | 每连接一个合并状态信号、最多 16 条轻量通知；播放状态推送最多约 10 Hz，队列只在 revision 变化时发送 |
@@ -92,7 +92,7 @@ Bridge 角色只能访问列出的播放控制和分页只读能力，不能读�
 - CLI 的 scan/list/stats/issues/专辑元数据都附着同一 Core。显式临时数据库使用自己的数据目录，不与生产 profile 混用。
 - 分离之后新增业务先定义 owner 和契约，再更新服务端能力清单及客户端；禁止在 Control 临时增加数据库后门。新输出端通过音频/会话端口接入，不新建第二套队列。
 
-远程 Control 的配对/TLS、原生网络 Output 的有界音频数据面、设备能力协商、跨机器时钟和分组同步需要独立实现与真实验收。不得将仅增加 TCP listener、复用 JSON 发送 PCM 或模拟宿主成功视为这些功能完成。
+远程 Control 的配对/TLS 已接入，能力及验收边界见 [REMOTE_CONTROL.md](REMOTE_CONTROL.md)。原生网络 Output 的有界音频数据面、设备能力协商、跨机器时钟和分组同步仍需要独立实现与真实验收。不得将仅增加 TCP listener、复用 JSON 发送 PCM 或模拟宿主成功视为这些功能完成。
 
 ## 验证与集成状态
 
@@ -108,6 +108,6 @@ Bridge 角色只能访问列出的播放控制和分页只读能力，不能读�
 - 依赖边界脚本通过；静态 RPC 清单生成 106 个已批准操作；diff whitespace 检查通过。
 - `Echo.slnx` Release 编译通过，0 错误、9 个既有 Avalonia XAML 警告，92.2 秒。使用单节点、关闭共享编译及 trim/AOT 分析器的命令行选项规避并行编译争用；没有修改项目 AOT 声明。此结果不证明 Native AOT 发行物已通过。
 - 最终 IPC 冒烟检查通过，10.4 秒；使用真实独立 Core/Bridge 进程和 SQLite，原生音频为协议替身。覆盖上文列出的多控制端、最大客户端准入、任务断线存活、桥接能力限制、备份和持久化恢复。
-- 真实 Avalonia 交互/外观、原生设备出声、Windows/Linux 实机、跨机器 Output、分组同步、AOT 发布及进程树性能测量未验收。跨机器 Control/原生 Output 还没有实现，不能称为已经完成 Roon 式分布式输出。
+- 真实 Avalonia 交互/外观、原生设备出声、Windows/Linux 实机、跨机器 Output、分组同步、AOT 发布及进程树性能测量未验收。原生 Output 还没有实现，不能称为已经完成 Roon 式分布式输出；后续新增远程 Control 进展见 [REMOTE_CONTROL.md](REMOTE_CONTROL.md)。
 
 - `tools/Echo.Preview` 的聚焦编译被既有 `SongDropSmoke.DropFile` 对 Avalonia 12 不再允许用户实现的 `IStorageFile/IStorageItem` 替身阻挡（CS0535）；未扩大修改无关拖放测试。三个使用旧默认组合入口的预览调用改为显式注入渲染 fixture，未宣称预览运行验收完成。

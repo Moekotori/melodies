@@ -23,5 +23,6 @@
     <Project Path="tests/Echo.Library.Smoke/Echo.Library.Smoke.csproj" />
     <Project Path="tests/Echo.Core.Smoke/Echo.Core.Smoke.csproj" />
     <Project Path="tests/Echo.Core.IpcSmoke/Echo.Core.IpcSmoke.csproj" />
+    <Project Path="tests/Echo.Core.RemoteSmoke/Echo.Core.RemoteSmoke.csproj" />
   </Folder>
 </Solution>
