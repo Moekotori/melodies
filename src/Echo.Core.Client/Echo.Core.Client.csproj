@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Application/Echo.Application.csproj" />
+    <ProjectReference Include="../Echo.Core.Contracts/Echo.Core.Contracts.csproj" />
+    <ProjectReference Include="../Echo.Core.Transport/Echo.Core.Transport.csproj" />
+  </ItemGroup>
+</Project>

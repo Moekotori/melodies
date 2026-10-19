@@ -4,7 +4,7 @@ using Echo.Contracts.Remote;
 namespace Echo.Application.Remote;
 
 // Two directories in flight, matching the HTTP admission of two. One network walk writes the library.
-public sealed class RemoteLibrarySync(RemoteSourceCatalog catalog, IRemoteFileClient files, IRemoteTrackIndex index)
+public sealed class RemoteLibrarySync(IRemoteSourceCatalog catalog, IRemoteFileClient files, IRemoteTrackIndex index)
 {
     public const int MaxTracks = 100_000, MaxDirectories = 20_000;
     public async Task<RemoteSyncResult> RunAsync(string sourceId, IProgress<RemoteSyncProgress>? progress, CancellationToken token)
@@ -17,7 +17,7 @@ public sealed class RemoteLibrarySync(RemoteSourceCatalog catalog, IRemoteFileCl
         if (!root.StartsWith('/')) root = "/" + root;
         root = root.EndsWith('/') || root == "/" ? root : root + "/";
         var syncToken = Guid.NewGuid().ToString("N");
-        var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = false, SingleWriter = false });
+        var channel = Channel.CreateBounded<string>(new BoundedChannelOptions(MaxDirectories) { SingleReader = false, SingleWriter = false, FullMode = BoundedChannelFullMode.Wait });
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var batch = new List<RemoteIndexTrack>(64);
         var gate = new object();

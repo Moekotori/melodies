@@ -4,7 +4,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" />
-    <ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" />
+    <ProjectReference Include="../Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" />
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <None Include="../../artifacts/native/scanner/**/echo-native-scanner*;../../artifacts/native/scanner/**/*.dll" Link="runtimes/%(RecursiveDir)native/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

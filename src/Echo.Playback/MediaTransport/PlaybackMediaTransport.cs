@@ -5,7 +5,7 @@ namespace Echo.Playback.MediaTransport;
 /// <summary>One latest-state publication and at most 16 pending system commands.</summary>
 public sealed class PlaybackMediaTransport : IAsyncDisposable
 {
-    private readonly PlaybackSessionCoordinator session;
+    private readonly IPlaybackSession session;
     private readonly IMediaTransport transport;
     private readonly CancellationTokenSource lifetime = new();
     private readonly Channel<MediaTransportCommand> commands = Channel.CreateBounded<MediaTransportCommand>(
@@ -15,7 +15,7 @@ public sealed class PlaybackMediaTransport : IAsyncDisposable
     private readonly PlaybackStateSubscription subscription;
     private int disposed;
 
-    public PlaybackMediaTransport(PlaybackSessionCoordinator session, IMediaTransport transport)
+    public PlaybackMediaTransport(IPlaybackSession session, IMediaTransport transport)
     {
         this.session = session;
         this.transport = transport;

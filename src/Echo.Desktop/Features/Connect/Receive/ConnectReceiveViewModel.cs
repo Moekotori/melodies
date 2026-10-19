@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Echo.Bridge;
 using Echo.Desktop.Features.Connect.Runtime;
 using Echo.Desktop.Features.Settings.Runtime;
 
@@ -8,12 +9,12 @@ namespace Echo.Desktop.Features.Connect.Receive;
 public sealed partial class ConnectReceiveViewModel : ObservableObject, IDisposable
 {
     private readonly FeaturePreferences preferences;
-    private readonly ConnectRuntime runtime;
+    private readonly IBridgeRuntime runtime;
     private readonly Action<string?> report;
     private CancellationTokenSource? browse;
     private int browseVersion;
 
-    public ConnectReceiveViewModel(FeaturePreferences preferences, ConnectRuntime runtime, Action<string?> report)
+    public ConnectReceiveViewModel(FeaturePreferences preferences, IBridgeRuntime runtime, Action<string?> report)
     {
         this.preferences = preferences;
         this.runtime = runtime;
@@ -102,7 +103,7 @@ public sealed partial class ConnectReceiveViewModel : ObservableObject, IDisposa
         AirPlay.State = "正在查找";
         try
         {
-            var names = await MdnsBrowse.AirPlayNamesAsync(browse.Token);
+            var names = await runtime.AirPlayAsync(browse.Token);
             if (version != browseVersion) return;
             AirPlay.State = "未广播";
             AirPlay.IsLive = false;

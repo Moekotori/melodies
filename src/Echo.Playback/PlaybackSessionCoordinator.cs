@@ -4,10 +4,11 @@ using System.Text.Json.Nodes;
 namespace Echo.Playback;
 
 /// <summary>Single owner of native command order, queue identity and confirmed playback state.</summary>
-public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
+public sealed partial class PlaybackSessionCoordinator : IPlaybackSession
 {
     private readonly INativeAudio native;
     private readonly IPlaybackSourceProbe? sourceProbe;
+    private readonly IPlaybackFileResolver? fileResolver;
     private IRemoteAudioResolver? remoteResolver;
     private readonly PlaybackCommandLane lane = new();
     private QueueTrack[] queue = [];
@@ -24,10 +25,10 @@ public sealed partial class PlaybackSessionCoordinator : IAsyncDisposable
     public RepeatMode Repeat => repeat;
     public event Action<PlaybackSnapshot>? Changed;
 
-    public PlaybackSessionCoordinator(INativeAudio native, IPlaybackSourceProbe? sourceProbe = null)
+    public PlaybackSessionCoordinator(INativeAudio native, IPlaybackSourceProbe? sourceProbe = null, IPlaybackFileResolver? fileResolver = null)
     {
         this.native = native;
-        this.sourceProbe = sourceProbe;
+        this.sourceProbe = sourceProbe; this.fileResolver = fileResolver;
         InitializeState();
         native.Notification += OnNotification;
         native.Failed += OnFailed;

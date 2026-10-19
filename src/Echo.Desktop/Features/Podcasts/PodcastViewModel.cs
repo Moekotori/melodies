@@ -14,7 +14,7 @@ public sealed partial class PodcastViewModel : ObservableObject, IDisposable
 {
     private readonly IPodcastLibrary? library;
     private readonly PodcastPlayback? playback;
-    private readonly PlaybackSessionCoordinator? session;
+    private readonly IPlaybackSession? session;
     private readonly PodcastCoverLoader covers = new();
     private readonly List<PodcastShowRow> all = [];
     private readonly CancellationTokenSource lifetime = new();
@@ -165,7 +165,7 @@ public sealed partial class PodcastViewModel : ObservableObject, IDisposable
     private void ApplyShowFilter()
     {
         var query = ShowQuery.Trim();
-        var visible = string.IsNullOrEmpty(query) ? all : all.Where(row => $"{row.Title} {row.Author}".Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        IEnumerable<PodcastShowRow> visible = string.IsNullOrEmpty(query) ? all : all.Where(row => $"{row.Title} {row.Author}".Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
         Shows.Clear();
         foreach (var row in visible) Shows.Add(row);
         MarkSelected();

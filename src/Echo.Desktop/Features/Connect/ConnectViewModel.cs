@@ -6,6 +6,7 @@ using Echo.Desktop.Features.Connect.HqPlayer;
 using Echo.Desktop.Features.Connect.Mobile;
 using Echo.Desktop.Features.Connect.Output;
 using Echo.Desktop.Features.Connect.Receive;
+using Echo.Bridge;
 using Echo.Desktop.Features.Connect.Runtime;
 using Echo.Desktop.Features.Connect.SmartHome;
 using Echo.Desktop.Features.Settings.Runtime;
@@ -17,11 +18,12 @@ namespace Echo.Desktop.Features.Connect;
 public sealed partial class ConnectViewModel : ObservableObject, IDisposable
 {
     private readonly FeaturePreferences preferences;
-    private readonly ConnectRuntime runtime;
+    private readonly IBridgeRuntime runtime;
 
     public ConnectViewModel(ShellViewModel shell)
     {
         preferences = shell.FeaturePreferences;
+        _ = RefreshBridgeAsync(shell.ConnectServices);
         runtime = shell.ConnectServices;
         runtime.Use(preferences);
         Output = new(shell.Player, preferences, runtime, () => shell.NavigateCommand.Execute("songs"));
@@ -126,4 +128,6 @@ public sealed partial class ConnectViewModel : ObservableObject, IDisposable
         if (e.PropertyName is nameof(ConnectNowPlaying.Title) or nameof(ConnectNowPlaying.Artist))
             HqPlayer.PullTrack();
     }
+    private static async Task RefreshBridgeAsync(IBridgeRuntime runtime)
+    { try { await runtime.RefreshAsync(); } catch (Exception) { } }
 }

@@ -8,7 +8,7 @@ namespace Echo.Desktop.Features.Settings.Runtime;
 public sealed class PlaybackToolsSettingsModule
 {
     public PlaybackToolsSettingsModule(SettingsFeatureRuntime runtime, PlayerToolsViewModel tools,
-        SleepTimerService timer, PlaybackSessionCoordinator session)
+        ISleepTimer timer, IPlaybackSession session)
     {
         runtime.RegisterChange("sleep-timer-minutes", (value, _) =>
         {

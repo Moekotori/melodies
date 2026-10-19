@@ -116,6 +116,14 @@ Console.WriteLine("Native render, navigation, theme, tab and sidebar checks pass
 
 sealed class PreviewLifetime : IDisposable
 {
-    public MainWindow Window { get; } = DesktopComposition.CreateWindow(restorePlayback: false, enableMedia: false);
-    public void Dispose() => Window.Close();
+    private readonly PreviewPlayback playback = new();
+    private readonly Echo.Core.Library.LibraryCore library = new(Path.Combine(Path.GetTempPath(), "echo-render-preview", Guid.NewGuid().ToString("N"), "library.sqlite"));
+    public MainWindow Window { get; }
+    public PreviewLifetime() => Window = DesktopComposition.CreateWindow(false, false, library, playback: playback.Runtime);
+    public void Dispose()
+    {
+        Window.Close();
+        playback.Dispose();
+        library.DisposeAsync().AsTask().GetAwaiter().GetResult();
+    }
 }

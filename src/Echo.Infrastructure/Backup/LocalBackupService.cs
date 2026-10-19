@@ -1,3 +1,4 @@
+using Echo.Contracts.Backup;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -7,12 +8,9 @@ using Echo.Contracts.Library;
 
 namespace Echo.Infrastructure.Backup;
 
-public sealed record BackupFile(string Name, long Length, string Sha256);
-public sealed record BackupManifest(int Version, string CreatedAt, BackupFile[] Files);
-
 public sealed class LocalBackupService(string dataDirectory, ILibraryMaintenance? library)
 {
-    private static readonly string[] Allowed = ["preferences.json", "shortcuts.json", "lyrics-settings.json", "playback.sqlite", "library.sqlite"];
+    private static readonly string[] Allowed = ["preferences.json", "shortcuts.json", "lyrics-settings.json", "playback.sqlite", "library.sqlite", "podcasts.sqlite", "radio-stations.json", "core-settings.json", "bridge-settings.json"];
     private readonly SemaphoreSlim _exclusive = new(1, 1);
     public async Task CreateAsync(string destination, CancellationToken token)
     {
@@ -74,13 +72,13 @@ public sealed class LocalBackupService(string dataDirectory, ILibraryMaintenance
     {
         await using var input = new FileStream(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read);
-        if (archive.Entries.Count > 6) throw new InvalidDataException("备份条目数量超出范围。");
+        if (archive.Entries.Count > 10) throw new InvalidDataException("备份条目数量超出范围。");
         var info = archive.GetEntry("manifest.json") ?? throw new InvalidDataException("缺少 ECHO 备份清单。");
         if (info.Length > 8192) throw new InvalidDataException("备份清单过大。");
         await using var manifestStream = info.Open();
         var manifest = await JsonSerializer.DeserializeAsync(manifestStream, BackupJsonContext.Default.BackupManifest, token).ConfigureAwait(false)
             ?? throw new InvalidDataException("备份清单无效。");
-        if (manifest.Version != 1 || manifest.Files.Length > 5) throw new InvalidDataException("备份版本不受支持。");
+        if (manifest.Version != 1 || manifest.Files.Length > 9) throw new InvalidDataException("备份版本不受支持。");
         if (manifest.Files.Select(file => file.Name).Distinct(StringComparer.Ordinal).Count() != manifest.Files.Length
             || manifest.Files.Sum(file => file.Length) > 536870912
             || archive.Entries.Select(entry => entry.FullName).Distinct(StringComparer.Ordinal).Count() != archive.Entries.Count)

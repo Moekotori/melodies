@@ -1,5 +1,5 @@
 using Echo.Playback;
-using Echo.Playback.NativeAudio;
+using Echo.Core.Client;
 using Echo.Application.Playback;
 using Echo.Infrastructure.Playback;
 
@@ -8,10 +8,11 @@ if (args.Length < 2)
     Console.WriteLine("Echo.Player <native-host-path> <audio-file> [audio-file ...]\n命令: pause, play, next, prev, seek <秒>, volume <0..1>, repeat off|one|all, devices, zone, perf, recover, quit");
     return;
 }
-await using var runtime = new PlaybackRuntime(new NativeAudioHost(args[0]));
-await runtime.StartAsync();
+Environment.SetEnvironmentVariable("ECHO_AUDIO_HOST", Path.GetFullPath(args[0]));
+await using var core = await CoreLauncher.ConnectAsync();
+var runtime = core.Playback;
 var player = runtime.LocalZone.Session;
-var items = await PlaybackFileResolver.ResolveAsync(args.Skip(1));
+var items = await player.ResolveFilesAsync(args.Skip(1));
 if (items.Count == 0) return;
 PlaybackStatus? previous = null;
 string? previousItem = null;

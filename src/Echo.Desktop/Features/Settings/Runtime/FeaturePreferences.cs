@@ -2,11 +2,12 @@ using Echo.Contracts.Settings;
 
 namespace Echo.Desktop.Features.Settings.Runtime;
 
-public sealed class FeaturePreferences
+public sealed class FeaturePreferences : Echo.Bridge.IBridgePreferences
 {
     private readonly Dictionary<string, FeatureSetting> _values = new(StringComparer.Ordinal);
     public event Action<string>? Changed;
     public FeatureSetting Read(string id, FeatureSetting fallback) => _values.GetValueOrDefault(id, fallback);
+    public IReadOnlyDictionary<string, FeatureSetting> Values => Snapshot();
     public Dictionary<string, FeatureSetting> Snapshot() => new(_values, StringComparer.Ordinal);
     public void Confirm(string id, FeatureSetting value)
     {

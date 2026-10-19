@@ -1,0 +1,1840 @@
+{
+  "protocolVersion": 1,
+  "operations": [
+    {
+      "method": "playback.ResolveFilesAsync",
+      "result": "Task<IReadOnlyList<QueueTrack>>",
+      "parameters": [
+        [
+          "IEnumerable<string>",
+          "paths",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetVolumeAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "double",
+          "volume",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.GetDevicesAsync",
+      "result": "Task<JsonElement>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.ConfigureOutputAsyncJson",
+      "result": "Task",
+      "parameters": [
+        [
+          "JsonElement",
+          "configuration",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.DspAsync",
+      "result": "Task<JsonElement>",
+      "parameters": [
+        [
+          "string",
+          "method",
+          null
+        ],
+        [
+          "JsonElement",
+          "parameters",
+          null
+        ],
+        [
+          "bool",
+          "retainForRecovery",
+          "false"
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.GetRetainedDspRequestAsync",
+      "result": "Task<JsonElement?>",
+      "parameters": [
+        [
+          "string",
+          "method",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.RecoverAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetAutomixEnabledAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "bool",
+          "enabled",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.ExportCheckpointAsync",
+      "result": "Task<string>",
+      "parameters": []
+    },
+    {
+      "method": "playback.RestoreCheckpointAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "json",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetAlbumGaplessEnabledAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "bool",
+          "enabled",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.GetOutputModesAsync",
+      "result": "Task<IReadOnlyList<AudioOutputMode>>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.GetOutputDevicesAsync",
+      "result": "Task<IReadOnlyList<AudioOutputDevice>>",
+      "parameters": [
+        [
+          "string",
+          "mode",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.ProbeAsioDsdAsync",
+      "result": "Task<JsonElement>",
+      "parameters": [
+        [
+          "AudioOutputDevice",
+          "device",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.ConfigureOutputAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "AudioOutputConfiguration",
+          "configuration",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetVolumeLockedAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "bool",
+          "locked",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetPlaybackRateModeAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "mode",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.PlayAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "QueueTrack",
+          "track",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetQueueAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "IEnumerable<QueueTrack>",
+          "tracks",
+          null
+        ],
+        [
+          "string?",
+          "startItemId",
+          "null"
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.EnqueueAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "IEnumerable<QueueTrack>",
+          "tracks",
+          null
+        ],
+        [
+          "bool",
+          "nextUp",
+          "false"
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.RemoveQueueItemsAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "IEnumerable<string>",
+          "ids",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.ClearQueueAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.MoveQueueItemsAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "IEnumerable<string>",
+          "ids",
+          null
+        ],
+        [
+          "int",
+          "targetIndex",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.MoveQueueItemsNextAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "IEnumerable<string>",
+          "ids",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetRemoveAfterPlayAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "IEnumerable<string>",
+          "ids",
+          null
+        ],
+        [
+          "bool",
+          "enabled",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.UndoQueueEditAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SelectQueueItemAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "itemId",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.NextAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.PreviousAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetQueueModeAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "QueuePlaybackMode",
+          "mode",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetRepeatAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "RepeatMode",
+          "mode",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetPlaybackRateAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "double",
+          "rate",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SetSegmentLoopAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "itemId",
+          null
+        ],
+        [
+          "double",
+          "start",
+          null
+        ],
+        [
+          "double",
+          "end",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.ClearSegmentLoopAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.PauseAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.ResumeAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.SeekAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "double",
+          "seconds",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "playback.StopAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetStatsAsync",
+      "result": "Task<LibraryStats>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetScanIssuesAsync",
+      "result": "Task<IReadOnlyList<ScanIssue>>",
+      "parameters": [
+        [
+          "string",
+          "jobId",
+          null
+        ],
+        [
+          "int",
+          "limit",
+          "16"
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetAlbumMetadataAsync",
+      "result": "Task<AlbumMetadataSnapshot>",
+      "parameters": [
+        [
+          "string",
+          "albumId",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.SetAlbumMetadataAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "albumId",
+          null
+        ],
+        [
+          "AlbumMetadataField",
+          "field",
+          null
+        ],
+        [
+          "MetadataSource",
+          "source",
+          null
+        ],
+        [
+          "string?",
+          "value",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.PreviewFolderIgnoresAsync",
+      "result": "Task<FolderIgnorePreview>",
+      "parameters": [
+        [
+          "string",
+          "path",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.SetFolderWatchAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "path",
+          null
+        ],
+        [
+          "bool",
+          "enabled",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.GetFolderUiStateAsync",
+      "result": "Task<FolderUiState>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.SaveFolderUiStateAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "FolderUiState",
+          "state",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetFolderRulesAsync",
+      "result": "Task<IReadOnlyList<FolderRule>>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.SaveFolderRuleAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "FolderRule",
+          "rule",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.SearchFoldersAsync",
+      "result": "Task<FolderPage>",
+      "parameters": [
+        [
+          "string",
+          "search",
+          null
+        ],
+        [
+          "int",
+          "offset",
+          "0"
+        ],
+        [
+          "int",
+          "limit",
+          "100"
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetFolderInsightsAsync",
+      "result": "Task<FolderInsights>",
+      "parameters": [
+        [
+          "FolderTrackQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetFolderScanHistoryAsync",
+      "result": "Task<IReadOnlyList<FolderScanRecord>>",
+      "parameters": [
+        [
+          "string?",
+          "path",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.StoreFolderResourcesAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "IReadOnlyList<FolderResourceFact>",
+          "facts",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.RemoveFolderRootAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "path",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.SetTracksHiddenAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "IReadOnlyList<string>",
+          "ids",
+          null
+        ],
+        [
+          "bool",
+          "hidden",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetTrackTagsAsync",
+      "result": "Task<TrackTagState>",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.SaveTrackTagsAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "TrackTagEdit",
+          "tags",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.RepairFolderIndexesAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetHistoryEpochAsync",
+      "result": "Task<long>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetHistoryAsync",
+      "result": "Task<HistoryPage>",
+      "parameters": [
+        [
+          "HistoryFilter",
+          "filter",
+          null
+        ],
+        [
+          "HistoryCursor?",
+          "after",
+          "null"
+        ],
+        [
+          "int",
+          "limit",
+          "200"
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetHistoryReviewAsync",
+      "result": "Task<HistoryReview>",
+      "parameters": [
+        [
+          "HistoryFilter",
+          "filter",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.ClearHistoryAsync",
+      "result": "Task<long>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.PruneInvalidHistoryAsync",
+      "result": "Task<long>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.CheckAsync",
+      "result": "Task<LibraryHealth>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.BackupAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "destination",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.GetPlaylistsAsync",
+      "result": "Task<PlaylistPage>",
+      "parameters": [
+        [
+          "PlaylistQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetPlaylistTracksAsync",
+      "result": "Task<PlaylistTrackPage>",
+      "parameters": [
+        [
+          "PlaylistTrackQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.CreatePlaylistAsync",
+      "result": "Task<string>",
+      "parameters": [
+        [
+          "string",
+          "operationId",
+          null
+        ],
+        [
+          "string",
+          "name",
+          null
+        ],
+        [
+          "string",
+          "description",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.UpdatePlaylistAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "operationId",
+          null
+        ],
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "string",
+          "name",
+          null
+        ],
+        [
+          "string",
+          "description",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.ArchivePlaylistAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "operationId",
+          null
+        ],
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "bool",
+          "archived",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.AddPlaylistTracksAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "operationId",
+          null
+        ],
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "IReadOnlyList<string>",
+          "trackIds",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.RemovePlaylistItemsAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "operationId",
+          null
+        ],
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "IReadOnlyList<string>",
+          "itemIds",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.MovePlaylistItemAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "operationId",
+          null
+        ],
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "string",
+          "itemId",
+          null
+        ],
+        [
+          "bool",
+          "up",
+          null
+        ],
+        [
+          "long",
+          "revision",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.WriteAsync",
+      "result": "Task<RemoteIndexReceipt>",
+      "parameters": [
+        [
+          "IReadOnlyList<RemoteIndexTrack>",
+          "tracks",
+          null
+        ],
+        [
+          "string",
+          "syncToken",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.RetireUnseenAsync",
+      "result": "Task<int>",
+      "parameters": [
+        [
+          "string",
+          "sourceId",
+          null
+        ],
+        [
+          "string",
+          "syncToken",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.RetireSourceAsync",
+      "result": "Task<int>",
+      "parameters": [
+        [
+          "string",
+          "sourceId",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.PresentAsync",
+      "result": "Task<IReadOnlyList<string>>",
+      "parameters": [
+        [
+          "string",
+          "sourceId",
+          null
+        ],
+        [
+          "IReadOnlyList<string>",
+          "remotePaths",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.ReadAlbumCacheAsync",
+      "result": "Task<string?>",
+      "parameters": [
+        [
+          "string",
+          "sourceId",
+          null
+        ],
+        [
+          "string",
+          "albumId",
+          null
+        ],
+        [
+          "string",
+          "fingerprint",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.WriteAlbumCacheAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "sourceId",
+          null
+        ],
+        [
+          "string",
+          "albumId",
+          null
+        ],
+        [
+          "string",
+          "fingerprint",
+          null
+        ],
+        [
+          "string",
+          "payload",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.GetLibraryReviewAsync",
+      "result": "Task<LibraryReviewPage>",
+      "parameters": [
+        [
+          "bool",
+          "hidden",
+          null
+        ],
+        [
+          "int",
+          "offset",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.SetScanProfileAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "value",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetHomeAsync",
+      "result": "Task<HomeDashboard>",
+      "parameters": [
+        [
+          "DateOnly",
+          "today",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetRandomTracksAsync",
+      "result": "Task<IReadOnlyList<TrackRow>>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetTrackAlbumAsync",
+      "result": "Task<AlbumRow?>",
+      "parameters": [
+        [
+          "string",
+          "path",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.RecordListeningAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "ListeningEntry",
+          "entry",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetTracksAsync",
+      "result": "Task<TrackPage>",
+      "parameters": [
+        [
+          "TrackQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetAlbumsAsync",
+      "result": "Task<AlbumPage>",
+      "parameters": [
+        [
+          "AlbumQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetFoldersAsync",
+      "result": "Task<FolderPage>",
+      "parameters": [
+        [
+          "FolderQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetFolderTracksAsync",
+      "result": "Task<FolderTrackPage>",
+      "parameters": [
+        [
+          "FolderTrackQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetGenresAsync",
+      "result": "Task<GenrePage>",
+      "parameters": [
+        [
+          "GenreQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetGenreTracksAsync",
+      "result": "Task<TrackPage>",
+      "parameters": [
+        [
+          "GenreTrackQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetGenreAlbumsAsync",
+      "result": "Task<AlbumPage>",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "AlbumQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetArtistsAsync",
+      "result": "Task<ArtistPage>",
+      "parameters": [
+        [
+          "ArtistQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetArtistTracksAsync",
+      "result": "Task<TrackPage>",
+      "parameters": [
+        [
+          "ArtistTrackQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetArtistAlbumsAsync",
+      "result": "Task<AlbumPage>",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "ArtistGrouping",
+          "grouping",
+          null
+        ],
+        [
+          "AlbumQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetAlbumTracksAsync",
+      "result": "Task<TrackPage>",
+      "parameters": [
+        [
+          "AlbumTrackQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.SetAlbumStateAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "bool",
+          "favorite",
+          null
+        ],
+        [
+          "int",
+          "rating",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.SetTrackFavoriteAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "bool",
+          "favorite",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "library.FindTrackByPathAsync",
+      "result": "Task<TrackRow?>",
+      "parameters": [
+        [
+          "string",
+          "path",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "podcasts.ListAsync",
+      "result": "Task<IReadOnlyList<PodcastFeed>>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "podcasts.SubscribeAsync",
+      "result": "Task<PodcastFeed>",
+      "parameters": [
+        [
+          "string",
+          "url",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "podcasts.RefreshAsync",
+      "result": "Task<PodcastFeed>",
+      "parameters": [
+        [
+          "string",
+          "feedId",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "podcasts.UnsubscribeAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "feedId",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "podcasts.EpisodesAsync",
+      "result": "Task<PodcastEpisodePage>",
+      "parameters": [
+        [
+          "PodcastEpisodeQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "podcasts.EpisodeAsync",
+      "result": "Task<PodcastEpisode?>",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "podcasts.MarkPlayedAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "bool",
+          "played",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    },
+    {
+      "method": "podcasts.SaveProgressAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "string",
+          "id",
+          null
+        ],
+        [
+          "double",
+          "position",
+          null
+        ],
+        [
+          "bool",
+          "ended",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          null
+        ]
+      ]
+    }
+  ]
+}

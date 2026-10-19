@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Echo.Bridge;
 using Echo.Desktop.Features.Connect.Runtime;
 
 namespace Echo.Desktop.Features.Connect.Output;
@@ -56,8 +57,8 @@ public sealed partial class ConnectOutputViewModel
         LanStatus = "正在查找 DLNA 渲染器。";
         try
         {
-            var renderers = await DlnaDiscovery.SearchAsync(token);
-            var airplay = await MdnsBrowse.AirPlayNamesAsync(token);
+            var renderers = await runtime.DiscoverAsync(token);
+            var airplay = await runtime.AirPlayAsync(token);
             if (version != lanVersion || disposed != 0) return;
             await Dispatcher.UIThread.InvokeAsync(() => FillLan(renderers, airplay));
         }

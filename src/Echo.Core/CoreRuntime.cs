@@ -4,7 +4,7 @@ using Echo.Core.Library;
 namespace Echo.Core;
 
 /// <summary>Embedded Core composition. Controls borrow its services; only the application disposes it.</summary>
-public sealed class CoreRuntime : IAsyncDisposable
+public sealed partial class CoreRuntime : IAsyncDisposable
 {
     private readonly object gate = new();
     private readonly ListeningRecorder listening;
@@ -16,11 +16,12 @@ public sealed class CoreRuntime : IAsyncDisposable
     public event Action? ListeningChanged;
     public event Action<string>? ListeningDiagnostic;
 
-    public CoreRuntime(PlaybackRuntime playback, string libraryPath, bool ownsPlayback = true)
+    public CoreRuntime(PlaybackRuntime playback, string libraryPath, bool ownsPlayback = true, CoreRuntimeOptions? options = null)
     {
         Playback = playback;
         this.ownsPlayback = ownsPlayback;
         Library = new(libraryPath, playback.BackgroundWork);
+        InitializeServices(libraryPath, options);
         listening = new(playback.LocalZone, Library,
             () => Notify(ListeningChanged), message => Notify(ListeningDiagnostic, message));
     }
@@ -35,11 +36,15 @@ public sealed class CoreRuntime : IAsyncDisposable
         try { await listening.DisposeAsync().ConfigureAwait(false); }
         finally
         {
-            try { await Library.DisposeAsync().ConfigureAwait(false); }
+            try { if (ownsPlayback) await Playback.DisposeAsync().ConfigureAwait(false); }
             finally
             {
-                try { if (ownsPlayback) await Playback.DisposeAsync().ConfigureAwait(false); }
-                finally { ListeningChanged = null; ListeningDiagnostic = null; }
+                try { await ReleaseServicesAsync().ConfigureAwait(false); }
+                finally
+                {
+                    try { await Library.DisposeAsync().ConfigureAwait(false); }
+                    finally { ListeningChanged = null; ListeningDiagnostic = null; }
+                }
             }
         }
     }

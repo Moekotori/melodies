@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" />
+    <ProjectReference Include="../Echo.Audio.Contracts/Echo.Audio.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Echo.Playback" /><InternalsVisibleTo Include="Echo.Core.Client" /></ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Core.Contracts/Echo.Core.Contracts.csproj" />
+  </ItemGroup>
+</Project>

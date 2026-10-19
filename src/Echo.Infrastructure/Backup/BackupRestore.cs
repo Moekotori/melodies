@@ -9,7 +9,7 @@ namespace Echo.Infrastructure.Backup;
 public sealed record RestoreRequest(string DataDirectory, string StagingDirectory, int ParentPid, long ParentStartedTicks);
 public static class BackupRestore
 {
-    private static readonly string[] Allowed = ["preferences.json", "shortcuts.json", "lyrics-settings.json", "playback.sqlite", "library.sqlite"];
+    private static readonly string[] Allowed = ["preferences.json", "shortcuts.json", "lyrics-settings.json", "playback.sqlite", "library.sqlite", "podcasts.sqlite", "radio-stations.json", "core-settings.json", "bridge-settings.json"];
     public static async Task<string> StageAsync(string archivePath, string dataDirectory, CancellationToken token)
     {
         var backup = new LocalBackupService(dataDirectory, null); var manifest = await backup.ValidateAsync(archivePath, token).ConfigureAwait(false);
@@ -52,6 +52,8 @@ public static class BackupRestore
         }
         catch (ArgumentException) { }
         // Prevent opening another writer while source files are moved.
+        await using var profileOwnership = new FileStream(Path.Combine(expectedRoot, "core.profile.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        await using var coreOwnership = new FileStream(Path.Combine(expectedRoot, "library.sqlite.core.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         await using var ownership = new FileStream(Path.Combine(expectedRoot, "library.sqlite.writer.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         await using var playbackOwnership = new FileStream(Path.Combine(expectedRoot, "playback.sqlite.writer.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var rollback = Path.Combine(expectedRoot, "restore-rollback", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(rollback);

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Echo.Bridge;
 using Echo.Desktop.Features.Connect.Runtime;
 using Echo.Desktop.Features.Settings.Runtime;
 
@@ -8,10 +9,10 @@ namespace Echo.Desktop.Features.Connect.Mobile;
 public sealed partial class ConnectMobileViewModel : ObservableObject
 {
     private readonly FeaturePreferences preferences;
-    private readonly ConnectRuntime runtime;
+    private readonly IBridgeRuntime runtime;
     private readonly Action<string?> report;
 
-    public ConnectMobileViewModel(FeaturePreferences preferences, ConnectRuntime runtime, Action<string?> report)
+    public ConnectMobileViewModel(FeaturePreferences preferences, IBridgeRuntime runtime, Action<string?> report)
     {
         this.preferences = preferences;
         this.runtime = runtime;
@@ -72,7 +73,7 @@ public sealed partial class ConnectMobileViewModel : ObservableObject
         Pull();
     }
 
-    [RelayCommand] private void Rotate() { runtime.Link.Rotate(); Pull(); }
+    [RelayCommand] private async Task RotateAsync() { await runtime.Link.RotateAsync(); Pull(); }
     [RelayCommand] private void Reveal() => ShowToken = !ShowToken;
 
     partial void OnShowTokenChanged(bool value) => OnPropertyChanged(nameof(TokenText));

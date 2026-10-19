@@ -1,1 +1,27 @@
-<Solution><Folder Name="/src/"><Project Path="src/Echo.Core/Echo.Core.csproj" /><Project Path="src/Echo.Contracts/Echo.Contracts.csproj" /><Project Path="src/Echo.Application/Echo.Application.csproj" /><Project Path="src/Echo.Infrastructure/Echo.Infrastructure.csproj" /><Project Path="src/Echo.Cli/Echo.Cli.csproj" /></Folder><Folder Name="/tests/"><Project Path="tests/Echo.Core.Smoke/Echo.Core.Smoke.csproj" /><Project Path="tests/Echo.Library.Smoke/Echo.Library.Smoke.csproj" /></Folder></Solution>
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Echo.Contracts/Echo.Contracts.csproj" />
+    <Project Path="src/Echo.Audio.Contracts/Echo.Audio.Contracts.csproj" />
+    <Project Path="src/Echo.Audio.Client/Echo.Audio.Client.csproj" />
+    <Project Path="src/Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" />
+    <Project Path="src/Echo.Playback/Echo.Playback.csproj" />
+    <Project Path="src/Echo.Application/Echo.Application.csproj" />
+    <Project Path="src/Echo.Infrastructure/Echo.Infrastructure.csproj" />
+    <Project Path="src/Echo.Platform/Echo.Platform.csproj" />
+    <Project Path="src/Echo.Bridge.Contracts/Echo.Bridge.Contracts.csproj" />
+    <Project Path="src/Echo.Bridge/Echo.Bridge.csproj" />
+    <Project Path="src/Echo.Core.Contracts/Echo.Core.Contracts.csproj" />
+    <Project Path="src/Echo.Core.Transport/Echo.Core.Transport.csproj" />
+    <Project Path="src/Echo.Core/Echo.Core.csproj" />
+    <Project Path="src/Echo.Core.Client/Echo.Core.Client.csproj" />
+    <Project Path="src/Echo.Core.Host/Echo.Core.Host.csproj" />
+    <Project Path="src/Echo.Bridge.Host/Echo.Bridge.Host.csproj" />
+    <Project Path="src/Echo.Desktop/Echo.Desktop.csproj" />
+    <Project Path="src/Echo.Cli/Echo.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Echo.Library.Smoke/Echo.Library.Smoke.csproj" />
+    <Project Path="tests/Echo.Core.Smoke/Echo.Core.Smoke.csproj" />
+    <Project Path="tests/Echo.Core.IpcSmoke/Echo.Core.IpcSmoke.csproj" />
+  </Folder>
+</Solution>

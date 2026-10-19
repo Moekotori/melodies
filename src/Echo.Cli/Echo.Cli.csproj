@@ -1,1 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../Echo.Application/Echo.Application.csproj" /><ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../Echo.Application/Echo.Application.csproj" /><ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" /></ItemGroup>  <ItemGroup>
+    <ProjectReference Include="../Echo.Core.Client/Echo.Core.Client.csproj" />
+    <ProjectReference Include="../Echo.Core.Host/Echo.Core.Host.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Target Name="CopyCoreHost" AfterTargets="Build">
+    <ItemGroup><CoreHostFile Include="../Echo.Core.Host/bin/$(Configuration)/$(TargetFramework)/**/*" /></ItemGroup>
+    <Copy SourceFiles="@(CoreHostFile)" DestinationFiles="@(CoreHostFile->'$(OutDir)core/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

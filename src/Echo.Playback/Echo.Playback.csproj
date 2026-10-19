@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
-  <ItemGroup><ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" /><ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="Echo.Playback.Smoke" /></ItemGroup>
 </Project>

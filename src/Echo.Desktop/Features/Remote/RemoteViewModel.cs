@@ -11,7 +11,7 @@ namespace Echo.Desktop.Features.Remote;
 public sealed partial class RemoteViewModel : ObservableObject, IDisposable
 {
     private readonly ShellViewModel shell;
-    private readonly RemoteSourceCatalog catalog;
+    private readonly IRemoteSourceCatalog catalog;
     private CancellationTokenSource? request;
     private long generation;
     private bool disposed;
@@ -141,8 +141,9 @@ public sealed partial class RemoteViewModel : ObservableObject, IDisposable
         if (disposed) return;
         SelectedSource = null; ConfirmRemove = false; RefreshSources(); Message = shell.Text["remote.removed"];
     });
-    [RelayCommand] private void Cancel()
-    { ++generation; request?.Cancel(); request = null; IsBusy = false; RefreshState(); }
+    [RelayCommand] private async Task CancelAsync()
+    { if (shell.RemoteIndex is Echo.Core.Contracts.ICoreTaskControl control) await control.CancelActiveTaskAsync(); Cancel(); }
+    private void Cancel() { ++generation; request?.Cancel(); request = null; IsBusy = false; RefreshState(); }
     private async Task RunAsync(Func<CancellationToken, Task> operation, bool editor = false)
     {
         if (disposed) return;

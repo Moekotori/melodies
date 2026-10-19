@@ -46,7 +46,7 @@ public sealed partial class ShellViewModel
         string[] previousDefault = ["home", "songs", "artists", "folders", "albums", "genres", "remote", "radio", "dsp", "workshop", "queue", "history", "playlists", "listening"];
         string[] radioDefault = ["home", "songs", "artists", "genres", "albums", "album-artists", "folders", "playlists", "remote", "connect", "radio", "workshop", "dsp", "queue", "history", "listening"];
         var legacy = savedOrder is null || savedOrder.SequenceEqual(previousDefault) || savedOrder.SequenceEqual(radioDefault);
-        var order = (legacy ? DefaultSidebarOrder : savedOrder)
+        var order = (legacy ? DefaultSidebarOrder : savedOrder!)
             .Take(64).Distinct(StringComparer.Ordinal).ToArray();
         var hidden = (layout?.Hidden ?? []).Take(64).ToHashSet(StringComparer.Ordinal);
         foreach (var group in SidebarGroups())

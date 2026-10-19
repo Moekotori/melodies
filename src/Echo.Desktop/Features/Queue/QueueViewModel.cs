@@ -12,7 +12,7 @@ namespace Echo.Desktop.Features.Queue;
 public sealed partial class QueueViewModel : ObservableObject, IDisposable
 {
     private readonly LocalizationService Text;
-    private readonly PlaybackSessionCoordinator session;
+    private readonly IPlaybackSession session;
     private readonly CancellationTokenSource lifetime = new();
     private readonly PlaybackStateSubscription subscription;
     private QueueSnapshot state;
@@ -58,7 +58,7 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     public bool HasUpcoming => Upcoming is not null;
     public bool CanPlay => session.Snapshot.Current is not null || state.Items.Count > 0;
     public long Version => state.Version;
-    public QueueViewModel(PlaybackSessionCoordinator session, LocalizationService? text = null)
+    public QueueViewModel(IPlaybackSession session, LocalizationService? text = null)
     {
         Text = text ?? new(); Text.Changed += RefreshLanguage;
         this.session = session;
@@ -172,7 +172,7 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     });
     public Task MoveAsync(IEnumerable<string> ids, int targetIndex) => RunAsync(() => session.MoveQueueItemsAsync(ids, targetIndex, lifetime.Token));
     public Task EnqueuePathsAsync(IEnumerable<string> paths, bool nextUp = false)
-        => RunAsync(async () => await session.EnqueueAsync(await PlaybackFileResolver.ResolveAsync(paths, lifetime.Token), nextUp, lifetime.Token), Text.Translate("已添加到队列。"));
+        => RunAsync(async () => await session.EnqueueAsync(await session.ResolveFilesAsync(paths, lifetime.Token), nextUp, lifetime.Token), Text.Translate("已添加到队列。"));
     private async Task RunAsync(Func<Task> action, string success = "")
     {
         if (disposed || IsBusy) return;

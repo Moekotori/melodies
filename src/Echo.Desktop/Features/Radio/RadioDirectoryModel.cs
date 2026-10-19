@@ -9,7 +9,7 @@ namespace Echo.Desktop.Features.Radio;
 
 public sealed partial class RadioDirectoryModel : ObservableObject, IDisposable
 {
-    private readonly RadioCatalog catalog;
+    private readonly IRadioCatalog catalog;
     private readonly IRadioDirectory? directory;
     private readonly Action close;
     private readonly CancellationTokenSource lifetime = new();
@@ -18,7 +18,7 @@ public sealed partial class RadioDirectoryModel : ObservableObject, IDisposable
     private int offset;
     private bool disposed;
 
-    public RadioDirectoryModel(RadioCatalog catalog, IRadioDirectory? directory, Action close)
+    public RadioDirectoryModel(IRadioCatalog catalog, IRadioDirectory? directory, Action close)
     {
         this.catalog = catalog;
         this.directory = directory;

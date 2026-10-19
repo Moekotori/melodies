@@ -4,7 +4,7 @@ using Echo.Playback;
 namespace Echo.Application.Remote;
 
 // The queue keeps remote:// until the moment of playback, so checkpoints never store credentials.
-public sealed class RemotePlaybackResolver(RemoteSourceCatalog catalog, IRemoteFileClient files) : IRemoteAudioResolver
+public sealed class RemotePlaybackResolver(IRemoteSourceCatalog catalog, IRemoteFileClient files) : IRemoteAudioResolver
 {
     public async Task<AudioSource> ResolveAsync(AudioSource remote, CancellationToken token)
     {

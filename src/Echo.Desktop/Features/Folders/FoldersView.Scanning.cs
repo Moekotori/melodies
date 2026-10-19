@@ -21,8 +21,8 @@ public partial class FoldersView
     }
     private void OnRescan(object? sender, RoutedEventArgs args)
     { if (Model.CurrentFolder is { } folder) _ = ScanAsync(folder.Path); }
-    private void OnCancelScan(object? sender, RoutedEventArgs args)
-    { _scan?.Cancel(); CancelScanButton.IsEnabled = false; ScanText.Text = Model.Text["folders.cancelling"]; }
+    private async void OnCancelScan(object? sender, RoutedEventArgs args)
+    { if (_shell.AlbumLibrary is Echo.Core.Contracts.ICoreTaskControl control) await control.CancelActiveTaskAsync(); _scan?.Cancel(); CancelScanButton.IsEnabled = false; ScanText.Text = Model.Text["folders.cancelling"]; }
     private async Task ScanAsync(string path)
     {
         if (_closed || _scan is not null || _shell.ImportLibrary is null) return;

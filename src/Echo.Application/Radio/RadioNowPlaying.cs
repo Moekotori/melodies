@@ -6,13 +6,13 @@ namespace Echo.Application.Radio;
 // Follows the playback session and keeps one ICY reader beside the native audio connection.
 public sealed class RadioNowPlaying : IDisposable
 {
-    private readonly PlaybackSessionCoordinator session;
+    private readonly IPlaybackSession session;
     private readonly IRadioMetadataMonitor monitor;
     private string? url;
     private PlaybackStatus status = (PlaybackStatus)(-1);
     private bool disposed;
 
-    public RadioNowPlaying(PlaybackSessionCoordinator session, IRadioMetadataMonitor monitor)
+    public RadioNowPlaying(IPlaybackSession session, IRadioMetadataMonitor monitor)
     {
         this.session = session;
         this.monitor = monitor;

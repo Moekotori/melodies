@@ -23,4 +23,5 @@
     <Compile Include="../../src/Echo.Desktop/Features/Settings/Runtime/PlaybackToolsSettingsModule.cs" Link="Product/PlaybackToolsSettingsModule.cs" />
     <AvaloniaResource Include="../../src/Echo.Desktop/Features/Player/PlayerToolsPanel.axaml" Link="Product/PlayerToolsPanel.axaml" />
   </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" /></ItemGroup>
 </Project>

@@ -112,7 +112,8 @@ var storage = Task.Run(async () =>
 Pump(storage);
 player.Detach(); window.Close();
 if (native.ProcessId is null) throw new Exception("Closing a view disposed the application-owned audio host");
-var sharedWindow = DesktopComposition.CreateWindow(false, false, playback: runtime);
+await using var controlLibrary = new Echo.Core.Library.LibraryCore(Path.Combine(root, "library.sqlite"));
+var sharedWindow = DesktopComposition.CreateWindow(false, false, playback: runtime, albumLibrary: controlLibrary);
 ((ShellViewModel)sharedWindow.DataContext!).Motion.SelectedChoice = ((ShellViewModel)sharedWindow.DataContext!).Motion.Choices.First(x => x.Mode == Echo.Desktop.Motion.MotionMode.Off);
 sharedWindow.Show(); Dispatcher.UIThread.RunJobs();
 sharedWindow.Close();

@@ -26,7 +26,17 @@ public sealed partial class ShellViewModel
         var index = 0;
         try
         {
-            for (; index < paths.Count; index++)
+            if (AlbumLibrary is Echo.Core.Contracts.ICoreBatchImport batch)
+            {
+                var progress = new Progress<Echo.Core.Contracts.CoreTaskSnapshot>(state =>
+                {
+                    if (!_songImportReleased && state.ScanProgress is { } scan)
+                        SongImportStatus = Text.Format("import.progress", state.InputIndex, state.InputCount, scan.Processed, scan.Failed);
+                });
+                var report = await batch.ImportBatchAsync(paths, progress, current.Token);
+                added = report.Inserted; updated = report.Updated; unchanged = report.Unchanged; failed = report.Failed;
+            }
+            else for (; index < paths.Count; index++)
             {
                 current.Token.ThrowIfCancellationRequested();
                 var ordinal = index;
@@ -53,7 +63,11 @@ public sealed partial class ShellViewModel
         }
     }
 
-    [RelayCommand] private void CancelSongImport() => _songImport?.Cancel();
+    [RelayCommand] private async Task CancelSongImportAsync()
+    {
+        if (AlbumLibrary is Echo.Core.Contracts.ICoreTaskControl control) await control.CancelActiveTaskAsync();
+        _songImport?.Cancel();
+    }
     public void ReleaseSongImport()
     {
         _songImportReleased = true;

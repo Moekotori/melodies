@@ -21,7 +21,16 @@ public sealed partial class PlaybackSessionCoordinator
     public Task SetPlaybackRateModeAsync(string mode, CancellationToken token = default)
     {
         if (mode is not ("speed" or "nightcore")) throw new ArgumentException("不支持的变速模式。");
-        return DspAsync("playbackRate.configure", Params(new JsonArray(new JsonObject
-            { ["rate"] = Snapshot.PlaybackRate, ["mode"] = mode })), true, token);
+        return Command(async () =>
+        {
+            var parameters = Params(new JsonArray(new JsonObject { ["rate"] = Snapshot.PlaybackRate, ["mode"] = mode }));
+            if (initialized)
+            {
+                var result = await native.CallAsync("playbackRate.configure", parameters).ConfigureAwait(false);
+                ConfirmPlaybackRate(result);
+            }
+            else Volatile.Write(ref rateMode, mode); // A preference does not open an output device.
+            dspCommands["playbackRate.configure:-1"] = parameters;
+        }, token, affectsPlayback: false);
     }
 }

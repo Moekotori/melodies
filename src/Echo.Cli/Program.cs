@@ -1,11 +1,9 @@
+using Echo.Core.Client;
+using Echo.Core.Transport;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Echo.Application.Scanning;
 using Echo.Contracts.Library;
 using Echo.Contracts.Scanning;
-using Echo.Infrastructure.Files;
-using Echo.Infrastructure.Library;
-using Echo.Infrastructure.Metadata;
 
 using var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cancellation.Cancel(); };
@@ -44,7 +42,10 @@ try
     if (options.Keys.Any(key => !allowed.Contains(key))) throw new ArgumentException("Unknown option.");
     string Required(string key) => options.TryGetValue(key, out var value) ? value : throw new ArgumentException("Missing --" + key);
     int Number(string key, int fallback) => options.TryGetValue(key, out var value) ? int.Parse(value, System.Globalization.CultureInfo.InvariantCulture) : fallback;
-    await using var database = await LibraryDatabase.OpenAsync(Required("db"), cancellation.Token);
+    var databasePath = Path.GetFullPath(Required("db"));
+    await using var core = await CoreLauncher.ConnectAsync(new CoreEndpoint(Path.GetDirectoryName(databasePath)!, databasePath),
+        hostPath: ServiceExecutable.Resolve(Path.Combine(AppContext.BaseDirectory, "core"), "Echo.Core.Host", "ECHO_CORE_HOST"), token: cancellation.Token);
+    var database = core.Library;
     if (command is "album-metadata" or "set-album-metadata" or "clear-album-metadata")
     {
         IAlbumMetadata metadata = database;
@@ -66,9 +67,18 @@ try
     if (command == "scan")
     {
         options.TryGetValue("native-scanner", out var native);
-        var scanner = new ScanCoordinator(database, new LegacyFolderDiscovery(database), () => new LocalMetadataReader(native));
-        var result = await scanner.ScanAsync(new(Required("root"), Number("workers", 2), Number("batch", 128),
-            options.ContainsKey("force"), options.ContainsKey("detect-missing")), cancellation: cancellation.Token);
+        ScanReport result;
+        try
+        {
+            result = await database.ScanAsync(new(Required("root"), Number("workers", 2), Number("batch", 128),
+                options.ContainsKey("force"), options.ContainsKey("detect-missing")), native, cancellation.Token);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            using var cancelLimit = new CancellationTokenSource(1000);
+            try { await database.CancelActiveTaskAsync(cancelLimit.Token); } catch (Exception) { }
+            throw;
+        }
         Console.WriteLine(JsonSerializer.Serialize(result, CliJson.Default.ScanReport));
         return result.Status == ScanStatus.Cancelled ? 130 : result.Status != ScanStatus.Completed || result.Failed != 0 ? 2 : 0;
     }

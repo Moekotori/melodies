@@ -25,7 +25,8 @@ internal static class AlbumWallSmoke
         Wait(() => query.IsCompleted, "fixture query");
         var albums = query.GetAwaiter().GetResult().Items;
         WriteFixtureCovers(albums.Take(24));
-        var window = DesktopComposition.CreateWindow(false, false, database, new LocalAlbumArtwork());
+        using var previewPlayback = new PreviewPlayback();
+        var window = DesktopComposition.CreateWindow(false, false, database, new LocalAlbumArtwork(), previewPlayback.Runtime);
         var shell = (ShellViewModel)window.DataContext!;
         shell.Motion.SelectedChoice = shell.Motion.Choices.First(x => x.Mode == MotionMode.Off);
         window.Show(); Pump();

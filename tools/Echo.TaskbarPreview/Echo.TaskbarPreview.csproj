@@ -4,4 +4,5 @@
     <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
     <PackageReference Include="Avalonia.Headless" />
   </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" /></ItemGroup>
 </Project>

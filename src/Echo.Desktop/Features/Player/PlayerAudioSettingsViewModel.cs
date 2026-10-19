@@ -8,7 +8,7 @@ namespace Echo.Desktop.Features.Player;
 
 public sealed record OutputFormatChoice(string Key, string Label);
 
-public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordinator session) : ObservableObject
+public sealed partial class PlayerAudioSettingsViewModel(IPlaybackSession session) : ObservableObject
 {
     [ObservableProperty] private IReadOnlyList<AudioOutputDevice> devices = [];
     [ObservableProperty] private AudioOutputDevice? selectedDevice;

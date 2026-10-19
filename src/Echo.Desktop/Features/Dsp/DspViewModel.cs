@@ -11,7 +11,7 @@ namespace Echo.Desktop.Features.Dsp;
 // Page drafts only. All native requests use the existing playback owner's bounded command lane.
 public sealed partial class DspViewModel : ObservableObject, IDisposable
 {
-    private readonly PlaybackSessionCoordinator? session;
+    private readonly IPlaybackSession? session;
     private readonly CancellationTokenSource lifetime = new();
     private JsonObject? confirmed;
     private bool projecting, disposed;
@@ -62,7 +62,7 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         : IsDirty ? "试听中 · 应用后记入撤销" : "与已确认的状态一致";
     public string PendingDescription => "这个模块还没有接到原生处理链。";
     public IRelayCommand OpenOutputCommand { get; }
-    public DspViewModel(PlaybackSessionCoordinator? session, string outputName, IRelayCommand openOutput)
+    public DspViewModel(IPlaybackSession? session, string outputName, IRelayCommand openOutput)
     {
         this.session = session; OutputName = outputName; OpenOutputCommand = openOutput;
         SampleRate = session?.Snapshot.SampleRate is > 0 and var rate ? rate : 48000;

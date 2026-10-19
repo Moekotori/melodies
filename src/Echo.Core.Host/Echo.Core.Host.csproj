@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Core/Echo.Core.csproj" />
+    <ProjectReference Include="../Echo.Audio.Client/Echo.Audio.Client.csproj" />
+    <ProjectReference Include="../Echo.Platform/Echo.Platform.csproj" />
+  </ItemGroup>
+</Project>

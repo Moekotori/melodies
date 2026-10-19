@@ -3,7 +3,7 @@ using Echo.Contracts.Remote;
 namespace Echo.Application.Remote;
 
 // One persisted source owner; browsing never mutates the local library database.
-public sealed class RemoteSourceCatalog(IRemoteConnectionStore? store, IRemoteFileClient client) : IOneDriveTokenWriter
+public sealed class RemoteSourceCatalog(IRemoteConnectionStore? store, IRemoteFileClient client) : IRemoteSourceCatalog, IOneDriveTokenWriter
 {
     public const int Capacity = 16;
     private readonly SemaphoreSlim lane = new(1, 1);

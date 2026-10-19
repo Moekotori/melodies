@@ -7,8 +7,8 @@ namespace Echo.Desktop.Shell;
 
 public sealed partial class ShellViewModel
 {
-    public RadioCatalog Radio { get; private set; } = new();
-    public void AttachRadio(RadioCatalog catalog) => Radio = catalog;
+    public IRadioCatalog Radio { get; private set; } = new RadioCatalog();
+    public void AttachRadio(IRadioCatalog catalog) => Radio = catalog;
     public RadioPlaybackService? RadioPlayback { get; private set; }
     public IRadioDirectory? RadioDirectory { get; private set; }
     public IRadioMetadataMonitor? RadioMetadata => radioNowPlaying?.Monitor;
@@ -19,7 +19,7 @@ public sealed partial class ShellViewModel
         RadioPlayback?.Dispose();
         RadioPlayback = Player is null ? null : new(Player.Session, resolver);
     }
-    public void AttachRadioServices(IRadioDirectory directory, IRadioMetadataMonitor monitor, PlaybackSessionCoordinator session)
+    public void AttachRadioServices(IRadioDirectory directory, IRadioMetadataMonitor monitor, IPlaybackSession session)
     {
         ReleaseRadioServices();
         radioDirectory = directory;

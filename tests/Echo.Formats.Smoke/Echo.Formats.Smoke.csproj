@@ -1,1 +1,3 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../../src/Echo.Infrastructure/Echo.Infrastructure.csproj" /></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup><ItemGroup><ProjectReference Include="../../src/Echo.Infrastructure/Echo.Infrastructure.csproj" /></ItemGroup>  <ItemGroup><ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Audio.Client/Echo.Audio.Client.csproj" /></ItemGroup>
+</Project>

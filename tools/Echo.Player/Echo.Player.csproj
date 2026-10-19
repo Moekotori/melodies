@@ -2,4 +2,10 @@
   <PropertyGroup><OutputType>Exe</OutputType><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/Echo.Application/Echo.Application.csproj" /></ItemGroup>
   <ItemGroup><ProjectReference Include="../../src/Echo.Infrastructure/Echo.Infrastructure.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Core.Client/Echo.Core.Client.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Core.Host/Echo.Core.Host.csproj" ReferenceOutputAssembly="false" /></ItemGroup>
+  <Target Name="CopyCoreHost" AfterTargets="Build">
+    <ItemGroup><CoreHostFile Include="../../src/Echo.Core.Host/bin/$(Configuration)/$(TargetFramework)/**/*" /></ItemGroup>
+    <Copy SourceFiles="@(CoreHostFile)" DestinationFiles="@(CoreHostFile->'$(OutDir)core/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

@@ -1,3 +1,4 @@
+using Echo.Platform.Security;
 using Echo.Infrastructure.Backup;
 using Echo.Contracts.Library;
 using Echo.Desktop.Shell;
@@ -7,7 +8,7 @@ namespace Echo.Desktop.Features.Settings.Runtime;
 public sealed class WebDavSettingsModule : IDisposable
 {
     private readonly WebDavBackupClient _client = new();
-    public WebDavSettingsModule(SettingsFeatureRuntime runtime, SettingsDialogs dialogs, ShellViewModel shell, string directory)
+    public WebDavSettingsModule(SettingsFeatureRuntime runtime, SettingsDialogs dialogs, ShellViewModel shell, string directory, Echo.Contracts.Backup.IDataBackup? backup)
     {
         var credentials = new ProtectedCredentials(Path.Combine(directory, "credentials"));
         runtime.RegisterAction("webdav-backup", async (_, token) =>
@@ -22,7 +23,7 @@ public sealed class WebDavSettingsModule : IDisposable
             if (fields["operation"] == "立即备份到网盘")
             {
                 var archive = Path.Combine(directory, "webdav-upload.zip");
-                await new LocalBackupService(directory, shell.AlbumLibrary as ILibraryMaintenance).CreateAsync(archive, token);
+                await (backup ?? throw new IOException("Core 备份服务未连接。")).CreateAsync(archive, token);
                 await _client.UploadAsync(uri, fields["user"], fields["password"], archive, token);
                 shell.Settings.Feedback = "网盘备份已由服务端确认。";
             }

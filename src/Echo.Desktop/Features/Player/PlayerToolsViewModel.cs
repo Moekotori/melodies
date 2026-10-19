@@ -11,8 +11,8 @@ namespace Echo.Desktop.Features.Player;
 
 public sealed partial class PlayerToolsViewModel : ObservableObject, IDisposable
 {
-    private readonly PlaybackSessionCoordinator session;
-    private readonly SleepTimerService timer;
+    private readonly IPlaybackSession session;
+    private readonly ISleepTimer timer;
     private readonly FeaturePreferences preferences;
     private readonly LocalizationService text;
     private readonly CancellationTokenSource lifetime = new();
@@ -35,7 +35,7 @@ public sealed partial class PlayerToolsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string feedback = "";
     [ObservableProperty] private IReadOnlyList<string> actionLabels = [];
 
-    public PlayerToolsViewModel(PlaybackSessionCoordinator session, SleepTimerService timer,
+    public PlayerToolsViewModel(IPlaybackSession session, ISleepTimer timer,
         FeaturePreferences preferences, LocalizationService text)
     {
         this.session = session; this.timer = timer; this.preferences = preferences; this.text = text;

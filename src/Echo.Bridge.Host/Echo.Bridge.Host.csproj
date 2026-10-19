@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Bridge/Echo.Bridge.csproj" />
+    <ProjectReference Include="../Echo.Core.Client/Echo.Core.Client.csproj" />
+  </ItemGroup>
+</Project>

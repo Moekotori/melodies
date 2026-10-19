@@ -31,7 +31,7 @@ public sealed class RadioDirectoryClient : IRadioDirectory
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            active?.Cancel();
+            if (active is not null) throw new InvalidOperationException("电台目录正在处理另一项查询，请稍后重试。");
             mine = CancellationTokenSource.CreateLinkedTokenSource(token);
             active = mine;
         }

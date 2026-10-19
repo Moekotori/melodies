@@ -17,7 +17,7 @@ internal sealed partial class MacOsShellBinding : IDisposable
 {
     private readonly MainWindow _window;
     private readonly ShellViewModel _shell;
-    private readonly PlaybackRuntime _playback;
+    private readonly IPlaybackRuntime _playback;
     private readonly IActivatableLifetime? _lifetime;
     private readonly NativeMenu _app = new();
     private readonly NativeMenu _dock = new();
@@ -31,7 +31,7 @@ internal sealed partial class MacOsShellBinding : IDisposable
     private string? _language, _badge, _dockIcon;
     private bool _disposed, _filling, _dockIconApplied;
 
-    public MacOsShellBinding(MainWindow window, ShellViewModel shell, PlaybackRuntime playback)
+    public MacOsShellBinding(MainWindow window, ShellViewModel shell, IPlaybackRuntime playback)
     {
         _window = window; _shell = shell; _playback = playback;
         _prefs = MacOsAccessoryPreferences.Load(_preferencesDirectory);
@@ -74,7 +74,7 @@ internal sealed partial class MacOsShellBinding : IDisposable
 
     private void OnFilesOpened(IReadOnlyList<string> paths)
     {
-        if (!_disposed && !_window.IsExitRequested) Dispatcher.UIThread.Post(() => OpenPaths(paths));
+        if (!_disposed && !_window.IsExitRequested) Dispatcher.UIThread.Post(_window.RestoreMainWindow);
     }
 
     private void OpenPaths(IReadOnlyList<string> paths)

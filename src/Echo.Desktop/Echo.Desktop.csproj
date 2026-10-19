@@ -7,8 +7,10 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Echo.Application/Echo.Application.csproj" />
-    <ProjectReference Include="../Echo.Core/Echo.Core.csproj" />
-    <ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" />
+    <ProjectReference Include="../Echo.Core.Host/Echo.Core.Host.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../Echo.Bridge.Host/Echo.Bridge.Host.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../Echo.Core.Client/Echo.Core.Client.csproj" />
+    <ProjectReference Include="../Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" />
     <ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" />
     <ProjectReference Include="../Echo.Platform/Echo.Platform.csproj" />
     <ProjectReference Include="../Echo.Visuals/Echo.Visuals.csproj" />
@@ -47,4 +49,24 @@
       <Link>native/echo-track-analysis.exe</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+  <Target Name="CopyCoreHosts" AfterTargets="Build">
+    <ItemGroup>
+      <CoreHostFile Include="../Echo.Core.Host/bin/$(Configuration)/$(TargetFramework)/**/*" Exclude="../Echo.Core.Host/bin/$(Configuration)/$(TargetFramework)/**/ref/**" />
+      <BridgeHostFile Include="../Echo.Bridge.Host/bin/$(Configuration)/$(TargetFramework)/**/*" Exclude="../Echo.Bridge.Host/bin/$(Configuration)/$(TargetFramework)/**/ref/**" />
+    </ItemGroup>
+    <Copy SourceFiles="@(CoreHostFile)" DestinationFiles="@(CoreHostFile->'$(OutDir)core/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(BridgeHostFile)" DestinationFiles="@(BridgeHostFile->'$(OutDir)bridge/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishCoreHosts" BeforeTargets="ComputeFilesToPublish">
+    <PropertyGroup>
+      <CoreHostPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)core-host-publish/'))</CoreHostPublishDir>
+      <BridgeHostPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)bridge-host-publish/'))</BridgeHostPublishDir>
+    </PropertyGroup>
+    <MSBuild Projects="../Echo.Core.Host/Echo.Core.Host.csproj" Targets="Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);PublishAot=$(PublishAot);PublishDir=$(CoreHostPublishDir)" />
+    <MSBuild Projects="../Echo.Bridge.Host/Echo.Bridge.Host.csproj" Targets="Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);PublishAot=$(PublishAot);PublishDir=$(BridgeHostPublishDir)" />
+    <ItemGroup>
+      <ResolvedFileToPublish Include="$(CoreHostPublishDir)**/*"><RelativePath>core/%(RecursiveDir)%(Filename)%(Extension)</RelativePath><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory></ResolvedFileToPublish>
+      <ResolvedFileToPublish Include="$(BridgeHostPublishDir)**/*"><RelativePath>bridge/%(RecursiveDir)%(Filename)%(Extension)</RelativePath><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory></ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
 </Project>

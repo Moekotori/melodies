@@ -3,7 +3,7 @@ using Echo.Playback;
 
 namespace Echo.Application.Podcast;
 
-public sealed class PodcastPlayback(PlaybackSessionCoordinator session)
+public sealed class PodcastPlayback(IPlaybackSession session)
 {
     public static QueueTrack Track(PodcastEpisode episode, PodcastFeed feed)
     {
@@ -42,13 +42,13 @@ public sealed class PodcastPlayback(PlaybackSessionCoordinator session)
 
 public sealed class PodcastProgressWriter : IAsyncDisposable
 {
-    private readonly PlaybackSessionCoordinator session;
+    private readonly IPlaybackSession session;
     private readonly PodcastProgressTracker tracker;
     private string? seenId;
     private PlaybackStatus seenStatus;
     private double seenPosition = double.NaN;
 
-    public PodcastProgressWriter(PlaybackSessionCoordinator session, IPodcastLibrary library)
+    public PodcastProgressWriter(IPlaybackSession session, IPodcastLibrary library)
     {
         this.session = session;
         tracker = new(sample => library.SaveProgressAsync(sample.Id, sample.Position, sample.Ended, CancellationToken.None));

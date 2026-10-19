@@ -3,7 +3,7 @@ using Echo.Contracts.Radio;
 namespace Echo.Application.Radio;
 
 // One catalog per shell. Serialized changes publish only after the store confirms the write.
-public sealed class RadioCatalog(IRadioStationStore? store = null)
+public sealed class RadioCatalog(IRadioStationStore? store = null) : IRadioCatalog
 {
     public const int Capacity = 200;
     public const string EchoUrl = "https://echonext.moe/radio/stream";
@@ -19,6 +19,19 @@ public sealed class RadioCatalog(IRadioStationStore? store = null)
         try
         {
             if (loaded) return;
+            var saved = store is null ? null : await store.ReadAsync(token).ConfigureAwait(false);
+            if (saved is not null) stations = Validate(saved);
+            loaded = true;
+        }
+        finally { lane.Release(); }
+        Changed?.Invoke();
+    }
+
+    public async Task RefreshAsync(CancellationToken token)
+    {
+        await lane.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
             var saved = store is null ? null : await store.ReadAsync(token).ConfigureAwait(false);
             if (saved is not null) stations = Validate(saved);
             loaded = true;

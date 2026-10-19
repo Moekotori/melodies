@@ -14,6 +14,7 @@ internal sealed class FolderWatchCoordinator : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private readonly Task _worker;
     private bool _disposed;
+    public int Count { get { lock (_watchers) return _watchers.Count; } }
     public FolderWatchCoordinator(Func<FolderScanOptions, IProgress<ScanProgress>, CancellationToken, Task<ScanReport>> scan, Action<string> changed)
     { _scan = scan; _changed = changed; _worker = Task.Run(WorkAsync); }
     public Task SetAsync(string path, bool enabled, CancellationToken cancellation) => Task.Run(() =>

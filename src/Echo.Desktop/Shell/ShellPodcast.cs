@@ -9,7 +9,7 @@ public sealed partial class ShellViewModel
     public IPodcastLibrary? Podcasts { get; private set; }
     public PodcastPlayback? PodcastPlayback { get; private set; }
 
-    public void AttachPodcasts(IPodcastLibrary library, PlaybackSessionCoordinator session)
+    public void AttachPodcasts(IPodcastLibrary library, IPlaybackSession session)
     {
         Podcasts = library;
         PodcastPlayback = new(session);

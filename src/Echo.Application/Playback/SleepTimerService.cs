@@ -2,14 +2,10 @@ using Echo.Playback;
 
 namespace Echo.Application.Playback;
 
-public enum SleepTimerAction { Pause, Stop, Quit }
-public sealed record SleepTimerState(bool Active, double RemainingSeconds, SleepTimerAction Action,
-    bool Executing = false, string? Error = null);
-
 /// <summary>One bounded worker and one deadline for the local playback owner; independent of visible windows.</summary>
-public sealed class SleepTimerService : IAsyncDisposable
+public sealed class SleepTimerService : ISleepTimer, IAsyncDisposable
 {
-    private readonly PlaybackSessionCoordinator session;
+    private readonly IPlaybackSession session;
     private readonly TimeProvider time;
     private readonly CancellationTokenSource lifetime = new();
     private readonly SemaphoreSlim gate = new(1, 1);
@@ -21,7 +17,7 @@ public sealed class SleepTimerService : IAsyncDisposable
     public SleepTimerState State => Volatile.Read(ref state);
     public event Action<SleepTimerState>? Changed;
 
-    public SleepTimerService(PlaybackSessionCoordinator session, TimeProvider? time = null)
+    public SleepTimerService(IPlaybackSession session, TimeProvider? time = null)
     {
         this.session = session; this.time = time ?? TimeProvider.System;
         worker = RunAsync();

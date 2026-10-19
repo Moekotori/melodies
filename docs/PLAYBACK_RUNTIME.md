@@ -57,3 +57,7 @@ App / Echo.Player
 ## 桥核分离增量（2026-10-19）
 
 默认桌面现在由 `App` 持有 `Echo.Core/CoreRuntime`，组合曲库与已有 `PlaybackRuntime`，并统一持有听歌记录器。窗口通过 `CreateWindow(core: core)` 接入；最终应用退出才释放 Core。独立注入播放 runtime 的原接口继续保留。曲库已不在 Desktop 内打开，完整服务化、音源及连接模块迁移边界见[桥核分离](BRIDGE_CORE_SEPARATION.md)。当前仍为进程内组合，不能据此声称应用退出后播放继续或独立 Bridge 已实现。
+
+## 独立服务增量（2026-10-19）
+
+默认 `App` 现在异步连接 `Echo.Core.Host`；`PlaybackRuntime` 的具体实现移入 `Echo.Core/Playback`，接口和会话数据位于 `Echo.Playback.Contracts`。窗口持有 `ICoreServices`/`IPlaybackRuntime` 客户端，退出释放客户端连接，不关闭 Core 或音频宿主。Core 负责系统媒体、文件激活、睡眠定时器、历史与播客写入；Bridge 使用受限的同一会话接口。完整边界和部署限制见[桥核分离](BRIDGE_CORE_SEPARATION.md)。此前进程内注入的短测仅是历史阶段记录，不代表新的默认入口。

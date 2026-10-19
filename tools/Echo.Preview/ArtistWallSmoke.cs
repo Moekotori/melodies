@@ -24,7 +24,8 @@ internal static class ArtistWallSmoke
         var database = opening.GetAwaiter().GetResult();
         var first = database.GetArtistsAsync(new()); Wait(() => first.IsCompleted, "artist fixture");
         WriteSamplePortrait(first.GetAwaiter().GetResult().Items[3]);
-        var window = DesktopComposition.CreateWindow(false, false, database, new LocalAlbumArtwork());
+        using var previewPlayback = new PreviewPlayback();
+        var window = DesktopComposition.CreateWindow(false, false, database, new LocalAlbumArtwork(), previewPlayback.Runtime);
         var shell = (ShellViewModel)window.DataContext!;
         shell.Motion.SelectedChoice = shell.Motion.Choices.First(choice => choice.Mode == MotionMode.Off);
         window.Show(); Pump();

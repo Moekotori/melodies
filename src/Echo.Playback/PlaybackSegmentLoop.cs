@@ -2,7 +2,6 @@ using System.Text.Json.Nodes;
 
 namespace Echo.Playback;
 
-public sealed record SegmentLoopState(string ItemId, double StartSeconds, double EndSeconds);
 
 public sealed partial class PlaybackSessionCoordinator
 {

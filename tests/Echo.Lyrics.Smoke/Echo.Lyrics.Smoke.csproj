@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><IsAotCompatible>false</IsAotCompatible></PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" /><PackageReference Include="Avalonia.Headless" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" /></ItemGroup>
 </Project>

@@ -7,7 +7,7 @@ namespace Echo.Application.Scheduling;
 public sealed class PlaybackWorkAdmission : IBackgroundWorkAdmission, IAsyncDisposable
 {
     private readonly object gate = new();
-    private readonly PlaybackSessionCoordinator session;
+    private readonly IPlaybackSession session;
     private readonly TimeProvider time;
     private readonly PlaybackWorkPolicy policy;
     private readonly PlaybackStateSubscription subscription;
@@ -20,7 +20,7 @@ public sealed class PlaybackWorkAdmission : IBackgroundWorkAdmission, IAsyncDisp
     private long nextTicket;
     private bool closed;
 
-    public PlaybackWorkAdmission(PlaybackSessionCoordinator session, TimeProvider? time = null)
+    public PlaybackWorkAdmission(IPlaybackSession session, TimeProvider? time = null)
     {
         this.session = session; this.time = time ?? TimeProvider.System;
         policy = new(this.time);

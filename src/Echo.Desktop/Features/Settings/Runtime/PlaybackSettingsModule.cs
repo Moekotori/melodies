@@ -12,13 +12,11 @@ namespace Echo.Desktop.Features.Settings.Runtime;
 public sealed class PlaybackSettingsModule : IDisposable
 {
     private readonly ShellViewModel shell;
-    private readonly PlaybackRuntime playback;
+    private readonly IPlaybackRuntime playback;
     private readonly SettingsDialogs dialogs;
-    private readonly WindowsPlaybackWake wake = new();
     private readonly CancellationTokenSource lifetime = new();
     private bool disposed;
-    private int wakeQueued;
-    public PlaybackSettingsModule(SettingsFeatureRuntime runtime, ShellViewModel shell, PlaybackRuntime playback, SettingsDialogs dialogs)
+    public PlaybackSettingsModule(SettingsFeatureRuntime runtime, ShellViewModel shell, IPlaybackRuntime playback, SettingsDialogs dialogs)
     {
         this.shell = shell; this.playback = playback; this.dialogs = dialogs;
         runtime.RegisterChange("fixed-volume", (value, token) => playback.LocalZone.Session.SetVolumeLockedAsync(value.Enabled, token));
@@ -29,8 +27,7 @@ public sealed class PlaybackSettingsModule : IDisposable
         runtime.RegisterChange("automix", (value, token) => playback.LocalZone.Session.SetAutomixEnabledAsync(value.Enabled, token));
         runtime.RegisterChange("wdm-ks", async (value, _) =>
         { shell.Player!.AudioSettings.ShowKernelStreaming = value.Enabled; await shell.Player.AudioSettings.RefreshCommand.ExecuteAsync(null); });
-        if (OperatingSystem.IsWindows()) runtime.RegisterChange("prevent-sleep-while-playing", (value, _) =>
-        { wake.Update(value.Enabled && playback.LocalZone.Session.Snapshot.Status == PlaybackStatus.Playing); return Task.CompletedTask; });
+        if (OperatingSystem.IsWindows()) runtime.RegisterChange("prevent-sleep-while-playing", (_, _) => Task.CompletedTask);
         runtime.RegisterChange("auto-output", (value, token) => value.Enabled ? SetDefaultOutputAsync(token)
             : Configuration()["deviceId"]?.GetValue<string>() is { Length: > 0 } ? Task.CompletedTask
             : Task.FromException(new InvalidOperationException("请先选择具体输出设备，再关闭自动选择。")));
@@ -62,7 +59,6 @@ public sealed class PlaybackSettingsModule : IDisposable
         });
         shell.FeaturePreferences.Changed += PreferencesChanged;
         playback.LocalZone.Session.VolumeLockChanged += LockChanged;
-        playback.LocalZone.Session.Changed += PlaybackChanged;
     }
     private JsonObject Configuration() => playback.LocalZone.Session.RequestedOutput is { } saved
         ? JsonNode.Parse(saved.GetRawText())!.AsObject() : new() { ["outputMode"] = "shared", ["deviceId"] = "", ["sampleRate"] = 48000, ["channels"] = 2, ["bufferSize"] = 1024 };
@@ -108,11 +104,9 @@ public sealed class PlaybackSettingsModule : IDisposable
     {
         await playback.StartAsync(lifetime.Token);
         await RestoreAsync();
-        if (!disposed && shell.FeaturePreferences.Read("auto-play-on-startup", new()).Enabled
-            && playback.LocalZone.Session.Snapshot.Status == PlaybackStatus.Paused)
-            await playback.LocalZone.Session.ResumeAsync(lifetime.Token);
+
     }
-    private void PreferencesChanged(string id) { if (id.Length == 0) _ = RestoreAsync(); }
+    private void PreferencesChanged(string id) { }
     private async Task RestoreAsync()
     {
         try
@@ -123,31 +117,16 @@ public sealed class PlaybackSettingsModule : IDisposable
             shell.Player!.AudioSettings.ShowKernelStreaming = shell.FeaturePreferences.Read("wdm-ks", new()).Enabled;
             if (shell.FeaturePreferences.Snapshot().ContainsKey("speed-mode"))
                 await playback.LocalZone.Session.SetPlaybackRateModeAsync(shell.FeaturePreferences.Read("speed-mode", new(false, "Doubletime")).Selection == "Nightcore" ? "nightcore" : "speed", lifetime.Token);
-            QueueWake();
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { if (!disposed) shell.Settings.Feedback = error.Message; }
     }
     private void LockChanged(bool value) => Dispatcher.UIThread.Post(() =>
     { if (!disposed) shell.FeaturePreferences.Confirm("fixed-volume", new(value)); });
-    private void PlaybackChanged(PlaybackSnapshot _) => QueueWake();
-    private void QueueWake()
-    {
-        if (disposed || Interlocked.Exchange(ref wakeQueued, 1) != 0) return;
-        Dispatcher.UIThread.Post(() =>
-        {
-            Interlocked.Exchange(ref wakeQueued, 0); if (disposed) return;
-            try { wake.Update(shell.FeaturePreferences.Read("prevent-sleep-while-playing", new()).Enabled
-                && playback.LocalZone.Session.Snapshot.Status == PlaybackStatus.Playing); }
-            catch (Exception error) { shell.Settings.Feedback = error.Message; }
-        });
-    }
     public void Dispose()
     {
         disposed = true; lifetime.Cancel();
         shell.FeaturePreferences.Changed -= PreferencesChanged;
         playback.LocalZone.Session.VolumeLockChanged -= LockChanged;
-        playback.LocalZone.Session.Changed -= PlaybackChanged;
-        wake.Dispose();
     }
 }

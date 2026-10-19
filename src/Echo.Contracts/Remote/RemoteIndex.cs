@@ -16,3 +16,7 @@ public interface IRemoteTrackIndex
     Task<string?> ReadAlbumCacheAsync(string sourceId, string albumId, string fingerprint, CancellationToken token);
     Task WriteAlbumCacheAsync(string sourceId, string albumId, string fingerprint, string payload, CancellationToken token);
 }
+public interface IRemoteIndexSync
+{
+    Task<RemoteSyncResult> SyncSourceAsync(string sourceId, IProgress<RemoteSyncProgress> progress, CancellationToken token);
+}

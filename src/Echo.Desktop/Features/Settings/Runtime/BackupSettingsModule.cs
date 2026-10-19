@@ -9,16 +9,15 @@ namespace Echo.Desktop.Features.Settings.Runtime;
 
 public sealed class BackupSettingsModule : IAsyncDisposable
 {
-    private readonly LocalBackupService _backup;
-    private readonly AutomaticBackupService _automatic;
+    private readonly Echo.Contracts.Backup.IDataBackup _backup;
     private readonly ShellViewModel _shell;
     private readonly CancellationTokenSource _lifetime = new();
     private bool _disposed;
     public BackupSettingsModule(SettingsFeatureRuntime runtime, SettingsDialogs dialogs, MainWindow window, ShellViewModel shell,
-        string directory, Func<DesktopPreferences> capture, Action<DesktopPreferences> apply)
+        string directory, Func<DesktopPreferences> capture, Action<DesktopPreferences> apply, Echo.Contracts.Backup.IDataBackup backup)
     {
-        _backup = new(directory, shell.AlbumLibrary as ILibraryMaintenance);
-        _shell = shell; _automatic = new(_backup); _automatic.Status += BackupStatus;
+        _backup = backup;
+        _shell = shell; _backup.Status += BackupStatus;
         shell.FeaturePreferences.Changed += ScheduleChanged;
         foreach (var id in new[] { "automatic-backup-enabled", "automatic-backup-hours", "automatic-backup-retention" })
             runtime.RegisterChange(id, (value, token) => ConfigureScheduleAsync(id, value, token));
@@ -64,6 +63,7 @@ public sealed class BackupSettingsModule : IAsyncDisposable
                     if (input.FirstOrDefault()?.TryGetLocalPath() is not { } path) throw new OperationCanceledException("已取消。");
                     var manifest = await _backup.ValidateAsync(path, token);
                     await dialogs.ConfirmAsync("恢复 ECHO 备份", $"已验证 {manifest.Files.Length} 个文件。确认后将关闭 ECHO、恢复应用数据并重新启动。当前数据会保留为回滚副本，音乐文件不会被修改。");
+                    await _backup.PrepareRestoreAsync(token);
                     var request = await BackupRestore.StageAsync(path, directory, token);
                     var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath ?? throw new IOException("无法定位 ECHO 可执行文件。"))
                     { UseShellExecute = false, CreateNoWindow = true };
@@ -91,7 +91,7 @@ public sealed class BackupSettingsModule : IAsyncDisposable
         if (!double.TryParse(Read("automatic-backup-hours", new(false, "24")).Selection,
             System.Globalization.CultureInfo.InvariantCulture, out var hours)) throw new ArgumentException("无效备份间隔。");
         if (!int.TryParse(Read("automatic-backup-retention", new(false, "5")).Selection, out var retention)) throw new ArgumentException("无效保留份数。");
-        return _automatic.ConfigureAsync(enabled, _shell.FeaturePreferences.Read("backup-directory", new()).Selection, hours, retention, token);
+        return _backup.ConfigureAsync(enabled, _shell.FeaturePreferences.Read("backup-directory", new()).Selection, hours, retention, token);
     }
     private void ScheduleChanged(string id)
     { if (!_disposed && (id.Length == 0 || id == "backup-directory")) _ = RestoreScheduleAsync(); }
@@ -103,9 +103,9 @@ public sealed class BackupSettingsModule : IAsyncDisposable
     }
     private void BackupStatus(string message) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
     { if (!_disposed) _shell.Settings.Feedback = message; });
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _disposed = true; _lifetime.Cancel(); _shell.FeaturePreferences.Changed -= ScheduleChanged;
-        _automatic.Status -= BackupStatus; await _automatic.DisposeAsync(); _lifetime.Dispose();
+        _backup.Status -= BackupStatus; _lifetime.Dispose(); return ValueTask.CompletedTask;
     }
 }

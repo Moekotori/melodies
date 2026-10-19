@@ -13,12 +13,13 @@ namespace Echo.Desktop.Features.Player;
 public sealed partial class PlayerViewModel : ObservableObject
 {
     public LocalizationService Text { get; }
-    private readonly PlaybackSessionCoordinator session;
+    private readonly IPlaybackSession session;
     private PlaybackStateUpdate? pending;
     private readonly PlaybackStateSubscription subscription;
     private readonly CancellationTokenSource stateLifetime = new();
     private readonly object snapshotGate = new();
     private long latestVersion = -1;
+    private Guid latestGeneration;
     private int updateQueued;
     private int detached;
     private int clockPresentationActive = 1;
@@ -50,7 +51,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     [ObservableProperty] private string outputName = "系统默认输出";
     public PlaybackZone Zone { get; }
     public string ZoneName => Zone.Name;
-    public PlaybackSessionCoordinator Session => session;
+    public IPlaybackSession Session => session;
     public QueueViewModel Queue { get; }
     public PlayerTrackDetails Details { get; }
     public string VolumeText => $"{Volume * 100:0}%";
@@ -102,6 +103,7 @@ public sealed partial class PlayerViewModel : ObservableObject
             && Volatile.Read(ref clockPresentationActive) == 0) return;
         lock (snapshotGate)
         {
+            if (latestGeneration != update.State.Generation) { latestGeneration = update.State.Generation; latestVersion = -1; }
             if (update.State.Version < latestVersion || Volatile.Read(ref detached) != 0) return;
             latestVersion = update.State.Version;
             pending = update with { Changes = update.Changes | (pending?.Changes ?? PlaybackStateChanges.None) };
@@ -171,7 +173,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     {
         await RunAsync(async () =>
         {
-            var tracks = await PlaybackFileResolver.ResolveAsync(paths);
+            var tracks = await session.ResolveFilesAsync(paths);
             if (tracks.Count > 0) await session.SetQueueAsync(tracks, tracks[0].ItemId);
         });
     }

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" />
+    <ProjectReference Include="../Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" />
+    <ProjectReference Include="../Echo.Bridge.Contracts/Echo.Bridge.Contracts.csproj" />
+  </ItemGroup>
+</Project>

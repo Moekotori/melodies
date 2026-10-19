@@ -14,7 +14,7 @@ namespace Echo.Desktop.Features.Radio;
 
 public sealed partial class RadioViewModel : ObservableObject, IDisposable
 {
-    private readonly RadioCatalog catalog;
+    private readonly IRadioCatalog catalog;
     private readonly PlayerViewModel? player;
     private readonly RadioPlaybackService? playback;
     private readonly ShellViewModel shell;

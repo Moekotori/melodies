@@ -9,7 +9,7 @@ using Echo.Contracts.Tasks;
 namespace Echo.Core.Library;
 
 // Core lifetime: one lazy database owner serves all attached controls and imported scans.
-public sealed partial class LibraryCore(string path, IBackgroundWorkAdmission? admission = null) : ITrackLibrary, IAlbumLibrary, IArtistLibrary, IGenreLibrary, IFolderLibrary, IAlbumPersonalState, IPlayerTrackLibrary, IHomeLibrary, IAsyncDisposable
+public sealed partial class LibraryCore(string path, IBackgroundWorkAdmission? admission = null) : Echo.Core.Contracts.ICoreLibrary, IAsyncDisposable
 {
     private readonly object _gate = new();
     private readonly CancellationTokenSource _shutdown = new();
@@ -17,6 +17,7 @@ public sealed partial class LibraryCore(string path, IBackgroundWorkAdmission? a
     private Task<ScanReport>? _scan;
     private Task? _disposal;
     private bool _closed;
+    public bool HasActiveWatchers { get { lock (_gate) return _folderWatch is { Count: > 0 }; } }
 
     public async Task<HomeDashboard> GetHomeAsync(DateOnly today, CancellationToken cancellation = default)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetHomeAsync(today, cancellation).ConfigureAwait(false);

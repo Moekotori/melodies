@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Echo.Bridge;
 using Echo.Desktop.Features.Connect.Runtime;
 using Echo.Desktop.Features.Player;
 using Echo.Desktop.Features.Settings.Runtime;
@@ -12,8 +13,8 @@ namespace Echo.Desktop.Features.Connect.Output;
 // Local outputs only. A row becomes current after the audio host accepts the configuration.
 public sealed partial class ConnectOutputViewModel : ObservableObject, IDisposable
 {
-    private readonly ConnectRuntime runtime;
-    private readonly PlaybackSessionCoordinator? session;
+    private readonly IBridgeRuntime runtime;
+    private readonly IPlaybackSession? session;
     private readonly FeaturePreferences preferences;
     private readonly Action openSongs;
     private readonly HashSet<string> pinned = new(StringComparer.Ordinal);
@@ -26,7 +27,7 @@ public sealed partial class ConnectOutputViewModel : ObservableObject, IDisposab
     private int disposed;
     private bool restoring = true;
 
-    public ConnectOutputViewModel(PlayerViewModel? player, FeaturePreferences preferences, ConnectRuntime runtime, Action openSongs)
+    public ConnectOutputViewModel(PlayerViewModel? player, FeaturePreferences preferences, IBridgeRuntime runtime, Action openSongs)
     {
         Player = player;
         this.preferences = preferences;

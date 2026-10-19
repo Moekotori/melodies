@@ -4,7 +4,7 @@ using Echo.Playback;
 namespace Echo.Application.Radio;
 
 // Owns one cancellable address resolution, never playback facts or decoded audio.
-public sealed class RadioPlaybackService(PlaybackSessionCoordinator session, IRadioStreamResolver resolver) : IDisposable
+public sealed class RadioPlaybackService(IPlaybackSession session, IRadioStreamResolver resolver) : IDisposable
 {
     private readonly object gate = new();
     private CancellationTokenSource? probe;

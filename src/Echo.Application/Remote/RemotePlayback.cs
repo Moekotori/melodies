@@ -7,7 +7,7 @@ namespace Echo.Application.Remote;
 
 public static class RemotePlayback
 {
-    public static async Task<QueueTrack> CreateTrackAsync(RemoteSourceCatalog catalog, IRemoteFileClient client, string sourceId, RemoteEntry entry, CancellationToken token)
+    public static async Task<QueueTrack> CreateTrackAsync(IRemoteSourceCatalog catalog, IRemoteFileClient client, string sourceId, RemoteEntry entry, CancellationToken token)
     {
         if (entry.IsDirectory || !entry.IsAudio) throw new ArgumentException("请选择音频文件。");
         var source = catalog.GetConnection(sourceId);

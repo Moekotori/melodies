@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Echo.Bridge;
 using Echo.Desktop.Features.Connect.Runtime;
 using Echo.Desktop.Features.Settings.Runtime;
 
@@ -8,12 +9,12 @@ namespace Echo.Desktop.Features.Connect.SmartHome;
 public sealed partial class ConnectSmartHomeViewModel : ObservableObject, IDisposable
 {
     private readonly FeaturePreferences preferences;
-    private readonly ConnectRuntime runtime;
+    private readonly IBridgeRuntime runtime;
     private CancellationTokenSource? test;
     private int testVersion;
     private bool restoring = true;
 
-    public ConnectSmartHomeViewModel(FeaturePreferences preferences, ConnectRuntime runtime)
+    public ConnectSmartHomeViewModel(FeaturePreferences preferences, IBridgeRuntime runtime)
     {
         this.preferences = preferences;
         this.runtime = runtime;
