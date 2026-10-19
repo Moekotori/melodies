@@ -19,7 +19,8 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
     private readonly RadioPlaybackService? playback;
     private readonly ShellViewModel shell;
     private readonly IRadioMetadataMonitor? metadata;
-    private readonly RadioCoverLoader covers = new();
+    private readonly Echo.Desktop.Features.Artwork.RemoteCoverLoader covers = new(
+        maxBytes: 512 * 1024, maxPixels: 16 * 1024 * 1024, edge: 160, timeoutSeconds: 6, automaticRedirects: true);
     private readonly CancellationTokenSource lifetime = new();
     private readonly CancellationToken token;
     private bool disposed;

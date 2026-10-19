@@ -10,6 +10,7 @@
     <CheckBox Content="{DynamicResource floating.hideEmpty}" IsChecked="{Binding HideWithoutLyrics}" />
     <CheckBox Content="{DynamicResource floating.stroke}" IsChecked="{Binding StrokeEnabled}" />
     <CheckBox Content="{DynamicResource floating.shadow}" IsChecked="{Binding DropShadow}" />
+    <CheckBox Content="{DynamicResource floating.wordHighlight}" IsChecked="{Binding WordHighlight}" />
     <CheckBox Content="{DynamicResource floating.interpolated}" IsChecked="{Binding Interpolated}" />
     <Grid ColumnDefinitions="*,160" ColumnSpacing="8"><TextBlock Text="{DynamicResource floating.colorMode}" VerticalAlignment="Center" /><ComboBox Name="ColorModeInput" Grid.Column="1" ItemsSource="{Binding ColorModeChoices}" SelectedItem="{Binding ColorModeChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="floating:FloatingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
     <Grid ColumnDefinitions="*,160" ColumnSpacing="8"><TextBlock Text="{DynamicResource floating.direction}" VerticalAlignment="Center" /><ComboBox Name="DirectionInput" Grid.Column="1" ItemsSource="{Binding DirectionChoices}" SelectedItem="{Binding DirectionChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="floating:FloatingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
@@ -54,6 +55,10 @@
           <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
             <TextBox Text="{Binding LowerUnplayedTop}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.unplayedTop}" />
             <TextBox Grid.Column="1" Text="{Binding LowerUnplayedBottom}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.unplayedBottom}" />
+          </Grid>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+            <TextBox Text="{Binding LowerOutlinePlayed}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.outlinePlayed}" />
+            <TextBox Grid.Column="1" Text="{Binding LowerOutlineUnplayed}" MaxLength="7" AutomationProperties.Name="{DynamicResource floating.outlineUnplayed}" />
           </Grid>
         </StackPanel>
       </StackPanel>

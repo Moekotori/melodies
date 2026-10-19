@@ -2,43 +2,58 @@
         xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
         xmlns:lyrics="using:Echo.Desktop.Controls.Lyrics"
         x:Class="Echo.Desktop.Features.Floating.DesktopLyricsWindow" x:DataType="shell:ShellViewModel"
-        Title="melodies" Width="960" Height="144" MinWidth="360" MinHeight="84" CanMaximize="False" CanMinimize="False"
+        Title="melodies" Width="1040" Height="144" MinWidth="420" MinHeight="84" CanMaximize="False" CanMinimize="False"
         WindowDecorations="None" Background="Transparent" TransparencyLevelHint="Transparent" ShowInTaskbar="False" ShowActivated="False" Topmost="True">
   <Window.Styles>
     <Style Selector="Button.lyric-tool">
-      <Setter Property="Width" Value="24" />
-      <Setter Property="Height" Value="24" />
-      <Setter Property="MinWidth" Value="24" />
-      <Setter Property="MinHeight" Value="24" />
+      <Setter Property="Width" Value="30" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="MinWidth" Value="30" />
+      <Setter Property="MinHeight" Value="30" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Foreground" Value="White" />
-      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Foreground" Value="#CCFFFFFF" />
+      <Setter Property="CornerRadius" Value="999" />
     </Style>
+    <Style Selector="Button.lyric-tool:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#21FFFFFF" /></Style>
+    <Style Selector="Button.lyric-tool:pressed /template/ ContentPresenter"><Setter Property="Background" Value="#33FFFFFF" /></Style>
+    <Style Selector="Button.lyric-play"><Setter Property="Width" Value="34" /><Setter Property="Height" Value="34" /><Setter Property="Background" Value="#29FFFFFF" /></Style>
+    <Style Selector="Border.lyric-divider"><Setter Property="Width" Value="1" /><Setter Property="Height" Value="16" /><Setter Property="Margin" Value="4,0" /><Setter Property="Background" Value="#24FFFFFF" /></Style>
     <Style Selector="Button.lyric-tool:disabled"><Setter Property="Opacity" Value="0.35" /></Style>
     <Style Selector="Button.lyric-unlock"><Setter Property="Width" Value="28" /><Setter Property="Height" Value="28" /></Style>
   </Window.Styles>
   <Grid Name="Root" Background="Transparent" RowDefinitions="Auto,*" PointerPressed="Drag">
-    <Border Name="Scrim" Grid.RowSpan="2" Background="#66000000" CornerRadius="8" Opacity="0" IsHitTestVisible="False" />
-    <StackPanel Name="Toolbar" Orientation="Horizontal" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" Opacity="0" IsHitTestVisible="False">
-      <Button Classes="lyric-tool" Command="{Binding Floating.RestoreMainCommand}" ToolTip.Tip="{DynamicResource floating.detail}"><icon:GlyphIcon Kind="lyric-home" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
-      <Button Classes="lyric-tool" Command="{Binding Floating.NudgeOffsetCommand}" CommandParameter="forward" IsEnabled="{Binding Floating.CanNudgeLyrics}" ToolTip.Tip="{DynamicResource floating.offsetForward}"><icon:GlyphIcon Kind="lyric-offset-forward" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
-      <Button Classes="lyric-tool" Command="{Binding Floating.NudgeOffsetCommand}" CommandParameter="back" IsEnabled="{Binding Floating.CanNudgeLyrics}" ToolTip.Tip="{DynamicResource floating.offsetBack}"><icon:GlyphIcon Kind="lyric-offset-back" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
-      <Button Classes="lyric-tool" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.previous}"><icon:GlyphIcon Kind="lyric-prev" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
-      <Button Classes="lyric-tool" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanPlay}" ToolTip.Tip="{Binding Player.Subtitle}"><icon:GlyphIcon Name="PlayGlyph" Kind="lyric-play" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
-      <Button Classes="lyric-tool" Command="{Binding Player.NextCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.next}"><icon:GlyphIcon Kind="lyric-next" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
-      <Button Classes="lyric-tool" Click="OpenSettings" ToolTip.Tip="{DynamicResource floating.settings}"><icon:GlyphIcon Kind="lyric-setting" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
-      <Button Classes="lyric-tool" Command="{Binding Floating.ToggleLockCommand}" IsEnabled="{Binding Floating.SupportsPassthrough}" ToolTip.Tip="{DynamicResource floating.lockLyrics}"><icon:GlyphIcon Kind="lyric-lock" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
-      <Button Classes="lyric-tool" Command="{Binding Floating.ToggleLyricsCommand}" ToolTip.Tip="{DynamicResource floating.closeLyrics}"><icon:GlyphIcon Kind="lyric-close" Width="24" Height="24" Stroke="White" StrokeWidth="0" /></Button>
+    <Border Name="Scrim" Grid.RowSpan="2" Background="#57090B11" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="14" Opacity="0" IsHitTestVisible="False" />
+    <Border Name="Toolbar" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" IsHitTestVisible="False">
+      <Border Name="ToolbarCapsule" Background="#CC11131A" BorderBrush="#1FFFFFFF" BorderThickness="1" CornerRadius="999" Padding="6,4" VerticalAlignment="Center" HorizontalAlignment="Center" BoxShadow="0 2 6 0 #38000000">
+    <StackPanel Name="ToolbarButtons" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+      <Button Classes="lyric-tool" Command="{Binding Floating.RestoreMainCommand}" ToolTip.Tip="{DynamicResource floating.detail}"><icon:GlyphIcon Kind="lyric-home" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
+      <Border Classes="lyric-divider" />
+      <Button Classes="lyric-tool" Command="{Binding Floating.NudgeOffsetCommand}" Name="OffsetBackButton" CommandParameter="back" IsEnabled="{Binding Floating.CanNudgeLyrics}" ToolTip.Tip="{DynamicResource floating.offsetBack}"><icon:GlyphIcon Kind="lyric-offset-back" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
+      <TextBlock Name="OffsetReadout" Text="{Binding Floating.OffsetText}" IsVisible="{Binding Floating.HasOffset}" FontSize="12" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" TextAlignment="Center" MinWidth="46" />
+      <Button Classes="lyric-tool" Command="{Binding Floating.NudgeOffsetCommand}" Name="OffsetForwardButton" CommandParameter="forward" IsEnabled="{Binding Floating.CanNudgeLyrics}" ToolTip.Tip="{DynamicResource floating.offsetForward}"><icon:GlyphIcon Kind="lyric-offset-forward" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
+      <Border Classes="lyric-divider" />
+      <Button Classes="lyric-tool" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.previous}"><icon:GlyphIcon Kind="lyric-prev" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool lyric-play" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanPlay}" ToolTip.Tip="{Binding Player.Subtitle}"><icon:GlyphIcon Name="PlayGlyph" Kind="lyric-play" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Player.NextCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.next}"><icon:GlyphIcon Kind="lyric-next" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
+      <Border Classes="lyric-divider" />
+      <Button Classes="lyric-tool" Name="SettingsButton" Click="OpenSettings" ToolTip.Tip="{DynamicResource floating.settings}"><icon:GlyphIcon Kind="lyric-setting" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Floating.ToggleLockCommand}" IsEnabled="{Binding Floating.SupportsPassthrough}" ToolTip.Tip="{DynamicResource floating.lockLyrics}"><icon:GlyphIcon Kind="lyric-lock" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
+      <Button Classes="lyric-tool" Command="{Binding Floating.ToggleLyricsCommand}" ToolTip.Tip="{DynamicResource floating.closeLyrics}"><icon:GlyphIcon Kind="lyric-close" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
     </StackPanel>
+      </Border>
+    </Border>
     <lyrics:FloatingLyricsControl Name="LyricsCanvas" Grid.Row="1" Margin="12,0,12,8" IsHitTestVisible="False" />
     <Button Name="UnlockButton" Classes="lyric-tool lyric-unlock" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0" IsVisible="False"
             Command="{Binding Floating.ToggleLockCommand}" ToolTip.Tip="{DynamicResource floating.unlock}">
       <icon:GlyphIcon Kind="lyric-unlock" Width="20" Height="20" Stroke="White" StrokeWidth="0" />
     </Button>
-    <Border Name="ResizeGrip" Grid.RowSpan="2" Width="18" Height="18" Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="BottomRightCorner" IsVisible="False" PointerPressed="Resize">
-      <icon:GlyphIcon Kind="grip" Width="12" Height="12" Stroke="White" />
+    <Border Name="StartGrip" Grid.RowSpan="2" Width="14" Background="Transparent" HorizontalAlignment="Left" VerticalAlignment="Stretch" Cursor="SizeWestEast" IsVisible="False" PointerPressed="ResizeStart">
+      <Border Name="StartGripMark" Width="4" Height="30" CornerRadius="999" Background="#8CFFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+    <Border Name="EndGrip" Grid.RowSpan="2" Width="14" Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Stretch" Cursor="SizeWestEast" IsVisible="False" PointerPressed="ResizeEnd">
+      <Border Name="EndGripMark" Width="4" Height="30" CornerRadius="999" Background="#8CFFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
     </Border>
   </Grid>
 </Window>

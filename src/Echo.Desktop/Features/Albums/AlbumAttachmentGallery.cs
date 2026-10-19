@@ -30,22 +30,21 @@ public partial class AlbumDetailView
         foreach (var item in page.Items)
         {
             token.ThrowIfCancellationRequested();
-            var body = new StackPanel { Width = 168, Spacing = 0 };
+            var body = new StackPanel { Width = 192, Spacing = 0 };
             if (item.IsImage)
             {
                 var lease = await _artwork!.AcquireAsync(item.Path, token, maxEdge: 320);
                 if (_closed || generation != _panelGeneration) { lease?.Dispose(); return; }
                 if (lease is not null) _attachments.Add(lease);
-                if (lease?.Image is { } image) body.Children.Add(new Image { Source = image, Width = 168, Height = 126, Stretch = Stretch.UniformToFill });
+                if (lease?.Image is { } image) body.Children.Add(new Image { Source = image, Width = 192, Height = 144, Stretch = Stretch.UniformToFill });
                 else body.Children.Add(DocumentPlaceholder("图片无法预览"));
             }
             else body.Children.Add(DocumentPlaceholder(Path.GetExtension(item.Path).TrimStart('.').ToUpperInvariant()));
-            var caption = new TextBlock { Text = item.Name, FontSize = 11, Margin = new(10, 9), MaxLines = 2, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis };
+            var caption = new TextBlock { Text = item.Name, FontSize = 13, MinHeight = 38, Margin = new(14, 12), MaxLines = 2, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis };
             caption.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("EchoHeading")); body.Children.Add(caption);
-            var card = new Border { Child = body, CornerRadius = new(13), ClipToBounds = true, BorderThickness = new(1) };
-            card.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("EchoBorder"));
+            var card = new Border { Child = body, CornerRadius = new(13), ClipToBounds = true };
             card.Bind(Border.BackgroundProperty, new DynamicResourceExtension("EchoField"));
-            var button = new Button { Content = card, Padding = new(0), Margin = new(0, 0, 12, 12), Background = Brushes.Transparent };
+            var button = new Button { Content = card, Padding = new(0), Margin = new(0, 0, 16, 16), Background = Brushes.Transparent, Cursor = new(StandardCursorType.Hand) };
             ToolTip.SetTip(button, item.Name);
             button.Click += async (_, args) => { args.Handled = true; if (item.IsImage) await PreviewAttachmentAsync(item); else await OpenResourceAsync(item.Path); };
             var open = new MenuItem { Header = "打开附件" }; open.Click += async (_, _) => await OpenResourceAsync(item.Path);
@@ -58,9 +57,13 @@ public partial class AlbumDetailView
     }
     private static Control DocumentPlaceholder(string label)
     {
-        var text = new TextBlock { Text = label, FontSize = 18, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var text = new TextBlock { Text = label, FontSize = 12, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
         text.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("EchoMuted"));
-        return new Border { Child = text, Height = 126 };
+        var icon = new GlyphIcon { Kind = "file", Width = 30, Height = 30, HorizontalAlignment = HorizontalAlignment.Center };
+        icon.Bind(GlyphIcon.StrokeProperty, new DynamicResourceExtension("EchoSubtle"));
+        var placeholder = new Border { Child = new StackPanel { Spacing = 12, VerticalAlignment = VerticalAlignment.Center, Children = { icon, text } }, Height = 144 };
+        placeholder.Bind(Border.BackgroundProperty, new DynamicResourceExtension("EchoPanelMuted"));
+        return placeholder;
     }
     private async Task PreviewAttachmentAsync(AlbumAttachment attachment)
     {

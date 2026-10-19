@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" />
     <PackageReference Include="Jint" />
     <PackageReference Include="SkiaSharp" />
   </ItemGroup>
-  <ItemGroup><EmbeddedResource Include="Runtime/*.js;Resources/Jizura/*" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Runtime/*.js;Resources/Jizura/*;Resources/SourceLyrics/**" /></ItemGroup>
 </Project>

@@ -53,18 +53,19 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     public bool IsPending => SelectedModule.ReadMethod is null && SelectedModule.Id is not ("listening" or "src" or "sdm");
     public bool HasEnable => SelectedModule.WriteMethod is not null && SelectedModule.Id is not ("headroom" or "replayGain" or "rack" or "src" or "sdm");
     public bool CanEdit => IsReady && !IsBusy;
-    public bool CanApply => CanEdit && IsDirty && SelectedModule.WriteMethod is not null;
+    public bool CanApply => CanEdit && !ResourceBusy && IsDirty && SelectedModule.WriteMethod is not null;
     public bool CanRevert => CanEdit && IsDirty;
     public bool CanUndo => CanEdit && undo.Count > 0;
     public string EnableLabel => SelectedModule.Id == "safety" ? "安全限幅" : "启用模块";
     public string ApplyLabel => IsRack ? "应用处理链" : "应用调整";
-    public string DraftLabel => IsRack ? (IsDirty ? "处理链尚未应用" : "与已确认的处理链一致") : IsOutput
+    public string DraftLabel => IsListening ? "听音方案由 Core 保存" : IsRack ? (IsDirty ? "处理链尚未应用" : "与已确认的处理链一致") : IsOutput
         ? (IsDirty ? "应用后才会重配输出，播放会短暂中断" : "与当前输出配置一致")
         : IsDirty ? "试听中 · 应用后记入撤销" : "与已确认的状态一致";
     public string PendingDescription => "这个模块还没有接到原生处理链。";
     public IRelayCommand OpenOutputCommand { get; }
-    public DspViewModel(IPlaybackSession? session, string outputName, IRelayCommand openOutput)
+    public DspViewModel(IPlaybackSession? session, string outputName, IRelayCommand openOutput, Echo.Core.Contracts.IDspResourceClient? resources = null)
     {
+        this.resources = resources ?? new Echo.Core.Client.DspResourceClient();
         this.session = session; OutputName = outputName; OpenOutputCommand = openOutput;
         SampleRate = session?.Snapshot.SampleRate is > 0 and var rate ? rate : 48000;
         var outputRate = session?.Snapshot.Output is { ValueKind: JsonValueKind.Object } output
@@ -72,29 +73,31 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         OutputRate = outputRate > 0 ? $"{outputRate / 1000d:0.#} kHz" : "输出采样率未确认";
         selectedModule = Modules.First(x => x.Id == "eq"); replayMode = ReplayModes[0];
         PropertyChanged += Changed;
+        if (session is not null) session.Changed += NativeSnapshotChanged;
     }
     partial void OnSelectedModuleChanged(DspModule value)
     {
+        if (value.Group == "高级") AdvancedExpanded = true;
         foreach (var name in new[] { nameof(IsEq), nameof(IsHeadphone), nameof(IsReplayGain), nameof(IsRack), nameof(IsRoom), nameof(IsChannel), nameof(IsListening), nameof(IsSrc), nameof(IsSdm), nameof(IsOutput), nameof(ShowGeneric), nameof(IsPending), nameof(HasEnable), nameof(EnableLabel), nameof(PendingDescription), nameof(DraftLabel), nameof(ApplyLabel), nameof(CanMoveRackUp), nameof(CanMoveRackDown) }) OnPropertyChanged(name);
-        undo.Clear(); ClearComparison(); _ = RefreshAsync();
+        presetAttribution = null; undo.Clear(); ClearComparison(); _ = RefreshAsync();
     }
     private void Changed(object? sender, PropertyChangedEventArgs args)
     {
         if (!projecting && args.PropertyName is nameof(Enabled) or nameof(PreampDb) or nameof(StrengthPercent) or nameof(TiltDb) or nameof(ReplayMode) or nameof(PreventClipping))
         { IsDirty = true; if (!IsOutput) NoteEdit(); }
         if (args.PropertyName is nameof(IsReady) or nameof(IsBusy) or nameof(IsDirty) or nameof(SelectedBand))
-        { OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(CanApply)); OnPropertyChanged(nameof(CanRevert)); OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanResetBand)); OnPropertyChanged(nameof(CanDeletePreset)); OnPropertyChanged(nameof(CanMoveRackUp)); OnPropertyChanged(nameof(CanMoveRackDown)); OnPropertyChanged(nameof(CanRemoveRackFilter)); OnPropertyChanged(nameof(DraftLabel)); }
+        { OnPropertyChanged(nameof(CanManageProfile)); OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(CanUseResources)); OnPropertyChanged(nameof(CanLoadHeadphone)); OnPropertyChanged(nameof(CanApply)); OnPropertyChanged(nameof(CanRevert)); OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanResetBand)); OnPropertyChanged(nameof(CanDeletePreset)); OnPropertyChanged(nameof(CanMoveRackUp)); OnPropertyChanged(nameof(CanMoveRackDown)); OnPropertyChanged(nameof(CanRemoveRackFilter)); OnPropertyChanged(nameof(DraftLabel)); }
     }
-    private void DraftChanged(object? sender, PropertyChangedEventArgs args) { OnPropertyChanged(nameof(CurveScopeLabel)); if (!projecting) { IsDirty = true; if (!IsOutput) NoteEdit(); } }
+    private void DraftChanged(object? sender, PropertyChangedEventArgs args) { UpdateModulePresentation(); if (!projecting && sender is DspChoiceField field) UpdateOutputPreset(field); OnPropertyChanged(nameof(CurveScopeLabel)); if (!projecting) { IsDirty = true; if (!IsOutput) NoteEdit(); } }
 
     [RelayCommand] private async Task RefreshAsync()
     {
         auditionEpoch++; var version = ++generation; var module = SelectedModule;
         IsBusy = true; IsReady = false; IsDirty = false; confirmed = null; ConfirmedStatus = "未读取";
-        ClearEditors(); Message = module.ReadMethod is null ? "" : "正在读取原生状态…";
+        ClearEditors(); Presets.Clear(); SelectedPreset = null; Message = module.ReadMethod is null ? "" : "正在读取原生状态…";
         try
         {
-            if (module.Id == "listening") { LoadProfiles(); confirmed = new JsonObject(); Project(confirmed); IsReady = true; Message = ""; module.Status = Profiles.Count == 0 ? "还没有方案" : $"{Profiles.Count} 个方案"; return; }
+            if (module.Id == "listening") { await LoadProfilesAsync(); confirmed = new JsonObject(); Project(confirmed); IsReady = true; Message = ""; module.Status = Profiles.Count == 0 ? "还没有方案" : $"{Profiles.Count} 个方案"; return; }
             if (module.ConfiguresOutput) { confirmed = ReadOutputState(); Project(confirmed); IsReady = true; Message = ""; module.Status = OutputFacts; return; }
             if (module.ReadMethod is null) { module.Status = "待迁移"; return; }
             if (session is null) throw new IOException("播放服务尚未连接。");
@@ -103,7 +106,8 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
             if (result.ValueKind != JsonValueKind.Object) throw new IOException("原生模块没有返回有效状态。");
             confirmed = JsonNode.Parse(result.GetRawText())!.AsObject(); Project(confirmed); IsReady = true;
             Message = "";
-            if (module.Id == "eq") await ReadPresetsAsync(version);
+            if (module.EditsEqualizer) await ReadPresetsAsync(version);
+            if (module.Id is "room" or "rack") await ReadBanksAsync();
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception e) { if (!disposed && version == generation) { Message = e.Message; module.Status = "读取失败"; } }
@@ -124,6 +128,8 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
             if (disposed || version != generation) return;
             if (result.ValueKind != JsonValueKind.Object) throw new IOException("原生模块没有确认调整结果。");
             confirmed = JsonNode.Parse(result.GetRawText())!.AsObject();
+            if (module.EditsEqualizer && draft["presetName"] is { } title) confirmed["presetName"] = title.DeepClone();
+            if (draft["attribution"] is { } attribution) confirmed["attribution"] = attribution.DeepClone();
             if (draft["irPath"]?.ToString() is { Length: > 0 } keptPath) confirmed["irPath"] = keptPath;
             if (undo.Count >= 16) undo.Clear(); undo.Push(before);
             Project(confirmed); Message = "已应用到原生处理链";
@@ -177,12 +183,13 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
             if (IsReplayGain) ReplayFacts = DescribeReplay(state);
             if (updateConfirmed)
             {
-                ConfirmedStatus = IsRack ? "原生处理顺序" : IsReplayGain ? ReplayMode.Label : IsOutput ? OutputFacts
+                ConfirmedStatus = IsRoom && IsRoomAwaitingFormat(state) ? "等待播放格式" : IsRoom && state["error"]?.ToString() is { Length: > 0 } ? "原生卷积错误" : IsRack ? "原生处理顺序" : IsReplayGain ? ReplayMode.Label : IsOutput ? OutputFacts
                     : IsListening ? (Profiles.Count == 0 ? "还没有方案" : $"{Profiles.Count} 个方案")
                     : SelectedModule.Id == "headroom" ? $"{Number(state, "headroomDb"):+0.0;-0.0;0.0} dB" : Enabled ? "已启用" : "旁路";
                 SelectedModule.Status = ConfirmedStatus;
             }
-            IsDirty = false;
+            if (SelectedModule.EditsEqualizer) presetAttribution = state["attribution"]?.DeepClone();
+            IsDirty = false; UpdateModulePresentation();
         }
         finally { projecting = false; }
     }
@@ -198,7 +205,8 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         if (SelectedModule.EditsEqualizer)
         {
             state["preampDb"] = PreampDb; state["strengthPercent"] = StrengthPercent; state["tiltDb"] = TiltDb;
-            state["presetId"] = "custom"; state["presetName"] = "自定义";
+            state["presetId"] = "custom"; state["presetName"] = PresetName;
+            state["attribution"] = presetAttribution?.DeepClone();
             state["bands"] = new JsonArray(Bands.Select(b => (JsonNode)b.ToState()).ToArray());
         }
         return state;
@@ -210,7 +218,7 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         Bands.Clear(); Parameters.Clear(); RackStages.Clear(); SelectedBand = null; ReleaseOptions();
     }
     private static double Number(JsonObject state, string key, double fallback = 0)
-        => state[key] is JsonValue value && value.TryGetValue<double>(out var n) && double.IsFinite(n) ? n : fallback;
+        => state[key] is JsonValue value && double.TryParse(value.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var n) && double.IsFinite(n) ? n : fallback;
     private static bool Bool(JsonObject state, string key) => state[key] is JsonValue value && value.TryGetValue<bool>(out var b) && b;
     private static JsonElement Json(JsonNode node) { using var doc = JsonDocument.Parse(node.ToJsonString()); return doc.RootElement.Clone(); }
     public void Dispose()
@@ -218,6 +226,8 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         if (disposed) return;
         if (IsDirty && !IsBusy && !SelectedModule.DraftOnly && confirmed is not null && session is not null && SelectedModule.WriteMethod is not null)
         { var module = SelectedModule; var state = CaptureDraft(); _ = CommitModuleAsync(module, state); }
+        if (IsDeesser || DeesserListening) _ = SetDeesserListenAsync(false);
+        if (session is not null) session.Changed -= NativeSnapshotChanged;
         disposed = true; generation++; auditionEpoch++; lifetime.Cancel();
         PropertyChanged -= Changed; ClearEditors(); undo.Clear(); ClearComparison(); confirmed = null; lifetime.Dispose();
     }

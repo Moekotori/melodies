@@ -1,18 +1,48 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspHeadphoneView" x:DataType="local:DspViewModel">
-  <Grid RowDefinitions="Auto,*,Auto" Margin="2,4,8,12">
-    <StackPanel Spacing="8" MaxWidth="720" HorizontalAlignment="Left">
-      <TextBlock Text="导入 frequency,gain 或 frequency,raw 的 CSV。raw 会取反后铺到 31 段峰值 EQ，增益限制在 ±12 dB。这是可继续编辑的校正，不是在线耳机库。" TextWrapping="Wrap" Classes="muted" />
-      <Button Content="导入校正曲线" Click="ImportCurve" HorizontalAlignment="Left" IsEnabled="{Binding CanEdit}" />
-    </StackPanel>
-    <Border Grid.Row="1" Margin="0,12,0,0" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,1" ClipToBounds="True">
-      <local:EqCurveControl IsVisible="{Binding IsReady}" />
-    </Border>
-    <StackPanel Grid.Row="2" Margin="0,8,0,0" Spacing="8" IsEnabled="{Binding CanEdit}">
-      <Grid ColumnDefinitions="*,150" ColumnSpacing="12">
-        <TextBlock Text="耳机校正前级 (dB)" VerticalAlignment="Center" />
-        <NumericUpDown Grid.Column="1" Minimum="-60" Maximum="24" Increment="0.1" Value="{Binding PreampDb, Mode=TwoWay}" FormatString="0.########" />
-      </Grid>
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="18" Margin="0,0,0,14">
+      <TabControl>
+        <TabItem Header="OPRA 耳机库">
+          <StackPanel Spacing="12" Margin="0,12,0,0">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+              <TextBox Text="{Binding HeadphoneQuery, Mode=TwoWay}" PlaceholderText="搜索品牌、型号或作者" IsEnabled="{Binding CanUseResources}" />
+              <Button Grid.Column="1" Content="搜索" Command="{Binding SearchHeadphonesCommand}" IsEnabled="{Binding CanUseResources}" />
+              <Button Grid.Column="2" Content="更新库" Command="{Binding RefreshHeadphonesCommand}" IsEnabled="{Binding CanUseResources}" Classes="dsp-quiet" ToolTip.Tip="重新下载 OPRA 数据，再次搜索"/>
+            </Grid>
+            <ProgressBar IsIndeterminate="True" Height="2" IsVisible="{Binding ResourceBusy}" />
+            <ListBox ItemsSource="{Binding HeadphoneResults}" SelectedItem="{Binding SelectedHeadphone, Mode=TwoWay}" MaxHeight="180" IsEnabled="{Binding !ResourceBusy}">
+              <ListBox.ItemTemplate><DataTemplate x:DataType="local:OpraPresetChoice"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="16"><StackPanel Spacing="3"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Details}" FontSize="11" Classes="muted" TextTrimming="CharacterEllipsis" /></StackPanel><TextBlock Grid.Column="1" Text="{Binding Author}" Classes="muted" FontSize="12" /></Grid></DataTemplate></ListBox.ItemTemplate>
+            </ListBox>
+            <WrapPanel>
+              <Button Content="上一页" Classes="dsp-quiet" Command="{Binding PreviousHeadphonesCommand}" IsEnabled="{Binding HasPreviousHeadphones}" />
+              <Button Content="下一页" Classes="dsp-quiet" Command="{Binding NextHeadphonesCommand}" IsEnabled="{Binding HeadphoneHasMore}" />
+              <ComboBox ItemsSource="{Binding CorrectionModes}" SelectedItem="{Binding CorrectionMode, Mode=TwoWay}" MinWidth="180" Margin="8,0,8,0" IsEnabled="{Binding !ResourceBusy}">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="local:DspChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+              </ComboBox>
+              <Button Content="载入并试听" Command="{Binding LoadHeadphoneCommand}" IsEnabled="{Binding CanLoadHeadphone}" />
+            </WrapPanel>
+            <TextBlock Text="{Binding HeadphoneAttribution}" MaxLines="4" TextTrimming="WordEllipsis" TextWrapping="Wrap" Classes="muted" FontSize="11" />
+          </StackPanel>
+        </TabItem>
+        <TabItem Header="本机预设">
+          <StackPanel Spacing="12" Margin="0,12,0,0">
+            <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}" HorizontalAlignment="Stretch" IsEnabled="{Binding CanUseResources}">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="local:EqPresetChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBox Text="{Binding PresetName, Mode=TwoWay}" PlaceholderText="预设名称" />
+            <WrapPanel><Button Content="保存当前校正" Command="{Binding SavePresetCommand}" IsEnabled="{Binding CanUseResources}" Margin="0,0,8,0" /><Button Content="删除" Command="{Binding DeletePresetCommand}" IsEnabled="{Binding CanDeletePreset}" /></WrapPanel>
+          </StackPanel>
+        </TabItem>
+        <TabItem Header="导入与导出">
+          <StackPanel Spacing="12" Margin="0,12,0,0">
+            <TextBlock Text="支持 EQ JSON、REW、Equalizer APO 及 CSV 频响曲线。参数预设完整保留；CSV 曲线会近似为 31 段 EQ，增益限制 ±12 dB。" TextWrapping="Wrap" Classes="muted" />
+            <WrapPanel><Button Content="导入参数预设" Click="ImportCurve" IsEnabled="{Binding CanUseResources}" Margin="0,0,8,0" /><Button Content="导出 JSON" Click="ExportCurve" IsEnabled="{Binding CanEdit}" /></WrapPanel>
+          </StackPanel>
+        </TabItem>
+      </TabControl>
+      <Border Background="{DynamicResource DspPlotBackground}" CornerRadius="8" Height="240" ClipToBounds="True"><local:EqCurveControl IsVisible="{Binding IsReady}" Margin="8" /></Border>
+      <Grid ColumnDefinitions="*,150" ColumnSpacing="12" IsEnabled="{Binding CanEdit}"><TextBlock Text="耳机校正前级 (dB)" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="-60" Maximum="24" Increment="0.1" Value="{Binding PreampDb, Mode=TwoWay}" FormatString="G7" /></Grid>
       <local:EqBandInspectorView DataContext="{Binding SelectedBand}" />
     </StackPanel>
-  </Grid>
+  </ScrollViewer>
 </UserControl>

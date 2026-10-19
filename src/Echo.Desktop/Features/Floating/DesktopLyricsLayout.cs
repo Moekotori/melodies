@@ -81,6 +81,7 @@ public static class DesktopLyricsLayout
 
     public static LyricLine? SecondarySource(IReadOnlyList<LyricLine> lines, int current, bool romanization, bool translation)
     {
+        if (current < 0) return lines.Count > 0 && LineHasSecondary(lines[0], romanization, translation) ? lines[0] : null;
         var chosen = -1;
         var last = -1;
         for (var i = 0; i < lines.Count; i++)
@@ -109,7 +110,7 @@ public static class DesktopLyricsLayout
         return width;
     }
 
-    public static double Fill(LyricLine? line, LyricLine? next, double adjustedMs, double durationMs, bool interpolated)
+    public static double Fill(LyricLine? line, LyricLine? next, double adjustedMs, double durationMs, bool interpolated, bool wordHighlight = true)
     {
         if (line is null) return 0;
         var adjusted = Math.Max(0, adjustedMs);
@@ -119,7 +120,7 @@ public static class DesktopLyricsLayout
         var wordCount = 0;
         for (var i = 0; i < words.Count; i++)
             if (words[i].Text.Length > 0) wordCount++;
-        if (wordCount > 1)
+        if (wordHighlight && wordCount > 1)
         {
             if (adjusted <= FirstWordStart(words)) return 0;
             var total = 0;
@@ -151,6 +152,15 @@ public static class DesktopLyricsLayout
         var secondaryAdvance = doubleLine ? Math.Ceiling(secondary * LineHeight) + LineGap : 0;
         return Toolbar + primaryAdvance + secondaryAdvance + Chrome;
     }
+
+    public static string FormatOffset(double offsetMs)
+    {
+        var seconds = Math.Round(offsetMs / 100, MidpointRounding.AwayFromZero) / 10;
+        return (seconds > 0 ? "+" : seconds < 0 ? "−" : "") + Math.Abs(seconds).ToString("0.0", CultureInfo.InvariantCulture) + "s";
+    }
+
+    public static double FollowOffset(double content, double viewport, double progress) =>
+        -Math.Clamp(Math.Clamp(progress, 0, 1) * content - viewport * .58, 0, Math.Max(0, content - viewport));
 
     public static double MarqueeOffset(double overflow, double elapsedSeconds)
     {
@@ -186,7 +196,14 @@ public static class DesktopLyricsLayout
         var following = new LyricLine("Next", 2000, 4000, []);
         Require(Fill(new("Line", 0, 0, []), following, 1000, 4000, false) == 1, "disabled interpolation fills the current line at once");
         Require(Math.Abs(Fill(new("Line", 0, 0, []), following, 1000, 4000, true) - 0.5) < 0.001, "interpolated fill follows the gap to the next line");
+        var gaps = new LyricLine("AB", 2000, 4000, [new("A", 2000, 2500), new("B", 3500, 4000)]);
+        Require(Math.Abs(Fill(gaps, lines[1], 2750, 9000, true) - .5) < .001, "word fill holds in a timing gap");
+        Require(Math.Abs(Fill(gaps, lines[1], 2750, 9000, true, false) - .375) < .001, "disabling word highlighting uses line interpolation");
         Require(Math.Abs(Strip(34, 19, 100, true) - 144) < 0.01, "double-line strip matches the Electron thickness");
+        Require(FormatOffset(500) == "+0.5s" && FormatOffset(-1000) == "−1.0s" && FormatOffset(0) == "0.0s", "offset readout matches the overlay");
+        Require(FollowOffset(1000, 400, 0) == 0 && FollowOffset(1000, 400, 1) == -600, "follow scroll stays within both ends");
+        Require(Math.Abs(FollowOffset(1000, 400, .5) + 268) < .001, "follow scroll holds the sung front at 58 percent");
+        Require(SecondarySource([lines[1]], -1, false, true) == lines[1], "intro previews only the first line's secondary text");
         Require(MarqueeOffset(0, 3) == 0 && MarqueeOffset(100, 0) == 0, "marquee stays put before the line overflows");
         _ = CultureInfo.InvariantCulture;
     }

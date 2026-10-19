@@ -11,7 +11,7 @@ public sealed class QueuePageViewModel : IDisposable
     public QueuePageViewModel(PlayerViewModel player, LocalizationService text, bool history)
     {
         Player = player;
-        Queue = new(player.Session, text) { Artwork = player.Queue.Artwork, ShowHistory = history };
+        Queue = new(player.Session, text, presentationActive: false) { Artwork = player.Queue.Artwork, ShowHistory = history };
     }
     public void Dispose() => Queue.Dispose();
 }

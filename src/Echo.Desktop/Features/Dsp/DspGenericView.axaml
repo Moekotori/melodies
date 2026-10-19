@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:primitives="using:Avalonia.Controls.Primitives" x:Class="Echo.Desktop.Features.Dsp.DspGenericView" x:DataType="local:DspViewModel">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="16" Margin="2,4,8,12">
+            <StackPanel IsVisible="{Binding IsPending}" Spacing="12" MaxWidth="520" HorizontalAlignment="Left">
+              <TextBlock Text="{Binding PendingDescription}" TextWrapping="Wrap" Classes="muted" />
+              <Button Content="打开音频设置" Command="{Binding OpenOutputCommand}" HorizontalAlignment="Left" />
+            </StackPanel>
+            <StackPanel IsVisible="{Binding IsReady}" Spacing="16">
+              <StackPanel IsVisible="{Binding IsReplayGain}" Spacing="12" IsEnabled="{Binding CanEdit}" MaxWidth="420" HorizontalAlignment="Left">
+                <TextBlock Text="增益来源" FontWeight="SemiBold" />
+                <ComboBox ItemsSource="{Binding ReplayModes}" SelectedItem="{Binding ReplayMode, Mode=TwoWay}" MinWidth="220" HorizontalAlignment="Left">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="local:DspChoice">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <CheckBox Content="防止削波" IsChecked="{Binding PreventClipping, Mode=TwoWay}" />
+                <TextBlock Text="{Binding ReplayFacts}" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+              </StackPanel>
+              <StackPanel IsVisible="{Binding IsListening}" Spacing="10" MaxWidth="520" HorizontalAlignment="Left">
+                <TextBox PlaceholderText="方案名称" Text="{Binding ListeningName}" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Content="保存当前处理链" Command="{Binding SaveListeningCommand}" IsEnabled="{Binding !IsBusy}" />
+                  <Button Content="套用" Classes="dsp-quiet" Command="{Binding ApplyListeningCommand}" IsEnabled="{Binding CanManageProfile}" />
+                  <Button Content="删除" Classes="dsp-quiet" Command="{Binding DeleteListeningCommand}" IsEnabled="{Binding CanManageProfile}" />
+                </StackPanel>
+                <TextBlock Text="还没有听音方案。保存当前处理链，下次可直接恢复。" IsVisible="{Binding !HasProfiles}" Classes="muted" TextWrapping="Wrap"/>
+                <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile, Mode=TwoWay}" MaxHeight="240">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="local:DspListeningProfile">
+                      <TextBlock Text="{Binding Name}" FontSize="13" />
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </StackPanel>
+              <StackPanel IsVisible="{Binding IsOutput}" Spacing="8" MaxWidth="640" HorizontalAlignment="Left">
+                <TextBlock Text="{Binding OutputFacts}" TextWrapping="Wrap" />
+                <TextBlock Text="调整采样和转换方式后，点击应用以更新输出配置。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+              </StackPanel>
+              <StackPanel IsVisible="{Binding IsRoom}" Spacing="8" MaxWidth="640" HorizontalAlignment="Left">
+                <local:DspImpulsePicker />
+                <TextBlock Text="{Binding RoomFacts}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Content="清除脉冲" Classes="dsp-quiet" Command="{Binding ClearImpulseCommand}" IsEnabled="{Binding CanEdit}" />
+                </StackPanel>
+              </StackPanel>
+              <StackPanel IsVisible="{Binding IsChannel}" Orientation="Horizontal" Spacing="8">
+                <Button Content="左右对调" Classes="dsp-quiet" Command="{Binding SwapChannelsCommand}" IsEnabled="{Binding CanEdit}" />
+                <Button Content="恢复居中" Classes="dsp-quiet" Command="{Binding ResetChannelCommand}" IsEnabled="{Binding CanEdit}" />
+              </StackPanel>
+              <Border IsVisible="{Binding ShowsNativeFacts}" Background="{DynamicResource DspPlotBackground}" CornerRadius="12" Padding="20"><StackPanel Spacing="10"><TextBlock Text="原生运行状态" Foreground="White" FontWeight="SemiBold"/><TextBlock Text="{Binding NativeFacts}" Foreground="#C8CED8" TextWrapping="Wrap" FontSize="13"/></StackPanel></Border>
+              <ComboBox IsVisible="{Binding IsMultiband}" ItemsSource="{Binding CompressionBands}" SelectedItem="{Binding CompressionBand}" Width="200" HorizontalAlignment="Left"><ComboBox.ItemTemplate><DataTemplate x:DataType="local:DspChoice"><TextBlock Text="{Binding Label}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+              <Border IsVisible="{Binding ShowsDynamics}" Background="{DynamicResource DspPlotBackground}" CornerRadius="12" Padding="20"><StackPanel Spacing="8"><TextBlock Text="静态压缩曲线 · 不含实时增益" Foreground="#C8CED8" FontSize="12"/><local:DynamicsCurveControl Height="150" Threshold="{Binding DynamicsThreshold}" Ratio="{Binding DynamicsRatio}" Makeup="{Binding DynamicsMakeup}" Knee="{Binding DynamicsKnee}"/></StackPanel></Border>
+              <StackPanel IsVisible="{Binding IsDeesser}" Spacing="8"><Button Name="DeesserListenButton" Content="按住监听齿音检测信号" IsEnabled="{Binding CanEdit}" LostFocus="ListenLostFocus"/><TextBlock IsVisible="{Binding DeesserListening}" Text="正在监听检测信号 · 松开恢复正常输出" Classes="muted"/></StackPanel>
+              <WrapPanel IsVisible="{Binding IsMatrix}"><Button Content="直通" Command="{Binding MatrixPresetCommand}" CommandParameter="identity"/><Button Content="左右交换" Command="{Binding MatrixPresetCommand}" CommandParameter="swap" Margin="8,0"/><Button Content="单声道" Command="{Binding MatrixPresetCommand}" CommandParameter="mono"/><Button Content="Mid / Side" Command="{Binding MatrixPresetCommand}" CommandParameter="midSide" Margin="8,0"/></WrapPanel>
+              <ItemsControl ItemsSource="{Binding Choices}" IsEnabled="{Binding CanEdit}" Margin="0,4,0,4">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="local:DspChoiceField">
+                    <StackPanel Width="240" Spacing="8" Margin="0,0,24,16">
+                      <TextBlock Text="{Binding Label}" FontSize="12" Classes="muted" />
+                      <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding Selected, Mode=TwoWay}" HorizontalAlignment="Stretch" MinHeight="38">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="local:DspChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ItemsControl ItemsSource="{Binding Toggles}" IsEnabled="{Binding CanEdit}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:DspToggle"><CheckBox Content="{Binding Label}" IsChecked="{Binding Value, Mode=TwoWay}" Margin="0,0,28,14" /></DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ItemsControl Name="ParametersList" ItemsSource="{Binding ShownParameters}" IsEnabled="{Binding CanEdit}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><primitives:UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="local:DspParameter">
+                    <Border Margin="0,0,24,20" Padding="0,0,0,18" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1">
+                      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,150" ColumnSpacing="20" RowSpacing="14">
+                        <StackPanel Spacing="4" VerticalAlignment="Center"><TextBlock Text="{Binding Label}" FontSize="13" FontWeight="SemiBold" /><TextBlock Text="{Binding Unit}" Classes="muted" FontSize="11" /></StackPanel>
+                        <NumericUpDown Grid.Column="1" Classes="dsp-value dsp-band-value" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Increment="{Binding Step}" Value="{Binding Value, Mode=TwoWay}" FormatString="0.##" ShowButtonSpinner="False" />
+                        <Slider Grid.Row="1" Grid.ColumnSpan="2" Classes="dsp-fader" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" TickFrequency="{Binding Step}" IsSnapToTickEnabled="True" Value="{Binding Value, Mode=TwoWay}" />
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <local:DspRackView IsVisible="{Binding IsRack}" IsEnabled="{Binding CanEdit}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Message}" IsVisible="{Binding !IsReady}" TextWrapping="Wrap" Classes="muted" />
+          </StackPanel>
+        </ScrollViewer>
+</UserControl>

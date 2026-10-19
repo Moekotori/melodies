@@ -11,6 +11,7 @@ public partial class QueueView : UserControl, IDisposable
     public QueueView()
     {
         InitializeComponent();
+        _ = new QueuePresentationBinding(this, () => page?.Queue);
         DetachedFromVisualTree += (_, _) => Dispose();
         SizeChanged += (_, _) => ApplyLayout();
     }

@@ -73,7 +73,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         try
         {
             subscription = acquired = zone.Subscribe(PlaybackStateChanges.All & ~PlaybackStateChanges.Meter);
-            Queue = new(session, Text);
+            Queue = new(session, Text, presentationActive: false);
         }
         catch
         {
@@ -115,6 +115,8 @@ public sealed partial class PlayerViewModel : ObservableObject
             PlaybackStateUpdate? latest;
             lock (snapshotGate) { latest = pending; pending = null; }
             if (latest is null || Volatile.Read(ref detached) != 0) return;
+            if ((latest.Changes & ~(PlaybackStateChanges.Clock | PlaybackStateChanges.Performance)) == 0
+                && Volatile.Read(ref clockPresentationActive) == 0) return;
             var state = latest.State.Playback;
             var changes = latest.Changes;
             if ((changes & (PlaybackStateChanges.Performance | PlaybackStateChanges.Playback)) != 0)

@@ -13,7 +13,7 @@ internal static class EqResponse
             if (!band.Enabled || scope is not null && band.Scope.Key != "stereo" && band.Scope.Key != scope) continue;
             var w = 2 * Math.PI * Math.Clamp(band.FrequencyHz, band.IsCorrection ? 1 : 10,
                 band.IsCorrection ? Math.BitDecrement(rate * 0.5) : rate * 0.45) / rate;
-            var c = Math.Cos(w); var s = Math.Sin(w); var alpha = s / (2 * Math.Max(band.Q, 0.1));
+            var c = Math.Cos(w); var s = Math.Sin(w); var alpha = s / (2 * Math.Max(band.Q, band.QMinimum));
             var tiltOffset = band.Filter.Key is "peaking" or "lowShelf" or "highShelf"
                 ? tilt * (2 * Math.Log10(Math.Clamp(band.FrequencyHz, 20, 20000) / 20) / 3 - 1) : 0;
             var a = Math.Pow(10, Math.Clamp(band.GainDb * strength / 100 + tiltOffset, band.GainMinimum, band.GainMaximum) / 40);

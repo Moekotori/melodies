@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Echo.Core.Contracts;
 
 namespace Echo.Desktop.Features.Dsp;
 
@@ -20,6 +21,8 @@ public sealed partial class DspViewModel
             var result = await session!.DspAsync("preset.list", Json(new JsonArray()), token: lifetime.Token);
             if (disposed || version != generation) return;
             if (result.ValueKind != JsonValueKind.Array || result.GetArrayLength() > 128) throw new IOException("预设列表超出界面边界。");
+            var library = await ReadLibraryAsync();
+            if (disposed || version != generation) return;
             projecting = true;
             try
             {
@@ -33,7 +36,7 @@ public sealed partial class DspViewModel
                     if (name.Length > 160) continue;
                     Presets.Add(new(name, state));
                 }
-                AppendUserPresets();
+                AppendUserPresets(library);
                 SelectedPreset = Presets[0];
             }
             finally { projecting = false; }
@@ -44,72 +47,68 @@ public sealed partial class DspViewModel
 
     partial void OnSelectedPresetChanged(EqPresetChoice? value)
     {
-        if (projecting || !CanEdit || !IsEq || confirmed is null || value is null) return;
+        if (projecting || !CanEdit || !SelectedModule.EditsEqualizer || confirmed is null || value is null) return;
         if (value.State is not { } preset) { Project(confirmed); HearConfirmed(); return; }
-        var draft = (JsonObject)confirmed.DeepClone();
-        draft["preampDb"] = preset["preampDb"]?.DeepClone() ?? JsonValue.Create(0);
-        draft["strengthPercent"] = preset["strengthPercent"]?.DeepClone() ?? JsonValue.Create(100);
-        draft["tiltDb"] = preset["tiltDb"]?.DeepClone() ?? JsonValue.Create(0);
-        draft["bands"] = preset["bands"]!.DeepClone();
-        Project(draft, updateConfirmed: false); IsDirty = true; NoteEdit();
+        if (IsHeadphone && HasPersonalProcessing(preset)) { Message = "此预设包含声道或动态 EQ，请在个人 EQ 中使用。"; return; }
+        UsePresetDraft(preset);
         OnPropertyChanged(nameof(CanDeletePreset));
     }
 
-    public bool CanDeletePreset => CanEdit && SelectedPreset is { User: true };
+    public bool CanDeletePreset => CanUseResources && SelectedPreset is { User: true };
 
-    private void AppendUserPresets()
+    private void AppendUserPresets(JsonObject library)
     {
-        if (DspLibraryStore.Load()["presets"] is not JsonArray presets) return;
+        if (library["presets"] is not JsonArray presets) return;
         foreach (var node in presets.Take(32))
         {
+            if (node is JsonObject authored && !IsHeadphone && authored["headphoneCorrection"]?.ToString() == "true") continue;
             if (node is not JsonObject preset || preset["bands"] is not JsonArray bands || bands.Count != Bands.Count) continue;
+            if (IsHeadphone && HasPersonalProcessing(preset)) continue;
             var name = preset["name"]?.ToString()?.Trim();
             var id = preset["id"]?.ToString();
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(id) || name.Length > 40) continue;
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(id) || name.Length > 80) continue;
             Presets.Add(new(name, preset, id, true));
         }
     }
 
-    [RelayCommand] private void SavePreset()
+    [RelayCommand] private async Task SavePresetAsync()
     {
-        if (!CanEdit || !IsEq || Bands.Count == 0) return;
-        var name = (PresetName.Trim() is { Length: > 0 } typed ? typed : "我的预设");
-        if (name.Length > 40) name = name[..40];
-        var preset = CaptureDraft();
-        preset["name"] = name; preset["presetName"] = name; preset["id"] = "user-" + Guid.NewGuid().ToString("N")[..8];
-        var root = DspLibraryStore.Load();
-        var presets = root["presets"] as JsonArray ?? new JsonArray();
-        var duplicate = presets.OfType<JsonObject>().FirstOrDefault(x => x["name"]?.ToString() == name);
-        if (duplicate is not null) presets.Remove(duplicate);
-        presets.Insert(0, preset);
-        while (presets.Count > 32) presets.RemoveAt(presets.Count - 1);
-        root["presets"] = presets; DspLibraryStore.Save(root);
-        projecting = true;
+        if (!CanUseResources || !SelectedModule.EditsEqualizer || Bands.Count == 0) return;
+        ResourceBusy = true;
         try
         {
-            var existing = Presets.FirstOrDefault(x => x.User && x.Label == name);
-            if (existing is not null) Presets.Remove(existing);
-            Presets.Add(new(name, preset, preset["id"]!.ToString(), true)); SelectedPreset = Presets[^1];
+            var name = string.IsNullOrWhiteSpace(PresetName) ? "我的预设" : PresetName.Trim();
+            var sameScope = (SelectedPreset?.State?["headphoneCorrection"]?.ToString().Equals("true", StringComparison.OrdinalIgnoreCase) == true) == IsHeadphone;
+            var id = sameScope && SelectedPreset is { User: true, Id: { } current } ? current : "user-" + Guid.NewGuid().ToString("N");
+            var draft = CaptureDraft(); draft["headphoneCorrection"] = IsHeadphone;
+            await resources.ExecuteAsync(DspResourceOperation.SavePreset, id: id, name: name, state: Json(draft), token: lifetime.Token);
+            var library = await ReadLibraryAsync();
+            projecting = true;
+            try
+            {
+                foreach (var old in Presets.Where(x => x.User).ToArray()) Presets.Remove(old);
+                AppendUserPresets(library); SelectedPreset = Presets.FirstOrDefault(x => x.Id == id);
+            }
+            finally { projecting = false; }
+            Message = "预设已保存。"; OnPropertyChanged(nameof(CanDeletePreset));
         }
-        finally { projecting = false; }
-        OnPropertyChanged(nameof(CanDeletePreset));
-        Message = "预设已存在本机。选中它会回到这条曲线，应用后才记入撤销。";
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception error) { if (!disposed) Message = "保存失败：" + error.Message; }
+        finally { if (!disposed) ResourceBusy = false; }
     }
-
-    [RelayCommand] private void DeletePreset()
+    [RelayCommand] private async Task DeletePresetAsync()
     {
-        if (SelectedPreset is not { User: true, Id: { } id }) return;
-        var root = DspLibraryStore.Load();
-        if (root["presets"] is JsonArray presets)
+        if (!CanUseResources || SelectedPreset is not { User: true, Id: { } id } selected) return;
+        ResourceBusy = true;
+        try
         {
-            var match = presets.OfType<JsonObject>().FirstOrDefault(x => x["id"]?.ToString() == id);
-            if (match is not null) presets.Remove(match);
-            DspLibraryStore.Save(root);
+            await resources.ExecuteAsync(DspResourceOperation.DeletePreset, id: id, token: lifetime.Token);
+            Presets.Remove(selected); projecting = true;
+            try { SelectedPreset = Presets.FirstOrDefault(); } finally { projecting = false; }
+            OnPropertyChanged(nameof(CanDeletePreset)); Message = "预设已删除。";
         }
-        Presets.Remove(SelectedPreset);
-        projecting = true;
-        try { SelectedPreset = Presets.FirstOrDefault(); }
-        finally { projecting = false; }
-        OnPropertyChanged(nameof(CanDeletePreset));
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception error) { if (!disposed) Message = "删除失败：" + error.Message; }
+        finally { if (!disposed) ResourceBusy = false; }
     }
 }

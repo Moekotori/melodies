@@ -18,17 +18,30 @@ public sealed class QueueArtwork : Border
     private readonly Image placeholder = new() { Stretch = Stretch.UniformToFill };
     private CancellationTokenSource? request;
     private AlbumArtworkCache.Lease? lease;
+    private TopLevel? topLevel;
+    private int requestedEdge;
     private bool attached;
     public QueueArtwork()
     {
         ClipToBounds = true; CornerRadius = new CornerRadius(6);
         placeholder.Bind(Image.SourceProperty, this.GetResourceObservable("EchoPlaceholderImage"));
         Child = new Grid { Children = { placeholder, image } };
+        SizeChanged += (_, _) => RefreshResolution();
+        EffectiveViewportChanged += (_, _) => RefreshResolution();
     }
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    { base.OnAttachedToVisualTree(e); attached = true; Reload(); }
+    {
+        base.OnAttachedToVisualTree(e); attached = true;
+        topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is not null) topLevel.ScalingChanged += ScalingChanged;
+        Reload();
+    }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { attached = false; Release(); base.OnDetachedFromVisualTree(e); }
+    {
+        attached = false;
+        if (topLevel is not null) topLevel.ScalingChanged -= ScalingChanged;
+        topLevel = null; Release(); base.OnDetachedFromVisualTree(e);
+    }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -39,11 +52,27 @@ public sealed class QueueArtwork : Border
     {
         Release();
         if (Cache is null || string.IsNullOrWhiteSpace(FilePath)) return;
-        request = new(); _ = LoadAsync(Cache, FilePath, request.Token);
+        requestedEdge = DecodeEdge();
+        request = new(); _ = LoadAsync(Cache, FilePath, requestedEdge, request.Token);
     }
-    private async Task LoadAsync(AlbumArtworkCache cache, string path, CancellationToken token)
+    private void ScalingChanged(object? sender, EventArgs e) => RefreshResolution();
+    private void RefreshResolution()
+    { if (attached && requestedEdge != DecodeEdge()) Reload(); }
+    private int DecodeEdge()
     {
-        var acquired = await cache.AcquireAsync(path, token);
+        var width = Bounds.Width > 0 ? Bounds.Width : double.IsFinite(Width) ? Width : 64;
+        var height = Bounds.Height > 0 ? Bounds.Height : double.IsFinite(Height) ? Height : 64;
+        var edge = Math.Max(width, height) * (topLevel?.RenderScaling ?? 1);
+        if (topLevel is not null && this.TransformToVisual(topLevel) is { } transform)
+            edge *= Math.Max(Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12),
+                Math.Sqrt(transform.M21 * transform.M21 + transform.M22 * transform.M22));
+        // Share a few cache sizes; never decode below the physical display size.
+        return edge switch { <= 64 => 64, <= 96 => 96, <= 128 => 128, <= 192 => 192,
+            <= 256 => 256, <= 320 => 320, <= 512 => 512, <= 768 => 768, _ => 1024 };
+    }
+    private async Task LoadAsync(AlbumArtworkCache cache, string path, int edge, CancellationToken token)
+    {
+        var acquired = await cache.AcquireAsync(path, token, edge);
         if (!attached || token.IsCancellationRequested) { acquired?.Dispose(); return; }
         lease = acquired; image.Source = lease?.Image;
     }

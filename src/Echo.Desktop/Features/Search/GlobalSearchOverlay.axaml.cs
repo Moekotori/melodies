@@ -63,7 +63,7 @@ public partial class GlobalSearchOverlay : UserControl
             if (Model is null)
             {
                 returnFocus = window?.FocusManager?.GetFocusedElement();
-                Model = new(shell); Model.PropertyChanged += OnResultsChanged; SearchPanel.DataContext = Model;
+                Model = new(shell); Model.PropertyChanged += OnResultsChanged; SearchPanel.DataContext = Model; HitList.SelectedIndex = Model.Hits.Count > 0 ? 0 : -1;
             }
         }
         else { ReleaseContent(); RestoreFocus(); }
@@ -103,10 +103,10 @@ public partial class GlobalSearchOverlay : UserControl
     }
     private void UpdateBounds()
     {
-        SearchPanel.Width = Bounds.Width > 0 ? Math.Min(760, Math.Max(0, Bounds.Width - 36)) : 760;
-        var top = Math.Max(76, Bounds.Height * .12);
+        SearchPanel.Width = Bounds.Width > 0 ? Math.Min(660, Math.Max(0, Bounds.Width - 36)) : 660;
+        var top = Math.Max(64, Bounds.Height * .11);
         SearchPanel.Margin = new(18, top, 18, 24);
-        SearchPanel.MaxHeight = Math.Max(74, Bounds.Height - top - 24);
+        SearchPanel.MaxHeight = Math.Min(560, Math.Max(90, Bounds.Height - top - 24));
     }
     private void OnPolicyChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -118,6 +118,7 @@ public partial class GlobalSearchOverlay : UserControl
     public void FocusSearch() { SearchField.Focus(); SearchField.SelectionStart = 0; SearchField.SelectionEnd = SearchField.Text?.Length ?? 0; }
     private void OnScrimPressed(object? sender, PointerPressedEventArgs args)
     { shell?.CloseGlobalSearchCommand.Execute(null); args.Handled = true; }
+    private void OnClose(object? sender, RoutedEventArgs args) => shell?.CloseGlobalSearchCommand.Execute(null);
     private void OnClear(object? sender, RoutedEventArgs args) { if (Model is not null) Model.Search = ""; FocusSearch(); }
     private void OnRetry(object? sender, RoutedEventArgs args) { if (Model is not null) _ = Model.LoadAsync(); }
 }

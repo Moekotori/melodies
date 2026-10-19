@@ -22,7 +22,9 @@ public partial class MiniPlayerWindow : Window
         this.shell = shell; this.lyrics = lyrics;
         Player = new(shell.Player!.Zone, shell.Text);
         InitializeComponent(); DataContext = this;
+        _ = new PlayerWindowPresentation(this, Player);
         queueModel = Player.Queue;
+        _ = new QueuePresentationBinding(QueuePanel, () => queueModel);
         queueModel.PropertyChanged += QueueChanged; RefreshQueue();
         seek = new(SeekSlider, () => Player, true); volume = new(VolumeSlider, () => Player, false);
         lyrics.Changed += RefreshLyrics; lyrics.PropertyChanged += LyricsChanged;

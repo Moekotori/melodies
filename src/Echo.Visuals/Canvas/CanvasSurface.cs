@@ -7,6 +7,8 @@ namespace Echo.Visuals.Canvas;
 
 public sealed partial class CanvasSurface : IDisposable
 {
+    private readonly CanvasFontCache fonts;
+    internal CanvasSurface(CanvasFontCache fonts) => this.fonts = fonts;
     private SKBitmap? bitmap;
     private SKCanvas? canvas;
     private SKPath path = new();
@@ -16,30 +18,34 @@ public sealed partial class CanvasSurface : IDisposable
     internal SKPath Path=>path;
     internal int Width=>bitmap?.Width??0;
     internal int Height=>bitmap?.Height??0;
-    private readonly Stack<(SKPaint Fill,SKPaint Stroke)> states=[];
+    private readonly Stack<(SKPaint Fill,SKPaint Stroke,SKMatrix Matrix)> states=[];
     private string font = "16px sans-serif", align="start", baseline="alphabetic";
     private byte globalAlpha=255;
+    private bool smoothImages=true;
     internal void Resize(int width,int height)
     {
         if(Width==width&&Height==height)return;
+        var recorded = pictureMode; ReleaseRecording();
         canvas?.Dispose();bitmap?.Dispose();
         bitmap=new(width,height,SKColorType.Bgra8888,SKAlphaType.Premul);canvas=new(bitmap);canvas.Clear(SKColors.Transparent);
         while(states.Count>0){var s=states.Pop();s.Fill.Dispose();s.Stroke.Dispose();}
+        if (recorded) EnablePicture();
     }
     internal void BeginPath(){path.Dispose();path=new();}
-    internal void Save(){Canvas.Save();states.Push((Fill.Clone(),Stroke.Clone()));}
-    internal void Restore(){if(states.Count==0)return;Canvas.Restore();var s=states.Pop();Copy(s.Fill,Fill);Copy(s.Stroke,Stroke);s.Fill.Dispose();s.Stroke.Dispose();}
-    private static void Copy(SKPaint from,SKPaint to){to.Color=from.Color;to.Shader=from.Shader;to.BlendMode=from.BlendMode;to.StrokeWidth=from.StrokeWidth;to.PathEffect=from.PathEffect;}
+    internal void Save(){Canvas.Save();states.Push((Fill.Clone(),Stroke.Clone(),Canvas.TotalMatrix));}
+    internal void Restore(){if(states.Count==0)return;Canvas.Restore();var s=states.Pop();Copy(s.Fill,Fill);Copy(s.Stroke,Stroke);s.Fill.Dispose();s.Stroke.Dispose();effectsKey=null;}
+    private static void Copy(SKPaint from,SKPaint to){to.Color=from.Color;to.Shader=from.Shader;to.BlendMode=from.BlendMode;to.StrokeWidth=from.StrokeWidth;to.PathEffect=from.PathEffect;to.ImageFilter=from.ImageFilter;to.ColorFilter=from.ColorFilter;to.StrokeCap=from.StrokeCap;to.StrokeJoin=from.StrokeJoin;}
     internal void Configure(JsValue[] a,IReadOnlyDictionary<int,CanvasGradient> gradients)
     {
         var alpha=globalAlpha=(byte)Math.Clamp(a[4].AsNumber()*255,0,255);
         PaintStyle(Fill,a[2].AsString(),alpha,gradients);PaintStyle(Stroke,a[3].AsString(),alpha,gradients);
         Stroke.StrokeWidth=(float)a[5].AsNumber();
         font=a[6].AsString();align=a[7].AsString();baseline=a[8].AsString();
-        var blend=a[9].AsString() switch {"lighter"=>SKBlendMode.Plus,"screen"=>SKBlendMode.Screen,"multiply"=>SKBlendMode.Multiply,"destination-in"=>SKBlendMode.DstIn,"destination-out"=>SKBlendMode.DstOut,"source-in"=>SKBlendMode.SrcIn,"copy"=>SKBlendMode.Src,_=>SKBlendMode.SrcOver};
+        var blend=a[9].AsString() switch {"lighter"=>SKBlendMode.Plus,"screen"=>SKBlendMode.Screen,"overlay"=>SKBlendMode.Overlay,"multiply"=>SKBlendMode.Multiply,"destination-in"=>SKBlendMode.DstIn,"destination-out"=>SKBlendMode.DstOut,"source-in"=>SKBlendMode.SrcIn,"copy"=>SKBlendMode.Src,_=>SKBlendMode.SrcOver};
         Fill.BlendMode=Stroke.BlendMode=blend;
         Stroke.StrokeCap=a[10].AsString() switch{"round"=>SKStrokeCap.Round,"square"=>SKStrokeCap.Square,_=>SKStrokeCap.Butt};
         Stroke.StrokeJoin=a[11].AsString() switch{"round"=>SKStrokeJoin.Round,"bevel"=>SKStrokeJoin.Bevel,_=>SKStrokeJoin.Miter};
+        smoothImages=a.Length<=17||a[17].AsBoolean();
         Effects(a);
     }
     private static void PaintStyle(SKPaint paint,string style,byte alpha,IReadOnlyDictionary<int,CanvasGradient> gradients)
@@ -49,6 +55,8 @@ public sealed partial class CanvasSurface : IDisposable
     }
     internal static SKColor Color(string value)
     {
+        if (value.Length == 9 && value[0] == '#' && uint.TryParse(value.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgba))
+            return new((byte)(rgba >> 24), (byte)(rgba >> 16), (byte)(rgba >> 8), (byte)rgba);
         if(SKColor.TryParse(value,out var result))return result;
         if(value.StartsWith("rgb",StringComparison.Ordinal))
         {
@@ -73,6 +81,6 @@ public sealed partial class CanvasSurface : IDisposable
     { var intervals=value.Split(',',StringSplitOptions.RemoveEmptyEntries).Select(v=>float.Parse(v,CultureInfo.InvariantCulture)).ToArray();Stroke.PathEffect=intervals.Length>0?SKPathEffect.CreateDash(intervals,0):null; }
     public byte[] Encode()
     {Canvas.Flush();using var image=SKImage.FromBitmap(bitmap);using var data=image.Encode(SKEncodedImageFormat.Png,100);return data.ToArray();}
-    public void Dispose(){canvas?.Dispose();bitmap?.Dispose();path.Dispose();Fill.Dispose();Stroke.Dispose();imageFilter?.Dispose();colorFilter?.Dispose();while(states.Count>0){var s=states.Pop();s.Fill.Dispose();s.Stroke.Dispose();}}
+    public void Dispose(){ReleaseRecording();canvas?.Dispose();bitmap?.Dispose();path.Dispose();Fill.Dispose();Stroke.Dispose();imageFilter?.Dispose();colorFilter?.Dispose();while(states.Count>0){var s=states.Pop();s.Fill.Dispose();s.Stroke.Dispose();}}
     [GeneratedRegex(@"[-+]?(?:\d*\.)?\d+")] private static partial Regex Numbers();
 }

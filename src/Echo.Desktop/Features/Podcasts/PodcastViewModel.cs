@@ -15,7 +15,8 @@ public sealed partial class PodcastViewModel : ObservableObject, IDisposable
     private readonly IPodcastLibrary? library;
     private readonly PodcastPlayback? playback;
     private readonly IPlaybackSession? session;
-    private readonly PodcastCoverLoader covers = new();
+    private readonly Echo.Desktop.Features.Artwork.RemoteCoverLoader covers = new(
+        maxBytes: 2 * 1024 * 1024, maxPixels: 4_000_000, edge: 256, timeoutSeconds: 8, automaticRedirects: false);
     private readonly List<PodcastShowRow> all = [];
     private readonly CancellationTokenSource lifetime = new();
     private int episodeGeneration;

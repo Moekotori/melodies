@@ -70,12 +70,12 @@ internal sealed class LyricsStagePainter : IDisposable
         atmosphere.Configure(current, palette, dark);
     }
 
-    public void Draw(DrawingContext dc, Rect bounds, Bitmap? artwork, double phase)
+    public void Draw(DrawingContext dc, Rect bounds, Bitmap? artwork, double phase, bool hideSongInfo = false, bool sourceOverridden = false)
     {
         if (style is null || bounds.Width < 1 || bounds.Height < 1) return;
         var layout = style.Layout;
-        dc.DrawRectangle(background, null, bounds);
-        if (artwork is not null && atmosphere.WashOpacity > 0 && layout != LyricsLayout.CoverRight)
+        if(!sourceOverridden)dc.DrawRectangle(background, null, bounds);
+        if (!sourceOverridden && artwork is not null && atmosphere.WashOpacity > 0 && layout != LyricsLayout.CoverRight)
         {
             wash.Prepare(artwork, bounds.Width, bounds.Height, atmosphere.Blur, atmosphere.Brightness, atmosphere.Saturate, atmosphere.Contrast);
             if (wash.Image is { } soft)
@@ -85,12 +85,15 @@ internal sealed class LyricsStagePainter : IDisposable
                     dc.DrawImage(soft, new Rect(soft.Size), dest);
             }
         }
-        if (layout != LyricsLayout.CoverRight)
+        if (!sourceOverridden && layout != LyricsLayout.CoverRight)
             foreach (var veil in atmosphere.Veils) dc.DrawRectangle(veil, null, bounds);
-        if (layout == LyricsLayout.Light) DrawDrift(dc, bounds, phase);
+        if (!sourceOverridden && layout == LyricsLayout.Light) DrawDrift(dc, bounds, phase);
         if (layout == LyricsLayout.Afterglow) return;
         switch (layout)
         {
+            case LyricsLayout.Reading:
+                if (!hideSongInfo) DrawCover(dc, artwork, LyricsStyleMetrics.ReadingCover(bounds.Width, bounds.Height), 14, CoverFrame.Plain);
+                break;
             case LyricsLayout.Light:
                 DrawCover(dc, artwork, LyricsStyleMetrics.LuminousCover(bounds.Width, bounds.Height), 2, CoverFrame.Plain);
                 break;
@@ -98,7 +101,8 @@ internal sealed class LyricsStagePainter : IDisposable
                 DrawCover(dc, artwork, LyricsStyleMetrics.AfterglowCover(bounds.Width, bounds.Height), 12, CoverFrame.Rim);
                 break;
             case LyricsLayout.CoverRight:
-                DrawCoverStage(dc, bounds, artwork);
+                if(!sourceOverridden)DrawCoverStage(dc, bounds, artwork);
+                else if(artwork is not null&&LyricsStyleMetrics.IsPortrait(bounds.Width,bounds.Height))DrawCover(dc,artwork,LyricsStyleMetrics.PortraitCover(bounds.Width),8,CoverFrame.Plain);
                 break;
             case LyricsLayout.Vinyl:
                 if (bounds.Width > 900)
@@ -116,7 +120,7 @@ internal sealed class LyricsStagePainter : IDisposable
                 DrawPoster(dc, bounds);
                 break;
             case LyricsLayout.Slices:
-                DrawSlices(dc, bounds, artwork);
+                if(!sourceOverridden)DrawSlices(dc, bounds, artwork);
                 break;
             case LyricsLayout.Editorial:
                 if (bounds.Width >= 780)
@@ -178,7 +182,13 @@ internal sealed class LyricsStagePainter : IDisposable
     };
     private void DrawCoverStage(DrawingContext dc, Rect bounds, Bitmap? artwork)
     {
-        if (artwork is null || bounds.Width < 780) return;
+        if (artwork is null) return;
+        if (LyricsStyleMetrics.IsPortrait(bounds.Width, bounds.Height))
+        {
+            DrawCover(dc, artwork, LyricsStyleMetrics.PortraitCover(bounds.Width), 8, CoverFrame.Plain);
+            return;
+        }
+        if (bounds.Width < 780) return;
         wash.Prepare(artwork, bounds.Width, bounds.Height, atmosphere.Blur, atmosphere.Brightness, atmosphere.Saturate, atmosphere.Contrast);
         if (wash.Image is { } field)
             using (dc.PushOpacity(atmosphere.WashOpacity))

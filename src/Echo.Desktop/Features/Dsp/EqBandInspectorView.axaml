@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.EqBandInspectorView" x:DataType="local:EqBandViewModel">
-  <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,10,0,2">
+  <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,18,0,6">
     <Grid Name="InspectorLayout" ColumnDefinitions="132,*,*,*,*" ColumnSpacing="18" RowSpacing="10">
       <StackPanel Name="BandIdentity" Spacing="6" VerticalAlignment="Center">
         <StackPanel Orientation="Horizontal" Spacing="6">
@@ -9,19 +9,19 @@
         <CheckBox Content="启用" IsChecked="{Binding Enabled, Mode=TwoWay}" FontSize="12" />
       </StackPanel>
       <StackPanel Name="FrequencyField" Grid.Column="1" Spacing="3">
-        <TextBlock Text="频率 / Hz" FontSize="11" Classes="muted" />
-        <NumericUpDown Name="BandFrequency" Classes="dsp-value" Minimum="{Binding FrequencyMinimum}" Maximum="20000" Increment="1" Value="{Binding FrequencyHz, Mode=TwoWay}" FormatString="0.#" ShowButtonSpinner="False" />
+        <TextBlock Text="频率 / Hz" FontSize="12" Classes="muted" />
+        <NumericUpDown Name="BandFrequency" Classes="dsp-value dsp-band-value" Minimum="{Binding FrequencyMinimum}" Maximum="20000" Increment="1" Value="{Binding FrequencyHz, Mode=TwoWay}" FormatString="{Binding FrequencyFormat}" ShowButtonSpinner="False" />
       </StackPanel>
       <StackPanel Name="GainField" Grid.Column="2" Spacing="3">
-        <TextBlock Text="增益 / dB" FontSize="11" Classes="muted" />
-        <NumericUpDown Name="BandGain" Classes="dsp-value" Minimum="{Binding GainMinimum}" Maximum="{Binding GainMaximum}" Increment="0.1" Value="{Binding GainDb, Mode=TwoWay}" IsEnabled="{Binding IsGainEditable}" FormatString="0.0" ShowButtonSpinner="False" />
+        <TextBlock Text="增益 / dB" FontSize="12" Classes="muted" />
+        <NumericUpDown Name="BandGain" Classes="dsp-value dsp-band-value" Minimum="{Binding GainMinimum}" Maximum="{Binding GainMaximum}" Increment="0.1" Value="{Binding GainDb, Mode=TwoWay}" IsEnabled="{Binding IsGainEditable}" FormatString="{Binding GainFormat}" ShowButtonSpinner="False" />
       </StackPanel>
       <StackPanel Name="QField" Grid.Column="3" Spacing="3">
-        <TextBlock Text="Q 值" FontSize="11" Classes="muted" />
-        <NumericUpDown Name="BandQ" Classes="dsp-value" Minimum="{Binding QMinimum}" Maximum="{Binding QMaximum}" Increment="0.1" Value="{Binding Q, Mode=TwoWay}" FormatString="0.###" ShowButtonSpinner="False" />
+        <TextBlock Text="Q 值" FontSize="12" Classes="muted" />
+        <NumericUpDown Name="BandQ" Classes="dsp-value dsp-band-value" Minimum="{Binding QMinimum}" Maximum="{Binding QMaximum}" Increment="0.1" Value="{Binding Q, Mode=TwoWay}" FormatString="{Binding QualityFormat}" ShowButtonSpinner="False" />
       </StackPanel>
       <StackPanel Name="FilterField" Grid.Column="4" Spacing="3">
-        <TextBlock Text="滤波类型" FontSize="11" Classes="muted" />
+        <TextBlock Text="滤波类型" FontSize="12" Classes="muted" />
         <ComboBox ItemsSource="{x:Static local:EqFilters.All}" SelectedItem="{Binding Filter, Mode=TwoWay}" HorizontalAlignment="Stretch" MinHeight="32">
           <ComboBox.ItemTemplate>
             <DataTemplate x:DataType="local:DspChoice">

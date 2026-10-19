@@ -14,6 +14,9 @@ public sealed partial class EqBandViewModel(int index, double frequency, double 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(QMaximum)), NotifyPropertyChangedFor(nameof(IsGainEditable)), NotifyPropertyChangedFor(nameof(SupportsDynamic)), NotifyPropertyChangedFor(nameof(DynamicActive))]
     private DspChoice filter = EqFilters.All.FirstOrDefault(x => x.Key == filter) ?? EqFilters.All[0];
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsShaped))] private bool enabled = enabled;
+    public string FrequencyFormat => correction ? "G7" : "0.#";
+    public string GainFormat => correction ? "G7" : "0.0";
+    public string QualityFormat => correction ? "G7" : "0.###";
     public double FrequencyMinimum => correction ? 1 : 20;
     public double GainMinimum => correction ? -60 : -24;
     public double GainMaximum => correction ? 30 : 12;

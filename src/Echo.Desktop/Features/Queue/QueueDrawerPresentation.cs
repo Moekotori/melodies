@@ -3,7 +3,7 @@ namespace Echo.Desktop.Features.Queue;
 // Drawer projection reuses bounded row DTOs; clocks never rebuild this list.
 public sealed partial class QueueViewModel
 {
-    private IReadOnlyList<QueueRowViewModel> drawerRows = [];
+    private readonly System.Collections.ObjectModel.ObservableCollection<QueueRowViewModel> drawerRows = [];
     public IReadOnlyList<QueueRowViewModel> DrawerRows => drawerRows;
     public bool IsDrawerEmpty => drawerRows.Count == 0;
     public string PendingCountText => Text.Format("queue.drawer.pending", PendingCount);
@@ -28,9 +28,7 @@ public sealed partial class QueueViewModel
     {
         get
         {
-            for (var i = 0; i < state.Items.Count; i++)
-                if (state.Items[i].ItemId == state.CurrentItemId) return i;
-            return -1;
+            return currentIndex;
         }
     }
     private int PendingCount
@@ -47,11 +45,12 @@ public sealed partial class QueueViewModel
     private void RefreshDrawerRows()
     {
         var index = CurrentIndex;
-        drawerRows = !presentationActive ? []
+        QueueRowViewModel[] next = !presentationActive ? []
             : state.Mode == Echo.Playback.QueuePlaybackMode.Shuffle
                 ? Rows.Where(row => !row.IsCurrent).ToArray()
                 : Rows.Where(row => !row.IsCurrent && row.Index > index).ToArray();
-        foreach (var name in new[] { nameof(DrawerRows), nameof(IsDrawerEmpty), nameof(PendingCountText),
+        if (Reconcile(drawerRows, next)) OnPropertyChanged(nameof(DrawerRows));
+        foreach (var name in new[] { nameof(IsDrawerEmpty), nameof(PendingCountText),
             nameof(CurrentSourceText), nameof(DrawerEmptyTitle), nameof(DrawerEmptyHint), nameof(ModeLabel), nameof(ModeGlyph) })
             OnPropertyChanged(name);
     }

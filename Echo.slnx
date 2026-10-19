@@ -22,6 +22,8 @@
     <Project Path="src/Echo.Desktop/Echo.Desktop.csproj" />
     <Project Path="src/Echo.Cli/Echo.Cli.csproj" />
     <Project Path="src/Modules/Echo.AlbumInformation/Echo.AlbumInformation.csproj" />
+    <Project Path="src/Modules/Echo.Dsp/Echo.Dsp.csproj" />
+    <Project Path="src/Modules/Echo.SignalDesign/Echo.SignalDesign.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Echo.Library.Smoke/Echo.Library.Smoke.csproj" />

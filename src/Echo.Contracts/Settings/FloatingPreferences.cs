@@ -21,4 +21,4 @@ public sealed record FloatingPreferences(bool MiniEnabled = false, bool LyricsEn
     string LowerPlayedTop = "#FFFFFF", string LowerPlayedBottom = "#FFFFFF",
     string LowerUnplayedTop = "#FFFFFF", string LowerUnplayedBottom = "#CCCCCC",
     string LowerOutlinePlayed = "#111827", string LowerOutlineUnplayed = "#111827",
-    string FontFilePath = "");
+    string FontFilePath = "", bool WordHighlight = true);

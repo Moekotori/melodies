@@ -1,0 +1,617 @@
+[
+  {
+    "scene": "blossom",
+    "source": "src/shared/constants/blossomPreferences.ts",
+    "sha256": "b6baab4768ba46a201703daaa90e1775f7bffba79dc26759c77c173ad04d7556"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomMath.ts",
+    "sha256": "8206a9c9b0346d67c80a04bd146f940bd6fa2690ca88533087d84d6d2dd10d87"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomPalette.ts",
+    "sha256": "66f2eec25b6bde457daf6d708c0435b27dceacf246861a92b4da7a40ed32c899"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomLight.ts",
+    "sha256": "499f6ab80e1071f6266a62ad6b10c12a6e2fedcc8d48f293bb5653f9d95d3576"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomTextMeasure.ts",
+    "sha256": "46101fd57ea6f48e1c264dd93087ce54fbc8b4c94656954f8b931a4691ab5f7a"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomBoxes.ts",
+    "sha256": "dd8db46f89992d9e091bfa72beb1f69b63a91e9f9cd4d3d4d55186f7936b09f1"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomLayouts.ts",
+    "sha256": "5fd4227fc6ea0312916357396e49af6dafa367e360eb0f4f5247f21263c29e77"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomIcons.ts",
+    "sha256": "9a6516e59056d203ec236d7c5266afb6c670279dde741abb0d1a322c35e13115"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomSpecial.ts",
+    "sha256": "4e1438ccc6bb6f2c5955750e3583f4162cc884afc57f2f859d07e1406af744f9"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomTransition.ts",
+    "sha256": "9ce9febbfcba89e5a04fcd062a13014484e3c7ab4181ce110c6ddebaa258eebf"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomShot.ts",
+    "sha256": "6680b3cc7d6c2581f043bdf34d77a7d8fc2dcd22335fbabde75d343ae9bfe8ae"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomClassic.ts",
+    "sha256": "e1178f4e2f77fa317953c88d6e6b8a5f431225e927bdefe00fa6015c5e494289"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomSeasonScenes.ts",
+    "sha256": "04deff7a2a6adb737a4b0586b1d2788794fb227539a1ce5218f63a83b10ed058"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomSkyScenes.ts",
+    "sha256": "395cd465e5d54db1e6136c878037052c44e982d318c539d10a6ff8a785804e2c"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomSigns.ts",
+    "sha256": "5f0e1e299bcfcde594d64ebe93b2f3e3b3ea4934d1ac8497751622c9afea9dbd"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomBackdrop.ts",
+    "sha256": "f1dd21aaf64178ffa8c020c3f45414598c09e3a296a2467c5dd3e185e5c86f02"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomDecor.ts",
+    "sha256": "90d0f475f220cbe5a28dab9923ece1e8a8b9431768ded3d681889458c6f925e4"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomFurniture.ts",
+    "sha256": "58483312bfd57aa0f05566fe9f2942ff34a62de06fb158f35e6cb51e41e95ca7"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomGlyphs.ts",
+    "sha256": "b6b821e85004254b3b495a6c653f5a01f3bb838a3855a79c0a0bb1a511c9c91e"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/shared/lyrics/lyricsDisplayTiming.ts",
+    "sha256": "4f122cb48fff31322daf174426383b10009b728a7e932b310662c2cc40f21db2"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/shared/lyrics/kanaToRomaji.ts",
+    "sha256": "dff2737462debf51d3c3956858f286f8cf931c5e321ca263de5b23cf86a0d43f"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/shared/lyrics/lyricsReadingAlignment.ts",
+    "sha256": "39cc94525959bdfd4e0874a9f2ce8736e66aae250d0909ecb73292f576a77c5d"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/shared/lyrics/lyricsTimingLanguage.ts",
+    "sha256": "c7411416dea0787931ebf0b5eecc9d4148107aa8aedc3e16697be1cbcc82b3d5"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/shared/lyrics/lyricsWordTimingEstimator.ts",
+    "sha256": "34de3bbd69678740e20bdf552c3621559df529baf249ab0afe136309eabcced6"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/lyricsWordTimingEstimator.ts",
+    "sha256": "b008ee81fa484079338f66d5e4015a4ad8a9595d2c4a363bacd10a2d14dc650c"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/jizura/jizuraWordTiming.ts",
+    "sha256": "dffbf9224dc1f4ca6aa041e7abea4f64ce74f62ac186e327a27a06f5e1b2d52b"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomTypes.ts",
+    "sha256": "de8d437ef6e006697e86e7aded4f2795e21dd556b4ee9d43ca43c6e895b86a27"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomWordGroups.ts",
+    "sha256": "bee00f3d63a24b1ef807dba5ae65300ed8fb66d64040630bd757b996a153fb82"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomPlan.ts",
+    "sha256": "ecb5ddbdd9482c5c5205be4e41d517fe310de3f217263e7fac264187f75a106f"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomOverlayText.ts",
+    "sha256": "5ebff16ea56685f94d2cff5a00e848fd43f6ad6fcc8e14e99d34cd9633ec3cc8"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomBackdropLayer.ts",
+    "sha256": "d2712680368d4e145ffae90cbec8922186811d327297c2688c940ead4bb8b8df"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomTypeWall.ts",
+    "sha256": "b5fbfddea17e67f72fcd9ef249bf8d09066b499ddf7ef140b687958c7de00416"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomScenes.ts",
+    "sha256": "daad57535c82b5679101bf4820e989132da08988f3c633fd0faf29e8cb8b2784"
+  },
+  {
+    "scene": "blossom",
+    "source": "src/renderer/components/lyrics/blossom/blossomEngine.ts",
+    "sha256": "23c2151941076252a885f78047ae44a81cf36c60bb6f2e8dd4835cbfab97a89f"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/shared/constants/cassettePreferences.ts",
+    "sha256": "776d1e4f2b827ce8faad6f1027a1843dc3ca99a5825eb1b15338bfcfe94b72bc"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/lyricsPlaybackClock.ts",
+    "sha256": "c59b4893b23d76bbc8184825eb7d64ad0a7542a903954288451beee029d09735"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteAssets.ts",
+    "sha256": "9d11846fd25a4b6003042a7fc3fcdbc89a4c6cfed465fadab998eb40aa4b5bad"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteGl.ts",
+    "sha256": "91f16f20cbb25f8d2868c80232f7cb8a13517e67514b8a22cd6edcffabe65cc2"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteLyricsTimeline.ts",
+    "sha256": "89172c6cef7dae5fc2f5b1c8a3ec7c00d6efcc0856b972d2c8e39dec63d5d392"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteStageLayout.ts",
+    "sha256": "1a7298773347a1286138cde1b38c6cb7c8f28b87e3e3c4bea76b823f0cdea65f"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteGlyphMotion.ts",
+    "sha256": "a931c3721ac6019197e3eced52425568226ce9b84f2bb32cb90d246fef2b7216"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteLineRaster.ts",
+    "sha256": "a84a6fd27377cda05b42feba3d6fe4ffd97d22e2f365edf1d2fdd2b46e4e8d95"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteParticles.ts",
+    "sha256": "31cde153afc7bd3b91f4e6f90f524d1494de0a249e6d6d8d3ff89484e92d4c45"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteTimeOfDay.ts",
+    "sha256": "fdad34d38e6e2e1222ece4d515e61c8358a79446f94afd55873c8b007fc529a4"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteScenePass.ts",
+    "sha256": "8eb5e9eda52519e53c69a2b46a3268ac674a566de6974c16b5f6fa9ce9cbfb07"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteShaders.ts",
+    "sha256": "7efff10b2ddffd2c4494b5a62e1710f4812e9635d781e5270f63c9643b691b92"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteTitleRaster.ts",
+    "sha256": "d421e92d883fd95622f1c0f53da237e98d46a4b8db8893b7eea1564202bcd4b6"
+  },
+  {
+    "scene": "cassette",
+    "source": "src/renderer/components/lyrics/cassette/cassetteEngine.ts",
+    "sha256": "e6ad444b6f9ce36d0d642ee043c342a878963888fa1a2f805269ce151e8f8f18"
+  },
+  {
+    "scene": "background",
+    "source": "src/shared/constants/lyricsShaderScenes.ts",
+    "sha256": "437b5f741fd10fc0647f103f974b8caad74a09a6d1fe9201949f239133997ef9"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/flowingLightModel.ts",
+    "sha256": "d6aef44eb7b2c5e3799fbf15608a3be3a03b80006c782f78a0162fe7d9c50df9"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/flowingLightEnvelope.ts",
+    "sha256": "391f689fd001be825e44308cec2c42d51396f54b47c4f10e4b120bf2fd9614c9"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/coverSceneInteraction.ts",
+    "sha256": "92d4d45d15f724012bf555d2b84d1a21564481928dad473d843446718d42d085"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/flatSceneHelpers.ts",
+    "sha256": "b4540a1f5ca1c9c6f9326cb779862197871e2159bae5397eec6367c37cfb0e10"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/bfsScene.ts",
+    "sha256": "04be65b64075991ac78021693155de62b312c5bcc574a4e00f4ba981ebc5ca62"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/coverScenes.ts",
+    "sha256": "31b761d7fea96521009e1468891ea29b09612b4108185bc43a8ec6ff0dabd395"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/sakuraScene.ts",
+    "sha256": "ee879c45e9b0989353b06313245f54d26fb5f171b7f65fc5a5ce7bb0479b799f"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/sceneShaders.ts",
+    "sha256": "8b033902c69116e03edac3d75d0636d7868602489b04cbab5748aff618a6f38a"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/shaderSceneAmbience.ts",
+    "sha256": "67dfc3e2fd89986c0da468029168516e4f5150de3ce148f0d44175304461b6c4"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/shaderSceneRenderer.ts",
+    "sha256": "f616e3cb54e9852fc516977be5bfa71cae70a6996c8d153ba1cabcf951b524d5"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/shaderScenePalettes.ts",
+    "sha256": "d78dca73e87753070cf5a0218603b3eddf5c8918817101aaa933ce98781c1bd9"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/flowingLightRenderer.ts",
+    "sha256": "2309766b1ad911f9d9b5ea80a845ad804462860b78c3be2cd314ffb82af6ae1e"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/lyricsBackdropPalette.ts",
+    "sha256": "e56faabee0c3764e1ab52318519f4b6093f1529ff2ebbd88e53d05aacd7c80b5"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/cover-flow/coverFlowColor.ts",
+    "sha256": "caa604cb040cd1f487525f43335228ec6a6f21e081ea9113ff7f0482b4057ea8"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/cover-flow/coverFlowShader.ts",
+    "sha256": "5b29866cdd71c2d3e22d68471f7c47327af273c03f11f9b3ba39f940b20a7931"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/cover-flow/coverFlowRenderer.ts",
+    "sha256": "5c0e6d4468b0942affe5d04117565e17a80c2543b7d1a08de78a8789712d7873"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/cover-flow/coverFlowPalette.ts",
+    "sha256": "2d762d7c0d4ab3c718043a7e7f9c34f6ce4b1d49b35f18610d629663ee5ef4b0"
+  },
+  {
+    "scene": "background",
+    "source": "src/shared/constants/geometricAmbienceSettings.ts",
+    "sha256": "15d30826b8f4cfbc19f6b3cdddb783afaeacee0886be7c4fd02e29fcd9b94309"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/geometricAmbienceLayout.ts",
+    "sha256": "953d6e0fce1351e521dd4c50566041b609f8a47da10f5d46b15842bd49ca7055"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/geometricAmbienceRenderer.ts",
+    "sha256": "fdf5388bff2dbfbda293017796896e409395b01db526a1d77238705e8b345504"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/aurora.webp",
+    "sha256": "23e626c520e7e2a1876f22aebd2fc1fcbd5f28d11eee9753d2e719f61867e934"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/birds.webp",
+    "sha256": "7c33957ce1cd7e453298151da15dc4a607f65de9de7d8d1851b9c3376544e695"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/city-day.webp",
+    "sha256": "7ee3594c82175ad14a7f9556da893e520af9371e3223c31ef5b9f45544e66412"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/city-night.webp",
+    "sha256": "d6fd72a6171342bfd257ea5c19499559702048b0f70a5df1f9565d9ec3ba575a"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/city-sunset.webp",
+    "sha256": "ed3811f257020964d4e446e6f4230bc8df4c4873cb6dff5772f884d30b089d6d"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/clouds.webp",
+    "sha256": "5e857e4790e83eb3f5f113e48cccdfdee784cc8cf622c239ad6e51775054f709"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/flare-dot.webp",
+    "sha256": "ba0baec7bd959946f3a4d36c96d5063c66c3b70637b374c0fdb5f012603a8c10"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/flare-halo.webp",
+    "sha256": "f40cb3e969f06192e53ff346e8221040707a917fae7428203249f93e9bc39e28"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/flare-ring.webp",
+    "sha256": "e881d26abce9da72d8558d3a54553cc00583a01b9fcb8cec47407c3d98a02ed6"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/label-day.webp",
+    "sha256": "d9b2015aab47cd4f62b4a9feef767cae7892451916712684d8f8f1484ce04cf0"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/label-night.webp",
+    "sha256": "a6566a8374b4cffa1ac11baa1278bf88ba65735b25ef29cc5e450e800a2fd734"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/label-sunset.webp",
+    "sha256": "93cc60e25450aa9370fe038052cc1b53cd6d87b1199a4346972cef5c4b3e5762"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/moon.webp",
+    "sha256": "b35151a750271af1e464a37620c94cfa9c0ca8c9c1bd2403c5c66982d27ec0cf"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/paper-plane.webp",
+    "sha256": "8a94e1bde806832cf5bb4e62d14b5d254f3dc1cf426b1e0d1f23c6a068f461e2"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/reel-left-day.webp",
+    "sha256": "f274a4842f844faf594b515e0cbda96e515e540515fb4bdd9504ee3435d43cff"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/reel-left-night.webp",
+    "sha256": "9effaabaadd892cd35eca0f3ac2bc9baca4ca8f3582cd5c6c7acc8a9acada24a"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/reel-left-sunset.webp",
+    "sha256": "2eeade2929d3daf73691c5e40354a61902c374d8ff36ae5e1c6db63949e7c40b"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/reel-right-day.webp",
+    "sha256": "d3846bd65719aed9f5a3479d959571f8b6ebb886b1c8e7a6c8e6397d5dda32d8"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/reel-right-night.webp",
+    "sha256": "3f89a37fe808c30897a4ebe0aae58cee577606f2e2de577e3a799bd907411994"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/reel-right-sunset.webp",
+    "sha256": "43da5c41f1b3f815cea829e0cd5976202a8868f26e96606c25bd4532b38d30cd"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/sky-day.webp",
+    "sha256": "5660ac05a93747910f07aad01f036a494661931da7caa3d4d0c96e0bad7143c4"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/sky-night.webp",
+    "sha256": "8e1d415b7c3c6e5cf568fff63a23ec524635d10d8397e193ae56990c5220ec13"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/sky-sunset.webp",
+    "sha256": "f4a8ab188cc60aaf8842d9a286a391c74887db9659e8a8efe82abde2e338476e"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/star-cross.webp",
+    "sha256": "c86522600a5696a9cf7d031147a264e668d2a27371dfd41131973a0ab7377eb3"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/star-glow.webp",
+    "sha256": "2b5a98dfdc3c4c7f4909a589d7fc93855e8faaecf4bd1cad0682c371b97beed9"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/street-light.webp",
+    "sha256": "a7320f79eece697f5fea5fd4f4a97769301a049a5cd00e65066f3b47c072e94d"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/tape-day.webp",
+    "sha256": "02701154dfa29101158b911c9b8e41a6efb9977a0c1ae489750696f4e592027b"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/tape-night.webp",
+    "sha256": "755dbe645b3ce86c26a70b07076ebcfddb1d5439f3c110d16691115e3ad68ad0"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/tape-sunset.webp",
+    "sha256": "e56dabda4dec9e610f5e223d1342b32e1a940060f96e71b3f34dc3c1c0a4245e"
+  },
+  {
+    "scene": "cassette-art",
+    "source": "src/renderer/assets/lyrics-cassette/water-normal.webp",
+    "sha256": "bbece658ce111ea0bc662b4a77dd24cf16a4080a60f465ba8d549e4be2f25211"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/geometric-ambience/ambient.png",
+    "sha256": "667a476c70b3e1a659f86f229544e06814e76f2d0e85ba2b9db7dd316c051177"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/geometric-ambience/geometry.png",
+    "sha256": "1deba5ec801b22f52a7fed85f39b48c12dd00ed6843dfadf1a6a044d2254f539"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/geometric-ambience/README.md",
+    "sha256": "b60438e532e1793ef2b2627c9214024a4d795f9ed283665d99fc16b699f3c43d"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/README.md",
+    "sha256": "0b5d5cadd7f2293b61efe49164e8fc1522263704c946921083f5b7fc236ca7bf"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/auto.webp",
+    "sha256": "2dc4b3f9c9cc586286ae44b6426f5a5e46f8fc7f2432af5dc176674e12854d85"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/bfs.webp",
+    "sha256": "10f3de011e6ddb888f1e345eaaa40efe511c925afa1963be8be3cb1a909af121"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/contour.webp",
+    "sha256": "49a2432d6cc1439c25017384c22addfeac20bd79fbac6ed374d79c1ab0b8b905"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/cover.webp",
+    "sha256": "2dc4b3f9c9cc586286ae44b6426f5a5e46f8fc7f2432af5dc176674e12854d85"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverFlow.webp",
+    "sha256": "df7b8fa598cdd6aa7d52d698143d18f52e394f175988419d51f5d14e7d43281d"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverFrost.webp",
+    "sha256": "e07ae0fb057d525cc0f99f111949aa980143a44240e451a3ddca737416c8f710"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverHolo.webp",
+    "sha256": "f0d6cc770089fe1955b80d7d64fe66e24380667975e53679955c150e24bde6be"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverLiquid.webp",
+    "sha256": "c801f3f4ba36cdaf2afec74e0c708a1e0879384c954e5d7e0ac31da07ba9616b"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverNeon.webp",
+    "sha256": "56bdd41da5c8d7537374a590a543ab4f9f447b968379212a14d0d9db9c95170c"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverPond.webp",
+    "sha256": "0b7e127530916ac014cbdb888f3db640412d79b18f1273ac82031cc9ffe853e5"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverPrism.webp",
+    "sha256": "fe3096753875b41059afbe2f182ac69f77ff2d233a540de65f86d99fd54b8fac"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverVinyl.webp",
+    "sha256": "6372606d33d3febabe5839248e4635107db99e70e253483d84196b0d11597325"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/flowingLight.webp",
+    "sha256": "9de227e7dbc48e81af89b480358b1fdb3aaa232e4ef6881bfed4d77cd385be86"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/geometricAmbience.webp",
+    "sha256": "247b0863a28889ef468b3f009f6e41f12adca209ed7076fd5a08bc689a2af00e"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/halftone.webp",
+    "sha256": "280d72f78c2331e680659500b774b33631377d93b8b36f5d8a7d0c227adfa733"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/liquidLight.webp",
+    "sha256": "4167688185abe8bbdcbe5017986473d8365c58aa32a0261cad165795d7ea0f4e"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/pulseRidge.webp",
+    "sha256": "a65b82552922afe6ab765118194e1fb0ac5a206b8416b645a66f51e235640c33"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/sakura.webp",
+    "sha256": "ba85f4f69f59f1a66f876e47249e9ef178a64ece2d64ea358ef911214c63450c"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/theme.webp",
+    "sha256": "7ff4713da3aa3e3161a671c20c7abe378ef99173084f371b2b04a718205ee8fe"
+  },
+  {
+    "scene": "cassette-shaders",
+    "source": "src/renderer/components/lyrics/cassette/cassetteShaders.ts",
+    "sha256": "7efff10b2ddffd2c4494b5a62e1710f4812e9635d781e5270f63c9643b691b92"
+  }
+]

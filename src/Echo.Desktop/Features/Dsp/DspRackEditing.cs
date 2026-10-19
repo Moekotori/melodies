@@ -10,7 +10,7 @@ public sealed partial class DspViewModel
 {
     private JsonObject? rackWorkspace;
     [ObservableProperty] private Control? rackEditor;
-    public IReadOnlyList<DspChoice> RackFilterKinds { get; } = [new("equalizer", "参数 EQ"), new("headphoneCorrection", "耳机校正"), new("procedural", "运算处理"), new("crossfeed", "交叉馈送")];
+    public IReadOnlyList<DspChoice> RackFilterKinds { get; } = [new("equalizer", "参数 EQ"), new("headphoneCorrection", "耳机校正"), new("procedural", "运算处理"), new("crossfeed", "交叉馈送"), new("convolution", "卷积")];
     [ObservableProperty] private DspChoice rackFilterKind = new("equalizer", "参数 EQ");
     public bool CanRemoveRackFilter => CanEdit && SelectedRack is { } row && FindRackFilter(row.Id) is not null;
 
@@ -47,7 +47,7 @@ public sealed partial class DspViewModel
 
     private void OpenRackSelection(DspRackRow? row)
     {
-        RackEditor = null; OnPropertyChanged(nameof(CanRemoveRackFilter));
+        RackEditor = null; OnPropertyChanged(nameof(CanRemoveRackFilter)); OnPropertyChanged(nameof(IsConvolutionRackFilter));
         if (row is null || row.Pinned || rackWorkspace is null) return;
         var state = FindRackFilter(row.Id) ?? (row.Id == "procedural" ? rackWorkspace["procedural"] as JsonObject : null);
         if (state is not null) RackEditor = DspGraphEditor.Create(state, RackEdited);
@@ -61,6 +61,7 @@ public sealed partial class DspViewModel
     {
         if (!CanEdit || !IsRack || rackWorkspace?["filters"] is not JsonArray filters) return;
         if (filters.Count >= DspGraphTemplates.MaximumInstances) { Message = "最多添加 8 个滤波器实例。"; return; }
+        if (RackFilterKind.Key == "convolution" && filters.OfType<JsonObject>().Count(x => x["kind"]?.ToString() == "convolution") >= 2) { Message = "最多添加 2 个卷积实例。"; return; }
         InsertRackFilter(DspGraphTemplates.Filter(RackFilterKind.Key), filters);
     }
 

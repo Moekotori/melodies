@@ -1,32 +1,21 @@
-namespace Echo.Desktop.Features.Dsp;
+using System.Text.Json.Nodes;
+namespace Echo.Dsp;
 
-public sealed partial class DspViewModel
+// Explicit approximation for sampled response data; author PEQ parameters use EqPresetImport directly.
+internal static class CurveImport
 {
-    public void ImportHeadphoneCurve(string path)
+    public static JsonObject Read(string text)
     {
-        if (!CanEdit || !IsHeadphone || Bands.Count == 0) return;
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path) || new FileInfo(path).Length > 1024 * 1024)
-        { Message = "校正曲线需要是 1 MB 以内的 CSV 或文本。"; return; }
-        string[] lines;
-        try { lines = File.ReadAllLines(path); }
-        catch (Exception e) { Message = "读不了这条曲线：" + e.Message; return; }
-        var points = ReadCurve(lines);
-        if (points.Count < 8) { Message = "曲线至少要有 8 个频率点。列可以是 frequency,gain，或 frequency,raw。"; return; }
-        projecting = true;
-        try
+        var points = ReadCurve(text.Split('\n'));
+        if (points.Count < 8) throw new IOException("频响曲线至少需要 8 个频率点（frequency,gain 或 frequency,raw）。");
+        var bands = new JsonArray();
+        for (var i = 0; i < 31; i++)
         {
-            foreach (var band in Bands)
-            {
-                band.Filter = EqFilters.All[0]; band.Q = 1.2; band.Enabled = true;
-                band.GainDb = Math.Round(Math.Clamp(Interpolate(points, band.FrequencyHz), -12, 12), 1);
-            }
-            Enabled = true;
+            var hz = 20 * Math.Pow(1000, i / 30d);
+            bands.Add((JsonNode)new JsonObject { ["enabled"] = true, ["frequencyHz"] = hz, ["gainDb"] = Math.Round(Math.Clamp(Interpolate(points, hz), -12, 12), 1), ["q"] = 1.2, ["filterType"] = "peaking" });
         }
-        finally { projecting = false; }
-        IsDirty = true; NoteEdit();
-        Message = "曲线已铺到独立耳机校正链，可继续调整频段与前级。应用后记入撤销。";
+        return new JsonObject { ["preampDb"] = 0, ["bands"] = bands, ["attribution"] = new JsonObject { ["modifications"] = "Sampled response approximated using 31 logarithmic PEQ bands; gain limited to +/-12 dB. Not an original author parametric preset." } };
     }
-
     private static List<(double Hz, double Gain)> ReadCurve(string[] lines)
     {
         var invert = lines.Take(4).Any(line => line.Contains("raw", StringComparison.OrdinalIgnoreCase));

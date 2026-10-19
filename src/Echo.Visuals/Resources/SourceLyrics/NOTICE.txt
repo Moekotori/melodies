@@ -1,0 +1,5 @@
+Scene engines adapted from the user-owned Electron ECHO (echosteam), source a44881fcc.
+Original scene asset provenance is retained in docs/LYRICS_CASSETTE_SOURCE.md.
+Cassette Tape (Day/Night) Wallpaper Engine workshop 2927107167; creator Steam 76561198210294039.
+Additional workshop assets: 2098390419, 2109397546, 2927098465, 2511104820, 2562725207, 2183623986, 2909021522.
+This notice records provenance and does not grant a new third-party license.

@@ -134,6 +134,12 @@ public sealed class AlbumArtworkCache : IAsyncDisposable
         private AlbumArtworkCache? _owner = owner;
         public Bitmap? Image { get; } = image;
         public ArtworkColorSample? Colors { get; } = colors;
+        // Retain on the UI thread before handing immutable pixels to a worker.
+        internal Lease Retain()
+        {
+            var current = _owner ?? throw new ObjectDisposedException(nameof(Lease));
+            return current.Rent(path, current._cache[path]);
+        }
         public void Dispose() => Interlocked.Exchange(ref _owner, null)?.Release(path);
     }
 }

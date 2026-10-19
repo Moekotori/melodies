@@ -8,6 +8,7 @@ public sealed class CanvasPool : IDisposable
 {
     private const long MaxPixels = 16 * 1024 * 1024;
     private readonly Dictionary<int, CanvasSurface> surfaces = [];
+    private readonly CanvasFontCache fonts = new();
     private readonly Dictionary<int, CanvasGradient> gradients = [];
     private int next; private long pixels;
     public CanvasSurface Get(int id) => surfaces[id];
@@ -19,11 +20,13 @@ public sealed class CanvasPool : IDisposable
         if (op == "new")
         {
             if (surfaces.Count >= 1024) throw new InvalidOperationException("Afterglow canvas count exceeded.");
-            var surface = new CanvasSurface(); var key = ++next; surfaces.Add(key, surface); Resize(surface, 1, 1); return key;
+            var surface = new CanvasSurface(fonts); var key = ++next; surfaces.Add(key, surface); Resize(surface, 1, 1); return key;
         }
         var c = Get(id);
+        if (op is "fill" or "stroke" or "fillRect" or "strokeRect" or "fillText" or "strokeText" or "drawImage" or "pixels" or "pixelBytes") c.TouchPicture();
         switch (op)
         {
+            case "record": c.EnablePicture(); break;
             case "resize": Resize(c, (int)N(2), (int)N(3)); break;
             case "dispose": pixels-=(long)c.Width*c.Height;c.Dispose();surfaces.Remove(id);break;
             case "style": c.Configure(args, gradients); break;
@@ -48,13 +51,15 @@ public sealed class CanvasPool : IDisposable
             case "fill": c.Canvas.DrawPath(c.Path,c.Fill); break;
             case "stroke": c.Canvas.DrawPath(c.Path,c.Stroke); break;
             case "clip": c.Canvas.ClipPath(c.Path,SKClipOperation.Intersect,true); break;
-            case "fillRect": c.Canvas.DrawRect(Rect(N(2),N(3),N(4),N(5)),c.Fill); break;
+            case "fillRect": c.FillRectangle((float)N(2),(float)N(3),(float)N(4),(float)N(5)); break;
             case "strokeRect": c.Canvas.DrawRect(Rect(N(2),N(3),N(4),N(5)),c.Stroke); break;
-            case "clearRect": using (var paint = new SKPaint{BlendMode=SKBlendMode.Clear}) c.Canvas.DrawRect(Rect(N(2),N(3),N(4),N(5)),paint); break;
+            case "clearRect": c.Clear((float)N(2),(float)N(3),(float)N(4),(float)N(5)); break;
             case "fillText": c.Text(args[2].AsString(),(float)N(3),(float)N(4),false); break;
             case "strokeText": c.Text(args[2].AsString(),(float)N(3),(float)N(4),true); break;
             case "measure": return c.Measure(args[2].AsString());
+            case "measureMetrics": return c.MeasureMetrics(args[2].AsString());
             case "drawImage": c.Image(Get((int)N(2)), args); break;
+            case "pixelBytes": c.WritePixelBytes(args[2].AsString(),(int)N(3),(int)N(4),(int)N(5),(int)N(6));break;
             case "pixels": c.WritePixels(args[2].AsObject(),(int)N(3),(int)N(4),(int)N(5),(int)N(6));break;
             case "grain": c.Grain(); break;
             case "decompose": return GlyphDecomposer.Split(c,(int)N(2),Allocate,surface=>surfaces.First(pair=>ReferenceEquals(pair.Value,surface)).Key);
@@ -74,7 +79,7 @@ public sealed class CanvasPool : IDisposable
     }
     private void Resize(CanvasSurface c, int w, int h)
     {
-        w = Math.Clamp(w,1,4096); h = Math.Clamp(h,1,4096);
+        w = Math.Clamp(w,1,8192); h = Math.Clamp(h,1,8192);
         var cost = (long)w*h; var before = (long)c.Width*c.Height;
         if (pixels - before + cost > MaxPixels) throw new InvalidOperationException("Afterglow raster budget exceeded.");
         c.Resize(w,h); pixels = pixels - before + cost;
@@ -82,10 +87,17 @@ public sealed class CanvasPool : IDisposable
     private CanvasSurface Allocate(int width,int height)
     {
         if(surfaces.Count>=1024)throw new InvalidOperationException("Afterglow canvas count exceeded.");
-        var surface=new CanvasSurface();Resize(surface,width,height);surfaces.Add(++next,surface);return surface;
+        var surface=new CanvasSurface(fonts);Resize(surface,width,height);surfaces.Add(++next,surface);return surface;
+    }
+    internal int Import(SKBitmap bitmap)
+    {
+        if (bitmap.Width > 4096 || bitmap.Height > 4096) throw new InvalidDataException("Source scene image dimensions exceeded.");
+        var surface = Allocate(bitmap.Width, bitmap.Height);
+        surface.Canvas.DrawBitmap(bitmap, 0, 0);
+        return next;
     }
     internal static SKRect Rect(double x,double y,double w,double h) => SKRect.Create((float)x,(float)y,(float)w,(float)h);
     private static SKMatrix Matrix(double a,double b,double c,double d,double e,double f)
         => new((float)a,(float)c,(float)e,(float)b,(float)d,(float)f,0,0,1);
-    public void Dispose() { foreach(var c in surfaces.Values)c.Dispose(); foreach(var g in gradients.Values)g.Dispose();surfaces.Clear();gradients.Clear();pixels=0; }
+    public void Dispose() { foreach(var c in surfaces.Values)c.Dispose(); foreach(var g in gradients.Values)g.Dispose();surfaces.Clear();gradients.Clear();fonts.Dispose();pixels=0; }
 }

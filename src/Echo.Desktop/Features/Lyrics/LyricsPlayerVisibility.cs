@@ -17,7 +17,7 @@ internal sealed class LyricsPlayerVisibility(
     private bool disposed;
     public bool HasPendingChange => pending is not null;
     private bool Protected => transport.HasProtectedInteraction || externalInteraction();
-    private bool CanCompact => model.Appearance.PlayerCompact;
+    private bool CanCompact => model.Appearance.MiniPlayer && model.Appearance.PlayerCompact;
     private Rect ExpandedBounds => new(0, 0, transport.Bounds.Width, transport.Bounds.Height);
     private bool NearControls => pointer is { } point &&
         ExpandedBounds.Inflate(transport.Display == LyricsPlayerDisplay.Expanded ? 18 : 8).Contains(point);

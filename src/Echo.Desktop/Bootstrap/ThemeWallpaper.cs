@@ -16,7 +16,7 @@ using SkiaSharp;
 namespace Echo.Desktop.Bootstrap;
 
 // One latest-request worker, one video frame, one UI acknowledgement. Cancel before replacing media.
-internal sealed class ThemeWallpaper : IDisposable
+internal sealed partial class ThemeWallpaper : IDisposable
 {
     private sealed record Request(string Path, int Revision, CancellationToken Cancellation);
     private readonly ThemeViewModel _theme;
@@ -25,12 +25,12 @@ internal sealed class ThemeWallpaper : IDisposable
     private readonly IAppearanceMedia _decoder;
     private readonly Channel<Request> _requests = Channel.CreateBounded<Request>(new BoundedChannelOptions(1) { SingleReader = true, FullMode = BoundedChannelFullMode.DropOldest });
     private readonly CancellationTokenSource _stop = new();
-    private readonly object _stillGate = new();
     private readonly object _videoGate = new();
     private CancellationTokenSource? _active;
-    private CancellationTokenSource? _lookDelay;
-    private SKBitmap? _still;
-    private Bitmap? _neutral;
+    private WallpaperStillImage? _still;
+    private Bitmap? _neutral => _still?.Image;
+    private readonly Task _decodeTask;
+    private readonly Task _gradeTask;
     private Bitmap? _shown;
     private byte[]? _videoFrame;
     private int _videoW;
@@ -47,7 +47,10 @@ internal sealed class ThemeWallpaper : IDisposable
     public ThemeWallpaper(Window window, ThemeViewModel theme)
     {
         _theme = theme; _window = window; _view = window.FindControl<WallpaperViewport>("ThemeWallpaperLayer")!;
-        _decoder = new AppearanceMediaDecoder(AppearanceMediaPath.Resolve(), AppearanceMediaPath.AnalysisHost()); _ = Task.Run(DecodeLoop);
+        _decoder = new AppearanceMediaDecoder(AppearanceMediaPath.Resolve(), AppearanceMediaPath.AnalysisHost());
+        var token = _stop.Token;
+        _decodeTask = Task.Run(() => DecodeLoop(token));
+        _gradeTask = Task.Run(() => GradeLoop(token));
     }
     public void Apply(ThemePreferences p, ThemeTone tone, bool animationAllowed = true)
     {
@@ -67,101 +70,42 @@ internal sealed class ThemeWallpaper : IDisposable
         _theme.WallpaperStatus = path.Length == 0 ? (a.WallpaperEnabled ? "选择本地图片或视频，立即应用到整个窗口" : "背景已停用，素材和效果设置已保留")
             : !running ? "背景已暂停，窗口恢复后继续" : "正在读取背景…";
         if (!running || path.Length == 0) return;
+        if (!changed && _still is not null) { _theme.WallpaperStatus = "已应用背景图片"; return; }
         _active = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
         _requests.Writer.TryWrite(new(path, revision, _active.Token));
     }
-    private void NoteBrightness(double brightness)
-    {
-        if (Math.Abs(_brightness - brightness) <= 0.003) return;
-        _brightness = brightness;
-        var hasVideo = false; lock (_videoGate) hasVideo = _videoW > 0;
-        var hasStill = false; lock (_stillGate) hasStill = _still is not null;
-        if (hasVideo || hasStill) ScheduleBrightness(false);
-    }
-    private void ScheduleBrightness(bool immediate)
-    {
-        var epoch = Interlocked.Increment(ref _lookEpoch);
-        var brightness = _brightness;
-        _lookDelay?.Cancel(); _lookDelay?.Dispose(); _lookDelay = new();
-        var token = _lookDelay.Token;
-        var hasVideo = false; lock (_videoGate) hasVideo = _videoW > 0;
-        if (!hasVideo && WallpaperGrade.IsNeutral(brightness))
-        { Dispatcher.UIThread.Post(() => { if (epoch == Volatile.Read(ref _lookEpoch) && _neutral is not null) Present(_neutral); }); return; }
-        _ = Task.Run(async () =>
-        {
-            if (!immediate) try { await Task.Delay(12, token); } catch (Exception error) when (error is OperationCanceledException or ObjectDisposedException) { return; }
-            if (epoch != Volatile.Read(ref _lookEpoch)) return;
-            if (hasVideo) { await RegradeVideo(epoch, brightness, token); return; }
-            SKBitmap? copy; lock (_stillGate) copy = _still?.Copy();
-            if (copy is null || epoch != Volatile.Read(ref _lookEpoch)) { copy?.Dispose(); return; }
-            try
-            {
-                WallpaperGrade.ApplyBrightness(copy, brightness);
-                var bitmap = WallpaperGrade.ToBitmap(copy);
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                { if (epoch != Volatile.Read(ref _lookEpoch) || _disposed) bitmap.Dispose(); else Present(bitmap); });
-            }
-            finally { copy.Dispose(); }
-        });
-    }
-    private async Task RegradeVideo(int epoch, double brightness, CancellationToken token)
-    {
-        byte[]? raw = null; var width = 0; var height = 0;
-        var length = 0;
-        lock (_videoGate)
-        {
-            length = _videoW * _videoH * 4;
-            if (_videoFrame is not null && length > 0 && _videoFrame.Length >= length)
-            {
-                raw = ArrayPool<byte>.Shared.Rent(length);
-                _videoFrame.AsSpan(0, length).CopyTo(raw);
-                width = _videoW;
-                height = _videoH;
-            }
-        }
-        if (raw is null) return;
-        try
-        {
-            if (!WallpaperGrade.IsNeutral(brightness)) WallpaperGrade.ApplyBrightness(raw.AsSpan(0, length), brightness);
-            if (epoch != Volatile.Read(ref _lookEpoch) || token.IsCancellationRequested) return;
-            await Dispatcher.UIThread.InvokeAsync(() => { if (epoch == Volatile.Read(ref _lookEpoch) && !_disposed) Upload(raw, width, height); });
-        }
-        finally { if (raw is not null) ArrayPool<byte>.Shared.Return(raw); }
-    }
     private void Remember(Bitmap image)
     {
-        var still = WallpaperGrade.Snapshot(image);
-        SKBitmap? retired; lock (_stillGate) { retired = _still; _still = still; }
+        var retired = _still;
+        _still = new WallpaperStillImage(image);
+        Present(image, retired?.Image);
         retired?.Dispose();
-        var previousNeutral = _neutral; _neutral = image;
-        if (previousNeutral is not null && previousNeutral != _shown) previousNeutral.Dispose();
-        Present(image);
         if (!WallpaperGrade.IsNeutral(_brightness)) ScheduleBrightness(true);
     }
-    private void Present(Bitmap? image)
+    private void Present(Bitmap? image, Bitmap? retiringSource = null)
     {
         var previous = _shown; var available = previous is not null; _shown = image;
         _view.Image = image; _theme.WallpaperPreview = image; _view.InvalidateVisual();
-        if (previous is not null && previous != image && previous != _neutral) previous.Dispose();
+        if (previous is not null && previous != image && previous != _neutral && previous != retiringSource) previous.Dispose();
         if (available != (image is not null)) AvailabilityChanged?.Invoke();
     }
     private void ClearMedia()
     {
         Interlocked.Increment(ref _lookEpoch);
-        SKBitmap? still; lock (_stillGate) { still = _still; _still = null; } still?.Dispose();
+        var still = _still; var neutral = _neutral; _still = null;
         lock (_videoGate) { _videoFrame = null; _videoW = 0; _videoH = 0; }
-        var shown = _shown; var neutral = _neutral; _shown = null; _neutral = null;
+        var shown = _shown; _shown = null;
         var available = _view.Image is not null;
         _view.Image = null; _theme.WallpaperPreview = null; _view.InvalidateVisual();
         if (shown is not null && shown != neutral) shown.Dispose();
-        neutral?.Dispose();
+        still?.Dispose();
         if (available) AvailabilityChanged?.Invoke();
     }
-    private async Task DecodeLoop()
+    private async Task DecodeLoop(CancellationToken token)
     {
         try
         {
-            await foreach (var request in _requests.Reader.ReadAllAsync(_stop.Token))
+            await foreach (var request in _requests.Reader.ReadAllAsync(token))
             {
                 if (request.Cancellation.IsCancellationRequested) continue;
                 try
@@ -185,8 +129,7 @@ internal sealed class ThemeWallpaper : IDisposable
                 }
             }
         }
-        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
-        finally { _stop.Dispose(); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
     private bool Current(Request r) => !_disposed && r.Revision == _revision && !r.Cancellation.IsCancellationRequested;
     private async Task DisplayVideo(Request request, VideoFrame frame, CancellationToken token)
@@ -250,6 +193,7 @@ internal sealed class ThemeWallpaper : IDisposable
     public void Dispose()
     {
         if (_disposed) return; _disposed = true; ++_revision; _active?.Cancel(); _active?.Dispose(); _active = null;
-        _lookDelay?.Cancel(); _lookDelay?.Dispose(); _stop.Cancel(); _requests.Writer.TryComplete(); ClearMedia();
+        _stop.Cancel(); _requests.Writer.TryComplete(); _grades.Writer.TryComplete(); ClearMedia();
+        _ = Task.WhenAll(_decodeTask, _gradeTask).ContinueWith(_ => _stop.Dispose(), TaskScheduler.Default);
     }
 }

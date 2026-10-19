@@ -12,15 +12,18 @@ internal sealed class WindowResidencyBinding : IDisposable
 {
     private readonly MainWindow _window;
     private readonly ShellViewModel _shell;
+    private readonly Echo.Desktop.Features.Player.PlayerWindowPresentation? _clock;
     private TrayIcon? _tray;
     private TrayIcons? _icons;
     private NativeMenuItem? _ultralight;
+    private NativeMenu? _platformMenu;
     private bool _opened, _disposed, _changing;
     private int _revision;
 
     public WindowResidencyBinding(MainWindow window, ShellViewModel shell)
     {
         _window = window; _shell = shell;
+        if (shell.Player is { } player) _clock = new(window, player);
         window.PropertyChanged += OnWindowChanged; window.Opened += OnOpened;
         shell.PropertyChanged += OnShellChanged;
         shell.Floating.PreferencesChanged += Reconcile;
@@ -45,7 +48,7 @@ internal sealed class WindowResidencyBinding : IDisposable
         try
         {
             ++_revision;
-            if (_shell.UltraLightEnabled || _shell.CloseToTray) EnsureTray();
+            if (_platformMenu is not null || _shell.UltraLightEnabled || _shell.CloseToTray) EnsureTray();
             // Keep the recovery icon alive while hidden even if both switches were changed.
             else if (_window.IsVisible) ReleaseTray();
             if (_ultralight is not null) _ultralight.IsChecked = _shell.UltraLightEnabled;
@@ -63,7 +66,6 @@ internal sealed class WindowResidencyBinding : IDisposable
                 }
                 else if (!_shell.UltraLightEnabled || !parked) _window.RestoreSurface();
             }
-            _shell.Player?.SetClockPresentationActive(_window.IsSurfaceResident || _shell.Floating.MiniEnabled || _shell.Floating.LyricsEnabled);
         }
         catch (Exception error) when (error is InvalidOperationException or ArgumentException or IOException)
         {
@@ -87,9 +89,20 @@ internal sealed class WindowResidencyBinding : IDisposable
         return _shell.CanHideToTray;
     }
 
+    // Platform integration borrows the icon; residency remains its only lifetime owner.
+    internal TrayIcon? SetPlatformMenu(NativeMenu? menu)
+    {
+        if (_disposed) return null;
+        _platformMenu = menu;
+        Reconcile();
+        UpdateMenu();
+        return _tray;
+    }
+
     private void UpdateMenu()
     {
         if (_tray is null) return;
+        if (_platformMenu is not null) { _ultralight = null; _tray.Menu = _platformMenu; return; }
         var menu = new NativeMenu();
         void Add(string key, Action action)
         {
@@ -103,7 +116,7 @@ internal sealed class WindowResidencyBinding : IDisposable
         _ultralight = new NativeMenuItem("melodies Ultralight") { ToggleType = MenuItemToggleType.CheckBox, IsChecked = _shell.UltraLightEnabled };
         _ultralight.Click += (_, _) => _shell.UltraLightEnabled = !_shell.UltraLightEnabled;
         menu.Items.Add(_ultralight);
-        Add("ultralight.hide", () => { if (!TryHideToTray(false)) _shell.Settings.Feedback = _shell.Text["ultralight.trayUnavailable"]; });
+        Add("ultralight.hide", _window.HideToTrayFromMenu);
         menu.Items.Add(new NativeMenuItemSeparator());
         Add("ultralight.exit", _window.RequestExit);
         _tray.Menu = menu;
@@ -124,9 +137,10 @@ internal sealed class WindowResidencyBinding : IDisposable
     }
     public void Dispose()
     {
-        if (_disposed) return; _disposed = true; ++_revision;
+        if (_disposed) return; _disposed = true; ++_revision; _clock?.Dispose();
         _window.PropertyChanged -= OnWindowChanged; _window.Opened -= OnOpened;
         _shell.PropertyChanged -= OnShellChanged; _shell.Floating.PreferencesChanged -= Reconcile;
         _shell.Text.Changed -= UpdateMenu; ReleaseTray();
+        _platformMenu = null;
     }
 }

@@ -20,8 +20,6 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     private int updateQueued;
     private string[] selection = [];
     private bool disposed;
-    private bool presentationActive = true;
-    [ObservableProperty] private IReadOnlyList<QueueRowViewModel> rows = [];
     [ObservableProperty] private string search = "";
     [ObservableProperty] private bool showHistory;
     [ObservableProperty] private bool isBusy;
@@ -36,7 +34,7 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     public string CountText => Text.Format("queue.count", state.Items.Count);
     public string Summary => CountText + DurationSummary(state.Items);
     public string CurrentSource => session.Snapshot.Current?.Origin?.Label ?? Text.Translate("手动添加");
-    public string CurrentQuality => session.Snapshot.Current is { } track ? new QueueRowViewModel(track, 0, null).Quality : "—";
+    public string CurrentQuality => session.Snapshot.Current is { } track ? QueueRowViewModel.QualityOf(track) : "—";
     public string PlayLabel => Text.Translate("播放");
     public string ManageLabel => Text.Translate("队列管理");
     public string SourceHeading => Text.Translate("来源");
@@ -52,14 +50,15 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     public bool IsShuffle => state.Mode == QueuePlaybackMode.Shuffle;
     public bool IsRepeatOne => state.Mode == QueuePlaybackMode.RepeatOne;
     public bool IsRepeatAll => state.Mode == QueuePlaybackMode.RepeatAll;
-    public string UpcomingTitle => Upcoming is null ? IsRepeatOne ? Text.Translate("单曲循环") : Text.Translate("没有下一首") : new QueueRowViewModel(Upcoming, 0, null).Title;
+    public string UpcomingTitle => Upcoming is null ? IsRepeatOne ? Text.Translate("单曲循环") : Text.Translate("没有下一首") : TitleOf(Upcoming);
     public string UpcomingArtist => Upcoming?.Metadata?.GetValueOrDefault("artist") ?? "";
     public string UpcomingPath => Upcoming?.Metadata?.GetValueOrDefault("coverPath") ?? Upcoming?.FilePath ?? "";
     public bool HasUpcoming => Upcoming is not null;
     public bool CanPlay => session.Snapshot.Current is not null || state.Items.Count > 0;
     public long Version => state.Version;
-    public QueueViewModel(IPlaybackSession session, LocalizationService? text = null)
+    public QueueViewModel(IPlaybackSession session, LocalizationService? text = null, bool presentationActive = true)
     {
+        defaultPresentation = presentationActive;
         Text = text ?? new(); Text.Changed += RefreshLanguage;
         this.session = session;
         PlaybackStateSubscription? acquired = null;
@@ -99,43 +98,13 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     private void Apply(QueueSnapshot value)
     {
         state = value; Upcoming = state.Upcoming;
+        currentIndex = FindCurrentIndex();
         RefreshRows(); RefreshPlan();
         foreach (var name in new[] { nameof(CountText), nameof(Summary), nameof(CurrentSource), nameof(CurrentQuality), nameof(CurrentArtworkPath), nameof(CanUndo), nameof(IsSequential), nameof(IsShuffle), nameof(IsRepeatOne),
             nameof(IsRepeatAll), nameof(UpcomingTitle), nameof(UpcomingArtist), nameof(UpcomingPath), nameof(HasUpcoming) }) OnPropertyChanged(name);
     }
-    private QueueOrigin? BaseAlbum()
-    {
-        var index = state.Items.ToList().FindIndex(x => x.ItemId == state.CurrentItemId);
-        var current = index < 0 ? null : state.Items[index];
-        var origin = current is { QueuedNext: false } ? current.Origin
-            : state.Items.Take(Math.Max(0, index)).LastOrDefault(x => !x.QueuedNext)?.Origin;
-        return origin?.Kind == "album" ? origin : null;
-    }
-    private void RefreshRows()
-    {
-        if (!presentationActive) { Rows = []; RefreshDrawerRows(); return; }
-        var album = BaseAlbum();
-        var index = state.Items.ToList().FindIndex(x => x.ItemId == state.CurrentItemId);
-        var source = ShowHistory ? state.History.Reverse().ToArray() : state.Items;
-        var showEarlier = ShowHistory || index < 0 || state.Mode is QueuePlaybackMode.Shuffle or QueuePlaybackMode.RepeatOne;
-        var upcomingId = state.Upcoming?.ItemId;
-        Rows = source.Select((track, i) => new QueueRowViewModel(track, i, state.CurrentItemId, !ShowHistory && i < index, Artwork,
-                Badge(track), upcomingId is not null && track.ItemId == upcomingId && track.ItemId != state.CurrentItemId))
-            .Where(row => showEarlier || row.Index >= index || (album is not null && !row.Track.QueuedNext && row.Track.Origin?.Id == album.Id))
-            .Where(row => Search.Length == 0 || new[] { row.Title, row.Artist, row.Album, row.Source }.Any(value => value.Contains(Search.Trim(), StringComparison.OrdinalIgnoreCase)))
-            .ToArray();
-        RefreshDrawerRows();
-        foreach (var name in new[] { nameof(Heading), nameof(SectionTitle), nameof(ResultText), nameof(IsEmpty), nameof(EmptyTitle), nameof(EmptyHint), nameof(HasSelection) }) OnPropertyChanged(name);
-    }
     partial void OnSearchChanged(string value) => RefreshRows();
-    public void SetPresentationActive(bool active)
-    {
-        if (disposed || presentationActive == active) return;
-        presentationActive = active;
-        if (!active) selection = [];
-        RefreshRows();
-    }
-    partial void OnShowHistoryChanged(bool value) { selection = []; RefreshRows(); OnPropertyChanged(nameof(ShowPlan)); }
+    partial void OnShowHistoryChanged(bool value) { selection = []; rowCache.Clear(); RefreshRows(); OnPropertyChanged(nameof(ShowPlan)); }
     public void SetSelection(IEnumerable<QueueRowViewModel> rows)
     { selection = rows.Select(x => x.ItemId).Distinct().Take(1000).ToArray(); OnPropertyChanged(nameof(HasSelection)); OnPropertyChanged(nameof(SelectionText)); }
     public IReadOnlyList<string> Selection => selection;
@@ -186,6 +155,6 @@ public sealed partial class QueueViewModel : ObservableObject, IDisposable
     {
         if (disposed) return;
         disposed = true; Text.Changed -= RefreshLanguage; lifetime.Cancel(); subscription.Dispose();
-        pending = null; Rows = []; Plan = []; drawerRows = []; selection = [];
+        pending = null; rowCache.Clear(); rows.Clear(); Plan = []; drawerRows.Clear(); selection = [];
     }
 }

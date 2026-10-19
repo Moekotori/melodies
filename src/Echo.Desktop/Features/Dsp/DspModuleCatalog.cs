@@ -16,6 +16,7 @@ public sealed partial class DspModule : ObservableObject
     public IReadOnlyList<DspChoiceDefinition> Choices { get; init; } = [];
     public bool ConfiguresOutput => Id is "src" or "sdm";
     public bool DraftOnly => ConfiguresOutput || Id == "rack";
+    [ObservableProperty] private bool navigationVisible;
     public bool EditsEqualizer => Id is "eq" or "headphone";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsActive)), NotifyPropertyChangedFor(nameof(Detail))] private string status = "未读取";
     public bool IsActive => Status == "已启用";
@@ -31,7 +32,7 @@ public sealed partial class DspModule : ObservableObject
     };
     public DspModule(string id, string title, string description, string group, string? read = null,
         string? write = null, params DspParameterDefinition[] parameters)
-    { Id = id; Title = title; Description = description; Group = group; ReadMethod = read; WriteMethod = write; Parameters = parameters; Status = read is null && id is not ("listening" or "src" or "sdm") ? "待迁移" : "未读取"; }
+    { Id = id; Title = title; Description = description; Group = group; ReadMethod = read; WriteMethod = write; Parameters = parameters; navigationVisible = group != "高级"; Status = read is null && id is not ("listening" or "src" or "sdm") ? "待迁移" : "未读取"; }
 }
 
 public sealed record DspParameterDefinition(string Key, string Label, double Minimum, double Maximum, double Step, string Unit);
@@ -52,15 +53,15 @@ internal static class DspModuleCatalog
             new DspParameterDefinition("headroomDb", "处理链增益", -12, 12, 0.1, "dB")),
         new("src", "升频", "整数倍升频和 PCM 抖动。应用时会重配当前输出。", "采样转换", null, "output.configure") {
             Choices = [
-                new("ratio", "升频", new DspChoice("1", "关闭"), new DspChoice("2", "2×"), new DspChoice("4", "4×"), new DspChoice("8", "8×"), new DspChoice("16", "16×")),
+                new("ratio", "升频", new DspChoice("1", "关闭"), new DspChoice("2", "2×"), new DspChoice("4", "4×"), new DspChoice("8", "8×"), new DspChoice("16", "16×"), new DspChoice("compat48", "48 kHz 兼容")),
                 new("ditherMode", "抖动", new DspChoice("off", "关闭"), new DspChoice("tpdf", "TPDF"), new DspChoice("highpass-tpdf", "高通 TPDF"), new DspChoice("ns-5", "噪声整形 5"), new DspChoice("ns-9", "噪声整形 9"), new DspChoice("ultra-shaped", "超整形")),
-                new("ditherBits", "量化位深", new DspChoice("16", "16 bit"), new DspChoice("24", "24 bit"))] },
+                new("ditherBits", "量化位深", new DspChoice("16", "16 bit"), new DspChoice("24", "24 bit")), DspOutputChoices.Filter("filter1x", "1× 输入滤波器"), DspOutputChoices.Filter("filterNx", "高倍率滤波器"), DspOutputChoices.Compute()] },
         new("sdm", "DSD 转换", "把 PCM 调制成 DoP。需要独占或 ASIO，应用时会重配输出。", "采样转换", null, "output.configure") {
             Choices = [
                 new("outputFormat", "输出格式", new DspChoice("pcm", "PCM"), new DspChoice("dop24le", "DoP"), new DspChoice("dsd-native-raw", "Native DSD")),
                 new("carrierRate", "DSD 传输率", new DspChoice("176400", "176.4 kHz"), new DspChoice("192000", "192 kHz"), new DspChoice("352800", "352.8 kHz"), new DspChoice("384000", "384 kHz"), new DspChoice("705600", "705.6 kHz"), new DspChoice("768000", "768 kHz"), new DspChoice("1411200", "1411.2 kHz"), new DspChoice("1536000", "1536 kHz")),
                 new("qualityProfile", "调制质量", new DspChoice("safe", "安全"), new DspChoice("hifi", "Hi-Fi"), new DspChoice("reference", "参考"), new DspChoice("insane", "极致"), new DspChoice("adaptive", "自适应"), new DspChoice("adaptive-light", "轻量自适应"), new DspChoice("adaptive-super", "增强自适应"), new DspChoice("reference-ec", "参考 EC")),
-                new("extraLoop", "决策环路", new DspChoice("off", "关闭"), new DspChoice("extra", "Extra"), new DspChoice("horizon", "Horizon"))] },
+                new("extraLoop", "决策环路", new DspChoice("off", "关闭"), new DspChoice("extra", "Extra"), new DspChoice("horizon", "Horizon")), DspOutputChoices.Sound(), DspOutputChoices.Filter("filter1x", "1× 输入滤波器"), DspOutputChoices.Filter("filterNx", "高倍率滤波器"), DspOutputChoices.Compute(), DspOutputChoices.Tier(), new("preModulatorProfile", "前调制器", new DspChoice("standard", "标准"), new DspChoice("heavy", "Heavy"), new DspChoice("ultimate-reference", "Ultimate Reference"), new DspChoice("ultimate-transient", "Ultimate Transient"))] },
         new("eq", "参数 EQ", "频段、前级与预设。", "音色", "eq.getState", "eq.setState"),
         new("headphone", "耳机校正", "导入频响曲线，应用到独立耳机校正处理链。", "音色", "headphoneCorrection.getState", "headphoneCorrection.setState"),
         new("room", "房间校正", "导入脉冲响应，调整增益后卷积进播放。", "空间与输出", "roomCorrection.getState", "roomCorrection.setEnabled",

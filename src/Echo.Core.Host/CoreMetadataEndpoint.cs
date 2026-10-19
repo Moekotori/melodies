@@ -8,6 +8,7 @@ internal sealed class CoreMetadataEndpoint(string root) : IDisposable
 {
     private readonly AlbumInformationService service = new(Path.Combine(root, "album-information"));
     private readonly string generation = Guid.NewGuid().ToString("N");
+    public string Generation => generation;
     private long revision, lastActivity;
     private int active;
     public bool HasActivity => Volatile.Read(ref active) > 0 ||

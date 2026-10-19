@@ -50,7 +50,8 @@ public partial class LyricsTransportView
         ExpandedLayout.Opacity = expanded ? 1 : 0;
         IdleSurface.Opacity = Display == LyricsPlayerDisplay.Compact ? 1 : 0;
         IdleSurface.IsHitTestVisible = Display == LyricsPlayerDisplay.Compact;
-        AnimateCapsule(expanded ? 1 : 0);
+        if (Model?.Appearance.MiniPlayer != false) AnimateCapsule(expanded ? 1 : 0);
+        else { CapsuleSurface.Transitions = null; ClearCapsuleMotion(); CapsuleSurface.Expansion = expanded ? 1 : 0; }
         TransportLayout.IsHitTestVisible = !hidden;
         AnimatePlayerFrame(hidden);
     }

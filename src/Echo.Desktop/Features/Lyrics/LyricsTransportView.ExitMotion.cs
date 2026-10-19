@@ -23,7 +23,7 @@ public partial class LyricsTransportView
         var progress = running ? elapsed.TotalSeconds / frameDuration.TotalSeconds : 1;
         var opacity = TransportLayout.Opacity;
         var pose = TransportLayout.RenderTransform?.Value ?? Matrix.Identity;
-        var spatial = policy?.UseSpatialMotion == true;
+        var spatial = policy?.UseSpatialMotion == true && Model?.Appearance.MiniPlayer != false;
         var fromY = spatial ? pose.M32 : 0;
         var fromScale = spatial ? pose.M11 : 1;
         var toY = hidden && spatial ? 8 : 0;
@@ -38,7 +38,7 @@ public partial class LyricsTransportView
             ClearFrameMotion(); TransportLayout.Opacity = toOpacity;
             TransportLayout.RenderTransform = MotionLane.At(toY, toScale); return;
         }
-        frameDuration = policy.Duration(TimeSpan.FromMilliseconds(260));
+        frameDuration = policy.Duration(TimeSpan.FromMilliseconds(Model?.Appearance.MiniPlayer != false ? 260 : 160));
         frameYChannel = MotionChannel.Create(fromY, toY, frameDuration, new SplineEasing(.22, 0, .2, 1),
             running ? frameYChannel.Velocity(progress, frameDuration) : 0);
         frameScaleChannel = MotionChannel.Create(fromScale, toScale, frameDuration, new SplineEasing(.22, 0, .2, 1),

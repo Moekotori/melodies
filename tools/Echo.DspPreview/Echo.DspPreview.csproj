@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
+    <PackageReference Include="Avalonia.Headless" />
+    <ProjectReference Include="../../src/Modules/Echo.Dsp/Echo.Dsp.csproj" />
+    <Compile Include="../DspFixtureResources.cs" Link="DspFixtureResources.cs" />
+    <Compile Include="../../src/Echo.Core.Host/DspResourceEndpoint.cs" Link="DspResourceEndpoint.cs" />
+  </ItemGroup>
+</Project>

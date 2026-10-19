@@ -13,14 +13,18 @@ public partial class EqEditorView : UserControl
         InitializeComponent(); SizeChanged += (_, _) => { ArrangeEditor(); QueueReveal(); };
         EqBands.SelectionChanged += (_, _) => QueueReveal();
     }
+    private async void ImportPreset(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await DspPresetDialogs.ImportAsync(this);
+    private async void ExportPreset(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => await DspPresetDialogs.ExportAsync(this);
     private void ArrangeEditor()
     {
         var narrow = Bounds.Width < 760;
+        var plotHeight = Math.Clamp(Bounds.Height * .38, 200, 310);
+        EqPlot.Height = narrow ? Math.Min(210, plotHeight) : plotHeight;
         EqToolbar.ColumnDefinitions = new(narrow ? "*" : "*,Auto");
         EqToolbar.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
         Grid.SetColumn(EqTools, narrow ? 0 : 1); Grid.SetRow(EqTools, narrow ? 1 : 0);
         EqTools.Margin = narrow ? new Thickness(0, 8, 0, 0) : default;
-        PresetPicker.Width = Bounds.Width < 520 ? 156 : 210;
+        PresetPicker.Width = Bounds.Width < 520 ? 156 : 240;
         TrimControls.ColumnDefinitions = new(narrow ? "*" : "*,*");
         TrimControls.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
         Grid.SetColumn(TiltField, narrow ? 0 : 1); Grid.SetRow(TiltField, narrow ? 1 : 0);

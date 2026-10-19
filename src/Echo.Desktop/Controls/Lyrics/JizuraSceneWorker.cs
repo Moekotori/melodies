@@ -1,9 +1,5 @@
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Channels;
-using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Echo.Contracts.Lyrics;
 using Echo.Visuals;
 
@@ -11,7 +7,7 @@ namespace Echo.Desktop.Controls.Lyrics;
 
 internal sealed record JizuraRequest(long Version, LyricsDocument? Document, int Window,
     string Title, string Artist, string Look, double Seconds, bool Motion, bool Words);
-internal sealed record JizuraReceipt(long Version, Bitmap? Frame, string? Error, string? Diagnostic = null);
+internal sealed record JizuraReceipt(long Version, RasterImageFrame? Frame, string? Error, string? Diagnostic = null);
 
 // One worker and one replaceable request. Native graphics and interpretation never run on the UI.
 internal sealed class JizuraSceneWorker : IDisposable
@@ -26,12 +22,17 @@ internal sealed class JizuraSceneWorker : IDisposable
     public void Request(JizuraRequest value) => requests.Writer.TryWrite(value);
     private async Task Run()
     {
+        RasterFramePool? frames = null;
         JizuraEngine? engine = null; long version = -1; int window = -1; bool failed = false;
         try
         {
             await foreach (var request in requests.Reader.ReadAllAsync(stop.Token))
             {
-                if (request.Document is null) { engine?.Dispose(); engine = null; version = -1; continue; }
+                if (request.Document is null)
+                {
+                    engine?.Dispose(); engine = null; frames?.Dispose(); frames = null;
+                    version = -1; window = -1; failed = false; continue;
+                }
                 if (failed && version == request.Version) continue;
                 try
                 {
@@ -42,13 +43,9 @@ internal sealed class JizuraSceneWorker : IDisposable
                         var project = JizuraProjectBuilder.Create(request.Document, window, request.Title, request.Artist, request.Look, request.Words);
                         engine.Build(JsonSerializer.Serialize(project, JizuraProjectJson.Default.JizuraProject));
                     }
-                    var frame = engine!.DrawRaster(request.Document.IsSynced ? request.Seconds : .5, request.Motion);
-                    stop.Token.ThrowIfCancellationRequested();
-                    var pin = GCHandle.Alloc(frame.Pixels, GCHandleType.Pinned);
-                    Bitmap image;
-                    try { image = new Bitmap(PixelFormat.Bgra8888, AlphaFormat.Premul, pin.AddrOfPinnedObject(),
-                        new PixelSize(frame.Width, frame.Height), new Vector(96, 96), frame.RowBytes); }
-                    finally { pin.Free(); }
+                    var image = engine!.DrawFrame(request.Document.IsSynced ? request.Seconds : .5, request.Motion, frames ??= new RasterFramePool());
+                    if (image is null) continue; // All slots still belong to presentation; keep the latest request only.
+                    if (stop.IsCancellationRequested) { image.Dispose(); break; }
                     deliver(new(request.Version, image, null));
                 }
                 catch (OperationCanceledException) when (stop.IsCancellationRequested) { break; }
@@ -60,7 +57,7 @@ internal sealed class JizuraSceneWorker : IDisposable
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
-        finally { engine?.Dispose(); }
+        finally { engine?.Dispose(); frames?.Dispose(); }
     }
     public void Dispose()
     {

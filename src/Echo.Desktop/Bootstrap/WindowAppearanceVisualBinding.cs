@@ -32,6 +32,7 @@ internal sealed class WindowAppearanceVisualBinding : IDisposable
     {
         this.window = window; this.shell = shell; player = shell.Player;
         shell.FeaturePreferences.Changed += Options; window.PropertyChanged += WindowChanged;
+        shell.AppearanceVisuals.PropertyChanged += VisualsChanged;
         shell.PropertyChanged += ShellChanged; meterTimer.Tick += Meter;
         if (player is not null) player.PropertyChanged += PlayerChanged;
         Options(""); _ = Task.Run(Work);
@@ -45,19 +46,21 @@ internal sealed class WindowAppearanceVisualBinding : IDisposable
     private void WindowChanged(object? s, AvaloniaPropertyChangedEventArgs e)
     { if (e.Property == Visual.IsVisibleProperty || e.Property == Window.WindowStateProperty) Refresh(); }
     private void ShellChanged(object? s, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(ShellViewModel.ActiveRouteId)) UpdateMeter(); }
+    private void VisualsChanged(object? sender,PropertyChangedEventArgs e)
+    {if(e.PropertyName==nameof(AppearanceVisualsViewModel.LyricsSpectrum))UpdateMeter();}
     private void UpdateMeter()
     {
-        if (!disposed && shell.AppearanceVisuals.HomeWaveform && Enabled("audio-visual-spectrum") && shell.ActiveRouteId == "home" && window.IsVisible && window.WindowState != WindowState.Minimized)
+        if (!disposed && Enabled("audio-visual-spectrum") && ((shell.AppearanceVisuals.HomeWaveform && shell.ActiveRouteId == "home") || (shell.AppearanceVisuals.LyricsSpectrum && shell.ActiveRouteId == "lyrics")) && window.IsVisible && window.WindowState != WindowState.Minimized)
         { meterTimer.Start(); Meter(null, EventArgs.Empty); }
-        else { meterTimer.Stop(); shell.AppearanceVisuals.LiveSpectrum = []; }
+        else { meterTimer.Stop(); shell.AppearanceVisuals.LiveSpectrum = []; shell.AppearanceVisuals.LiveSpectrumTimestamp=0; }
     }
     private void Meter(object? sender, EventArgs args)
     {
         var state = player?.Zone.Snapshot.State; var level = state?.Level;
         if (state?.Playback.Status != PlaybackStatus.Playing || level?.VisualSpectrum is not { Count: > 0 } spectrum || Stopwatch.GetElapsedTime(level.Timestamp).TotalMilliseconds > 500)
-        { if (shell.AppearanceVisuals.LiveSpectrum.Count > 0) shell.AppearanceVisuals.LiveSpectrum = []; shell.AppearanceVisuals.LiveStatus = "等待实时音频信号"; return; }
+        { if (shell.AppearanceVisuals.LiveSpectrum.Count > 0) shell.AppearanceVisuals.LiveSpectrum = []; shell.AppearanceVisuals.LiveSpectrumTimestamp=0; shell.AppearanceVisuals.LiveStatus = "等待实时音频信号"; return; }
         if (lastLevel == level.Timestamp) return;
-        lastLevel = level.Timestamp; shell.AppearanceVisuals.LiveSpectrum = spectrum; shell.AppearanceVisuals.LiveStatus = "";
+        lastLevel = level.Timestamp; shell.AppearanceVisuals.LiveSpectrumTimestamp=level.Timestamp; shell.AppearanceVisuals.LiveSpectrum = spectrum; shell.AppearanceVisuals.LiveStatus = "";
     }
     private void PlayerChanged(object? s, PropertyChangedEventArgs e)
     { if (e.PropertyName is nameof(PlayerViewModel.CurrentFilePath) or nameof(PlayerViewModel.Duration)) Refresh(); }
@@ -98,7 +101,7 @@ internal sealed class WindowAppearanceVisualBinding : IDisposable
     {
         if (disposed) return; disposed = true; lifetime.Cancel(); requests.Writer.TryComplete(); active?.Cancel(); active?.Dispose();
         shell.FeaturePreferences.Changed -= Options; window.PropertyChanged -= WindowChanged; if (player is not null) player.PropertyChanged -= PlayerChanged;
-        meterTimer.Stop(); meterTimer.Tick -= Meter; shell.PropertyChanged -= ShellChanged; shell.AppearanceVisuals.LiveSpectrum = [];
+        meterTimer.Stop(); meterTimer.Tick -= Meter; shell.PropertyChanged -= ShellChanged; shell.AppearanceVisuals.PropertyChanged -= VisualsChanged; shell.AppearanceVisuals.LiveSpectrum = [];
         shell.AppearanceVisuals.Envelope = null;
     }
 }

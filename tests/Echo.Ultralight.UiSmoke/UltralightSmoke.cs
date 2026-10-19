@@ -27,6 +27,9 @@ internal static class UltralightSmoke
         try
         {
             window.Show(); Pump();
+            shell.Settings.SelectCategoryCommand.Execute("general");
+            shell.Settings.SelectTabCommand.Execute("窗口与启动"); Pump();
+            TrayOwnershipSmoke.Run(window, shell);
             var row = shell.Settings.Sections.SelectMany(section => section.Rows).Single(x => x.Id == "ultra-light-mode");
             Require(row.IsEnabled && !row.BoolValue, "default-off setting is usable");
             window.WindowState = WindowState.Minimized; Pump();
@@ -39,7 +42,6 @@ internal static class UltralightSmoke
             Until(() => session.Snapshot.Status == PlaybackStatus.Playing);
             shell.NavigateCommand.Execute("settings"); Pump();
             row = shell.Settings.Sections.SelectMany(section => section.Rows).Single(x => x.Id == "ultra-light-mode");
-            window.FindControl<Echo.Desktop.Motion.MotionPresenter>("PageHost")?.Focus();
             row.BoolValue = true; Pump();
             var calls = audio.Calls; var operation = session.Snapshot.OperationId; var generation = session.State.Generation;
             var retired = Minimize(window); Pump();
@@ -56,12 +58,16 @@ internal static class UltralightSmoke
             Wait(window.ExecuteShortcutAsync("playPause"));
             Require(session.Snapshot.Status == PlaybackStatus.Paused && !window.IsSurfaceResident, "background playback controls do not rebuild the UI");
             Wait(window.ExecuteShortcutAsync("showMainWindow")); Pump();
-            Require(window.IsSurfaceResident && shell.ActiveRouteId == "settings" && shell.Player.Queue.Rows.Count > 0,
-                "restore rebuilds the selected page and current queue");
+            Require(window.IsSurfaceResident && shell.ActiveRouteId == "settings", "restore rebuilds the selected page");
+            shell.ToggleQueueDrawerCommand.Execute(null); Pump();
+            Until(() => shell.Player.Queue.Rows.Any(item => item.ItemId == "second"));
+            shell.CloseQueueDrawerCommand.Execute(null); Pump();
             Require(audio.Starts == 1 && session.Snapshot.OperationId == 2, "restore does not reopen audio");
             Save(window, output, "ultralight-settings-light.png");
             shell.IsDark = true; Pump(); Save(window, output, "ultralight-settings-dark.png");
-            window.Hide(); Pump(); Require(!window.IsSurfaceResident, "explicit hiding also unloads");
+            var hiddenTree = Hide(window); Pump(); Require(!window.IsSurfaceResident, "explicit hiding also unloads");
+            for (var i = 0; i < 3; i++) { GC.Collect(); GC.WaitForPendingFinalizers(); Pump(); }
+            Require(!hiddenTree.IsAlive, "hidden visual tree is collectible even after active focus was cleared");
             shell.Floating.MiniEnabled = true; Pump();
             var oldPosition = player.Position;
             audio.Notify("audio.position", "{\"operationId\":2,\"framesPlayed\":88200}");
@@ -85,15 +91,27 @@ internal static class UltralightSmoke
             Wait(reader.DisposeAsync().AsTask());
             shell.CloseToTray = true;
             Require(!window.TryHideToTray() && window.ShowInTaskbar, "unsupported headless tray cannot hide the recovery entry");
+            var exitIcon = window.SetPlatformTrayMenu(new NativeMenu());
             window.WindowState = WindowState.Minimized; Pump(); window.RequestExit(); Pump();
             Require(window.IsExitRequested && !window.IsVisible, "explicit exit closes an unloaded window");
-            Console.WriteLine("Ultralight: settings, minimize/hide, collectible tree, unchanged audio owner, EOF, background controls, restore, floating clock, JSON, rapid reversal and exit passed. Audio is a protocol fixture; physical tray/taskbar input is not verified here.");
+            Require(!TrayIcon.GetIcons(Application.Current!)!.Contains(exitIcon!), "exit releases the shared platform icon");
+            Console.WriteLine("Ultralight: settings tab, shared tray ownership, minimize/hide, collectible trees, unchanged audio owner, EOF, background controls, restore, floating clock, JSON, rapid reversal and exit passed. Audio is a protocol fixture; physical tray/taskbar input is not verified here.");
         }
         finally { window.RequestExit(); player.Detach(); shell.Settings.Dispose(); shell.ReleaseLocalization(); Wait(session.DisposeAsync().AsTask()); }
     }
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference Minimize(MainWindow window)
-    { var weak = new WeakReference(window.Content); window.WindowState = WindowState.Minimized; return weak; }
+    {
+        window.FindControl<MotionPresenter>("PageHost")!.Focus();
+        var weak = new WeakReference(window.Content); window.WindowState = WindowState.Minimized; return weak;
+    }
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference Hide(MainWindow window)
+    {
+        window.FindControl<MotionPresenter>("PageHost")!.Focus();
+        window.FocusManager!.Focus(null);
+        var weak = new WeakReference(window.Content); window.Hide(); return weak;
+    }
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
     private static void Pump() => Dispatcher.UIThread.RunJobs();
     private static void Until(Func<bool> done)

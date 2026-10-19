@@ -108,11 +108,11 @@ internal static class DetailUiSmoke
             var online = (AlbumOnlineViewModel)detail.FindControl<AlbumOnlineView>("OnlinePanel")!.DataContext!;
             Until(() => !online.IsLoading && online.HasRelease);
             Check(online.HasCredits && online.HasLinks, "sources show release facts, credits and links");
-            pageScroll.Offset = new(0, 360); Settle(); Capture("album-sources-light.png"); pageScroll.Offset = default; Settle();
+            pageScroll.Offset = new(0, detail.FindControl<StackPanel>("OnlinePanels")!.TranslatePoint(default, detail.FindControl<Grid>("PageContent")!)!.Value.Y); Settle(); Capture("album-sources-light.png"); pageScroll.Offset = default; Settle();
             Tab(detail, 3); Until(() => online.HasVersions && !online.IsLoading && !detail.FindControl<TextBlock>("VersionsStatus")!.Text!.StartsWith("正在"));
-            pageScroll.Offset = new(0, 360); Settle(); Capture("album-versions-light.png"); pageScroll.Offset = default; Settle();
+            pageScroll.Offset = new(0, detail.FindControl<StackPanel>("OnlinePanels")!.TranslatePoint(default, detail.FindControl<Grid>("PageContent")!)!.Value.Y); Settle(); Capture("album-versions-light.png"); pageScroll.Offset = default; Settle();
             Tab(detail, 4); Until(() => online.HasArticles && !online.IsLoading && detail.FindControl<SelectableTextBlock>("Description")!.Text == "星际旅程的本地专辑介绍。");
-            pageScroll.Offset = new(0, 480); Settle(); Capture("album-information-light.png"); pageScroll.Offset = default; Settle();
+            pageScroll.Offset = new(0, detail.FindControl<StackPanel>("OnlinePanels")!.TranslatePoint(default, detail.FindControl<Grid>("PageContent")!)!.Value.Y); Settle(); Capture("album-information-light.png"); pageScroll.Offset = default; Settle();
             Check(onlineFixture.Calls == 1, "online tabs share one bounded result");
             Until(() => detail.FindControl<SelectableTextBlock>("Description")!.Text == "星际旅程的本地专辑介绍。");
             Tab(detail, 3); Until(() => detail.FindControl<StackPanel>("Versions")!.Children.Count == 0);
@@ -141,6 +141,15 @@ internal static class DetailUiSmoke
             Check(detail.FindControl<Border>("Facts")!.IsVisible && Grid.GetRow(detail.FindControl<Border>("Facts")!) == 2, "narrow layout preserves rating and facts");
             Capture("album-detail-narrow-dark.png");
             shell.IsDark = false; Capture("album-detail-narrow-light.png");
+            // Inspect the online reading layouts in both themes at the narrow viewport.
+            foreach (var (tab, name) in new[] { (2, "sources"), (3, "versions"), (4, "information") })
+            {
+                Tab(detail, tab); Settle();
+                pageScroll.Offset = new(0, detail.FindControl<StackPanel>("OnlinePanels")!.TranslatePoint(default, detail.FindControl<Grid>("PageContent")!)!.Value.Y);
+                Settle(); Capture($"album-{name}-narrow-light.png");
+                shell.IsDark = true; Capture($"album-{name}-narrow-dark.png"); shell.IsDark = false;
+            }
+            pageScroll.Offset = default; Settle();
             window.Width = 1440; Settle();
             Click(detail.FindControl<Button>("ArtistLink")!);
             Until(() => wall.GetVisualDescendants().OfType<ArtistDetailView>().Any());
@@ -181,6 +190,7 @@ internal static class DetailUiSmoke
 
         void Capture(string name)
         {
+            window.MouseMove(new Point(300, 20));
             Settle(); using var bitmap = window.CaptureRenderedFrame() ?? throw new IOException("Render unavailable.");
             bitmap.Save(Path.Combine(output, name), PngBitmapEncoderOptions.Default); Console.WriteLine(Path.Combine(output, name));
         }

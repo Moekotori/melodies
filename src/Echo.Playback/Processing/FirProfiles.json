@@ -1,0 +1,400 @@
+[
+  {
+    "id": "echo-hb",
+    "tapCount": 255,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 120,
+    "transitionRatio": 0.08,
+    "cutoffScale": 1,
+    "kaiserBeta": 12
+  },
+  {
+    "id": "echo-steep-short",
+    "tapCount": 511,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 135,
+    "transitionRatio": 0.065,
+    "cutoffScale": 0.99
+  },
+  {
+    "id": "echo-steep-medium",
+    "tapCount": 767,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 142,
+    "transitionRatio": 0.055,
+    "cutoffScale": 0.995
+  },
+  {
+    "id": "echo-steep-long",
+    "tapCount": 1023,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 150,
+    "transitionRatio": 0.045,
+    "cutoffScale": 1
+  },
+  {
+    "id": "echo-steep-xla",
+    "tapCount": 2047,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 170,
+    "transitionRatio": 0.032,
+    "cutoffScale": 1
+  },
+  {
+    "id": "echo-steep-xl",
+    "tapCount": 3071,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 178,
+    "transitionRatio": 0.028,
+    "cutoffScale": 1
+  },
+  {
+    "id": "echo-steep-hires-lp",
+    "tapCount": 1535,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 155,
+    "transitionRatio": 0.04,
+    "cutoffScale": 0.995
+  },
+  {
+    "id": "echo-steep-hires-mp",
+    "tapCount": 1535,
+    "window": "blackman-harris",
+    "phase": "minimum",
+    "attenuationDb": 155,
+    "transitionRatio": 0.04,
+    "cutoffScale": 0.985
+  },
+  {
+    "id": "echo-steep3-long",
+    "tapCount": 2047,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 175,
+    "transitionRatio": 0.03,
+    "cutoffScale": 0.998
+  },
+  {
+    "id": "echo-steep3-xla",
+    "tapCount": 4095,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 190,
+    "transitionRatio": 0.022,
+    "cutoffScale": 1
+  },
+  {
+    "id": "echo-gauss-long",
+    "tapCount": 1023,
+    "window": "gaussian",
+    "phase": "linear",
+    "attenuationDb": 145,
+    "transitionRatio": 0.05,
+    "cutoffScale": 0.965,
+    "gaussianAlpha": 3.2
+  },
+  {
+    "id": "echo-gauss-xla",
+    "tapCount": 2047,
+    "window": "gaussian",
+    "phase": "linear",
+    "attenuationDb": 165,
+    "transitionRatio": 0.035,
+    "cutoffScale": 0.955,
+    "gaussianAlpha": 3.6
+  },
+  {
+    "id": "echo-gauss-xl",
+    "tapCount": 3071,
+    "window": "gaussian",
+    "phase": "linear",
+    "attenuationDb": 172,
+    "transitionRatio": 0.03,
+    "cutoffScale": 0.95,
+    "gaussianAlpha": 3.9
+  },
+  {
+    "id": "echo-gauss-hires-lp",
+    "tapCount": 767,
+    "window": "gaussian",
+    "phase": "linear",
+    "attenuationDb": 138,
+    "transitionRatio": 0.06,
+    "cutoffScale": 0.96,
+    "gaussianAlpha": 2.9
+  },
+  {
+    "id": "echo-gauss-hires-mp",
+    "tapCount": 1023,
+    "window": "gaussian",
+    "phase": "minimum",
+    "attenuationDb": 145,
+    "transitionRatio": 0.052,
+    "cutoffScale": 0.945,
+    "gaussianAlpha": 3.15
+  },
+  {
+    "id": "echo-gauss-xtr-long",
+    "tapCount": 2047,
+    "window": "gaussian",
+    "phase": "linear",
+    "attenuationDb": 168,
+    "transitionRatio": 0.032,
+    "cutoffScale": 0.94,
+    "gaussianAlpha": 4.15
+  },
+  {
+    "id": "echo-gauss-xtr-xla",
+    "tapCount": 4095,
+    "window": "gaussian",
+    "phase": "linear",
+    "attenuationDb": 185,
+    "transitionRatio": 0.024,
+    "cutoffScale": 0.93,
+    "gaussianAlpha": 4.6
+  },
+  {
+    "id": "echo-xtr-mp",
+    "tapCount": 1535,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 160,
+    "transitionRatio": 0.038,
+    "cutoffScale": 0.965,
+    "kaiserBeta": 15
+  },
+  {
+    "id": "echo-xtr-short-lp",
+    "tapCount": 767,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 140,
+    "transitionRatio": 0.058,
+    "cutoffScale": 0.98,
+    "kaiserBeta": 12.5
+  },
+  {
+    "id": "echo-xtr-short-mp",
+    "tapCount": 767,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 140,
+    "transitionRatio": 0.058,
+    "cutoffScale": 0.955,
+    "kaiserBeta": 12.5
+  },
+  {
+    "id": "echo-xtr-lp",
+    "tapCount": 1535,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 160,
+    "transitionRatio": 0.038,
+    "cutoffScale": 0.99,
+    "kaiserBeta": 15
+  },
+  {
+    "id": "echo-xtr-xla",
+    "tapCount": 3071,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 178,
+    "transitionRatio": 0.028,
+    "cutoffScale": 0.965,
+    "kaiserBeta": 16.5
+  },
+  {
+    "id": "echo-minring-lp",
+    "tapCount": 767,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 135,
+    "transitionRatio": 0.055,
+    "cutoffScale": 0.94,
+    "kaiserBeta": 11
+  },
+  {
+    "id": "echo-minring-mp",
+    "tapCount": 1023,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 145,
+    "transitionRatio": 0.048,
+    "cutoffScale": 0.93,
+    "kaiserBeta": 12.5
+  },
+  {
+    "id": "echo-minring-xla",
+    "tapCount": 2047,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 165,
+    "transitionRatio": 0.034,
+    "cutoffScale": 0.925,
+    "kaiserBeta": 15.5
+  },
+  {
+    "id": "echo-minring-soft",
+    "tapCount": 1535,
+    "window": "gaussian",
+    "phase": "minimum",
+    "attenuationDb": 150,
+    "transitionRatio": 0.05,
+    "cutoffScale": 0.9,
+    "gaussianAlpha": 3.65
+  },
+  {
+    "id": "echo-minring-extreme",
+    "tapCount": 3071,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 178,
+    "transitionRatio": 0.026,
+    "cutoffScale": 0.915,
+    "kaiserBeta": 17
+  },
+  {
+    "id": "echo-apod-fast",
+    "tapCount": 767,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 132,
+    "transitionRatio": 0.07,
+    "cutoffScale": 0.9,
+    "kaiserBeta": 11.5
+  },
+  {
+    "id": "echo-apod-long",
+    "tapCount": 2047,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 165,
+    "transitionRatio": 0.048,
+    "cutoffScale": 0.87
+  },
+  {
+    "id": "echo-apod-minring",
+    "tapCount": 1535,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 155,
+    "transitionRatio": 0.052,
+    "cutoffScale": 0.875,
+    "kaiserBeta": 14
+  },
+  {
+    "id": "echo-apod-gauss",
+    "tapCount": 1535,
+    "window": "gaussian",
+    "phase": "linear",
+    "attenuationDb": 152,
+    "transitionRatio": 0.058,
+    "cutoffScale": 0.86,
+    "gaussianAlpha": 3.7
+  },
+  {
+    "id": "echo-apod-xtr",
+    "tapCount": 3071,
+    "window": "blackman-harris",
+    "phase": "linear",
+    "attenuationDb": 178,
+    "transitionRatio": 0.036,
+    "cutoffScale": 0.84
+  },
+  {
+    "id": "echo-apod-extreme",
+    "tapCount": 4095,
+    "window": "kaiser",
+    "phase": "minimum",
+    "attenuationDb": 190,
+    "transitionRatio": 0.03,
+    "cutoffScale": 0.835,
+    "kaiserBeta": 18
+  },
+  {
+    "id": "brickwall-long",
+    "tapCount": 2047,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 180,
+    "transitionRatio": 0.024,
+    "cutoffScale": 1,
+    "kaiserBeta": 17.5
+  },
+  {
+    "id": "soft-knee-long",
+    "tapCount": 2047,
+    "window": "gaussian",
+    "phase": "linear",
+    "attenuationDb": 158,
+    "transitionRatio": 0.065,
+    "cutoffScale": 0.9,
+    "gaussianAlpha": 3.1
+  },
+  {
+    "id": "echo-closed",
+    "tapCount": 511,
+    "window": "hann",
+    "phase": "linear",
+    "attenuationDb": 110,
+    "transitionRatio": 0.07,
+    "cutoffScale": 0.97
+  },
+  {
+    "id": "echo-sinc-m",
+    "tapCount": 511,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 125,
+    "transitionRatio": 0.062,
+    "cutoffScale": 0.985,
+    "kaiserBeta": 10.5
+  },
+  {
+    "id": "echo-sinc-l",
+    "tapCount": 767,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 136,
+    "transitionRatio": 0.055,
+    "cutoffScale": 0.99,
+    "kaiserBeta": 12
+  },
+  {
+    "id": "echo-sinc-long",
+    "tapCount": 1023,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 145,
+    "transitionRatio": 0.048,
+    "cutoffScale": 0.995,
+    "kaiserBeta": 13
+  },
+  {
+    "id": "echo-sinc-long-h",
+    "tapCount": 1535,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 155,
+    "transitionRatio": 0.04,
+    "cutoffScale": 1,
+    "kaiserBeta": 14
+  },
+  {
+    "id": "echo-sinc-xla",
+    "tapCount": 2047,
+    "window": "kaiser",
+    "phase": "linear",
+    "attenuationDb": 165,
+    "transitionRatio": 0.034,
+    "cutoffScale": 1,
+    "kaiserBeta": 15.5
+  }
+]

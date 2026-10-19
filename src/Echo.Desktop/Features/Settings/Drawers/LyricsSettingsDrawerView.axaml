@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:icon="using:Echo.Desktop.Controls"
+             xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:backgrounds="using:Echo.Desktop.Controls.Lyrics" xmlns:icon="using:Echo.Desktop.Controls"
              xmlns:floating="using:Echo.Desktop.Features.Floating"
              x:Class="Echo.Desktop.Features.Settings.Drawers.LyricsSettingsDrawerView" x:DataType="lyrics:LyricsAppearance">
   <Grid RowDefinitions="*,Auto">
@@ -49,6 +49,7 @@
             <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="36"><icon:GlyphIcon Kind="palette" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource drawer.lyrics.styles}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
             <ComboBox Name="LyricStyleInput" ItemsSource="{Binding StyleChoices}" SelectedItem="{Binding StyleChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
             <TextBlock Text="{Binding StyleDescription}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            <lyrics:LyricsBackgroundSettingsView Name="LyricBackgroundInput" />
             <StackPanel Spacing="12" IsVisible="{Binding IsAfterglow}"><TextBlock Text="{DynamicResource drawer.lyrics.afterglow}" Classes="drawer-section" /><ComboBox ItemsSource="{Binding LookChoices}" SelectedItem="{Binding LookChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
             <Button Content="{DynamicResource ui.LyricsSettingsDrawerView.7f4cde95ec65}" Classes="drawer-action" Click="OnReset" HorizontalAlignment="Left" />
           </StackPanel>

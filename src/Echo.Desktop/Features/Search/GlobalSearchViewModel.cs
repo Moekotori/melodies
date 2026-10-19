@@ -3,7 +3,7 @@ using Echo.Desktop.Shell;
 
 namespace Echo.Desktop.Features.Search;
 
-// Open-overlay lifetime: 16 DTOs per library kind, 24 visible results, one cancellable request.
+// Open-overlay lifetime: 16 DTOs per kind, 24 content results plus settings, two in-flight Core calls.
 public sealed partial class GlobalSearchViewModel : ObservableObject, IDisposable
 {
     private readonly ShellViewModel shell;
@@ -15,14 +15,15 @@ public sealed partial class GlobalSearchViewModel : ObservableObject, IDisposabl
     [ObservableProperty] private bool isOpening;
     [ObservableProperty] private string error = "";
     [ObservableProperty] private IReadOnlyList<GlobalSearchHit> hits = [];
+    public GlobalSearchCopy Copy => GlobalSearchCopy.For(shell.Text);
     public bool IsExpanded => Search.Trim().Length > 0;
     public bool HasError => Error.Length > 0;
-    public bool IsEmpty => IsExpanded && !IsLoading && !HasError && Hits.Count == 0;
+    public bool IsEmpty => IsExpanded && !IsLoading && !HasError && Hits.All(hit => hit.Target is SearchQueryTarget { Route: "settings" });
     public string Summary => shell.Text.Format("globalSearch.count", Hits.Count);
     public GlobalSearchViewModel(ShellViewModel shell)
-    { this.shell = shell; shell.Text.Changed += OnLanguage; }
-    private void OnLanguage() => _ = LoadAsync();
-    partial void OnSearchChanged(string value) { Notify(); _ = LoadAsync(); }
+    { this.shell = shell; shell.Text.Changed += OnLanguage; search = shell.GlobalSearchQuery; _ = LoadAsync(); }
+    private void OnLanguage() { OnPropertyChanged(nameof(Copy)); _ = LoadAsync(); }
+    partial void OnSearchChanged(string value) { shell.GlobalSearchQuery = value[..Math.Min(128, value.Length)]; Notify(); _ = LoadAsync(); }
     partial void OnHitsChanged(IReadOnlyList<GlobalSearchHit> value) => Notify();
     partial void OnErrorChanged(string value) => Notify();
     partial void OnIsLoadingChanged(bool value) => Notify();
@@ -38,50 +39,18 @@ public sealed partial class GlobalSearchViewModel : ObservableObject, IDisposabl
         Hits = []; Error = ""; IsLoading = query.Length > 0;
         try
         {
-            if (query.Length == 0) return;
-            var results = GlobalSearchCatalog.Match(shell, query).ToList();
-            Publish();
+            if (query.Length == 0)
+            {
+                var recents = shell.SearchRecents;
+                Hits = recents.Select((hit, index) => hit with { SectionTitle = index == 0 ? Copy.Recent : "" })
+                    .Concat(GlobalSearchCatalog.Pages(shell).Where(hit => recents.All(recent => recent.Key != hit.Key)).Take(8)
+                        .Select((hit, index) => hit with { SectionTitle = index == 0 ? Copy.Pages : "" })).ToArray();
+                return;
+            }
+            var results = GlobalSearchCatalog.Match(shell, query).Concat(QueueMatches(query)).ToArray();
+            Publish(results, query);
             await Task.Delay(180, current.Token);
-            if (shell.TrackLibrary is { } tracks)
-            {
-                var page = await tracks.GetTracksAsync(new(16, query), current.Token);
-                results.AddRange(page.Items.Take(16).Select(track => new GlobalSearchHit(shell.Text["navigation.songs"],
-                    track.Title, track.Artist + " · " + track.Album, "music", track)));
-                Publish();
-            }
-            if (!query.StartsWith('/') && shell.AlbumLibrary is { } albums)
-            {
-                var page = await albums.GetAlbumsAsync(new(Limit: 16, Search: query), current.Token);
-                results.AddRange(page.Items.Take(16).Select(album => new GlobalSearchHit(shell.Text["navigation.albums"],
-                    album.Title, album.Artist, "disc", album)));
-                Publish();
-            }
-            if (!query.StartsWith('/') && shell.ArtistLibrary is { } artists)
-            {
-                var page = await artists.GetArtistsAsync(new(Limit: 16, Search: query), current.Token);
-                results.AddRange(page.Items.Take(16).Select(artist => new GlobalSearchHit(shell.Text["navigation.artists"],
-                    artist.Name, shell.Text.Format("query.artistCount", artist.TrackCount, artist.AlbumCount), "user", artist)));
-                Publish();
-            }
-            if (!query.StartsWith('/') && shell.GenreLibrary is { } genres)
-            {
-                var page = await genres.GetGenresAsync(new(Limit: 16, Search: query), current.Token);
-                results.AddRange(page.Items.Take(16).Select(genre => new GlobalSearchHit(shell.Text["navigation.genres"],
-                    genre.Name, shell.Text.Format("query.artistCount", genre.TrackCount, genre.AlbumCount), "disc", genre)));
-                Publish();
-            }
-            if (!query.StartsWith('/') && shell.PlaylistLibrary is { } playlists)
-            {
-                var page = await playlists.GetPlaylistsAsync(new(Limit: 16, Search: query), current.Token);
-                results.AddRange(page.Items.Take(16).Select(playlist => new GlobalSearchHit(shell.Text["navigation.playlists"],
-                    playlist.Name, playlist.Description, "queue", playlist)));
-                Publish();
-            }
-            void Publish()
-            {
-                if (!closed && version == generation && !current.IsCancellationRequested)
-                    Hits = results.OrderBy(hit => Rank(hit.Title, query)).Take(24).ToArray();
-            }
+            await ReadLibrariesAsync(query, version, current.Token, results);
         }
         catch (OperationCanceledException) { }
         catch (ArgumentException) { if (!closed && version == generation) Error = shell.Text["query.invalid"]; }
@@ -95,5 +64,6 @@ public sealed partial class GlobalSearchViewModel : ObservableObject, IDisposabl
     {
         if (closed) return; closed = true; ++generation; request?.Cancel(); request = null;
         shell.Text.Changed -= OnLanguage; Hits = []; IsLoading = false;
+        concurrency.Dispose();
     }
 }

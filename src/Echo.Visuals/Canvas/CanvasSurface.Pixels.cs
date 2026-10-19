@@ -15,6 +15,21 @@ public sealed partial class CanvasSurface
         Marshal.Copy(bitmap.GetPixels(),bytes,0,bytes.Length);
         return new(bytes,Width,Height,bitmap.RowBytes);
     }
+    internal RasterImageFrame? Snapshot(RasterFramePool pool)
+    {
+        Canvas.Flush();
+        return pool.Capture(bitmap!);
+    }
+    internal void WritePixelBytes(string base64, int width, int height, int x, int y)
+    {
+        if (width < 1 || height < 1 || (long)width * height > 512 * 512)
+            throw new InvalidDataException("Source scene pixel-write budget exceeded.");
+        var bytes = Convert.FromBase64String(base64);
+        if (bytes.Length != width * height * 4) throw new InvalidDataException("Source scene pixel count mismatch.");
+        using var image = SKImage.FromPixelCopy(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Unpremul), bytes);
+        using var paint = new SKPaint { BlendMode = SKBlendMode.Src };
+        Canvas.DrawImage(image, x, y, paint);
+    }
     internal void Grain()
     {
         for(var y=0;y<Height;y++)for(var x=0;x<Width;x++)
@@ -31,6 +46,7 @@ public sealed partial class CanvasSurface
     }
     internal string ReadPixels(int x,int y,int width,int height)
     {
+        MaterializePixels();
         if(width<0||height<0||(long)width*height>4*1024*1024)throw new InvalidOperationException("Canvas pixel read budget exceeded.");
         var data=new byte[checked(width*height*4)];
         for(var row=0;row<height;row++)for(var col=0;col<width;col++)
@@ -56,7 +72,8 @@ public sealed partial class CanvasSurface
         }
     }
     internal SKShader Pattern(string repeat)
-        => SKShader.CreateBitmap(bitmap!,repeat is "repeat" or "repeat-x"?SKShaderTileMode.Repeat:SKShaderTileMode.Decal,
+        => pictureMode ? Picture().ToShader(repeat is "repeat" or "repeat-x" ? SKShaderTileMode.Repeat : SKShaderTileMode.Decal,
+            repeat is "repeat" or "repeat-y" ? SKShaderTileMode.Repeat : SKShaderTileMode.Decal) : SKShader.CreateBitmap(bitmap!,repeat is "repeat" or "repeat-x"?SKShaderTileMode.Repeat:SKShaderTileMode.Decal,
             repeat is "repeat" or "repeat-y"?SKShaderTileMode.Repeat:SKShaderTileMode.Decal);
     internal string Transform()
     {

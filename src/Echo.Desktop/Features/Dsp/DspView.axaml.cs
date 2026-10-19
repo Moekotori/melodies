@@ -23,27 +23,16 @@ public partial class DspView : UserControl, IDisposable
     }
     private void ArrangePage()
     {
-        var narrow = Bounds.Width < 820;
-        Workbench.ColumnDefinitions[0].Width = new GridLength(narrow ? 196 : 232);
-        Workspace.Margin = new Thickness(narrow ? 12 : 16, 6, narrow ? 12 : 18, 6);
-        var stackHeader = Bounds.Width < 620;
+        var narrow = Bounds.Width < 1040;
+        Workbench.ColumnDefinitions[0].Width = new GridLength(narrow ? 188 : 236);
+        Workspace.Margin = new Thickness(narrow ? 18 : 30, 24, narrow ? 18 : 30, 16);
+        var stackHeader = Bounds.Width < 920;
         Header.ColumnDefinitions = new(stackHeader ? "*" : "*,Auto"); Header.RowDefinitions = new(stackHeader ? "Auto,Auto" : "Auto");
         Grid.SetColumn(HeaderTools, stackHeader ? 0 : 1); Grid.SetRow(HeaderTools, stackHeader ? 1 : 0);
         HeaderTools.Margin = stackHeader ? new Thickness(0, 12, 0, 0) : default;
         Footer.ColumnDefinitions = new(narrow ? "*" : "*,Auto"); Footer.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
         var actions = Footer.Children[1]; Grid.SetColumn(actions, narrow ? 0 : 1); Grid.SetRow(actions, narrow ? 1 : 0);
         actions.Margin = narrow ? new Thickness(0, 10, 0, 0) : default;
-    }
-    private async void ImportRoom(object? sender, RoutedEventArgs e)
-    {
-        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage || Model is null) return;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "导入脉冲响应", AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("音频") { Patterns = ["*.wav", "*.flac", "*.aiff", "*.aif"] }],
-        });
-        if (files.Count == 0) return;
-        Model.UseImpulse(files[0].TryGetLocalPath() ?? "");
     }
     public void Dispose() { Model?.Dispose(); Model = null; }
 }

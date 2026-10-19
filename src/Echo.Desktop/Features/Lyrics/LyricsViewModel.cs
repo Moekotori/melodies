@@ -48,6 +48,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
     public LyricsAppearance Appearance { get; }
     public PlayerViewModel Player => player;
     public LyricsDocument Document { get; private set; } = LyricsDocument.Empty;
+    internal AlbumArtworkCache.Lease? RetainCover() => coverLease?.Retain();
     public bool IsPlaying => snapshot?.Status == PlaybackStatus.Playing;
     public bool CanInterpolate => speed > 0 && anchorTime > 0 && Stopwatch.GetElapsedTime(anchorTime).TotalMilliseconds < 250;
     public event Action? Changed;

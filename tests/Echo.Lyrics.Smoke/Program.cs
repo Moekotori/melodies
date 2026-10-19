@@ -27,7 +27,7 @@ if (args.Contains("--local-compatibility")) { CompatibilityUiSmoke.Run(); return
 var watch = Stopwatch.StartNew();
 var root = Path.GetFullPath(args.Length > 0 ? args[0] : "misc/lyrics-migration"); Directory.CreateDirectory(root);
 using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(40));
-ParserSmoke.Run();
+if (!args.Contains("--styles-only")&&!args.Contains("--backgrounds-only")) ParserSmoke.Run();
 var host = new TestHost(); var session = new PlaybackSessionCoordinator(host); var player = new PlayerViewModel(new PlaybackZone("lyrics-test", "歌词测试", session));
 var settingsPath = Path.Combine(root, "preferences.json");
 var settings = new LocalLyricsPreferencesStore(settingsPath); var appearance = new LyricsAppearance(settings);
@@ -62,14 +62,107 @@ using (var codec = SKCodec.Create(data))
     using var thumbnailLease = thumbnail.Result;
     Check(thumbnailLease?.Image is { } thumb && Math.Max(thumb.PixelSize.Width, thumb.PixelSize.Height) <= 320, "ordinary thumbnail budget remains 320");
 }
+if(args.Contains("--backgrounds-only"))
+{
+    window.Width=800;window.Height=600;
+    appearance.SelectedStyle=appearance.Styles[0];
+    var backgrounds=view.FindControl<LyricsBackgroundSceneControl>("BackgroundScene")!;
+    foreach(var mode in new[]{"theme","cover","coverFlow","geometricAmbience","sakura","coverPond","customWallpaper"})
+    {
+        if(mode=="customWallpaper")appearance.WallpaperPath=Path.GetFullPath("src/Echo.Desktop/Resources/Artwork/placeholder-dark.png");
+        appearance.BackgroundMode=mode;Capture("background-"+mode);
+        if(mode=="customWallpaper")
+        {
+            var sequence=backgrounds.FrameSequence;
+            appearance.FontSize+=1;appearance.Translation=!appearance.Translation;
+            backgrounds.Pointer(new Point(200,100),false);backgrounds.PointerLeave();
+            using(var staticPump=new CancellationTokenSource(TimeSpan.FromMilliseconds(160)))Dispatcher.UIThread.MainLoop(staticPump.Token);
+            Check(backgrounds.FrameSequence==sequence,"static wallpaper ignores lyrics-only changes and pointer motion");
+            appearance.FontSize-=1;appearance.Translation=!appearance.Translation;
+        }
+    }
+    appearance.BackgroundMode="coverPond";Capture("background-pond-static");
+    Check(!backgrounds.IsFrameDriverRunning,"reduced motion stops background driver");
+    shell.Motion.SelectedChoice=shell.Motion.Choices.First(c=>c.Mode==MotionMode.Full);
+    Check(backgrounds.IsFrameDriverRunning,"visible background owns capped driver");
+    var backgroundFrame=backgrounds.FrameSequence;
+    using(var animationPump=new CancellationTokenSource(TimeSpan.FromMilliseconds(700)))Dispatcher.UIThread.MainLoop(animationPump.Token);
+    Capture("background-pond-animated");
+    Check(backgrounds.FrameSequence>backgroundFrame+2,"actual background timer delivers successive native frames");
+    shell.Motion.IsWindowVisible=false;
+    Check(!backgrounds.IsFrameDriverRunning&&!backgrounds.HasFrame,"hidden background releases presentation");
+    shell.Motion.SelectedChoice=shell.Motion.Choices.First(c=>c.Mode==MotionMode.Off);shell.Motion.IsWindowVisible=true;
+    Capture("background-pond-restored");
+    shell.IsDark=true;Capture("background-pond-dark");
+    appearance.SelectedStyle=appearance.Styles.Single(s=>s.Id=="folded");Capture("background-folded-override");
+    appearance.SelectedStyle=appearance.Styles.Single(s=>s.Id=="blossom");
+    Check(!backgrounds.IsFrameDriverRunning&&!backgrounds.HasFrame&&!appearance.CanSelectBackground,"independent source scene owns its background");
+    appearance.SelectedStyle=appearance.Styles[0];appearance.BackgroundMode="coverFlow";
+    window.Width=1440;window.Height=900;
+    shell.OpenQuickSettingsCommand.Execute("lyrics");Dispatcher.UIThread.RunJobs();
+    var drawer=window.GetVisualDescendants().OfType<Echo.Desktop.Features.Settings.Drawers.LyricsSettingsDrawerView>().Last();
+    drawer.FindControl<TabControl>("LyricsTabs")!.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
+    var backgroundSettings=drawer.FindControl<LyricsBackgroundSettingsView>("LyricBackgroundInput")!;
+    var backgroundPicker=backgroundSettings.FindControl<ComboBox>("BackgroundInput")!;
+    backgroundPicker.BringIntoView();Capture("background-settings");
+    backgroundPicker.IsDropDownOpen=true;Capture("background-picker");
+    backgroundPicker.SelectedItem=appearance.BackgroundChoices.Single(c=>c.Id=="coverPond");Dispatcher.UIThread.RunJobs();
+    Check(appearance.BackgroundMode=="coverPond"&&appearance.BackgroundChoices.Count==20,"actual background picker updates independent source");
+    backgroundPicker.IsDropDownOpen=false;Capture("background-settings-selected");
+    shell.CloseQuickSettingsCommand.Execute(null);appearance.BackgroundMode="coverFlow";
+    Pump(settings.DisposeAsync().AsTask());
+    var rereadBackground=new LocalLyricsPreferencesStore(settingsPath);var readBackground=rereadBackground.ReadAsync(limit.Token);Pump(readBackground);
+    Check(readBackground.Result.BackgroundMode=="coverFlow"&&readBackground.Result.WallpaperPath.Length>0,"background selection and image persist independently");
+    Pump(rereadBackground.DisposeAsync().AsTask());
+    window.Close();Console.WriteLine("PASS background source overrides, native scenes, wallpaper, hidden/reduced motion, restore, theme and preferences");return;
+}
 foreach (var style in appearance.Styles)
 {
     appearance.SelectedStyle = style; Capture("style-" + style.Id);
     var viewport = view.FindControl<LyricsViewportControl>("Viewport")!;
     Check(viewport.LayoutCount <= 18 && !viewport.IsFrameDriverRunning, "bounded layouts and paused driver");
 }
-appearance.SelectedStyle = appearance.Styles.Last();
-Check(appearance.Styles.Count == 12 && appearance.Looks.Count == 23 && appearance.Looks.Any(look => look.Id == "rhythm"), "complete old style and look catalogs including rhythm");
+if (args.Contains("--styles-only"))
+{
+    foreach (var id in new[] { "default", "afterglowCover", "coverStage", "curtain", "kineticChars" })
+    {
+        appearance.SelectedStyle = appearance.Styles.Single(style => style.Id == id);
+        window.Width = 700; window.Height = 960; Capture("portrait-" + id);
+    }
+    var stage = view.FindControl<LyricsViewportControl>("Viewport")!;
+    shell.Motion.SelectedChoice = shell.Motion.Choices.First(c => c.Mode == MotionMode.Full);
+    appearance.SelectedStyle = appearance.Styles.Single(style => style.Id == "default");
+    appearance.SelectedStyle = appearance.Styles.Single(style => style.Id == "kineticChars");
+    Check(stage.IsFrameDriverRunning, "kinetic entry uses the shared finite frame driver");
+    shell.Motion.IsWindowVisible = false;
+    Check(!stage.IsFrameDriverRunning, "hidden kinetic stage releases its frame driver");
+    shell.Motion.IsWindowVisible = true;
+    shell.Motion.SelectedChoice = shell.Motion.Choices.First(c => c.Mode == MotionMode.Off);
+    Check(!stage.IsFrameDriverRunning, "reduced motion stops kinetic entry frames");
+    var sourceStage = view.FindControl<SourceLyricsSceneControl>("SourceScene")!;
+    appearance.SelectedStyle = appearance.Styles.Single(style => style.Id == "blossom");
+    Capture("blossom-reduced-motion");
+    Check(!sourceStage.IsFrameDriverRunning, "source scene respects reduced motion");
+    shell.Motion.SelectedChoice = shell.Motion.Choices.First(c => c.Mode == MotionMode.Full);
+    Check(sourceStage.IsFrameDriverRunning, "visible source scene owns one frame driver");
+    shell.Motion.IsWindowVisible = false;
+    Check(!sourceStage.IsFrameDriverRunning && !sourceStage.HasFrame, "hidden source scene releases frame and stops driver");
+    shell.Motion.SelectedChoice = shell.Motion.Choices.First(c => c.Mode == MotionMode.Off);
+    shell.Motion.IsWindowVisible = true;
+    Capture("blossom-restored");
+    window.Width = 3840; window.Height = 2160;
+    appearance.SelectedStyle = appearance.Styles.Single(style => style.Id == "cassette");
+    Capture("cassette-large");
+    appearance.SelectedStyle = appearance.Styles.Single(style => style.Id == "default");
+    Check(!sourceStage.IsFrameDriverRunning && !sourceStage.HasFrame, "leaving source scene releases presentation");
+    window.Width = 1440; window.Height = 900; shell.IsDark = true;
+    appearance.SelectedStyle = appearance.Styles[0]; Capture("default-dark");
+    window.Close();
+    Console.WriteLine("PASS 17 native lyric styles, 5 portrait layouts, dark theme, bounded text layouts and paused frame drivers");
+    return;
+}
+appearance.SelectedStyle = appearance.Styles.Single(style => style.Id == "jizura");
+Check(appearance.Styles.Count == 17 && appearance.Looks.Count == 23 && appearance.Looks.Any(look => look.Id == "rhythm"), "complete old style and look catalogs including rhythm");
 foreach (var look in appearance.Looks.Where(look => args.Contains("--full-looks") || look.Id is "mist" or "neon" or "rhythm"))
 { appearance.SelectedLook = look; Capture("afterglow-" + look.Id); }
 appearance.SelectedStyle = appearance.Styles[0];
@@ -114,6 +207,18 @@ Console.WriteLine($"PASS parser, actual sidecar + shared artwork, independent fu
 LyricsView FindView() => window.GetVisualDescendants().OfType<LyricsView>().Last();
 void Capture(string name)
 {
+    if((appearance.BackgroundStyle.Scene||appearance.IsCustomWallpaper)&&appearance.CanSelectBackground)
+    {
+        var background=view.FindControl<LyricsBackgroundSceneControl>("BackgroundScene")!;
+        Wait(()=>background.HasFrame||background.RenderDiagnostic.Length>0);
+        Check(background.HasFrame,"original background: "+background.RenderDiagnostic);
+    }
+    if (appearance.SelectedStyle.Layout == LyricsLayout.SourceScene && view.Model.HasLyrics)
+    {
+        var sourceScene = view.FindControl<SourceLyricsSceneControl>("SourceScene")!;
+        Wait(() => sourceScene.HasFrame || sourceScene.RenderDiagnostic.Length > 0);
+        Check(sourceScene.HasFrame, "source scene: " + sourceScene.RenderDiagnostic);
+    }
     if (appearance.IsAfterglow && view.Model.HasLyrics)
     {
         var scene = view.FindControl<JizuraSceneControl>("JizuraScene")!;

@@ -8,6 +8,7 @@
         <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
       <TextBlock Text="{Binding StyleDescription}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
+      <lyrics:LyricsBackgroundSettingsView />
       <TextBlock Text="{DynamicResource ui.LyricsSettingsView.f71561b5af0a}" Classes="muted" />
       <Slider Minimum="18" Maximum="72" Value="{Binding FontSize}" TickFrequency="1" />
       <TextBlock Text="{DynamicResource ui.LyricsSettingsView.6e6d009404e9}" Classes="muted" />

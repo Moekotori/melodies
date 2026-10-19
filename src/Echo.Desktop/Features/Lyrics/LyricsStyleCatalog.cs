@@ -1,6 +1,6 @@
 namespace Echo.Desktop.Features.Lyrics;
 
-public enum LyricsLayout { Reading, Light, WordFocus, CoverLeft, Editorial, Folded, Vinyl, Cinema, Poster, CoverRight, Slices, CoverOnly, Afterglow }
+public enum LyricsLayout { Reading, Light, WordFocus, CoverLeft, Editorial, Folded, Vinyl, Cinema, Poster, CoverRight, Slices, CoverOnly, Afterglow, Curtain, KineticChars, SourceScene }
 public sealed record LyricsStyle(string Id, string Label, string Description, LyricsLayout Layout,
     string Background, string Ink, string Accent, double Scale = 1, bool Center = false);
 public sealed record AfterglowLook(string Id, string Label, string Background, string Ink, string Accent, string Secondary);
@@ -9,7 +9,7 @@ public sealed record AfterglowLook(string Id, string Label, string Background, s
 public static class LyricsStyleCatalog
 {
     public static IReadOnlyList<LyricsStyle> All { get; } = [
-        new("default", "简约", "留白与清晰的滚动歌词", LyricsLayout.Reading, "", "", ""),
+        new("default", "简约", "留白与清晰的滚动歌词", LyricsLayout.Reading, "", "", "", Center: true),
         new("luminous", "浮光", "暗色舞台与流动光束", LyricsLayout.Light, "#070911", "#F7F8FF", "#BEC8FF", 1.12),
         new("afterglow", "余音", "居中单句与逐字点亮", LyricsLayout.WordFocus, "#0B0D12", "#FFFFFF", "#FFFFFF", 1, true),
         new("afterglowCover", "余晖", "封面与温暖的阅读舞台", LyricsLayout.CoverLeft, "#1B1716", "#F9F5ED", "#F1C28F"),
@@ -21,7 +21,11 @@ public static class LyricsStyleCatalog
         new("coverStage", "画境", "封面铺陈与并列歌词", LyricsLayout.CoverRight, "#16181E", "#F8F8F8", "#F8F8F8"),
         new("coverOnly", "纯封面", "居中封面，画面让出歌词", LyricsLayout.CoverOnly, "", "", ""),
         new("cutBoard", "切影", "斜切封面与歌词切片", LyricsLayout.Slices, "#080C11", "#FFF6E0", "#FF705E", 1.35),
-        new("jizura", "Afterglow", "独立场景与动态文字", LyricsLayout.Afterglow, "#EAE4F6", "#3A2C5E", "#8E6FD6", 1.6, true)
+        new("jizura", "Afterglow", "独立场景与动态文字", LyricsLayout.Afterglow, "#EAE4F6", "#3A2C5E", "#8E6FD6", 1.6, true),
+        new("blossom", "Blossom", "原版动态文字场景", LyricsLayout.SourceScene, "#0B0F1B", "#E8E3D9", "#5B97DC", Center: true),
+        new("cassette", "磁带", "原版昼夜磁带与水波歌词", LyricsLayout.SourceScene, "#0B0F1B", "#FFFFFF", "#FF8FBD", Center: true),
+        new("curtain", "垂帘", "自右向左展开的竖排歌词", LyricsLayout.Curtain, "", "", ""),
+        new("kineticChars", "跃动", "逐词跃起与前后句标记", LyricsLayout.KineticChars, "", "", "")
     ];
     public static IReadOnlyList<AfterglowLook> Looks { get; } = [
         new("mist", "雾光", "#EAE4F6", "#3A2C5E", "#8E6FD6", "#F29DB4"),

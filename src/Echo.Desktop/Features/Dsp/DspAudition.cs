@@ -11,6 +11,7 @@ public sealed partial class DspViewModel
 
     partial void OnSelectedModuleChanging(DspModule? oldValue, DspModule newValue)
     {
+        if (oldValue?.Id == "deesser" && newValue != oldValue) _ = SetDeesserListenAsync(false);
         if (oldValue is null || oldValue.DraftOnly || newValue == oldValue || IsBusy || !IsDirty || confirmed is null || session is null || oldValue.WriteMethod is null) return;
         auditionEpoch++;
         var state = CaptureDraft();
@@ -82,6 +83,7 @@ public sealed partial class DspViewModel
     {
         if (session is null || module.WriteMethod is null) throw new IOException("播放服务尚未连接。");
         if (module.Id == "room") return await PushRoomAsync(state, retain, token);
+        if (module.Id == "rack") await ResolveRackBanksAsync(state);
         if (module.Id == "limiter") return await PushLimiterAsync(state, retain, token);
         return await session.DspAsync(module.WriteMethod, Json(ParametersFor(module, state)), retain, token);
     }
@@ -90,13 +92,32 @@ public sealed partial class DspViewModel
     {
         if (session is null) throw new IOException("播放服务尚未连接。");
         var path = state["irPath"]?.ToString() ?? "";
+        var bankId = state["bankId"]?.ToString() ?? state["irId"]?.ToString();
+        if (Guid.TryParseExact(bankId, "N", out _) && !Bool(state, "clearIr"))
+        {
+            var bank = await resources.ExecuteAsync(Echo.Core.Contracts.DspResourceOperation.ResolveBank, id: bankId, token: token);
+            path = bank.GetProperty("nativePath").GetString()!;
+        }
         if (state["clearIr"] is JsonValue cleared && cleared.TryGetValue<bool>(out var shouldClear) && shouldClear)
         { await session.DspAsync("roomCorrection.clear", Json(new JsonArray()), retain, token); loadedIrPath = ""; }
         else if (path.Length > 0 && (retain || path != loadedIrPath))
         {
-            var file = Path.GetFileName(path);
-            await session.DspAsync("roomCorrection.loadIr", Json(new JsonArray(new JsonObject { ["path"] = path, ["irId"] = file, ["irName"] = file, ["forceReload"] = true })), retain, token);
-            loadedIrPath = path;
+            var before = await session.DspAsync("roomCorrection.getState", Json(new JsonArray()), token: token);
+            var awaitingFormat = session.Snapshot.Current is null && before.TryGetProperty("channelMode", out var mode) && mode.GetString() == "none"
+                && before.TryGetProperty("enabled", out var enabled) && enabled.ValueKind == JsonValueKind.True;
+            if (awaitingFormat) await session.DspAsync("roomCorrection.setEnabled", Json(new JsonArray(false)), token: token);
+            try
+            {
+                var file = Path.GetFileName(path);
+                var loaded = await session.DspAsync("roomCorrection.loadIr", Json(new JsonArray(new JsonObject { ["path"] = path, ["irId"] = bankId ?? file, ["irName"] = state["irName"]?.ToString() is { Length: > 0 } name ? name : file, ["forceReload"] = true })), retain, token);
+                if (loaded.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(error.GetString())) throw new IOException(error.GetString());
+                loadedIrPath = path;
+            }
+            catch
+            {
+                if (awaitingFormat) await session.DspAsync("roomCorrection.setEnabled", Json(new JsonArray(true)), token: CancellationToken.None);
+                throw;
+            }
         }
         await session.DspAsync("roomCorrection.setTrim", Json(new JsonArray(state["trimDb"]?.DeepClone() ?? JsonValue.Create(0))), retain, token);
         return await session.DspAsync("roomCorrection.setEnabled", Json(new JsonArray(state["enabled"]?.DeepClone() ?? JsonValue.Create(false))), retain, token);

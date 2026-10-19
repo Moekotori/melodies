@@ -22,6 +22,7 @@ internal static class FloatingWindowsSmoke
 {
     public static void Run(string output, bool renderOnly = false)
     {
+        DesktopLyricsLayout.Verify();
         Directory.CreateDirectory(output);
         using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(18));
         var native = new PreviewNative();
@@ -50,6 +51,34 @@ internal static class FloatingWindowsSmoke
             Console.WriteLine("Floating smoke: shared desktop document ready.");
             var mini = controller.MiniWindow!; var desktop = controller.LyricsWindow!;
             var canvas = desktop.FindControl<FloatingLyricsControl>("LyricsCanvas")!;
+            desktop.MouseMove(new Point(-10, -10));
+            desktop.MouseMove(new Point(desktop.Width / 2, desktop.Height / 2));
+            Pump(Task.Delay(190, limit.Token)); Settle();
+            Capture(desktop, "desktop-lyrics-toolbar.png");
+            var originalBounds = canvas.Bounds;
+            shell.Floating.LyricsLocked = true; Settle();
+            Require(canvas.Bounds == originalBounds, "locking keeps the reserved toolbar slot and lyric position");
+            shell.Floating.LyricsLocked = false;
+            desktop.MouseMove(new Point(-10, -10));
+            desktop.MouseMove(new Point(desktop.Width / 2, desktop.Height / 2));
+            Pump(Task.Delay(190, limit.Token)); Settle();
+            Capture(desktop, "desktop-lyrics-toolbar.png");
+            Click(desktop, "OffsetForwardButton");
+            Require(shell.Floating.OffsetMs == 500 && desktop.FindControl<TextBlock>("OffsetReadout")!.Text == "+0.5s", "offset command shows signed seconds");
+            Click(desktop, "OffsetBackButton");
+            Require(shell.Floating.OffsetMs == 0 && !desktop.FindControl<TextBlock>("OffsetReadout")!.IsVisible, "zero offset hides the readout");
+            Click(desktop, "SettingsButton");
+            var settingsPanel = desktop.OwnedWindows.Single();
+            Require(settingsPanel.IsVisible, "settings opens beside the overlay");
+            Capture(settingsPanel, "desktop-lyrics-settings.png");
+            Click(desktop, "SettingsButton");
+            Require(desktop.OwnedWindows.Count() == 1, "settings reuses its existing window");
+            settingsPanel.Close();
+            shell.Floating.TextDirection = "vertical"; Settle();
+            desktop.MouseMove(new Point(-10, -10));
+            desktop.MouseMove(new Point(desktop.Width / 2, desktop.Height / 2));
+            Pump(Task.Delay(190, limit.Token)); Capture(desktop, "desktop-lyrics-vertical.png");
+            shell.Floating.TextDirection = "horizontal"; Settle();
             if (renderOnly)
             {
                 // Mirror the final XAML sizes when previewing a prior coherent build during parallel edits.
@@ -96,7 +125,9 @@ internal static class FloatingWindowsSmoke
             Require(!locked && desktop.Position.X < 100000 && desktop.Position.Y < 100000, "reset rejects stale coordinates and unlocks");
             desktop.Hide(); Settle(); Require(!canvas.IsFrameDriverRunning, "hidden lyric window stops driver"); desktop.Show(); Settle();
             window.WindowState = WindowState.Minimized; shell.Floating.RestoreMainCommand.Execute(null); Require(window.WindowState == WindowState.Normal, "main restore");
+            shell.Floating.WordHighlight = false;
             var saved = shell.Floating.Snapshot();
+            Require(!saved.WordHighlight, "word highlighting preference is captured");
             var store = new JsonDesktopPreferencesStore(Path.Combine(output, "preferences.json"));
             store.Save(new DesktopPreferences(Floating: saved)); Pump(store.DisposeAsync().AsTask());
             var readStore = new JsonDesktopPreferencesStore(Path.Combine(output, "preferences.json"));

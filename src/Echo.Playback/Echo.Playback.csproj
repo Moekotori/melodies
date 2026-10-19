@@ -2,4 +2,8 @@
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup><ProjectReference Include="../Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" /><ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="Echo.Playback.Smoke" /></ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Processing/*.cs" />
+    <ProjectReference Include="../Modules/Echo.SignalDesign/Echo.SignalDesign.csproj" />
+  </ItemGroup>
 </Project>

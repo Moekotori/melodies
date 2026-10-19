@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
+  <!-- Keep pending FIR sources in their existing location while exposing only
+       pure, bounded configuration design; no player, native process or database. -->
+  <ItemGroup>
+    <Compile Include="../../Echo.Playback/Processing/*.cs" Link="%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../Echo.Playback/Processing/*.json"
+                      LogicalName="Echo.Playback.Processing.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

@@ -19,7 +19,7 @@ internal sealed class AfterglowGlyphLayout : IDisposable
         if (line != value || width != bounds.Width || size != px || ink != brush)
         {
             Dispose(); line = value; width = bounds.Width; size = px; ink = brush;
-            var font = new Typeface("Segoe UI, Microsoft YaHei, Noto Sans CJK SC", weight: FontWeight.Bold);
+            var font = new Typeface(LyricsReadingPresentation.Sans, weight: FontWeight.Bold);
             foreach (var word in value.Words)
             {
                 var starts = StringInfo.ParseCombiningCharacters(word.Text);

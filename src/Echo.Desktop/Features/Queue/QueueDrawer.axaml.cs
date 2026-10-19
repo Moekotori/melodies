@@ -7,6 +7,7 @@ public partial class QueueDrawer : UserControl
     public QueueDrawer()
     {
         InitializeComponent();
+        _ = new QueuePresentationBinding(this, () => (DataContext as ShellViewModel)?.Player?.Queue);
         SizeChanged += (_, _) => QueueSearch.IsVisible = Bounds.Height >= 500;
     }
     private void OnShortcuts(object? sender, RoutedEventArgs args)

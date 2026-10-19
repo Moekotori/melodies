@@ -45,19 +45,19 @@ public partial class QueueList : UserControl
     private void OnModelChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (model is null || args.PropertyName != (Drawer ? nameof(QueueViewModel.DrawerRows) : nameof(QueueViewModel.Rows))) return;
-        UpdateItems();
         restoringSelection = true;
         try
         {
+            UpdateItems();
             Tracks.SelectedItems?.Clear();
-            foreach (var row in model.Rows.Where(x => selected.Contains(x.ItemId))) Tracks.SelectedItems?.Add(row);
+            foreach (var row in (Drawer ? model.DrawerRows : model.Rows).Where(x => selected.Contains(x.ItemId))) Tracks.SelectedItems?.Add(row);
         }
         finally { restoringSelection = false; }
         model.SetSelection(Tracks.SelectedItems?.OfType<QueueRowViewModel>() ?? []);
     }
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs args)
     {
-        if (restoringSelection || model is null) return;
+        if (restoringSelection || model is null || model.IsUpdatingRows) return;
         var rows = Tracks.SelectedItems?.OfType<QueueRowViewModel>().ToArray() ?? [];
         selected = rows.Select(x => x.ItemId).ToArray(); model.SetSelection(rows);
     }

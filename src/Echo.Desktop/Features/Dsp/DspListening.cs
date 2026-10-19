@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Echo.Core.Contracts;
 
 namespace Echo.Desktop.Features.Dsp;
 
@@ -25,10 +26,14 @@ public sealed partial class DspViewModel
     [ObservableProperty] private DspListeningProfile? selectedProfile;
     [ObservableProperty] private string listeningName = "";
 
-    private void LoadProfiles()
+    public bool HasProfiles => Profiles.Count > 0;
+    public bool CanManageProfile => CanEdit && SelectedProfile is not null;
+    partial void OnSelectedProfileChanged(DspListeningProfile? value) => OnPropertyChanged(nameof(CanManageProfile));
+
+    private async Task LoadProfilesAsync()
     {
         Profiles.Clear();
-        if (DspLibraryStore.Load()["profiles"] is not JsonArray profiles) return;
+        if ((await ReadLibraryAsync())["profiles"] is not JsonArray profiles) return;
         foreach (var node in profiles.Take(16))
         {
             if (node is not JsonObject profile) continue;
@@ -38,6 +43,7 @@ public sealed partial class DspViewModel
             Profiles.Add(new(id, name));
         }
         SelectedProfile ??= Profiles.FirstOrDefault();
+        OnPropertyChanged(nameof(HasProfiles)); OnPropertyChanged(nameof(CanManageProfile));
     }
 
     [RelayCommand] private async Task SaveListeningAsync()
@@ -55,13 +61,9 @@ public sealed partial class DspViewModel
                 if (result.ValueKind == JsonValueKind.Object) modules[read] = JsonNode.Parse(result.GetRawText());
             }
             if (IrPath.Length > 0) modules["irPath"] = IrPath;
-            var root = DspLibraryStore.Load();
-            var profiles = root["profiles"] as JsonArray ?? new JsonArray();
-            profiles.Insert(0, new JsonObject { ["id"] = Guid.NewGuid().ToString("N"), ["name"] = name, ["modules"] = modules });
-            while (profiles.Count > 16) profiles.RemoveAt(profiles.Count - 1);
-            root["profiles"] = profiles;
-            DspLibraryStore.Save(root);
-            ListeningName = ""; LoadProfiles(); Message = "方案已保存。套用时会写回原生处理链。";
+            if (session.RequestedOutput is { } output) modules["output.configuration"] = JsonNode.Parse(output.GetRawText());
+            await resources.ExecuteAsync(DspResourceOperation.SaveProfile, id: Guid.NewGuid().ToString("N"), name: name, state: Json(new JsonObject { ["modules"] = modules }), token: lifetime.Token);
+            ListeningName = ""; await LoadProfilesAsync(); Message = "方案已保存。套用时会写回原生处理链。";
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception e) { Message = "方案保存失败：" + e.Message; }
@@ -71,15 +73,17 @@ public sealed partial class DspViewModel
     [RelayCommand] private async Task ApplyListeningAsync()
     {
         if (session is null || SelectedProfile is not { } profile) return;
-        if (DspLibraryStore.Load()["profiles"] is not JsonArray profiles) return;
-        var stored = profiles.OfType<JsonObject>().FirstOrDefault(x => x["id"]?.ToString() == profile.Id);
-        if (stored?["modules"] is not JsonObject modules) { Message = "这个方案已经不在本机。"; return; }
         auditionEpoch++; IsBusy = true; Message = "正在套用方案…";
+        var applying = "方案资源";
         try
         {
+        if ((await ReadLibraryAsync())["profiles"] is not JsonArray profiles) throw new IOException("听音方案列表无效。");
+        var stored = profiles.OfType<JsonObject>().FirstOrDefault(x => x["id"]?.ToString() == profile.Id);
+        if (stored?["modules"] is not JsonObject modules) { Message = "这个方案已经不在本机。"; return; }
             foreach (var (read, write) in ProfileModules)
             {
                 if (modules[read] is not JsonObject state) continue;
+                applying = Modules.FirstOrDefault(x => x.ReadMethod == read)?.Title ?? read;
                 if (read == "roomCorrection.getState")
                 {
                     if (modules["irPath"]?.ToString() is { Length: > 0 } path) state["irPath"] = path;
@@ -91,26 +95,34 @@ public sealed partial class DspViewModel
                     await PushLimiterAsync(state, retain: true, lifetime.Token);
                 }
                 else if (read == "dspRack.getState")
-                    await session.DspAsync(write, Json(new JsonArray(state.DeepClone())), retainForRecovery: true, token: lifetime.Token);
+                { await ResolveRackBanksAsync(state); await session.DspAsync(write, Json(new JsonArray(state.DeepClone())), retainForRecovery: true, token: lifetime.Token); }
                 else await session.DspAsync(write, Json(new JsonArray(state.DeepClone())), retainForRecovery: true, token: lifetime.Token);
+            }
+            if (modules["output.configuration"] is JsonObject savedOutput && session.RequestedOutput is { } currentOutput)
+            {
+                var output = JsonNode.Parse(currentOutput.GetRawText())!.AsObject();
+                output["processing"] = savedOutput["processing"]?.DeepClone(); output["sampleRate"] = savedOutput["sampleRate"]?.DeepClone();
+                await session.ConfigureOutputAsync(Json(output), lifetime.Token);
             }
             await RefreshAsync();
             if (!disposed) Message = "方案已套用。";
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
-        catch (Exception e) { Message = "方案套用失败：" + e.Message; IsBusy = false; }
+        catch (Exception e) { if (!disposed) Message = $"方案未完全套用（{applying}）：{e.Message}。已确认的模块保持当前状态，请修正后重试。"; }
+        finally { if (!disposed) IsBusy = false; }
     }
 
-    [RelayCommand] private void DeleteListening()
+    [RelayCommand] private async Task DeleteListeningAsync()
     {
         if (SelectedProfile is not { } profile) return;
-        var root = DspLibraryStore.Load();
-        if (root["profiles"] is JsonArray profiles)
+        IsBusy = true;
+        try
         {
-            var match = profiles.OfType<JsonObject>().FirstOrDefault(x => x["id"]?.ToString() == profile.Id);
-            if (match is not null) profiles.Remove(match);
-            DspLibraryStore.Save(root);
+            await resources.ExecuteAsync(DspResourceOperation.DeleteProfile, id: profile.Id, token: lifetime.Token);
+            SelectedProfile = null; await LoadProfilesAsync(); Message = "听音方案已删除。";
         }
-        LoadProfiles();
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception error) { if (!disposed) Message = "删除失败：" + error.Message; }
+        finally { if (!disposed) IsBusy = false; }
     }
 }

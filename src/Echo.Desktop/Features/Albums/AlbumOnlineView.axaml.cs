@@ -5,7 +5,27 @@ namespace Echo.Desktop.Features.Albums;
 
 public partial class AlbumOnlineView : UserControl
 {
-    public AlbumOnlineView() => InitializeComponent();
+    public AlbumOnlineView()
+    {
+        InitializeComponent();
+        Resources["AlbumReleaseCardWidth"] = 360d;
+        Resources["AlbumFactCardWidth"] = 240d;
+        Resources["AlbumReleaseFactWidth"] = 240d;
+        SizeChanged += (_, _) => UpdateCardWidths();
+        ReleaseFactsGrid.SizeChanged += (_, _) => UpdateCardWidths();
+    }
+
+    private void UpdateCardWidths()
+    {
+        if (Bounds.Width <= 0) return;
+        // Keep cards aligned with the reading surface, including the last column gutter.
+        var columns = Math.Clamp((int)(Bounds.Width / 240), 1, 4);
+        Resources["AlbumFactCardWidth"] = Math.Max(1, Bounds.Width / columns - 12);
+        var factSpace = ReleaseFactsGrid.Bounds.Width > 0 ? ReleaseFactsGrid.Bounds.Width : Bounds.Width - 20;
+        Resources["AlbumReleaseFactWidth"] = Math.Max(1, factSpace / columns - .5);
+        Resources["AlbumReleaseCardWidth"] = Math.Max(1, Bounds.Width / (Bounds.Width >= 760 ? 2 : 1) - 12);
+    }
+
     private async void OnLink(object? sender, RoutedEventArgs args)
     {
         args.Handled = true;

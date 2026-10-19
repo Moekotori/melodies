@@ -1,0 +1,28 @@
+uniform float2 draw_size;
+uniform float2 draw_center;
+uniform float draw_rotation;
+uniform float4 draw_uv;
+
+
+uniform float4 v_color;
+uniform float4 v_params;
+uniform shader u_tex;
+uniform float2 u_tex_size;
+
+float4 sample_u_tex(float2 uv){return u_tex.eval(uv*u_tex_size);}
+half4 main(float2 coord) {
+float4 outColor;
+float2 v_local=coord/draw_size;
+float2 v_uv=mix(draw_uv.xy,draw_uv.zw,v_local);
+float c=cos(draw_rotation),s=sin(draw_rotation);
+float2 q=(v_local-.5)*draw_size;
+float2 v_screen=draw_center+float2(q.x*c-q.y*s,q.x*s+q.y*c);
+
+  float4 t = sample_u_tex( v_uv);
+  if (v_params.x > 0.5) {
+    outColor = float4(t.rgb * v_color.rgb * v_color.a, 0.0);
+  } else {
+    outColor = float4(t.rgb * v_color.rgb, t.a) * v_color.a;
+  }
+return half4(outColor);
+}

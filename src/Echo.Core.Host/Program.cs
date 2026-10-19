@@ -63,8 +63,20 @@ await using (ownership)
         var idleSeconds = int.TryParse(options.GetValueOrDefault("idle-seconds"), out var configured) ? Math.Clamp(configured, 2, 600) : 60;
         using var metadata = endpoint.Identity == CoreEndpoint.Default.Identity
             ? new CoreMetadataEndpoint(Path.Combine(directory, "core")) : null;
+        using var dspService = metadata is null ? null : new Echo.Dsp.DspResourceService(Path.Combine(directory, "core", "dsp"));
+        var dspEndpoint = dspService is null ? null : new DspResourceEndpoint(dspService, metadata!.Generation);
+        async Task RunCompanions(CancellationToken token)
+        {
+            using var companions = CancellationTokenSource.CreateLinkedTokenSource(token);
+            var listeners = new[] { metadata!.RunAsync(companions.Token), dspEndpoint!.RunAsync(companions.Token) };
+            try { await Task.WhenAny(listeners).ConfigureAwait(false); }
+            finally { companions.Cancel(); await Task.WhenAll(listeners).ConfigureAwait(false); }
+        }
+        bool CompanionActive() => metadata?.HasActivity == true || dspEndpoint is not null &&
+            (Volatile.Read(ref dspEndpoint.ActiveRequests) > 0 ||
+             Environment.TickCount64 - Interlocked.Read(ref dspEndpoint.LastActivity) < 180000);
         await CoreServiceHost.RunAsync(runtime, endpoint, TimeSpan.FromSeconds(idleSeconds), shutdown.Token, remoteAddress, remoteAccess,
-            metadata is null ? null : metadata.RunAsync, () => metadata?.HasActivity == true);
+            metadata is null ? null : RunCompanions, CompanionActive);
         return 0;
     }
     catch (OperationCanceledException) when (shutdown.IsCancellationRequested) { return 0; }

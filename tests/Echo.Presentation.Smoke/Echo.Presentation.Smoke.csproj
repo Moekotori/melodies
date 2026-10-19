@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsAotCompatible>false</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
+    <ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" />
+    <ProjectReference Include="../../src/Echo.Audio.Contracts/Echo.Audio.Contracts.csproj" />
+    <PackageReference Include="Avalonia.Headless" />
+    <Compile Include="../../src/Echo.Desktop/Features/Artwork/RemoteCoverLoader.cs" Link="Resources/RemoteCoverLoader.cs" />
+    <Compile Include="../../src/Echo.Desktop/Controls/Lyrics/SourceSceneArtwork.cs" Link="Resources/SourceSceneArtwork.cs" />
+    <Compile Include="../../src/Echo.Desktop/Controls/Lyrics/JizuraFrameDraw.cs" Link="Resources/JizuraFrameDraw.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Player/PlayerWindowPresentation.cs" Link="Resources/PlayerWindowPresentation.cs" />
+    <Compile Include="../../src/Echo.Desktop/Theming/WallpaperStillImage.cs" Link="Resources/WallpaperStillImage.cs" />
+    <Compile Include="../../src/Echo.Desktop/Theming/WallpaperGrade.cs" Link="Resources/WallpaperGrade.cs" />
+  </ItemGroup>
+</Project>

@@ -59,6 +59,16 @@ public sealed partial class PlaybackSessionCoordinator
             await EnsureStartedAsync().ConfigureAwait(false);
             parameters = await AdaptDspRequestAsync(method, parameters).ConfigureAwait(false);
             result = await native.CallAsync(method, parameters).ConfigureAwait(false);
+            if (method is "roomCorrection.loadIr" or "roomCorrection.setEnabled" && result.ValueKind == JsonValueKind.Object
+                && result.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(error.GetString()))
+            {
+                // A stored bank can be enabled before the first source prepares a channel layout.
+                // Keep that acknowledged target configuration, while the page shows its pending format.
+                var pendingFormat = method == "roomCorrection.setEnabled" && snapshot.Current is null
+                    && error.GetString() == "convolution_no_matching_channels" && result.Text("channelMode") == "none"
+                    && result.Child("filterBank") is { ValueKind: JsonValueKind.Object };
+                if (!pendingFormat) throw new IOException(error.GetString());
+            }
             if (method == "playbackRate.configure")
             {
                 ConfirmPlaybackRate(result);

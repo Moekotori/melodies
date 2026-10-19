@@ -15,6 +15,7 @@
     <ProjectReference Include="../Echo.Core.Host/Echo.Core.Host.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Echo.Application/Echo.Application.csproj" />
     <ProjectReference Include="../Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Echo.SignalDesign/Echo.SignalDesign.csproj" />
     <ProjectReference Include="../Echo.Bridge.Host/Echo.Bridge.Host.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" />
     <ProjectReference Include="../Echo.Platform/Echo.Platform.csproj" />
@@ -26,6 +27,7 @@
     <AvaloniaResource Include="Resources/Icons/**" />
     <AvaloniaResource Include="Resources/Fonts/**" />
     <AvaloniaResource Include="Resources/Artwork/**" />
+    <AvaloniaResource Include="Resources/LyricsBackgrounds/**" />
     <EmbeddedResource Include="Resources/Languages/*.json" LogicalName="Echo.Desktop.Languages.%(Filename).json" />
     <EmbeddedResource Include="Resources/Themes/LegacyPresets.json" LogicalName="Echo.Desktop.LegacyPresets.json" />
   </ItemGroup>
@@ -71,9 +73,19 @@
     <MSBuild Projects="../Echo.Core.Host/Echo.Core.Host.csproj" Targets="Restore;Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(EchoNativeAudioRid);PublishDir=$(CoreMetadataPublishDir);PublishAot=$(PublishAot)" />
   </Target>
 <Target Name="CopyCoreHosts" AfterTargets="Build">
+    <MSBuild Projects="../Echo.Core.Host/Echo.Core.Host.csproj" Targets="GetTargetPath" BuildInParallel="false">
+      <Output TaskParameter="TargetOutputs" ItemName="CoreHostTarget" />
+    </MSBuild>
+    <MSBuild Projects="../Echo.Bridge.Host/Echo.Bridge.Host.csproj" Targets="GetTargetPath" BuildInParallel="false">
+      <Output TaskParameter="TargetOutputs" ItemName="BridgeHostTarget" />
+    </MSBuild>
+    <PropertyGroup>
+      <CoreHostDirectory>@(CoreHostTarget->'%(RootDir)%(Directory)')</CoreHostDirectory>
+      <BridgeHostDirectory>@(BridgeHostTarget->'%(RootDir)%(Directory)')</BridgeHostDirectory>
+    </PropertyGroup>
     <ItemGroup>
-      <CoreHostFile Include="../Echo.Core.Host/bin/$(Configuration)/$(TargetFramework)/**/*" Exclude="../Echo.Core.Host/bin/$(Configuration)/$(TargetFramework)/**/ref/**" />
-      <BridgeHostFile Include="../Echo.Bridge.Host/bin/$(Configuration)/$(TargetFramework)/**/*" Exclude="../Echo.Bridge.Host/bin/$(Configuration)/$(TargetFramework)/**/ref/**" />
+      <CoreHostFile Include="$(CoreHostDirectory)**/*" Exclude="$(CoreHostDirectory)**/ref/**" />
+      <BridgeHostFile Include="$(BridgeHostDirectory)**/*" Exclude="$(BridgeHostDirectory)**/ref/**" />
     </ItemGroup>
     <Copy SourceFiles="@(CoreHostFile)" DestinationFiles="@(CoreHostFile-&gt;'$(OutDir)core/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(BridgeHostFile)" DestinationFiles="@(BridgeHostFile-&gt;'$(OutDir)bridge/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />

@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><ProjectReference Include="../../Echo.Core.Contracts/Echo.Core.Contracts.csproj" /><PackageReference Include="Microsoft.Data.Sqlite" /></ItemGroup>
+</Project>

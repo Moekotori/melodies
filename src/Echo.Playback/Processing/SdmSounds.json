@@ -1,0 +1,97 @@
+[
+  {
+    "id": "linear",
+    "first": "echo-sinc-long",
+    "next": "echo-hb"
+  },
+  {
+    "id": "transient",
+    "first": "echo-minring-mp",
+    "next": "echo-steep-hires-mp"
+  },
+  {
+    "id": "smooth",
+    "first": "echo-apod-gauss",
+    "next": "echo-gauss-hires-lp"
+  },
+  {
+    "id": "hq-balanced",
+    "first": "echo-sinc-long-h",
+    "next": "echo-sinc-m"
+  },
+  {
+    "id": "hq-linear",
+    "first": "echo-sinc-xla",
+    "next": "echo-sinc-long-h"
+  },
+  {
+    "id": "hq-steep",
+    "first": "echo-steep3-xla",
+    "next": "echo-steep-xla"
+  },
+  {
+    "id": "hq-transient",
+    "first": "echo-minring-xla",
+    "next": "echo-steep-hires-mp"
+  },
+  {
+    "id": "hq-smooth",
+    "first": "echo-gauss-xla",
+    "next": "echo-gauss-hires-lp"
+  },
+  {
+    "id": "hq-xtr",
+    "first": "echo-xtr-xla",
+    "next": "echo-xtr-mp"
+  },
+  {
+    "id": "hq-gauss-xtr",
+    "first": "echo-gauss-xtr-xla",
+    "next": "echo-gauss-xtr-long"
+  },
+  {
+    "id": "hq-apod",
+    "first": "echo-apod-extreme",
+    "next": "echo-apod-long"
+  },
+  {
+    "id": "hq-max-steep",
+    "first": "echo-steep3-xla",
+    "next": "echo-steep-xl"
+  },
+  {
+    "id": "hq-max-gauss",
+    "first": "echo-gauss-xtr-xla",
+    "next": "echo-gauss-xl"
+  },
+  {
+    "id": "hq-max-apod",
+    "first": "echo-apod-extreme",
+    "next": "echo-apod-xtr"
+  },
+  {
+    "id": "hq-max-xtr",
+    "first": "echo-xtr-xla",
+    "next": "echo-xtr-xla"
+  },
+  {
+    "id": "hq-max-transient",
+    "first": "echo-minring-extreme",
+    "next": "echo-steep-xl"
+  },
+  {
+    "id": "ultimate-balanced",
+    "first": "echo-sinc-long-h",
+    "next": "echo-sinc-m"
+  },
+  {
+    "id": "ultimate-reference",
+    "first": "echo-sinc-xla",
+    "next": "echo-sinc-long-h"
+  },
+  {
+    "id": "ultimate-transient",
+    "first": "echo-xtr-xla",
+    "next": "echo-steep-hires-mp"
+  }
+]

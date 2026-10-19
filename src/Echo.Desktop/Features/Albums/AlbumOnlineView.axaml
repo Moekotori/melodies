@@ -2,40 +2,42 @@
  xmlns:albums="using:Echo.Desktop.Features.Albums" xmlns:core="using:Echo.Core.Contracts"
  xmlns:icon="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Albums.AlbumOnlineView" x:DataType="albums:AlbumOnlineViewModel">
  <UserControl.Styles>
-  <Style Selector="TextBlock.online-label"><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="TextBlock.online-label"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
   <Style Selector="TextBlock.online-body"><Setter Property="FontSize" Value="14" /><Setter Property="LineHeight" Value="25" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
-  <Style Selector="TextBlock.online-heading"><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
-  <Style Selector="Border.online-card"><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="12" /><Setter Property="Padding" Value="18" /></Style>
+  <Style Selector="TextBlock.online-heading"><Setter Property="FontSize" Value="21" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+  <Style Selector="Border.online-card"><Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="14" /><Setter Property="Padding" Value="22" /><Setter Property="Background" Value="{DynamicResource EchoField}" /></Style>
+  <Style Selector="Border.release-card"><Setter Property="Width" Value="{DynamicResource AlbumReleaseCardWidth}" /></Style>
+  <Style Selector="Border.fact-card"><Setter Property="Width" Value="{DynamicResource AlbumFactCardWidth}" /></Style>
   <Style Selector="Button.online-link"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="26" /></Style>
   <Style Selector="Button.online-link:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
  </UserControl.Styles>
- <StackPanel Spacing="22" Margin="0,10,0,30">
-  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+ <StackPanel Spacing="28" Margin="0,8,0,24">
+  <Border Classes="online-card"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
    <StackPanel Spacing="5">
-    <TextBlock Text="在线资料" Classes="online-label" />
-    <TextBlock Text="{Binding SourceText}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="link" Width="15" Height="15" Stroke="{DynamicResource EchoAccentText}" /><TextBlock Text="在线资料" Classes="online-label" /></StackPanel>
+    <TextBlock Text="{Binding SourceText}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
     <TextBlock Text="{Binding MatchText}" Classes="online-label" TextWrapping="Wrap" IsVisible="{Binding HasMatch}" />
     <TextBlock Text="{Binding UpdatedText}" Classes="online-label" />
    </StackPanel>
    <Button Grid.Column="1" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" VerticalAlignment="Top" Padding="12,6">
     <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="refresh" Width="14" Height="14" /><TextBlock Text="刷新" FontSize="12" /></StackPanel>
    </Button>
-  </Grid>
+  </Grid></Border>
   <ProgressBar IsIndeterminate="True" Height="2" IsVisible="{Binding IsLoading}" />
   <Border Classes="online-card" IsVisible="{Binding HasNotice}"><TextBlock Text="{Binding Notice}" Classes="muted" TextWrapping="Wrap" FontSize="12" LineHeight="21" /></Border>
-  <StackPanel IsVisible="{Binding IsSources}" Spacing="22">
+  <StackPanel IsVisible="{Binding IsSources}" Spacing="28">
    <StackPanel Spacing="14" IsVisible="{Binding HasRelease}">
     <TextBlock Text="发行资料" Classes="online-heading" />
-    <ItemsControl ItemsSource="{Binding ReleaseFacts}">
+    <Border Classes="online-card" Padding="8"><ItemsControl Name="ReleaseFactsGrid" ItemsSource="{Binding ReleaseFacts}">
      <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-     <ItemsControl.ItemTemplate><DataTemplate x:DataType="albums:OnlineFact"><StackPanel Width="230" Spacing="6" Margin="0,0,20,16"><TextBlock Text="{Binding Label}" Classes="online-label" /><TextBlock Text="{Binding Value}" FontSize="14" TextWrapping="Wrap" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
-    </ItemsControl>
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="albums:OnlineFact"><Border Width="{DynamicResource AlbumReleaseFactWidth}" MinHeight="80" Margin="0,0,0,8" Padding="14,10"><StackPanel Spacing="8"><TextBlock Text="{Binding Label}" Classes="online-label" /><TextBlock Text="{Binding Value}" FontSize="15" FontWeight="Medium" TextWrapping="Wrap" /></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl></Border>
    </StackPanel>
    <StackPanel Spacing="14" IsVisible="{Binding HasCredits}">
     <TextBlock Text="参与人员" Classes="online-heading" />
     <ItemsControl ItemsSource="{Binding Credits}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="core:ContributorGroup">
-     <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,14" Margin="0,0,0,8">
-      <StackPanel Spacing="9"><TextBlock Text="{Binding Role}" Classes="online-label" />
+     <Border Classes="online-card" Padding="20,16" Margin="0,0,0,10">
+      <StackPanel Spacing="12"><TextBlock Text="{Binding Role}" FontSize="13" FontWeight="SemiBold" />
        <ItemsControl ItemsSource="{Binding People}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate><DataTemplate x:DataType="core:Contributor"><StackPanel Spacing="2" Margin="0,0,24,8"><Button Classes="online-link" Tag="{Binding Url}" Click="OnLink"><TextBlock Text="{Binding Name}" FontSize="14" TextWrapping="Wrap" /></Button><TextBlock Text="{Binding Detail}" Classes="online-label" TextWrapping="Wrap" MaxWidth="260" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
        </ItemsControl>
@@ -46,34 +48,34 @@
    <StackPanel Spacing="14" IsVisible="{Binding HasLinks}">
     <TextBlock Text="资料来源" Classes="online-heading" />
     <ItemsControl ItemsSource="{Binding Links}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-     <ItemsControl.ItemTemplate><DataTemplate x:DataType="core:InformationLink"><Border Classes="online-card" Width="250" Margin="0,0,12,12"><StackPanel Spacing="6"><TextBlock Text="{Binding Provider}" Classes="online-label" /><Button Classes="online-link" Tag="{Binding Url}" Click="OnLink"><TextBlock Text="{Binding Label}" FontSize="14" TextWrapping="Wrap" MaxWidth="208" /></Button><TextBlock Text="{Binding Kind}" Classes="online-label" /></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="core:InformationLink"><Border Classes="online-card fact-card" Margin="0,0,12,12"><StackPanel Spacing="6"><TextBlock Text="{Binding Provider}" Classes="online-label" /><Button Classes="online-link" Tag="{Binding Url}" Click="OnLink"><TextBlock Text="{Binding Label}" FontSize="14" TextWrapping="Wrap" MaxWidth="208" /></Button><TextBlock Text="{Binding Kind}" Classes="online-label" /></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
     </ItemsControl>
    </StackPanel>
   </StackPanel>
   <StackPanel IsVisible="{Binding IsVersions}" Spacing="16">
    <TextBlock Text="这张专辑的发行版本" Classes="online-heading" />
    <TextBlock Text="不同地区、日期与介质的发行资料来自 MusicBrainz。匹配结果仅用于展示，不会覆盖本地标签。" Classes="online-label" TextWrapping="Wrap" />
-   <ItemsControl ItemsSource="{Binding Releases}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="albums:OnlineRelease">
-    <Border Classes="online-card" Margin="0,0,0,12"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="20"><StackPanel Spacing="9">
-     <TextBlock Text="{Binding Badge}" Classes="online-label" />
+   <ItemsControl ItemsSource="{Binding Releases}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="albums:OnlineRelease">
+    <Border Classes="online-card release-card" Margin="0,0,12,12"><StackPanel Spacing="10">
+     <Border Background="{DynamicResource EchoPanelMuted}" CornerRadius="5" Padding="8,4" HorizontalAlignment="Left"><TextBlock Text="{Binding Badge}" FontSize="11" Foreground="{DynamicResource EchoAccentText}" FontWeight="SemiBold" TextWrapping="Wrap" /></Border>
      <TextBlock Text="{Binding Release.Title}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
      <TextBlock Text="{Binding Release.Artist}" FontSize="13" TextWrapping="Wrap" />
      <TextBlock Text="{Binding Meta}" Classes="online-label" TextWrapping="Wrap" />
      <TextBlock Text="{Binding Label}" Classes="online-label" TextWrapping="Wrap" />
-    </StackPanel><Button Grid.Column="1" Classes="online-link" Tag="{Binding Release.Url}" Click="OnLink" Content="查看发行资料 ↗" VerticalAlignment="Center" />
-    </Grid></Border>
+    <Button Classes="online-link" Tag="{Binding Release.Url}" Click="OnLink" Content="查看发行资料 ↗" Margin="0,4,0,0" />
+    </StackPanel></Border>
    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
   </StackPanel>
   <StackPanel IsVisible="{Binding IsInformation}" Spacing="24">
-   <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,20"><StackPanel Spacing="7"><TextBlock Text="关于这张专辑" Classes="online-label" /><TextBlock Text="{Binding Title}" Classes="online-heading" /><TextBlock Text="{Binding Artist}" FontSize="15" TextWrapping="Wrap" /><TextBlock Text="{Binding Overview}" Classes="online-label" /></StackPanel></Border>
+   <Border Classes="online-card" IsVisible="{Binding !HasArticles}"><StackPanel Spacing="7"><TextBlock Text="关于这张专辑" Classes="online-label" /><TextBlock Text="{Binding Title}" Classes="online-heading" /><TextBlock Text="{Binding Artist}" FontSize="15" TextWrapping="Wrap" /><TextBlock Text="{Binding Overview}" Classes="online-label" /></StackPanel></Border>
    <ItemsControl ItemsSource="{Binding Articles}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="albums:OnlineArticle">
-    <StackPanel Spacing="12" Margin="0,0,0,26" MaxWidth="920" HorizontalAlignment="Left">
+    <Border Classes="online-card" Margin="0,0,0,18"><StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Left">
      <TextBlock Text="{Binding Label}" Classes="online-label" /><TextBlock Text="{Binding Article.Title}" Classes="online-heading" />
      <TextBlock Text="{Binding Article.Description}" IsVisible="{Binding Article.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Classes="online-label" TextWrapping="Wrap" />
-     <SelectableTextBlock Text="{Binding Article.Text}" TextWrapping="Wrap" FontSize="14" LineHeight="26" />
+     <SelectableTextBlock Text="{Binding Article.Text}" TextWrapping="Wrap" FontSize="15" FontWeight="Normal" LineHeight="29" />
      <TextBlock Text="{Binding Attribution}" Classes="online-label" TextWrapping="Wrap" />
      <Button Classes="online-link" Tag="{Binding Article.Url}" Click="OnLink" Content="阅读原文与许可说明 ↗" />
-    </StackPanel>
+    </StackPanel></Border>
    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
   </StackPanel>
   <StackPanel IsVisible="{Binding IsEmpty}" Spacing="9" Margin="24,32" HorizontalAlignment="Center" MaxWidth="480">

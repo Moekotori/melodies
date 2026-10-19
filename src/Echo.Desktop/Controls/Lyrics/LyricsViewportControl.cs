@@ -13,10 +13,13 @@ using Echo.Desktop.Motion;
 namespace Echo.Desktop.Controls.Lyrics;
 
 // No lyric child controls or per-word bindings. Only the visible neighborhood is shaped and drawn.
-public sealed class LyricsViewportControl : Control, IDisposable
+public sealed partial class LyricsViewportControl : Control, IDisposable
 {
     private readonly LyricsTextLayoutCache cache = new();
+    private readonly LyricsWordPainter wordPainter = new();
     private readonly KineticPosterLayout poster = new();
+    private readonly CurtainLyricsLayout curtain = new();
+    private readonly KineticLyricsChrome kinetic = new();
     private readonly CutBoardTextLayout cutBoard = new();
     private readonly AfterglowGlyphLayout afterglowGlyphs = new();
     private readonly LyricsFrameController frames;
@@ -27,7 +30,10 @@ public sealed class LyricsViewportControl : Control, IDisposable
     private int active = -1, browse = -1;
     private bool attached, closed, focused = true;
     private long transition;
+    private bool sceneFallback;
+    public void SetSceneFallback(bool failed) { sceneFallback = failed; InvalidateVisual(); }
     private double shift;
+    private double transitionMs = 360;
     private readonly Vector dpiSentinel = new(-1, -1);
     private readonly BlurEffect contextBlur = new() { Radius = 1.5 };
     private readonly Pen rail = new(Brushes.Transparent, 2);
@@ -64,16 +70,20 @@ public sealed class LyricsViewportControl : Control, IDisposable
     }
     private void OnModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     { if (e.PropertyName is nameof(LyricsViewModel.Cover) or nameof(LyricsViewModel.CoverColors)) ResetLayout(); }
-    private void OnAppearanceChanged(object? sender, PropertyChangedEventArgs e) => ResetLayout();
+    private void OnAppearanceChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(LyricsAppearance.SelectedStyle)) transition = Stopwatch.GetTimestamp();
+        ResetLayout();
+    }
     private void OnMotionChanged(object? sender, PropertyChangedEventArgs e) { if (motion?.UseSpatialMotion != true) shift = 0; Refresh(); }
     private void ResetLayout()
     {
-        cache.Dispose(); poster.Dispose(); cutBoard.Dispose(); afterglowGlyphs.Dispose(); headerKey = null;
+        cache.Dispose(); poster.Dispose(); cutBoard.Dispose(); afterglowGlyphs.Dispose(); curtain.Dispose(); kinetic.Dispose(); headerKey = null;
         if (model is not null)
         {
             var appearance = model.Appearance; var current = appearance.SelectedStyle;
             var dark = ActualThemeVariant == ThemeVariant.Dark;
-            var palette = LyricsStagePalette.Resolve(current, appearance.SelectedLook, model.CoverColors, dark);
+            var palette = LyricsStagePalette.Resolve(current, appearance.SelectedLook, model.CoverColors, dark,appearance.BackgroundMode);
             ink = new SolidColorBrush(palette.Ink); accent = new SolidColorBrush(palette.Accent); rail.Brush = accent;
         }
         Refresh();
@@ -91,20 +101,14 @@ public sealed class LyricsViewportControl : Control, IDisposable
         if (ink == Brushes.Black) { ResetLayout(); return; }
         var next = model.Document.FindLine(model.PositionMs(false));
         if (!ReferenceEquals(currentDocument, model.Document))
-        { currentDocument = model.Document; browse = -1; cache.Dispose(); shift = 0; }
-        if (next != active)
-        {
-            var difference = next - active;
-            if (Math.Abs(difference) == 1 && active >= 0 && motion?.UseSpatialMotion == true && browse < 0)
-            { shift = Math.Sign(difference) * (model.Appearance.FontSize + 48); transition = Stopwatch.GetTimestamp(); }
-            else shift = 0;
-            active = next; BrowseChanged?.Invoke();
-        }
+        { currentDocument = model.Document; browse = -1; active = -1; cache.Dispose(); shift = 0; }
+        Advance(next);
         InvalidateVisual(); frames.Update(attached && motion?.IsWindowVisible == true, focused);
     }
     private bool NeedsFrame() => !closed && attached && motion?.IsWindowVisible == true && motion.CanAnimate
-        && model?.Appearance.SelectedStyle.Layout != LyricsLayout.CoverOnly
-        && (shift != 0 && Stopwatch.GetElapsedTime(transition).TotalMilliseconds < 220
+        && model?.Appearance.SelectedStyle.Layout is not (LyricsLayout.CoverOnly or LyricsLayout.SourceScene)
+        && (model?.Appearance.SelectedStyle.Layout == LyricsLayout.KineticChars && Stopwatch.GetElapsedTime(transition).TotalMilliseconds < 1020
+            || shift != 0 && Stopwatch.GetElapsedTime(transition).TotalMilliseconds < transitionMs
             || model?.HasLyrics == true && model.IsPlaying && model.CanInterpolate && (model.Appearance.WordHighlight || model.Appearance.IsAfterglow));
     public override void Render(DrawingContext dc)
     {
@@ -112,11 +116,13 @@ public sealed class LyricsViewportControl : Control, IDisposable
         var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         if (dpi.X != scale) { dpi = new(scale, scale); cache.Dispose(); }
         var document = model.Document; var appearance = model.Appearance;
+        if (appearance.SelectedStyle.Layout == LyricsLayout.SourceScene && document.IsSynced && !sceneFallback)
+        { hits.Clear(); frames.Update(false, false); return; }
         if (!appearance.Enabled) { hits.Clear(); frames.Update(false, false); return; }
         var current = appearance.SelectedStyle;
         if (current.Layout == LyricsLayout.Afterglow && document.Lines.Count > 0) { hits.Clear(); return; }
         var next = document.FindLine(model.PositionMs(motion?.CanAnimate == true));
-        if (next != active) { active = next; BrowseChanged?.Invoke(); }
+        Advance(next);
         var w = Bounds.Width; var h = Bounds.Height;
         var textRect = LyricsStyleMetrics.TextArea(current.Layout, w, h);
         if (!appearance.HideSongInfo) DrawHeader(dc, textRect, current.Layout);
@@ -129,6 +135,13 @@ public sealed class LyricsViewportControl : Control, IDisposable
             return;
         }
         var index = DisplayIndex;
+        if (current.Layout == LyricsLayout.Curtain)
+        {
+            curtain.Draw(dc, document, index, model.PositionMs(motion?.CanAnimate == true) + document.OffsetMs,
+                new Rect(0, 0, w, h), appearance, ink, accent, (i, rect) => hits.Add((i, rect)));
+            frames.Update(attached && motion?.IsWindowVisible == true, focused); return;
+        }
+        if (current.Layout == LyricsLayout.KineticChars) kinetic.DrawStage(dc, w, h, ink);
         if (current.Layout == LyricsLayout.WordFocus && browse < 0 && appearance.WordHighlight && document.IsSynced)
         {
             var glyphMetrics = LyricsStyleMetrics.Line(current.Layout, document.Lines[index], appearance, w, h, true);
@@ -152,22 +165,27 @@ public sealed class LyricsViewportControl : Control, IDisposable
         var activeSize = metrics.Size;
         var entry = Layout(index, activeSize, textRect.Width, true);
         if (entry.Height > h * 0.52) { activeSize = Math.Max(18, activeSize * h * 0.5 / entry.Height); entry = Layout(index, activeSize, textRect.Width); }
-        var center = h * (current.Layout == LyricsLayout.Light ? .47 : current.Layout == LyricsLayout.Cinema ? .52 : .50);
-        var elapsed = shift == 0 ? 220 : Stopwatch.GetElapsedTime(transition).TotalMilliseconds;
-        var drift = motion?.UseSpatialMotion == true ? shift * Math.Pow(1 - Math.Clamp(elapsed / 220, 0, 1), 3) : 0;
+        var center = textRect.Y + textRect.Height * (current.Layout is LyricsLayout.Light or LyricsLayout.KineticChars ? .47 : current.Layout == LyricsLayout.Editorial ? .46 : .52);
+        var elapsed = shift == 0 ? transitionMs : Stopwatch.GetElapsedTime(transition).TotalMilliseconds;
+        var drift = motion?.UseSpatialMotion == true && transitionMs > 0
+            ? shift * Math.Pow(1 - Math.Clamp(elapsed / transitionMs, 0, 1), 3) : 0;
         var railSpace = current.Layout == LyricsLayout.Light ? activeSize * .46 + Math.Clamp(h * .022, 14, 24) : 0;
-        var rowHeight = Math.Max(entry.Height + railSpace, metrics.MinimumHeight);
+        var rowHeight = Math.Max(entry.Height + railSpace + (current.Layout == LyricsLayout.Reading ? 14 : 0), metrics.MinimumHeight);
         var y = center - rowHeight / 2 + drift;
+        if (current.Layout == LyricsLayout.Reading && index < 8)
+            y = Math.Min(y, ReadingTop(index, textRect.Width, h) + drift);
+        using DrawingContext.PushedState? fade = current.Layout is LyricsLayout.Light or LyricsLayout.Folded or LyricsLayout.KineticChars ? null
+            : dc.PushOpacityMask(LyricsReadingPresentation.Fade, new Rect(0, textRect.Y, w, textRect.Height));
         if (appearance.Context && current.Layout is not (LyricsLayout.Afterglow or LyricsLayout.WordFocus))
         {
             var above = y;
-            var neighbors = current.Layout == LyricsLayout.Light ? 1 : 4;
+            var neighbors = current.Layout is LyricsLayout.Light or LyricsLayout.KineticChars ? 1 : 4;
             for (var i = index - 1; i >= Math.Max(0, index - neighbors); i--)
             {
                 var neighborMetrics = LyricsStyleMetrics.Line(current.Layout, document.Lines[i], appearance, w, h, false, index - i);
                 var neighbor = Layout(i, neighborMetrics.Size, textRect.Width, false, index - i);
                 above -= Math.Max(neighbor.Height, neighborMetrics.MinimumHeight) + metrics.Gap;
-                if (above < h * 0.15) break;
+                if (above + neighbor.Height < textRect.Y) break;
                 DrawContext(dc, i, neighbor, new(textRect.X, above), neighborMetrics, i - index);
             }
         }
@@ -183,43 +201,39 @@ public sealed class LyricsViewportControl : Control, IDisposable
         if (appearance.Context && current.Layout is not (LyricsLayout.Afterglow or LyricsLayout.WordFocus))
         {
             var below = y + rowHeight + (wordPoster ? 52 : metrics.Gap);
-            var count = current.Layout is LyricsLayout.WordFocus or LyricsLayout.Light ? 1 : 4;
+            var count = current.Layout is LyricsLayout.WordFocus or LyricsLayout.Light or LyricsLayout.KineticChars ? 1 : 4;
             for (var i = index + 1; i <= Math.Min(document.Lines.Count - 1, index + count); i++)
             {
                 var neighborMetrics = LyricsStyleMetrics.Line(current.Layout, document.Lines[i], appearance, w, h, false, i - index);
                 var neighbor = Layout(i, neighborMetrics.Size, textRect.Width, false, i - index);
-                if (below + neighbor.Height > h * 0.80) break;
+                if (below > textRect.Bottom) break;
                 DrawContext(dc, i, neighbor, new(textRect.X, below), neighborMetrics, i - index);
                 below += Math.Max(neighbor.Height, neighborMetrics.MinimumHeight) + metrics.Gap;
             }
         }
         frames.Update(attached && motion?.IsWindowVisible == true, focused);
     }
-    private LyricsTextLayoutCache.Entry Layout(int index, double size, double width, bool focus = true, int distance = 0)
-    {
-        var a = model!.Appearance; var style = a.SelectedStyle;
-        var font = a.Font == "跟随样式" ? style.Layout == LyricsLayout.Poster ? "Bahnschrift, Microsoft YaHei, Noto Sans CJK SC" :
-            style.Layout is LyricsLayout.Editorial or LyricsLayout.Folded or LyricsLayout.Slices || a.IsAfterglow && a.SelectedLook.Id == "paper" ? "Noto Serif SC, Noto Serif CJK SC, Songti SC, SimSun" : "Segoe UI, Microsoft YaHei, Noto Sans CJK SC" : a.Font;
-        var alignment = a.Alignment switch { "居中" => TextAlignment.Center, "右对齐" => TextAlignment.Right, "左对齐" => TextAlignment.Left, _ => style.Center ? TextAlignment.Center : TextAlignment.Left };
-        var metrics = LyricsStyleMetrics.Line(style.Layout, model.Document.Lines[index], a, Bounds.Width, Bounds.Height, focus, distance);
-        if (a.MaxCharacters > 0) width = Math.Min(width, Math.Max(size * 3, a.MaxCharacters * size * .72));
-        return cache.Get(model.Document.Lines[index], new Typeface(font, weight: metrics.Weight),
-            size, metrics.SecondarySize, width, alignment, ink, accent, metrics.Secondary && a.Translation && (focus || !a.CurrentTranslationOnly),
-            metrics.Secondary && a.Romanization, metrics.LineHeight * a.LineHeightPercent / 110, metrics.LetterSpacing);
-    }
     private void DrawContext(DrawingContext dc, int index, LyricsTextLayoutCache.Entry entry, Point point, LyricsLineMetrics metrics, int distance)
     {
-        using var contextAlpha = dc.PushOpacity(Math.Clamp((model?.Appearance.ContextOpacityPercent ?? 49) / 49, 0, 1));
+        var opacity = LyricsReadingPresentation.Opacity(distance, model!.Appearance.ContextOpacityPercent);
+        var rowHeight = Math.Max(entry.Height, metrics.MinimumHeight);
+        var rowPoint = point;
+        point += new Vector(0, (rowHeight - entry.Height) / 2);
+        if (model.Appearance.SelectedStyle.Layout == LyricsLayout.KineticChars)
+            point += new Vector(kinetic.DrawNeighbor(dc, point, Bounds.Width, distance < 0, ink, entry.Primary.TextLines[0].Baseline), 0);
         IDisposable? folded = null;
         if (model?.Appearance.SelectedStyle.Layout == LyricsLayout.Folded
             && LyricsStyleMetrics.TryFold(distance, Bounds.Width, Bounds.Height, out var pose))
-            folded = dc.PushTransform(LyricsStyleMetrics.FoldMatrix(pose, point, entry.Primary.Width, entry.Height));
+            folded = dc.PushTransform(LyricsStyleMetrics.FoldMatrix(pose, rowPoint, LyricsStyleMetrics.TextArea(LyricsLayout.Folded, Bounds.Width, Bounds.Height).Width, rowHeight));
         try
         {
-            if (model?.Appearance.ContextBlur == true)
-                using (dc.PushEffect(contextBlur, new Rect(point, new Size(Bounds.Width - point.X, entry.Height)).Inflate(4)))
-                    DrawLine(dc, index, entry, point, false, metrics.Opacity);
-            else DrawLine(dc, index, entry, point, false, metrics.Opacity);
+            if (model!.Appearance.ContextBlur)
+            {
+                contextBlur.Radius = LyricsReadingPresentation.Blur(distance);
+                using (dc.PushEffect(contextBlur, new Rect(point, new Size(Bounds.Width - point.X, entry.Height)).Inflate(6)))
+                    DrawLine(dc, index, entry, point, false, opacity);
+            }
+            else DrawLine(dc, index, entry, point, false, opacity);
         }
         finally { folded?.Dispose(); }
     }
@@ -228,40 +242,27 @@ public sealed class LyricsViewportControl : Control, IDisposable
         IDisposable? folded = null;
         if (current && model?.Appearance.SelectedStyle.Layout == LyricsLayout.Folded
             && LyricsStyleMetrics.TryFold(0, Bounds.Width, Bounds.Height, out var pose))
-            folded = dc.PushTransform(LyricsStyleMetrics.FoldMatrix(pose, point, layout.Primary.Width, layout.Primary.Height));
+        {
+            var metrics = LyricsStyleMetrics.Line(LyricsLayout.Folded, model.Document.Lines[index], model.Appearance, Bounds.Width, Bounds.Height, true);
+            var rowHeight = Math.Max(layout.Height, metrics.MinimumHeight);
+            folded = dc.PushTransform(LyricsStyleMetrics.FoldMatrix(pose, point - new Vector(0, (rowHeight - layout.Height) / 2),
+                LyricsStyleMetrics.TextArea(LyricsLayout.Folded, Bounds.Width, Bounds.Height).Width, rowHeight));
+        }
         try
         {
         hits.Add((index, new Rect(point, new Size(Bounds.Width - point.X - 20, layout.Height + 18))));
         using var alpha = dc.PushOpacity(opacity);
-        var upcomingOpacity = current && layout.Words.Count > 0 && model!.Appearance.WordHighlight
-            ? model.Appearance.SelectedStyle.Layout switch { LyricsLayout.Light => 0.46, LyricsLayout.WordFocus => 0.44, LyricsLayout.CoverRight => 0.56, _ => 1 } : 1;
-        using (dc.PushOpacity(upcomingOpacity)) layout.Primary.Draw(dc, point);
+        wordPainter.Paint(dc, layout, point, current && model!.Appearance.WordHighlight,
+            model!.Appearance.SelectedStyle.Layout, model.PositionMs(motion?.CanAnimate == true) + model.Document.OffsetMs,
+            current && motion?.UseSpatialMotion == true ? Stopwatch.GetElapsedTime(transition).TotalMilliseconds : double.PositiveInfinity);
         if (current && model!.Appearance.SelectedStyle.Layout == LyricsLayout.Editorial)
         {
             var dot = new Point(point.X - 28, point.Y + layout.Primary.Height / 2);
             using (dc.PushOpacity(0.08)) dc.DrawEllipse(accent, null, dot, 10, 10);
             dc.DrawEllipse(accent, null, dot, 4, 4);
         }
-        if (current && model!.Appearance.WordHighlight)
-        {
-            var position = model.PositionMs(motion?.CanAnimate == true) + model.Document.OffsetMs;
-            if (layout.Words.Count > 0)
-            {
-                foreach (var word in layout.Words)
-                {
-                    var progress = Math.Clamp((position - word.Word.StartMs) / Math.Max(1, word.Word.EndMs - word.Word.StartMs), 0, 1);
-                    if (progress <= 0) continue;
-                    var rect = word.Bounds.Translate(new Vector(point.X, point.Y));
-                    var filled = Math.Clamp(progress * word.TotalWidth - word.PrefixWidth, 0, rect.Width);
-                    var x = word.Direction == FlowDirection.RightToLeft ? rect.Right - filled : rect.X;
-                    var lift = model.Appearance.SelectedStyle.Layout is LyricsLayout.WordFocus or LyricsLayout.Afterglow
-                        && motion?.UseSpatialMotion == true ? -Math.Sin(Math.PI * progress) * 3 : 0;
-                    using (dc.PushTransform(Matrix.CreateTranslation(0, lift)))
-                    using (dc.PushClip(new Rect(x, rect.Y, filled, rect.Height))) layout.Highlight.Draw(dc, point);
-                }
-            }
-            else layout.Highlight.Draw(dc, point);
-        }
+        if (current && model.Appearance.SelectedStyle.Layout == LyricsLayout.KineticChars)
+            kinetic.DrawActive(dc, point, Bounds.Width - point.X * 2, model.Appearance.FontSize / 40 * Math.Clamp(Bounds.Width * .052, 40, 88), layout.Height, ink, motion?.UseSpatialMotion == true ? Stopwatch.GetElapsedTime(transition).TotalMilliseconds : double.PositiveInfinity);
         var y = point.Y + layout.Primary.Height + 10;
         if (current && model!.Appearance.SelectedStyle.Layout == LyricsLayout.Light)
         {
@@ -281,7 +282,7 @@ public sealed class LyricsViewportControl : Control, IDisposable
     private void DrawHeader(DrawingContext dc, Rect area, LyricsLayout layout)
     {
         var place = LyricsStyleMetrics.Caption(layout, Bounds.Width, Bounds.Height, area.X, area.Width);
-        var font = new Typeface("Segoe UI, Microsoft YaHei, Noto Sans CJK SC", weight: place.Bold ? FontWeight.Bold : FontWeight.Normal);
+        var font = new Typeface(LyricsReadingPresentation.Sans, weight: place.Bold ? FontWeight.Bold : FontWeight.Normal);
         var key = (model!.Title, model.Artist, model.Album, place.Width, place.Size, place.Center);
         if (headerKey != key || headerTitle is null)
         {
@@ -322,7 +323,7 @@ public sealed class LyricsViewportControl : Control, IDisposable
     }
     public void Dispose()
     {
-        if (closed) return; closed = true; frames.Dispose(); cache.Dispose(); poster.Dispose(); cutBoard.Dispose(); afterglowGlyphs.Dispose();
+        if (closed) return; closed = true; frames.Dispose(); cache.Dispose(); poster.Dispose(); cutBoard.Dispose(); afterglowGlyphs.Dispose(); curtain.Dispose(); kinetic.Dispose();
         headerTitle?.Dispose(); headerArtist?.Dispose();
         if (model is not null) { model.Changed -= Refresh; model.PropertyChanged -= OnModelPropertyChanged; model.Appearance.PropertyChanged -= OnAppearanceChanged; }
         if (motion is not null) motion.PropertyChanged -= OnMotionChanged;

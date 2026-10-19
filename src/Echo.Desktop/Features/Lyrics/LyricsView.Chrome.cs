@@ -29,10 +29,15 @@ public partial class LyricsView
         PointerExited += OnStagePointerLeft;
         KeyDown += OnChromeKey;
         SizeChanged += (_, _) => { Transport.Fit(Bounds.Width); playerVisibility.Refresh(); };
+        ChromeFooter.Margin = new Thickness(0, 0, 0, Model.Appearance.MiniPlayer ? 22 : 0);
         ApplyChromeTheme(); ShowHeader(); playerVisibility.Reveal();
     }
     private void OnChromeAppearance(object? sender, PropertyChangedEventArgs e)
-    { ApplyChromeTheme(); Transport.Fit(Bounds.Width); ShowHeader(); playerVisibility?.Refresh(); }
+    {
+        ApplyChromeTheme(); Transport.Fit(Bounds.Width);
+        ChromeFooter.Margin = new Thickness(0, 0, 0, Model.Appearance.MiniPlayer ? 22 : 0);
+        ShowHeader(); playerVisibility?.Refresh();
+    }
     private void OnShellTheme(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(Shell.ShellViewModel.IsDark)) ApplyChromeTheme();
@@ -43,9 +48,9 @@ public partial class LyricsView
     {
         var a = Model.Appearance;
         var color = a.IsAfterglow ? a.SelectedLook.Ink : a.SelectedStyle.Ink;
-        var dark = color.Length > 0 ? Brightness(Color.Parse(color)) > 0.6 : shell.IsDark;
+        var dark = Echo.Desktop.Controls.Lyrics.LyricsBackgroundInk.ChromeDark(a,shell.IsDark) ?? (color.Length > 0 ? Brightness(Color.Parse(color)) > 0.6 : shell.IsDark);
         ChromeTheme.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
-        Transport.ApplyPalette();
+        Transport.ApplyPalette(dark);
         ChromeHeader.Transitions = ChromeTransitions();
         Transport.ApplyMotion();
     }

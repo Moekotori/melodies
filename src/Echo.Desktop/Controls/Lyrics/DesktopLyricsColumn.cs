@@ -11,12 +11,14 @@ internal sealed class DesktopLyricsColumn : IDisposable
 {
     private static readonly Vector[] Outline = [new(-1.4, 0), new(1.4, 0), new(0, -1.4), new(0, 1.4), new(-1, -1), new(1, -1), new(-1, 1), new(1, 1)];
     private readonly Piece[] pieces;
+    private readonly double advance;
     public double Width { get; }
     public double Height { get; }
     public int Layouts { get; }
 
-    public DesktopLyricsColumn(string text, Typeface face, double size, Color playedTop, Color playedBottom, Color unplayedTop, Color unplayedBottom, Color outlinePlayed, Color outlineUnplayed)
+    public DesktopLyricsColumn(string text, Typeface face, double size, Color playedTop, Color playedBottom, Color unplayedTop, Color unplayedBottom, Color outlinePlayed, Color outlineUnplayed, double lineAdvance = DesktopLyricsLayout.LineHeight, double columnWidth = 1, double tracking = 0)
     {
+        advance = size * lineAdvance;
         var built = new List<Piece>();
         foreach (var (body, rotated) in Split(text))
         {
@@ -25,23 +27,23 @@ internal sealed class DesktopLyricsColumn : IDisposable
             if (!rotated)
             {
                 var lines = Math.Max(1, body.Count(c => c == '\n') + 1);
-                using var probe = Shape(body, face, size, Brushes.Transparent, lines, 100000, TextAlignment.Left);
+                using var probe = Shape(body, face, size, Brushes.Transparent, lines, 100000, TextAlignment.Left, lineAdvance, tracking);
                 var maxWidth = Math.Max(1, probe.Width);
                 built.Add(new Piece(
-                    Shape(body, face, size, Brush(outlineUnplayed, outlineUnplayed, true), lines, maxWidth, TextAlignment.Center),
-                    Shape(body, face, size, Brush(outlinePlayed, outlinePlayed, true), lines, maxWidth, TextAlignment.Center),
-                    Shape(body, face, size, restBrush, lines, maxWidth, TextAlignment.Center),
-                    Shape(body, face, size, playedBrush, lines, maxWidth, TextAlignment.Center),
-                    Shape(body, face, size, new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)), lines, maxWidth, TextAlignment.Center),
+                    Shape(body, face, size, Brush(outlineUnplayed, outlineUnplayed, true), lines, maxWidth, TextAlignment.Center, lineAdvance, tracking),
+                    Shape(body, face, size, Brush(outlinePlayed, outlinePlayed, true), lines, maxWidth, TextAlignment.Center, lineAdvance, tracking),
+                    Shape(body, face, size, restBrush, lines, maxWidth, TextAlignment.Center, lineAdvance, tracking),
+                    Shape(body, face, size, playedBrush, lines, maxWidth, TextAlignment.Center, lineAdvance, tracking),
+                    Shape(body, face, size, new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)), lines, maxWidth, TextAlignment.Center, lineAdvance, tracking),
                     false));
                 continue;
             }
             built.Add(new Piece(
-                Shape(body, face, size, Brush(outlineUnplayed, outlineUnplayed, false), 1, 100000, TextAlignment.Left),
-                Shape(body, face, size, Brush(outlinePlayed, outlinePlayed, false), 1, 100000, TextAlignment.Left),
-                Shape(body, face, size, restBrush, 1, 100000, TextAlignment.Left),
-                Shape(body, face, size, playedBrush, 1, 100000, TextAlignment.Left),
-                Shape(body, face, size, new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)), 1, 100000, TextAlignment.Left),
+                Shape(body, face, size, Brush(outlineUnplayed, outlineUnplayed, false), 1, 100000, TextAlignment.Left, lineAdvance, tracking),
+                Shape(body, face, size, Brush(outlinePlayed, outlinePlayed, false), 1, 100000, TextAlignment.Left, lineAdvance, tracking),
+                Shape(body, face, size, restBrush, 1, 100000, TextAlignment.Left, lineAdvance, tracking),
+                Shape(body, face, size, playedBrush, 1, 100000, TextAlignment.Left, lineAdvance, tracking),
+                Shape(body, face, size, new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)), 1, 100000, TextAlignment.Left, lineAdvance, tracking),
                 true));
         }
         pieces = built.ToArray();
@@ -54,7 +56,7 @@ internal sealed class DesktopLyricsColumn : IDisposable
             height += piece.Rotated ? piece.Rest.Width : piece.Rest.Height;
             layouts += 5;
         }
-        Width = width;
+        Width = Math.Max(width, size * columnWidth);
         Height = Math.Max(height, size);
         Layouts = Math.Max(layouts, 1);
     }
@@ -76,6 +78,18 @@ internal sealed class DesktopLyricsColumn : IDisposable
                 DrawPiece(dc, piece, y, false, strokeOn, played: true);
                 y += piece.Rotated ? piece.Rest.Width : piece.Rest.Height;
             }
+        }
+    }
+
+    public double WrappedWidth(double height) => Width * Math.Max(1, Math.Ceiling(Height / WrapHeight(height)));
+    private double WrapHeight(double height) => Math.Max(advance, Math.Floor(height / advance) * advance);
+    public void DrawWrapped(DrawingContext dc, double progress, double height)
+    {
+        var page = WrapHeight(height); var count = Math.Max(1, (int)Math.Ceiling(Height / page));
+        for (var i = 0; i < count; i++)
+        {
+            using (dc.PushClip(new Rect(-Width * i, 0, Width, page)))
+            using (dc.PushTransform(Matrix.CreateTranslation(-Width * i, -page * i))) Draw(dc, progress, false, false);
         }
     }
 
@@ -149,8 +163,8 @@ internal sealed class DesktopLyricsColumn : IDisposable
         return result;
     }
 
-    private static TextLayout Shape(string text, Typeface face, double size, IBrush brush, int lines, double maxWidth, TextAlignment align) => new(text, face, size, brush,
-        textAlignment: align, textWrapping: TextWrapping.NoWrap, maxWidth: maxWidth, maxLines: lines, lineHeight: size * DesktopLyricsLayout.LineHeight);
+    private static TextLayout Shape(string text, Typeface face, double size, IBrush brush, int lines, double maxWidth, TextAlignment align, double lineAdvance, double tracking) => new(text, face, size, brush,
+        textAlignment: align, textWrapping: TextWrapping.NoWrap, maxWidth: maxWidth, maxLines: lines, lineHeight: size * lineAdvance, letterSpacing: size * tracking);
 
     private static IBrush Brush(Color top, Color bottom, bool rotated) => top == bottom ? new SolidColorBrush(top) : new LinearGradientBrush
     {

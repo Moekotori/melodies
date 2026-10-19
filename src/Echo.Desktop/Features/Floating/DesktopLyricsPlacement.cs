@@ -18,8 +18,8 @@ internal static class DesktopLyricsPlacement
         var dipH = area.Height / scale;
         var vertical = settings.TextDirection == "vertical";
         var strip = DesktopLyricsLayout.Strip(settings.FontSize, settings.SecondarySize, settings.ScalePercent, settings.DoubleLine);
-        var minW = vertical ? 84 : 360;
-        var minH = vertical ? 360 : 84;
+        var minW = vertical ? 84 : 420;
+        var minH = vertical ? 420 : 84;
         var maxW = Math.Max(minW, vertical ? Math.Min(strip + DesktopLyricsLayout.Slack, dipW) : dipW);
         var maxH = Math.Max(minH, vertical ? dipH : Math.Min(strip + DesktopLyricsLayout.Slack, dipH));
         double width, height;

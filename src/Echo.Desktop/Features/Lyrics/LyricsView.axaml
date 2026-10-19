@@ -7,9 +7,11 @@
   <UserControl.Styles><StyleInclude Source="LyricsChromeStyles.axaml" /></UserControl.Styles>
   <ThemeVariantScope Name="ChromeTheme">
   <Grid RowDefinitions="Auto,*,Auto" Background="Transparent">
+    <controls:LyricsBackgroundSceneControl Name="BackgroundScene" Grid.RowSpan="3" IsHitTestVisible="False" />
     <controls:LyricsBackdropControl Name="Backdrop" Grid.RowSpan="3" />
     <controls:LyricsViewportControl Name="Viewport" Grid.RowSpan="3" IsVisible="{Binding Appearance.Enabled}" />
     <controls:JizuraSceneControl Name="JizuraScene" Grid.RowSpan="3" IsVisible="{Binding Appearance.Enabled}" />
+    <controls:SourceLyricsSceneControl Name="SourceScene" Grid.RowSpan="3" />
     <Border Name="ChromeHeader" Margin="22,14" Background="Transparent">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="10">
         <Button Classes="lyrics-chrome" Click="OnBack" ToolTip.Tip="{DynamicResource ui.LyricsView.eaaa1d0f0aab}" Padding="12,6"><icon:GlyphIcon Kind="chevron-left" Width="20" Height="20" /></Button>

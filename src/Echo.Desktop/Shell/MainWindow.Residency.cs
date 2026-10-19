@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using Avalonia.VisualTree;
 using Echo.Desktop.Bootstrap;
 using Echo.Desktop.Motion;
 
@@ -32,8 +31,7 @@ public partial class MainWindow
     internal void UnloadSurface()
     {
         if (_surface is null) return;
-        if (FocusManager?.GetFocusedElement() is Avalonia.Visual focused && _surface.IsVisualAncestorOf(focused))
-            FocusManager.Focus(null);
+        AvaloniaSurfaceRelease.ReleaseFocus(this, _surface);
         _viewModel?.Shortcuts.CancelRecording();
         _viewModel?.CloseQueueDrawerCommand.Execute(null);
         _viewModel?.CloseQuickSettingsCommand.Execute(null);
@@ -52,6 +50,7 @@ public partial class MainWindow
         NameScope.SetNameScope(this, null);
         retiring.DataContext = null;
         _surface = null;
+        AvaloniaSurfaceRelease.ReleaseDetachedVisuals(this);
         _viewModel?.Player?.Queue.SetPresentationActive(false);
         _viewModel?.AlbumArtwork?.ClearUnused();
     }
@@ -77,6 +76,12 @@ public partial class MainWindow
 
     public bool TryHideToTray() => _residency?.TryHideToTray() == true;
     public bool EnsureTrayRecovery() => _residency?.EnsureTray() == true;
+    internal TrayIcon? SetPlatformTrayMenu(NativeMenu? menu) => _residency?.SetPlatformMenu(menu);
+    internal void HideToTrayFromMenu()
+    {
+        if (_residency?.TryHideToTray(false) != true && _viewModel is not null)
+            _viewModel.Settings.Feedback = _viewModel.Text["ultralight.trayUnavailable"];
+    }
     public void RestoreMainWindow()
     {
         if (IsExitRequested) return;

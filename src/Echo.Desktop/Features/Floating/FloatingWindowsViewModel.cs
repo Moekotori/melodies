@@ -12,7 +12,7 @@ public sealed partial class FloatingWindowsViewModel : ObservableObject
 {
     private static readonly HashSet<string> Persisted = [
         nameof(MiniEnabled), nameof(LyricsEnabled), nameof(MiniLocked), nameof(LyricsLocked), nameof(MiniTopmost),
-        nameof(DoubleLine), nameof(Translation), nameof(Romanization), nameof(HideWithoutLyrics),
+        nameof(WordHighlight), nameof(DoubleLine), nameof(Translation), nameof(Romanization), nameof(HideWithoutLyrics),
         nameof(FontSize), nameof(SecondarySize), nameof(Opacity), nameof(FontFamily), nameof(Color), nameof(HighlightColor), nameof(OffsetMs),
         nameof(ScalePercent), nameof(ColorMode), nameof(StrokeColor), nameof(GradientStart), nameof(GradientEnd),
         nameof(TextDirection), nameof(TextAlign), nameof(Interpolated), nameof(DropShadow), nameof(StrokeEnabled), nameof(IndependentRows),
@@ -45,6 +45,7 @@ public sealed partial class FloatingWindowsViewModel : ObservableObject
     [ObservableProperty] private string gradientEnd = "#EC4899";
     [ObservableProperty] private string textDirection = "horizontal";
     [ObservableProperty] private string textAlign = "center";
+    [ObservableProperty] private bool wordHighlight = true;
     [ObservableProperty] private bool interpolated = true;
     [ObservableProperty] private bool dropShadow = true;
     [ObservableProperty] private bool strokeEnabled = true;
@@ -65,6 +66,10 @@ public sealed partial class FloatingWindowsViewModel : ObservableObject
     public bool IsCustomMode => ColorMode == "custom";
     public bool IsGradientMode => ColorMode == "gradient";
     public bool IsVertical => TextDirection == "vertical";
+    public bool HasOffset => CanNudgeLyrics && Math.Abs(OffsetMs) >= 1;
+    public string OffsetText => DesktopLyricsLayout.FormatOffset(OffsetMs);
+    partial void OnOffsetMsChanged(double value) { OnPropertyChanged(nameof(OffsetText)); OnPropertyChanged(nameof(HasOffset)); }
+    partial void OnCanNudgeLyricsChanged(bool value) => OnPropertyChanged(nameof(HasOffset));
     public string OpacityText => $"{Math.Round(Opacity * 100):0}%";
     public string ScaleText => $"{Math.Round(ScalePercent):0}%";
     public string FontFileName => string.IsNullOrWhiteSpace(FontFilePath) ? "" : Path.GetFileName(FontFilePath);
@@ -141,7 +146,7 @@ public sealed partial class FloatingWindowsViewModel : ObservableObject
         Interpolated, DropShadow, StrokeEnabled, IndependentRows,
         UnplayedTop, UnplayedBottom, OutlinePlayed, OutlineUnplayed,
         LowerPlayedTop, LowerPlayedBottom, LowerUnplayedTop, LowerUnplayedBottom, LowerOutlinePlayed, LowerOutlineUnplayed,
-        FontFilePath);
+        FontFilePath, WordHighlight);
     public void Restore(FloatingPreferences? saved)
     {
         if (saved is null) return;
@@ -163,7 +168,7 @@ public sealed partial class FloatingWindowsViewModel : ObservableObject
             GradientEnd = ValidColor(saved.GradientEnd) ? saved.GradientEnd : "#EC4899";
             TextDirection = saved.TextDirection == "vertical" ? "vertical" : "horizontal";
             TextAlign = saved.TextAlign == "left" ? "left" : "center";
-            Interpolated = saved.Interpolated; DropShadow = saved.DropShadow; StrokeEnabled = saved.StrokeEnabled;
+            WordHighlight = saved.WordHighlight; Interpolated = saved.Interpolated; DropShadow = saved.DropShadow; StrokeEnabled = saved.StrokeEnabled;
             IndependentRows = saved.IndependentRows;
             UnplayedTop = ValidColor(saved.UnplayedTop) ? saved.UnplayedTop : "#FFFFFF";
             UnplayedBottom = ValidColor(saved.UnplayedBottom) ? saved.UnplayedBottom : "#CCCCCC";

@@ -22,7 +22,7 @@ public sealed class EqCurveControl : Control
     private Point? hover;
     public EqCurveControl()
     {
-        MinHeight = 220; ClipToBounds = true; Focusable = true; Cursor = new Cursor(StandardCursorType.Hand);
+        MinHeight = 160; ClipToBounds = true; Focusable = true; Cursor = new Cursor(StandardCursorType.Hand);
         DataContextChanged += (_, _) => BindModel();
         DetachedFromVisualTree += (_, _) => BindModel(null);
         AttachedToVisualTree += (_, _) => BindModel();
@@ -61,7 +61,7 @@ public sealed class EqCurveControl : Control
     {
         base.Render(context);
         IBrush Brush(string key) => this.TryFindResource(key, ActualThemeVariant, out var value) && value is IBrush brush ? brush : Brushes.Gray;
-        var muted = Brush("EchoMuted"); var border = Brush("EchoBorder"); var accent = Brush("EchoAccent"); var field = Brush("EchoField");
+        var muted = Brush("DspPlotMuted"); var border = Brush("DspPlotGrid"); var accent = Brush("DspPlotCurve"); var field = Brush("DspPlotField");
         var dense = Plot.Width >= 760;
         foreach (var db in model?.IsHeadphone == true ? new[] { 30, 15, 0, -15, -30, -45, -60 } : new[] { 12, 6, 0, -6, -12, -18, -24 })
         {
@@ -107,7 +107,7 @@ public sealed class EqCurveControl : Control
             }
             path.EndFigure(false); fill.LineTo(PointAt(20000, 0)); fill.EndFigure(true);
         }
-        context.DrawGeometry(AreaBrush(accent), null, area);
+        using (context.PushOpacity(.055)) context.DrawGeometry(accent, null, area);
         var curves = vm.Bands.Where(b => b.IsShaped && b != vm.SelectedBand).OrderByDescending(b => Math.Abs(b.GainDb)).Take(7).ToList();
         if (vm.SelectedBand is { IsShaped: true } active) curves.Add(active);
         foreach (var band in curves)
@@ -166,16 +166,6 @@ public sealed class EqCurveControl : Control
         var text = Label(label, muted, 10, FontWeight.Medium);
         var x = Math.Clamp(point.X + 10, Plot.Left, Math.Max(Plot.Left, Plot.Right - text.Width - 4));
         context.DrawText(text, new Point(x, Math.Clamp(point.Y - 18, Plot.Top, Plot.Bottom - 12)));
-    }
-    private static IBrush AreaBrush(IBrush accent)
-    {
-        if (accent is not SolidColorBrush solid) return accent;
-        var color = solid.Color;
-        return new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
-            GradientStops = { new(Color.FromArgb(42, color.R, color.G, color.B), 0), new(Color.FromArgb(6, color.R, color.G, color.B), 1) },
-        };
     }
     private static string FormatHz(double hz) => hz >= 1000 ? $"{hz / 1000:0.##} kHz" : $"{hz:0} Hz";
     private FormattedText Label(string value, IBrush brush, double size, FontWeight weight)

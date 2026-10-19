@@ -12,7 +12,8 @@ internal static class NativeHostAdapterSmoke
     public static void Run(string binary)
     {
         var session = new PlaybackSessionCoordinator(new NativeAudioHost(binary, allowProDsp: true));
-        var model = new DspViewModel(session, "Native adapter", new RelayCommand(() => { }));
+        using var resources = new DspFixtureResources();
+        var model = new DspViewModel(session, "Native adapter", new RelayCommand(() => { }), resources);
         try
         {
             model.RefreshCommand.Execute(null); Ready();
@@ -101,10 +102,55 @@ internal static class NativeHostAdapterSmoke
                 Require(Math.Abs(model.Parameters.Single(x => x.Definition.Key == key).Value - value) < 0.001,
                     module + " native parameter roundtrip");
             }
+            foreach (var id in new[] { "replayGain", "headroom", "channel", "compressor", "crossfeed", "stereoField", "channelMatrix" })
+            {
+                Select(id);
+                var parameter = model.Parameters[0];
+                var expected = Math.Min(parameter.Maximum, parameter.Value + parameter.Step);
+                parameter.Value = expected; Apply(); model.RefreshCommand.Execute(null); Ready();
+                Require(Math.Abs(model.Parameters[0].Value - expected) < .001, id + " UI/native readback");
+            }
+            Select("deesser"); RunTask(model.SetDeesserListenAsync(true)); Require(model.DeesserListening, "Native detection listen acknowledgement");
+            RunTask(model.SetDeesserListenAsync(false)); Require(!model.DeesserListening, "Detection listen stops on release");
+            Select("eq"); model.PresetName = "Roundtrip"; RunTask(model.SavePresetCommand.ExecuteAsync(null));
+            Require(model.Presets.Any(x => x.User && x.Label == "Roundtrip"), "Core preset visible after save");
+            var exported = Path.Combine(resources.Root, "roundtrip.json"); File.WriteAllText(exported, model.ExportCurrentPreset());
+            RunTask(model.ImportPresetAsync(exported)); Apply();
+            var wav = Path.Combine(resources.Root, "unit.wav");
+            using (var writer = new BinaryWriter(File.Create(wav)))
+            {
+                writer.Write("RIFF"u8); writer.Write(1060); writer.Write("WAVEfmt "u8); writer.Write(16); writer.Write((short)1); writer.Write((short)2); writer.Write(48000); writer.Write(192000); writer.Write((short)4); writer.Write((short)16); writer.Write("data"u8); writer.Write(1024);
+                for (var i = 0; i < 512; i++) writer.Write((short)(i < 2 ? 30000 : 0));
+            }
+            Select("room"); RunTask(model.ImportImpulseBankAsync(wav)); model.Enabled = true; Apply();
+            Require(Read("roomCorrection.getState")["irId"]?.ToString() == model.SelectedImpulseBank?.Id, "Core bank loaded by actual native convolver");
+            Select("rack"); model.RackFilterKind = model.RackFilterKinds.Single(x => x.Key == "convolution"); model.AddRackFilterCommand.Execute(null);
+            model.SelectedImpulseBank = null; model.SelectedImpulseBank = model.ImpulseBanks.Single();
+            Until(() => !model.ResourceBusy); Apply();
+            Require(Read("dspRack.getState")["filters"]!.AsArray().Any(x => x?["kind"]?.ToString() == "convolution"), "Rack convolution resolves bank and receives native acknowledgement");
+            Select("listening"); model.ListeningName = "Full chain"; RunTask(model.SaveListeningCommand.ExecuteAsync(null));
+            Require(model.Profiles.Any(x => x.Name == "Full chain"), "Core listening profile saved");
+            RunTask(model.ApplyListeningCommand.ExecuteAsync(null)); Require(model.Message == "方案已套用。", model.Message);
+            RunTask(model.DeleteListeningCommand.ExecuteAsync(null)); Require(model.Profiles.Count == 0, "Core listening profile deleted");
+            var retainedIr = session.GetRetainedDspRequestAsync("roomCorrection.loadIr").GetAwaiter().GetResult();
+            var invalidIr = new JsonObject { ["path"] = Path.Combine(resources.Root, "missing.wav"), ["irId"] = "bad", ["forceReload"] = true };
+            var irRejected = false;
+            try { using var bad = JsonDocument.Parse("[" + invalidIr.ToJsonString() + "]"); session.DspAsync("roomCorrection.loadIr", bad.RootElement, retainForRecovery: true).GetAwaiter().GetResult(); }
+            catch (IOException) { irRejected = true; }
+            var retainedAfter = session.GetRetainedDspRequestAsync("roomCorrection.loadIr").GetAwaiter().GetResult();
+            Require(irRejected && retainedIr?.GetRawText() == retainedAfter?.GetRawText(), "Failed IR load never replaces acknowledged recovery state");
+            Console.WriteLine("PASS resource-backed presets / convolution / full listening chain / detection listen and 14 module roundtrips");
             Console.WriteLine("PASS real DSP models: correction, draft-only full rack, dynamic EQ, limiter and module roundtrips");
         }
         finally { model.Dispose(); session.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
 
+        void RunTask(Task task) { Until(() => task.IsCompleted); task.GetAwaiter().GetResult(); }
+        void Until(Func<bool> complete)
+        {
+            var timer = Stopwatch.StartNew();
+            while (!complete()) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(2); if (timer.ElapsedMilliseconds > 10000) throw new TimeoutException("Resource UI operation"); }
+            Dispatcher.UIThread.RunJobs();
+        }
         void Select(string id) { model.SelectedModule = model.Modules.Single(x => x.Id == id); Ready(); }
         void Apply() { model.ApplyCommand.Execute(null); Ready(); Require(!model.IsDirty, model.Message); }
         void Ready()

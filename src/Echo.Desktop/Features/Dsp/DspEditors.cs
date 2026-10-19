@@ -49,7 +49,7 @@ public sealed partial class DspViewModel
         foreach (var field in Choices) state[field.Key] = field.Selected.Key;
         if (IsChannel) CaptureBands(state);
         if (IsRack) CaptureRack(state);
-        if (IsRoom) { state["irPath"] = IrPath; state["clearIr"] = IrPath.Length == 0 && HasImpulse(state); }
+        if (IsRoom) { if (SelectedImpulseBank is { } bank) state["bankId"] = bank.Id; state["irPath"] = IrPath; state["clearIr"] = IrPath.Length == 0 && HasImpulse(state); }
     }
 
     private void CaptureRack(JsonObject state)
@@ -83,7 +83,7 @@ public sealed partial class DspViewModel
     {
         var name = state["irName"]?.ToString();
         var error = state["error"]?.ToString();
-        RoomFacts = string.IsNullOrWhiteSpace(name) ? "还没有导入脉冲响应。"
+        RoomFacts = IsRoomAwaitingFormat(state) || state["filterBank"] is JsonObject && Number(state, "tapCount") == 0 && string.IsNullOrWhiteSpace(error) ? "卷积资源已载入；等待宿主根据实际播放格式选择脉冲。" : string.IsNullOrWhiteSpace(name) ? "还没有导入脉冲响应。"
             : $"{name} · {Number(state, "sampleRate"):0} Hz · {Number(state, "tapCount"):0} 点 · 延迟 {Number(state, "latencySamples"):0} 采样"
             + (string.IsNullOrWhiteSpace(error) ? "" : " · " + error);
         if (string.IsNullOrWhiteSpace(IrPath) && state["irPath"]?.ToString() is { Length: > 0 } path) IrPath = path;
@@ -91,6 +91,8 @@ public sealed partial class DspViewModel
 
     private static string DescribeReplay(JsonObject state)
         => $"曲目 {Number(state, "trackGainDb"):+0.0;-0.0;0.0} dB · 专辑 {Number(state, "albumGainDb"):+0.0;-0.0;0.0} dB · 正在应用 {Number(state, "appliedGainDb"):+0.0;-0.0;0.0} dB";
+
+    private bool IsRoomAwaitingFormat(JsonObject state) => session?.Snapshot.Current is null && state["filterBank"] is JsonObject && state["channelMode"]?.ToString() == "none" && state["error"]?.ToString() == "convolution_no_matching_channels";
 
     private static bool HasImpulse(JsonObject state) => state["irName"]?.ToString() is { Length: > 0 } || state["irId"]?.ToString() is { Length: > 0 };
 
@@ -162,17 +164,10 @@ public sealed partial class DspViewModel
         (a.Value, b.Value) = (b.Value, a.Value);
     }
 
-    public void UseImpulse(string path)
-    {
-        if (!CanEdit || !IsRoom || string.IsNullOrWhiteSpace(path) || !File.Exists(path)) { Message = "找不到这个脉冲文件。"; return; }
-        IrPath = path; RoomFacts = "准备导入 " + Path.GetFileName(path);
-        IsDirty = true; NoteEdit();
-    }
-
     [RelayCommand] private void ClearImpulse()
     {
         if (!CanEdit || !IsRoom) return;
-        IrPath = ""; loadedIrPath = ""; RoomFacts = "还没有导入脉冲响应。";
+        SelectedImpulseBank = null; IrPath = ""; loadedIrPath = ""; RoomFacts = "还没有导入脉冲响应。";
         IsDirty = true; NoteEdit();
     }
 }

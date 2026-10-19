@@ -57,6 +57,8 @@ public sealed class JizuraEngine : IDisposable
     {var id=(int)engine.Invoke("__draw",seconds,motion).AsNumber();return canvases.Get(id).Encode();}
     public RasterFrame DrawRaster(double seconds,bool motion)
     {var id=(int)engine.Invoke("__draw",seconds,motion).AsNumber();return canvases.Get(id).Snapshot();}
+    public RasterImageFrame? DrawFrame(double seconds, bool motion, RasterFramePool frames)
+    {var id=(int)engine.Invoke("__draw",seconds,motion).AsNumber();return canvases.Get(id).Snapshot(frames);}
     private string Read(string file)=>ReadFull(assets.GetManifestResourceNames().Single(n=>n.EndsWith("."+file,StringComparison.Ordinal)));
     private string ReadFull(string name)
     {using var stream=assets.GetManifestResourceStream(name)??throw new FileNotFoundException(name);using var reader=new StreamReader(stream);return reader.ReadToEnd();}

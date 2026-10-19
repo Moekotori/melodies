@@ -1,0 +1,62 @@
+uniform float2 draw_size;
+uniform float2 draw_center;
+uniform float draw_rotation;
+uniform float4 draw_uv;
+
+
+uniform shader u_tex;
+uniform float2 u_tex_size;
+uniform shader u_noise;
+uniform float2 u_noise_size;
+uniform float4 u_uvRect;      // u0, v0, u1, v1
+uniform float2 u_scroll;      // added to uv (texture wraps where it repeats)
+uniform float u_alpha;
+uniform float3 u_tint;
+uniform float u_additive;   // 1: add rgb (black-keyed sprites and light cones)
+uniform float u_time;
+uniform float4 u_ripple;      // strength, animation speed, scale, enabled
+uniform float4 u_waves;       // strength, speed, scale, direction (rad)
+uniform float3 u_sway;        // strength, speed, enabled
+uniform float2 u_disc;        // 0/1 disc mask, inner hole radius
+
+float4 sample_u_tex(float2 uv){return u_tex.eval(uv*u_tex_size);}
+float4 sample_u_noise(float2 uv){return u_noise.eval(uv*u_noise_size);}
+half4 main(float2 coord) {
+float4 outColor;
+float2 v_local=coord/draw_size;
+float2 v_uv=mix(draw_uv.xy,draw_uv.zw,v_local);
+float c=cos(draw_rotation),s=sin(draw_rotation);
+float2 q=(v_local-.5)*draw_size;
+float2 v_screen=draw_center+float2(q.x*c-q.y*s,q.x*s+q.y*c);
+
+  float2 uv = mix(u_uvRect.xy, u_uvRect.zw, v_local) + u_scroll;
+  if (u_ripple.w > 0.5) {
+    float a = u_time * u_ripple.y * u_ripple.y;
+    float2 base = v_local * u_ripple.z;
+    float3 n1 = sample_u_noise( base + a).xyz * 2.0 - 1.0;
+    float3 n2 = sample_u_noise( base * 1.333 - a).xyz * 2.0 - 1.0;
+    float3 n = normalize(float3(n1.xy + n2.xy, n1.z));
+    uv += n.xy * u_ripple.x * u_ripple.x;
+  }
+  if (u_waves.x > 0.0) {
+    float2 dir = float2(sin(u_waves.w), cos(u_waves.w));
+    float dist = u_time * u_waves.y + dot(v_local, dir) * u_waves.z;
+    uv += sin(dist) * float2(dir.y, -dir.x) * u_waves.x * u_waves.x;
+  }
+  if (u_sway.z > 0.5) {
+    float noise = sample_u_noise( v_local * 0.35).g;
+    float phase = noise * 6.2831 + v_local.x * 10.0 + v_local.y * 5.0;
+    float top = 1.0 - v_local.y;
+    uv += float2(sin(phase + u_time * u_sway.y), sin(0.4 + phase - u_time * u_sway.y * 0.5)) * u_sway.x * 0.01 * top;
+  }
+  float4 color = sample_u_tex( uv);
+  if (u_disc.x > 0.5) {
+    float r = length(v_local - 0.5);
+    color *= (1.0 - smoothstep(0.47, 0.5, r)) * smoothstep(u_disc.y, u_disc.y + 0.03, r);
+  }
+  color.rgb *= u_tint;
+  color *= u_alpha;
+  if (u_additive > 0.5) color = float4(color.rgb, 0.0);
+  outColor = color;
+return half4(outColor);
+}

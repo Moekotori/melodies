@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Echo.Playback.Processing;
 
 namespace Echo.Desktop.Features.Dsp;
 
@@ -28,6 +29,9 @@ public sealed partial class DspViewModel
         if (carrier <= 0 && format != "pcm") carrier = format == "dsd-native-raw" ? deviceRate / 16 : deviceRate;
         var loop = TextOf(savedSdm, "extraLoop") ?? TextOf(sdm, "decisionMode");
         OutputFacts = DescribeOutput(echo, sdm, format);
+        var fir = IsSdm ? Child(savedSdm, "oversampling") ?? savedSdm : configuredEcho;
+        var first = TextOf(fir, "filterProfile1x") ?? "echo-hb"; var next = TextOf(fir, "filterProfileNx") ?? "echo-hb";
+        if (IsSdm) source = (int)NumberOf(savedSdm, "sourceSampleRate") is > 0 and var savedSource ? savedSource : session?.Snapshot.SampleRate is > 0 and var actualSource ? actualSource : 48000;
         return new JsonObject
         {
             ["ratio"] = active ? (target / source).ToString() : "1",
@@ -37,6 +41,9 @@ public sealed partial class DspViewModel
             ["outputFormat"] = format is "dop24le" or "dsd-native-raw" ? format : "pcm",
             ["qualityProfile"] = TextOf(savedSdm, "qualityProfile") ?? TextOf(sdm, "qualityProfile") ?? "safe",
             ["carrierRate"] = carrier > 0 ? carrier.ToString() : "176400",
+            ["filter1x"] = first, ["filterNx"] = next, ["computeBackend"] = TextOf(IsSdm ? savedSdm : configuredEcho, "computeBackend") ?? "cpu",
+            ["firTier"] = TextOf(fir, "firTier") ?? "standard", ["preModulatorProfile"] = TextOf(savedSdm, "preModulatorProfile") ?? "standard",
+            ["soundProfile"] = FirProfileCatalog.Sounds.FirstOrDefault(x => x.First == first && x.Next == next)?.Id ?? "custom",
             ["extraLoop"] = loop is "horizon" or "extra" ? loop : "off",
         };
     }
@@ -51,8 +58,8 @@ public sealed partial class DspViewModel
         var root = JsonNode.Parse(requested.GetRawText())!.AsObject();
         var processing = root["processing"] as JsonObject ?? new JsonObject();
         root["processing"] = processing;
-        if (IsSrc) PatchSrc(root, processing, draft);
-        else PatchSdm(root, processing, draft, format);
+        var pcm = IsSrc;
+        await Task.Run(() => { if (pcm) PatchSrc(root, processing, draft); else PatchSdm(root, processing, draft, format); }, lifetime.Token);
         using var json = JsonDocument.Parse(root.ToJsonString());
         await session.ConfigureOutputAsync(json.RootElement, lifetime.Token);
         OutputFacts = DescribeOutput(Child(session.Snapshot.Processing, "echoSrc"), Child(session.Snapshot.Processing, "sdm"),
@@ -61,19 +68,13 @@ public sealed partial class DspViewModel
 
     private static void PatchSrc(JsonObject root, JsonObject processing, JsonObject draft)
     {
+        if (processing["outputFormat"]?.ToString() is "dop24le" or "dsd-native-raw") throw new IOException("请先关闭 DSD 转换，再配置 PCM 升频。");
         var factor = int.TryParse(draft["ratio"]?.ToString(), out var parsed) && parsed is 2 or 4 or 8 or 16 ? parsed : 1;
-        var source = draft["sourceRate"] is JsonValue rate && rate.TryGetValue<double>(out var value) && value > 0 ? (int)value : 48000;
-        var bits = draft["ditherBits"]?.ToString() == "16" ? 16 : 24;
-        processing["dither"] = new JsonObject { ["mode"] = draft["ditherMode"]?.ToString() ?? "off", ["bitDepth"] = bits };
-        if (factor == 1) { processing.Remove("echoSrc"); root["sampleRate"] = source; return; }
-        var target = source * factor;
-        if (target > 768000) throw new IOException("升频后的采样率超过 768 kHz。");
-        var taps = new JsonArray(DspSrcFilter.Lowpass(factor).Select(tap => (JsonNode)JsonValue.Create(tap)!).ToArray());
-        processing["echoSrc"] = new JsonObject
-        {
-            ["sourceSampleRate"] = source, ["targetSampleRate"] = target, ["computeBackend"] = "cpu",
-            ["stages"] = new JsonArray(new JsonObject { ["upsampleFactor"] = factor, ["taps"] = taps }),
-        };
+        var source = (int)Number(draft, "sourceRate", 48000);
+        processing["dither"] = new JsonObject { ["mode"] = draft["ditherMode"]?.ToString() ?? "off", ["bitDepth"] = draft["ditherBits"]?.ToString() == "16" ? 16 : 24 };
+        if (factor == 1) { processing.Remove("echoSrc"); root["sampleRate"] = draft["ratio"]?.ToString() == "compat48" ? 48000 : source; return; }
+        var target = checked(source * factor); if (target > 768000) throw new IOException("升频后的采样率超过 768 kHz。");
+        processing["echoSrc"] = FirPlanBuilder.Create(source, target, draft["filter1x"]!.ToString(), draft["filterNx"]!.ToString(), draft["computeBackend"]!.ToString());
         root["sampleRate"] = target;
     }
 
@@ -85,7 +86,10 @@ public sealed partial class DspViewModel
         {
             if (previousFormat == "dsd-native-raw" && root["sampleRate"] is JsonValue rate && rate.TryGetValue<double>(out var bits))
                 root["sampleRate"] = (int)(bits / 16);
-            processing.Remove("sdm"); return;
+            processing.Remove("sdm");
+            if (processing["savedPcmEchoSrc"] is JsonObject pcm) { processing["echoSrc"] = pcm.DeepClone(); root["sampleRate"] = pcm["targetSampleRate"]?.DeepClone(); processing.Remove("savedPcmEchoSrc"); }
+            else root["sampleRate"] = (int)Number(draft, "sourceRate", 48000);
+            return;
         }
         if (!int.TryParse(draft["carrierRate"]?.ToString(), out var carrier)
             || carrier is not (176400 or 192000 or 352800 or 384000 or 705600 or 768000 or 1411200 or 1536000))
@@ -93,7 +97,16 @@ public sealed partial class DspViewModel
         var sdm = processing["sdm"] as JsonObject ?? new JsonObject();
         sdm["qualityProfile"] = draft["qualityProfile"]?.ToString() ?? "safe";
         sdm["extraLoop"] = draft["extraLoop"]?.ToString() ?? "off";
-        if (sdm["oversampling"] is null && sdm["stages"] is null) sdm["sourceSampleRate"] = carrier;
+        var source = (int)Number(draft, "sourceRate", 48000);
+        if (carrier % source != 0 || carrier / source is not (2 or 4 or 8 or 16 or 32)) throw new IOException("DSD 传输率须与当前音源采样率家族匹配，支持 2–32 倍 FIR。请先播放音源，或选择对应 44.1/48 kHz 家族。");
+        var sound = draft["soundProfile"]?.ToString() ?? "custom";
+        sdm["sourceSampleRate"] = source; sdm["computeBackend"] = draft["computeBackend"]?.ToString() ?? "cpu";
+        sdm["preModulatorProfile"] = draft["preModulatorProfile"]?.ToString() ?? "standard";
+        sdm["ultimateEnabled"] = sound.StartsWith("ultimate-", StringComparison.Ordinal);
+        sdm["heavyPreMod"] = sdm["preModulatorProfile"]!.ToString() != "standard";
+        sdm["oversampling"] = FirPlanBuilder.Create(source, carrier, draft["filter1x"]!.ToString(), draft["filterNx"]!.ToString(), sdm["computeBackend"]!.ToString(), true, draft["firTier"]?.ToString() ?? "standard");
+        if (processing["echoSrc"] is JsonObject prior) processing["savedPcmEchoSrc"] = prior.DeepClone();
+        processing.Remove("echoSrc");
         sdm["targetSampleRate"] = carrier;
         sdm["sampleRateFamily"] = carrier % 44100 == 0 ? "44.1k" : "48k";
         processing["sdm"] = sdm;

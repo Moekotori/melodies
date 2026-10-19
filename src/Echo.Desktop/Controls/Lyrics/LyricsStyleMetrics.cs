@@ -16,8 +16,8 @@ internal static class LyricsStyleMetrics
     {
         var px = Math.Clamp(a.FontSize, 18, 72);
         var secondary = Math.Clamp(a.SecondarySize, 10, 32);
-        var weightedLength = line.Text.Length + Math.Round(((a.Translation ? line.Translation?.Length ?? 0 : 0)
-            + (a.Romanization ? line.Romanization?.Length ?? 0 : 0)) * 0.45, MidpointRounding.AwayFromZero);
+        var weightedLength = TextLength(line.Text) + Math.Round(((a.Translation ? TextLength(line.Translation) : 0)
+            + (a.Romanization ? TextLength(line.Romanization) : 0)) * 0.45, MidpointRounding.AwayFromZero);
         var density = weightedLength >= 86 ? 3 : weightedLength >= 58 ? 2 : weightedLength >= 36 ? 1 : 0;
         var size = px * (focus ? density switch { 0 => 1.25, 1 => 1.12, 2 => .96, _ => .84 }
             : density switch { 0 => .9, 1 => .84, 2 => .74, _ => .64 });
@@ -25,6 +25,16 @@ internal static class LyricsStyleMetrics
         var row = 0d; var gap = 20d; var opacity = focus ? 1 : .38; var showSecondary = true;
         switch (layout)
         {
+            case LyricsLayout.Reading:
+                var both = a.Translation && !string.IsNullOrWhiteSpace(line.Translation)
+                    && a.Romanization && !string.IsNullOrWhiteSpace(line.Romanization);
+                if (focus && both) size = px * (density switch { 0 => 1.06, 1 => 1, 2 => .9, _ => .78 });
+                leading = density switch { 2 => 1.22, 3 => 1.26, _ => focus && both ? density == 0 ? 1.16 : 1.18 : focus ? 1.18 : 1.12 };
+                if (!focus && density >= 2) leading = density == 2 ? 1.24 : 1.28;
+                row = Clamp(density >= 3 ? 102 : density >= 2 ? 92 : 82,
+                    h * (density >= 3 ? .116 : density >= 2 ? .105 : .098), density >= 3 ? 150 : density >= 2 ? 134 : 118) * .82;
+                gap = Clamp(both ? 22 : 14, h * (both ? .032 : .023), both ? 42 : 28) * .82;
+                break;
             case LyricsLayout.Light:
                 size = focus ? density switch
                 {
@@ -36,6 +46,11 @@ internal static class LyricsStyleMetrics
                 leading = focus ? 1.1 : 1.22; weight = focus ? 760 : 640;
                 secondary = Clamp(15, w * .015, 26); gap = Clamp(20, h * .034, 40);
                 opacity = focus ? 1 : .288; showSecondary = focus; break;
+            case LyricsLayout.KineticChars:
+                size = Clamp(40, w * .052, 88) * px / 40 * (focus ? 1 : .33);
+                leading = focus ? 1.22 : 1.3; tracking = focus ? size * .01 : 0;
+                secondary = size * .3; weight = focus ? 800 : 500;
+                gap = Clamp(26, h * .05, 56); showSecondary = focus; break;
             case LyricsLayout.CoverLeft:
                 size = focus ? Clamp(38, Math.Max(w * .041, px * 1.25), 72) : Clamp(26, px * .85, 38);
                 if (w <= 760 && focus) size = Clamp(32, w * .066, 46);
@@ -78,7 +93,8 @@ internal static class LyricsStyleMetrics
             case LyricsLayout.CoverRight:
                 size = focus ? density switch { 1 => Clamp(32, w * .0218, 43), 2 or 3 => Clamp(29, w * .0195, 38), _ => Clamp(34, w * .0235, 46) }
                     : Clamp(25, w * .018, 34);
-                secondary = Clamp(14, w * .0096, 18); leading = focus ? 1.18 : 1.22; weight = focus ? 760 : 620;
+                size *= px / 40;
+                secondary = Clamp(14, w * .0096, 18) * secondary / 22; leading = focus ? 1.18 : 1.22; weight = focus ? 760 : 620;
                 row = Clamp(88, h * .108, 132); gap = Clamp(30, h * .036, 48); opacity = focus ? 1 : .52; break;
             case LyricsLayout.Poster:
                 size = focus ? Clamp(44, w * .05, 88) : px * .9; weight = focus ? 640 : 500;
@@ -92,10 +108,36 @@ internal static class LyricsStyleMetrics
         }
         return new(size, secondary, leading, tracking, (FontWeight)weight, row, gap, showSecondary, opacity);
     }
+    // Array.from(normalizedText).length in LyricsLine.tsx: count Unicode scalars and collapse whitespace.
+    private static int TextLength(string? text)
+    {
+        if (text is null) return 0;
+        var length = 0; var space = false;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (System.Text.Rune.IsWhiteSpace(rune)) { space = length > 0; continue; }
+            if (space) length++;
+            length++; space = false;
+        }
+        return length;
+    }
     public static Rect TextArea(LyricsLayout layout, double w, double h)
     {
         var safe = Clamp(54, w * .07, 148);
+        if (IsPortrait(w, h) && layout is LyricsLayout.CoverLeft or LyricsLayout.CoverRight)
+        {
+            var cover = PortraitCover(w);
+            var top = cover.Bottom + 28;
+            return new(cover.X, top, w - cover.X * 2, Math.Max(32, h - top - 112));
+        }
+        if (layout == LyricsLayout.Reading)
+        {
+            var outer = Math.Max(0, (w - 1380) / 2);
+            safe = outer + Clamp(24, w * .07, 150) + Clamp(6, w * .01, 16);
+            return new(safe, 0, Math.Max(32, w - safe * 2), h);
+        }
         if (layout == LyricsLayout.Light) return new(safe, 0, w - safe * 2, h);
+        if (layout == LyricsLayout.KineticChars) { safe = Clamp(52, w * .08, 148); return new(safe, 0, w - safe * 2, h); }
         if (layout == LyricsLayout.Folded) { safe = Clamp(64, w * .08, 168); return new(safe, 0, w - safe * 2, h); }
         if (layout == LyricsLayout.Cinema) { safe = Clamp(56, w * .10, 190); return new(safe, 0, w - safe * 2, h); }
         if (layout == LyricsLayout.CoverLeft && w > 760) { var x = w * .43 + Clamp(16, w * .016, 30); return new(x, 0, w - x - Clamp(42, w * .05, 100), h); }
@@ -107,10 +149,23 @@ internal static class LyricsStyleMetrics
     public static LyricsCaption Caption(LyricsLayout layout, double w, double h, double areaX, double areaWidth)
     {
         var width = Math.Max(32, areaWidth); var x = areaX; var y = Math.Clamp(h * .04, 29, 47); var size = 17d; var center = false; var bold = false;
-        if (layout == LyricsLayout.Light)
+        if (IsPortrait(w, h) && layout is LyricsLayout.CoverLeft or LyricsLayout.CoverRight)
+        {
+            var art = PortraitCover(w); x = art.Right + 24; width = Math.Max(32, w - x - art.X);
+            size = Clamp(20, w * .032, 28); y = art.Y + Math.Max(0, (art.Height - size - 40) / 2);
+        }
+        else if (layout == LyricsLayout.Reading)
+        {
+            var art = ReadingCover(w, h); x = art.Right + Clamp(14, w * .015, 22);
+            size = Clamp(18, w * .031, 36); y = art.Y + Math.Max(0, (art.Height - size * 1.16 - 32) / 2);
+            width = Math.Max(32, Math.Min(720, w - 48) - (x - art.X)); bold = true;
+        }
+        else if (layout == LyricsLayout.Light)
         { var cover = LuminousCover(w, h); x = cover.Right + 18; y = cover.Y + 8; width = Math.Min(520, Math.Max(80, w - x - cover.X)); size = Clamp(14, w * .011, 17); }
         else if (layout == LyricsLayout.Folded)
         { x = Clamp(78, w * .064, 108); y = Clamp(25, h * .035, 43); width = Math.Min(410, Math.Max(80, w - x - 48)); size = Clamp(17, w * .0135, 22); }
+        else if (layout is LyricsLayout.Curtain or LyricsLayout.KineticChars)
+        { x = 80; y = 30; width = Math.Min(w * .6, 520); size = 13; }
         else if (layout == LyricsLayout.CoverOnly)
         { var art = CoverOnlyFrame(w, h); x = art.X; y = art.Bottom + 18; width = Math.Max(32, art.Width); size = Clamp(24, w * .024, 36); center = bold = true; }
         else if (layout == LyricsLayout.CoverLeft)
@@ -124,20 +179,29 @@ internal static class LyricsStyleMetrics
     }
     public static Rect LuminousCover(double w, double h)
         => new(Clamp(54, w * .07, 148), h - Clamp(96, h * .13, 140) - 60, 60, 60);
+    public static Rect ReadingCover(double w, double h)
+        => new(Clamp(24, w * .04, 72), Clamp(84, h * .1, 118), Clamp(72, w * .074, 118), Clamp(72, w * .074, 118));
     public static Rect AfterglowCover(double w, double h)
     {
+        if (IsPortrait(w, h)) return PortraitCover(w);
         var side = Math.Min(Math.Min(w * .34, h * .50), 560);
         return new(Clamp(36, w * .048, 86), Math.Max(76, (h - side - 112) / 2), side, side);
     }
-    internal readonly record struct FoldedPose(double X, double Y, double ScaleX, double ScaleY, double Radians, double Origin);
+    public static bool IsPortrait(double w, double h) => h > w && w <= 1400;
+    public static Rect PortraitCover(double w)
+    {
+        var size = Clamp(128, w * .24, 280);
+        return new(Clamp(24, w * .05, 64), 104, size, size);
+    }
+    internal readonly record struct FoldedPose(double X, double Y, double Z, double Scale,
+        double RotateX, double RotateY, double RotateZ, double Origin, double PerspectiveX, double PerspectiveY);
     public static bool TryFold(int distance, double w, double h, out FoldedPose pose)
     {
-        var past = distance < 0;
-        var step = Math.Abs(distance);
+        var past = distance < 0; var step = Math.Abs(distance);
         if (step == 0)
         {
-            var near = 1500d / (1500d - 68d);
-            pose = new(0, 0, near, near, Degrees(-.8), .5);
+            var portrait = IsPortrait(w, h);
+            pose = new(0, 0, portrait ? 0 : 68, 1, 0, 0, portrait ? 0 : Degrees(-.8), .5, w * .52, h * .51);
             return true;
         }
         if (step >= 4) { pose = default; return false; }
@@ -150,17 +214,24 @@ internal static class LyricsStyleMetrics
             (3, false) => (.18, .05, -380d, 2.4, -15d, 3.2, .64, .76),
             _ => (-.17, -.05, -380d, -2d, 15d, -3.4, .64, .20)
         };
-        var projected = scale * 1500d / (1500d - z);
-        pose = new(x * w, y * h, projected * Math.Cos(Degrees(tiltY)), projected * Math.Cos(Degrees(tiltX)), Degrees(tiltZ), origin);
+        pose = new(x * w, y * h, z, scale, Degrees(tiltX), Degrees(tiltY), Degrees(tiltZ), origin, w * .52, h * .51);
         return true;
     }
     public static Matrix FoldMatrix(FoldedPose pose, Point point, double width, double height)
     {
-        var origin = new Point(point.X + width * pose.Origin, point.Y + height * .5);
-        return Matrix.CreateTranslation(-origin.X, -origin.Y)
-            * Matrix.CreateScale(pose.ScaleX, pose.ScaleY)
-            * Matrix.CreateRotation(pose.Radians)
-            * Matrix.CreateTranslation(origin.X + pose.X, origin.Y + pose.Y);
+        // CSS: translate3d · rotateX · rotateY · rotateZ · scale, then the parent's 1500px perspective.
+        var originX = (float)(point.X + width * pose.Origin); var originY = (float)(point.Y + height * .5);
+        var perspective = System.Numerics.Matrix4x4.Identity; perspective.M34 = -1f / 1500;
+        var matrix = System.Numerics.Matrix4x4.CreateTranslation(-originX, -originY, 0)
+            * System.Numerics.Matrix4x4.CreateScale((float)pose.Scale, (float)pose.Scale, 1)
+            * System.Numerics.Matrix4x4.CreateRotationZ((float)pose.RotateZ)
+            * System.Numerics.Matrix4x4.CreateRotationY((float)pose.RotateY)
+            * System.Numerics.Matrix4x4.CreateRotationX((float)pose.RotateX)
+            * System.Numerics.Matrix4x4.CreateTranslation(originX + (float)pose.X, originY + (float)pose.Y, (float)pose.Z)
+            * System.Numerics.Matrix4x4.CreateTranslation(-(float)pose.PerspectiveX, -(float)pose.PerspectiveY, 0)
+            * perspective
+            * System.Numerics.Matrix4x4.CreateTranslation((float)pose.PerspectiveX, (float)pose.PerspectiveY, 0);
+        return new(matrix.M11, matrix.M12, matrix.M14, matrix.M21, matrix.M22, matrix.M24, matrix.M41, matrix.M42, matrix.M44);
     }
     private static double Degrees(double value) => value * Math.PI / 180d;
     public static Rect CoverOnlyFrame(double w, double h)

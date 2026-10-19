@@ -21,7 +21,7 @@ public sealed partial class QueueViewModel
 
     private void RefreshPlan()
     {
-        if (state.Plan.Count == 0) Plan = [];
+        if (!presentationActive || state.Plan.Count == 0) Plan = [];
         else
         {
             var tracks = new Dictionary<string, QueueTrack>(state.Items.Count + 1, StringComparer.Ordinal);

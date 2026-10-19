@@ -6,7 +6,7 @@ namespace Echo.Desktop.Controls.Lyrics;
 
 internal readonly record struct LyricsStagePalette(Color Ground, Color Ink, Color Accent, Color Wash)
 {
-    public static LyricsStagePalette Resolve(LyricsStyle style, AfterglowLook look, ArtworkColorSample? sample, bool dark)
+    public static LyricsStagePalette Resolve(LyricsStyle style, AfterglowLook look, ArtworkColorSample? sample, bool dark, string backgroundMode = "page")
     {
         if (style.Layout == LyricsLayout.Afterglow) return new(Color.Parse(look.Background), Color.Parse(look.Ink), Color.Parse(look.Accent), Color.Parse(look.Secondary));
         var ink = Color.Parse(style.Ink.Length == 0 ? dark ? "#EBEFF5" : "#292E37" : style.Ink);
@@ -28,6 +28,11 @@ internal readonly record struct LyricsStagePalette(Color Ground, Color Ink, Colo
         {
             ink = sample is not null && Luminance(sample.Average) > .56 ? Color.Parse("#1B2A3D") : Color.Parse("#F8FAFC");
             accent = ink;
+        }
+        if(style.Layout==LyricsLayout.Editorial&&backgroundMode!="page")
+        {
+            ink=Color.Parse(dark||backgroundMode is "cover" or "customWallpaper"||LyricsBackgroundInk.IsDarkSource(backgroundMode)?"#FFFFFF":"#292E37");
+            accent=Color.Parse(dark?"#A8D6FF":"#4B55E8");
         }
         return new(ground, ink, accent, wash);
     }

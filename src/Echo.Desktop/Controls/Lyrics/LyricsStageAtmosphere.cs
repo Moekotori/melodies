@@ -30,7 +30,17 @@ internal sealed class LyricsStageAtmosphere
         switch (style.Layout)
         {
             case LyricsLayout.Reading:
-                Cover(10, 1, dark ? 1 : .82, dark ? 1.08 : .94);
+            case LyricsLayout.Curtain:
+            case LyricsLayout.KineticChars:
+                Cover(10, 1, 1);
+                var atmosphereAlpha = dark ? .94 : .86;
+                veils.Add(Radial(.12, .18, .72, .64, (0, Argb(.34 * atmosphereAlpha, 91, 151, 220)), (.66, Transparent(0))));
+                veils.Add(Radial(.88, .74, .68, .62, (0, Argb(.28 * atmosphereAlpha, 127, 200, 214)), (.68, Transparent(0))));
+                var diagonal = Horizontal((0, Argb(.54 * atmosphereAlpha, 20, 24, 32)), (.47, Transparent(0)), (1, Argb(.12 * atmosphereAlpha, 18, 22, 30)));
+                diagonal.StartPoint = new(0, .3, RelativeUnit.Relative);
+                diagonal.EndPoint = new(1, .7, RelativeUnit.Relative);
+                veils.Add(diagonal);
+                veils.Add(Vertical((0, Argb(.08 * atmosphereAlpha, 20, 24, 32)), (1, Argb(.7 * atmosphereAlpha, 20, 24, 32))));
                 break;
             case LyricsLayout.Light:
                 Cover(10, 1, 1, 1.08);

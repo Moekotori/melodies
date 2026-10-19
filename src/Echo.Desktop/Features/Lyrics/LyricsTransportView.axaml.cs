@@ -52,38 +52,17 @@ public partial class LyricsTransportView : UserControl
         DataContextChanged += (_, _) => seek.Cancel();
     }
     public void Bind(ShellViewModel value) { shell = value; popover.Attach(value); ApplyMotion(); }
-    public void ApplyPalette()
+    public void ApplyPalette(bool lightInk = true)
     {
-        Resources["LyricsInk"] = new SolidColorBrush(Color.Parse("#FAFAFA"));
-        Resources["LyricsControlInk"] = new SolidColorBrush(Color.Parse("#D3D2DB"));
+        lightInk |= Model?.Appearance.MiniPlayer != false;
+        Resources["LyricsInk"] = new SolidColorBrush(Color.Parse(lightInk ? "#FAFAFA" : "#292D37"));
+        Resources["LyricsControlInk"] = new SolidColorBrush(Color.Parse(lightInk ? "#D3D2DB" : "#4A4F5C"));
         Resources["LyricsSurface"] = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
             EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
             GradientStops = [new GradientStop(Color.Parse("#303038"), 0), new GradientStop(Color.Parse("#202026"), 1)] };
-        Resources["LyricsRail"] = new SolidColorBrush(Color.Parse("#50FFFFFF"));
-        Resources["LyricsProgress"] = new SolidColorBrush(Color.Parse("#AAA4F6"));
-        Resources["LyricsHover"] = new SolidColorBrush(Color.Parse("#16FFFFFF"));
-    }
-    public void Fit(double width)
-    {
-        var mini = Model?.Appearance.MiniPlayer != false;
-        var barWidth = Math.Max(280, Math.Min(width - (width >= 1050 ? 108 : 48), mini ? 740 : 1120));
-        TransportLayout.Width = barWidth;
-        TransportLayout.Height = BarSurface.Height = mini ? 52 : 60;
-        IdleSurface.Width = Math.Min(320, barWidth);
-        var tiny = barWidth < 500;
-        ModeButton.IsVisible = QueueButton.IsVisible = LyricsButton.IsVisible = barWidth >= 640;
-        FavoriteButton.IsVisible = !tiny;
-        foreach (var button in PlaybackControls.Children.OfType<Button>().Concat(AuxiliaryControls.Children.OfType<Button>()))
-            button.Width = button.Height = tiny ? 30 : 32;
-        PlaybackControls.Spacing = tiny ? 4 : mini ? 6 : 10;
-        AuxiliaryControls.Spacing = 8;
-        BarSurface.Padding = new Thickness(tiny ? 10 : 16, 0);
-        ProgressRow.Margin = new Thickness(tiny ? 8 : 16, 0, tiny ? 8 : 20, 0);
-        ProgressRow.ColumnSpacing = tiny ? 6 : 10;
-        ProgressRow.ColumnDefinitions[0].Width = new GridLength(tiny ? 32 : 42);
-        ProgressRow.ColumnDefinitions[2].Width = new GridLength(tiny ? 0 : 42);
-        DurationLabel.IsVisible = !tiny;
-        ElapsedText.FontSize = DurationLabel.FontSize = 12;
+        Resources["LyricsRail"] = new SolidColorBrush(Color.Parse(lightInk ? "#50FFFFFF" : "#38292D37"));
+        Resources["LyricsProgress"] = new SolidColorBrush(Color.Parse(Model?.Appearance.MiniPlayer != false ? "#AAA4F6" : lightInk ? "#F0F0F5" : "#4A4F5C"));
+        Resources["LyricsHover"] = new SolidColorBrush(Color.Parse(lightInk ? "#16FFFFFF" : "#12292D37"));
     }
     private void OnQueue(object? sender, RoutedEventArgs e)
     { MoreButton.Flyout?.Hide(); shell?.ToggleQueueDrawerCommand.Execute(null); }

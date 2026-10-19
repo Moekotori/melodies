@@ -1,90 +1,73 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.EqEditorView" x:DataType="local:DspViewModel">
-  <UserControl.Styles>
-    <StyleInclude Source="DspStyles.axaml" />
-  </UserControl.Styles>
-  <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto">
-    <Grid Name="EqToolbar" ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,2,0,8">
-      <StackPanel Orientation="Horizontal" Spacing="10">
-        <icons:GlyphIcon Kind="sliders" Width="18" Height="18" Stroke="{DynamicResource EchoAccent}" VerticalAlignment="Center" />
-        <TextBlock Text="{Binding SelectedModule.Title}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" />
-        <ToggleSwitch OnContent="已开启" OffContent="已关闭" IsChecked="{Binding Enabled, Mode=TwoWay}" IsEnabled="{Binding CanEdit}" IsVisible="{Binding HasEnable}" VerticalAlignment="Center" />
-      </StackPanel>
-      <StackPanel Name="EqTools" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-        <ComboBox Name="PresetPicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}" Width="210" MinHeight="30" IsEnabled="{Binding CanEdit}" VerticalAlignment="Center">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="local:EqPresetChoice">
-              <TextBlock Text="{Binding Label}" FontSize="12.5" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <Border Classes="dsp-chip" IsVisible="{Binding IsDirty}">
-          <TextBlock Text="已修改" FontSize="11" Foreground="{DynamicResource EchoAccentText}" />
-        </Border>
-        <Button Classes="dsp-quiet" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" ToolTip.Tip="重新读取">
-          <icons:GlyphIcon Kind="refresh" Width="15" Height="15" />
-        </Button>
-        <TextBox Text="{Binding PresetName}" Watermark="预设名称" Width="108" MinHeight="30" VerticalAlignment="Center" IsEnabled="{Binding CanEdit}" />
-        <Button Content="保存" Classes="dsp-quiet" Command="{Binding SavePresetCommand}" IsEnabled="{Binding CanEdit}" ToolTip.Tip="把当前曲线存到本机" />
-        <Button Content="删除" Classes="dsp-quiet" Command="{Binding DeletePresetCommand}" IsEnabled="{Binding CanDeletePreset}" />
-        <Button Content="重置选中" Classes="dsp-quiet" Command="{Binding ResetBandCommand}" IsEnabled="{Binding CanResetBand}" ToolTip.Tip="把当前频段增益归零" />
-        <Button Content="重置曲线" Classes="dsp-quiet" Command="{Binding FlattenCommand}" IsEnabled="{Binding CanEdit}" />
-      </StackPanel>
-    </Grid>
-    <Border Grid.Row="1" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,1" CornerRadius="2" ClipToBounds="True">
-      <Panel>
-        <local:EqCurveControl Name="EqCurve" IsVisible="{Binding IsReady}" Margin="2,0" ToolTip.Tip="拖动节点调整频率和增益。滚轮调整 Q，双击归零，方向键微调，按住 Shift 更细。" />
-        <TextBlock Text="{Binding Message}" IsVisible="{Binding !IsReady}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="460" TextAlignment="Center" />
-      </Panel>
-    </Border>
-    <Grid Name="PreampBar" Grid.Row="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16" Margin="0,10,0,2" IsVisible="{Binding IsReady}" IsEnabled="{Binding CanEdit}">
-      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <TextBlock Text="EQ 前级增益" FontSize="13" VerticalAlignment="Center" />
-        <TextBlock Text="{Binding PreampDb, StringFormat={}{0:0.0} dB}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" />
-      </StackPanel>
-      <Slider Grid.Column="1" Classes="dsp-fader" Minimum="-12" Maximum="6" Value="{Binding PreampDb, Mode=TwoWay}" TickFrequency="0.1" IsSnapToTickEnabled="True" />
-      <Button Grid.Column="2" Content="自动增益" Classes="dsp-quiet" Command="{Binding AutoPreampCommand}" VerticalAlignment="Center" />
-    </Grid>
-    <Grid Name="TrimControls" Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="28" Margin="0,4,0,0" IsVisible="{Binding IsReady}" IsEnabled="{Binding CanEdit}">
-      <StackPanel Spacing="4">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="效果强度" Classes="muted" FontSize="12" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="1" Text="{Binding StrengthPercent, StringFormat={}{0:0}%}" FontSize="14" FontWeight="SemiBold" />
-        </Grid>
-        <Slider Classes="dsp-fader" Minimum="0" Maximum="100" Value="{Binding StrengthPercent, Mode=TwoWay}" TickFrequency="1" IsSnapToTickEnabled="True" />
-      </StackPanel>
-      <StackPanel Name="TiltField" Grid.Column="1" Spacing="4">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="音色倾斜" Classes="muted" FontSize="12" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="1" Text="{Binding TiltDb, StringFormat={}{0:0.0} dB}" FontSize="14" FontWeight="SemiBold" />
-        </Grid>
-        <Slider Classes="dsp-fader" Minimum="-6" Maximum="6" Value="{Binding TiltDb, Mode=TwoWay}" TickFrequency="0.1" IsSnapToTickEnabled="True" />
-      </StackPanel>
-    </Grid>
-    <StackPanel Grid.Row="4" Margin="0,6,0,0" IsVisible="{Binding IsReady}" IsEnabled="{Binding CanEdit}">
-      <local:EqBandInspectorView Name="BandInspector" DataContext="{Binding SelectedBand}" />
-      <local:EqBandProcessingView DataContext="{Binding SelectedBand}" />
-    </StackPanel>
-    <StackPanel Grid.Row="5" Spacing="4" Margin="0,8,0,0" IsVisible="{Binding IsReady}">
-      <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Text="{Binding CurveScopeLabel}" FontSize="12" FontWeight="SemiBold" />
-        <TextBlock Grid.Column="1" Text="拖动 · 滚轮调 Q · 双击归零 · 方向键微调" FontSize="11" Classes="muted" />
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.EqEditorView" x:DataType="local:DspViewModel">
+  <UserControl.Styles><StyleInclude Source="DspStyles.axaml" /></UserControl.Styles>
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,0,0,14">
+      <Grid Name="EqToolbar" ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,0,16">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="预设" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <ComboBox Name="PresetPicker" ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}" Width="240" MinHeight="36" IsEnabled="{Binding CanEdit}">
+            <ComboBox.ItemTemplate><DataTemplate x:DataType="local:EqPresetChoice"><TextBlock Text="{Binding Label}" FontSize="13" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+          <Border Classes="dsp-chip" IsVisible="{Binding IsDirty}"><TextBlock Text="已修改" FontSize="11" /></Border>
+        </StackPanel>
+        <StackPanel Name="EqTools" Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Button Content="重置选中" Classes="dsp-quiet" Command="{Binding ResetBandCommand}" IsEnabled="{Binding CanResetBand}" />
+          <Button Content="重置曲线" Classes="dsp-quiet" Command="{Binding FlattenCommand}" IsEnabled="{Binding CanEdit}" />
+        </StackPanel>
       </Grid>
-      <ListBox Name="EqBands" Classes="dsp-bands" ItemsSource="{Binding Bands}" SelectedItem="{Binding SelectedBand, Mode=TwoWay}" Height="68" IsEnabled="{Binding CanEdit}" AutoScrollToSelectedItem="False" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
-        <ListBox.ItemsPanel>
-          <ItemsPanelTemplate>
-            <StackPanel Orientation="Horizontal" />
-          </ItemsPanelTemplate>
-        </ListBox.ItemsPanel>
-        <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="local:EqBandViewModel">
-            <StackPanel Width="46" Spacing="2">
-              <Ellipse Width="6" Height="6" Fill="{Binding Swatch}" HorizontalAlignment="Left" IsVisible="{Binding IsShaped}" />
-              <TextBlock Text="{Binding FrequencyLabel}" FontSize="13" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding GainLabel}" FontSize="10" Classes="muted" />
+      <Border Name="EqPlot" Grid.Row="1" Background="{DynamicResource DspPlotBackground}" CornerRadius="8" ClipToBounds="True" Height="310">
+        <Panel>
+          <local:EqCurveControl Name="EqCurve" IsVisible="{Binding IsReady}" Margin="12,8" ToolTip.Tip="拖动节点调音；滚轮调整 Q，双击归零。" />
+          <TextBlock Text="{Binding Message}" IsVisible="{Binding !IsReady}" Foreground="{DynamicResource DspPlotMuted}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="460" />
+        </Panel>
+      </Border>
+      <Grid Grid.Row="2" RowDefinitions="Auto,Auto" Margin="0,12,0,0" IsVisible="{Binding IsReady}">
+        <TextBlock Text="{Binding CurveScopeLabel}" Classes="muted" FontSize="11" Margin="0,0,0,10" />
+        <ListBox Grid.Row="1" Name="EqBands" Classes="dsp-bands" ItemsSource="{Binding Bands}" SelectedItem="{Binding SelectedBand, Mode=TwoWay}" Height="56" IsEnabled="{Binding CanEdit}" AutoScrollToSelectedItem="False" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="local:EqBandViewModel">
+              <Grid ColumnDefinitions="5,*" ColumnSpacing="7" Width="60">
+                <Ellipse Width="5" Height="5" Fill="{Binding Swatch}" VerticalAlignment="Top" Margin="0,5,0,0" />
+                <StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="{Binding FrequencyLabel}" FontSize="12" FontWeight="SemiBold" /><TextBlock Text="{Binding GainLabel}" FontSize="10" Classes="muted" /></StackPanel>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+      <Border Grid.Row="3" IsVisible="{Binding IsReady}" IsEnabled="{Binding CanEdit}" Margin="0,8,0,12"><local:EqBandInspectorView Name="BandInspector" DataContext="{Binding SelectedBand}" /></Border>
+      <Grid Name="PreampBar" Grid.Row="4" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="20" Margin="0,0,0,12" IsVisible="{Binding IsReady}" IsEnabled="{Binding CanEdit}">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Text="前级增益" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding PreampDb, StringFormat={}{0:0.0} dB}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+        <Slider Grid.Column="1" Classes="dsp-fader" Minimum="-12" Maximum="6" Value="{Binding PreampDb, Mode=TwoWay}" TickFrequency="0.1" IsSnapToTickEnabled="True" />
+        <Button Grid.Column="2" Content="自动增益" Classes="dsp-quiet" Command="{Binding AutoPreampCommand}" />
+      </Grid>
+      <Expander Grid.Row="5" Name="AdvancedEq" Header="声道、动态 EQ 与音色微调" IsVisible="{Binding IsReady}" IsExpanded="False" HorizontalAlignment="Stretch" Margin="0,0,0,8">
+        <StackPanel Spacing="18" Margin="0,8,0,12" IsEnabled="{Binding CanEdit}">
+          <local:EqBandProcessingView DataContext="{Binding SelectedBand}" />
+          <Grid Name="TrimControls" ColumnDefinitions="*,*" ColumnSpacing="28">
+            <StackPanel Spacing="6">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="效果强度" Classes="muted" FontSize="12" /><TextBlock Grid.Column="1" Text="{Binding StrengthPercent, StringFormat={}{0:0}%}" /></Grid>
+              <Slider Classes="dsp-fader" Minimum="0" Maximum="100" Value="{Binding StrengthPercent, Mode=TwoWay}" TickFrequency="1" IsSnapToTickEnabled="True" />
             </StackPanel>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-    </StackPanel>
-  </Grid>
+            <StackPanel Name="TiltField" Grid.Column="1" Spacing="6">
+              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="音色倾斜" Classes="muted" FontSize="12" /><TextBlock Grid.Column="1" Text="{Binding TiltDb, StringFormat={}{0:0.0} dB}" /></Grid>
+              <Slider Classes="dsp-fader" Minimum="-6" Maximum="6" Value="{Binding TiltDb, Mode=TwoWay}" TickFrequency="0.1" IsSnapToTickEnabled="True" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Expander>
+      <Expander Grid.Row="6" Header="管理预设" IsVisible="{Binding IsReady}" IsExpanded="False" HorizontalAlignment="Stretch">
+        <WrapPanel Margin="0,8,0,12">
+          <TextBox Text="{Binding PresetName}" MaxLength="80" PlaceholderText="预设名称" Width="200" MinHeight="34" IsEnabled="{Binding CanEdit}" Margin="0,0,10,6" />
+          <Button Content="导入参数" Click="ImportPreset" IsEnabled="{Binding CanUseResources}" Margin="0,0,6,6" />
+          <Button Content="导出 JSON" Click="ExportPreset" IsEnabled="{Binding CanEdit}" Margin="0,0,6,6" />
+          <Button Content="保存到本机" Command="{Binding SavePresetCommand}" IsEnabled="{Binding CanUseResources}" Margin="0,0,6,6" />
+          <Button Content="删除" Classes="dsp-quiet" Command="{Binding DeletePresetCommand}" IsEnabled="{Binding CanDeletePreset}" />
+        </WrapPanel>
+      </Expander>
+    </Grid>
+  </ScrollViewer>
 </UserControl>

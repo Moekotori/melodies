@@ -2,6 +2,7 @@
   <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
+    <ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" />
     <PackageReference Include="Avalonia.Headless" />
     <Compile Include="../Echo.Preview/FloatingWindowsSmoke.cs" Link="FloatingWindowsSmoke.cs" />
   </ItemGroup>

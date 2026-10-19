@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Echo.Contracts.Library;
 using Echo.Desktop.Features.Songs;
+using Echo.Playback;
 
 namespace Echo.Desktop.Features.Search;
 
@@ -15,7 +16,7 @@ public partial class GlobalSearchOverlay
     {
         if (args.PropertyName != nameof(GlobalSearchViewModel.Hits)) return;
         var previous = HitList.SelectedItem as GlobalSearchHit;
-        HitList.SelectedItem = Model?.Hits.FirstOrDefault(hit => Equals(hit.Target, previous?.Target)) ?? Model?.Hits.FirstOrDefault();
+        HitList.SelectedItem = Model?.Hits.FirstOrDefault(hit => hit.Key == previous?.Key) ?? Model?.Hits.FirstOrDefault();
     }
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs args)
     {
@@ -33,13 +34,13 @@ public partial class GlobalSearchOverlay
             args.Handled = true;
         }
         else if (args.Key == Key.Enter && args.KeyModifiers == KeyModifiers.None)
-        { _ = OpenAsync(HitList.SelectedItem as GlobalSearchHit); args.Handled = true; }
+        { _ = OpenAsync(HitList.SelectedItem as GlobalSearchHit, play: true); args.Handled = true; }
         else if (args.Key == Key.F && args.KeyModifiers.HasFlag(KeyModifiers.Control))
         { FocusSearch(); args.Handled = true; }
         else if (args.Key == Key.Tab && args.KeyModifiers is KeyModifiers.None or KeyModifiers.Shift)
         {
             // Keep keyboard focus in the modal, including its empty state.
-            if (Model?.IsExpanded != true) { SearchField.Focus(); args.Handled = true; }
+            if (Model?.Hits.Count == 0) { SearchField.Focus(); args.Handled = true; }
         }
     }
     private void OnResultReleased(object? sender, PointerReleasedEventArgs args)
@@ -48,10 +49,16 @@ public partial class GlobalSearchOverlay
         if (control.GetVisualAncestors().Prepend(control).OfType<ListBoxItem>().FirstOrDefault() is { DataContext: GlobalSearchHit hit })
         { _ = OpenAsync(hit); args.Handled = true; }
     }
-    private async Task OpenAsync(GlobalSearchHit? hit)
+    private void OnResultPointerMoved(object? sender, PointerEventArgs args)
+    {
+        if (args.Source is Control control && control.GetVisualAncestors().Prepend(control).OfType<ListBoxItem>()
+            .FirstOrDefault() is { DataContext: GlobalSearchHit hit }) HitList.SelectedItem = hit;
+    }
+    private async Task OpenAsync(GlobalSearchHit? hit, bool play = false)
     {
         if (hit is null || Model is not { IsOpening: false } current || shell is null) return;
-        if (hit.Target is TrackRow track && shell.TrackLibrary is { } library)
+        var track = hit.Target switch { TrackRow song => song, SearchFavoriteTarget liked => liked.Track, _ => null };
+        if (play && track is not null && shell.TrackLibrary is { } library)
         {
             current.IsOpening = true;
             if (shell.Player is null) { current.Error = shell.Text["query.playFailed"]; current.IsOpening = false; return; }
@@ -60,10 +67,11 @@ public partial class GlobalSearchOverlay
             await playing.PlayCommand.ExecuteAsync(null);
             if (!ReferenceEquals(Model, current)) return;
             current.IsOpening = false; current.Error = playing.Error;
-            if (current.Error.Length == 0) shell.CloseGlobalSearchCommand.Execute(null);
+            if (current.Error.Length == 0) { shell.RememberSearch(hit); shell.CloseGlobalSearchCommand.Execute(null); }
         }
         else
         {
+            shell.RememberSearch(hit);
             shell.CloseGlobalSearchCommand.Execute(null);
             OpenRequested?.Invoke(hit);
         }

@@ -1,0 +1,9 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspImpulsePicker" x:DataType="local:DspViewModel">
+  <StackPanel Spacing="10">
+    <TextBlock Text="卷积资源" FontSize="12" FontWeight="SemiBold" />
+    <ComboBox ItemsSource="{Binding ImpulseBanks}" SelectedItem="{Binding SelectedImpulseBank, Mode=TwoWay}" HorizontalAlignment="Stretch" IsEnabled="{Binding CanUseResources}">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="local:DspImpulseBankChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <WrapPanel><Button Content="导入脉冲 / ZIP" Click="ImportImpulse" IsEnabled="{Binding CanUseResources}" Margin="0,0,8,0" /><Button Content="刷新资源" Classes="dsp-quiet" Command="{Binding RefreshBanksCommand}" IsEnabled="{Binding CanUseResources}" /><Button Content="删除所选资源" Command="{Binding DeleteBankCommand}" Classes="dsp-quiet" IsEnabled="{Binding CanUseResources}" /></WrapPanel>
+  </StackPanel>
+</UserControl>

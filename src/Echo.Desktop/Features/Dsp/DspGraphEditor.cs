@@ -18,7 +18,7 @@ internal static class DspGraphEditor
         var panel = new StackPanel { Spacing = 10 };
         foreach (var (key, value) in state.ToArray())
         {
-            if (key is "id" or "bankId" or "irName") continue;
+            if (key is "id" or "bankId" or "irName" or "nativePath") continue;
             var kind = state["kind"]?.ToString();
             if (kind is "eq" or "gain" or "delay" or "invert" or "mute" or "mix" or "iir")
             {

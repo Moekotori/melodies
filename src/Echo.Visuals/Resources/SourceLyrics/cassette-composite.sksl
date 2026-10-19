@@ -1,0 +1,63 @@
+uniform float2 draw_size;
+uniform float2 draw_center;
+uniform float draw_rotation;
+uniform float4 draw_uv;
+
+uniform shader u_scene;
+uniform float2 u_scene_size;
+uniform float2 u_view;
+uniform float u_time;
+uniform float u_retro;
+uniform float u_pxScale;
+uniform float u_reveal;
+uniform float3 u_fallback;
+
+uniform float4 u_ripples[8];
+uniform float3 u_rippleShape; // speed px/s, band width px, amplitude px
+float4 sample_u_scene(float2 uv){return u_scene.eval(float2(uv.x,1.0-uv.y)*u_scene_size);}
+float2 rippleOffset(float2 p) {
+  float2 o = float2(0.0);
+  for (int i = 0; i < 8; i++) {
+    float4 r = u_ripples[i];
+    if (r.w <= 0.0) continue;
+    float2 d = p - r.xy;
+    float dist = length(d);
+    float radius = r.z * u_rippleShape.x;
+    float band = exp(-pow((dist - radius) / u_rippleShape.y, 2.0));
+    float fade = r.w * pow(max(0.0, 1.0 - r.z / 2.8), 2.0);
+    o += (d / max(dist, 1.0)) * sin((dist - radius) * 0.085) * band * fade * u_rippleShape.z;
+  }
+  return o;
+}
+
+
+float hash(float2 p) { return fract(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453); }
+half4 main(float2 coord) {
+float4 outColor;
+float2 v_local=coord/draw_size;
+float2 v_uv=mix(draw_uv.xy,draw_uv.zw,v_local);
+float c=cos(draw_rotation),s=sin(draw_rotation);
+float2 q=(v_local-.5)*draw_size;
+float2 v_screen=draw_center+float2(q.x*c-q.y*s,q.x*s+q.y*c);
+
+  float2 frag = float2(coord.x,u_view.y-coord.y);
+  float2 p = float2(frag.x, u_view.y - frag.y);
+  float2 offset = rippleOffset(p);
+  float2 uv = (frag + float2(offset.x, -offset.y)) / u_view;
+  float3 color;
+  if (u_retro > 0.0) {
+    float split = 0.9 * u_pxScale / u_view.x * u_retro;
+    color = float3(sample_u_scene( uv + float2(split, 0.0)).r, sample_u_scene( uv).g, sample_u_scene( uv - float2(split, 0.0)).b);
+    float line = 0.5 + 0.5 * sin(p.y / u_pxScale * 2.0944);
+    color *= 1.0 - 0.045 * u_retro * line;
+    color += (hash(floor(p / u_pxScale) + floor(u_time * 24.0)) - 0.5) * 0.035 * u_retro;
+    float2 q = uv - 0.5;
+    color *= 1.0 - dot(q, q) * 0.42 * u_retro;
+  } else {
+    color = sample_u_scene( uv).rgb;
+  }
+  float crest = length(offset) / max(1.0, u_rippleShape.z);
+  color += crest * 0.07;
+  outColor = float4(mix(u_fallback, color, u_reveal), 1.0);
+return half4(outColor);
+}

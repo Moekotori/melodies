@@ -35,6 +35,7 @@ public sealed partial class LyricsAppearance
 
     private void RefreshLanguage()
     {
+        RefreshBackgroundChoices();
         StyleChoices = Styles.Select(style => new LyricsChoice(style.Id, Text.Translate(style.Label))).ToArray();
         LookChoices = Looks.Select(look => new LyricsChoice(look.Id, Text.Translate(look.Label))).ToArray();
         FontChoices = Fonts.Select(font => new LyricsChoice(font, Text.Translate(font))).ToArray();

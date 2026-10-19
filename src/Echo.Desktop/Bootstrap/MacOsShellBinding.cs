@@ -26,7 +26,6 @@ internal sealed partial class MacOsShellBinding : IDisposable
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia");
     private readonly MacOsAccessoryPreferences _prefs;
     private TrayIcon? _tray;
-    private TrayIcons? _icons;
     private PlayerViewModel? _player;
     private string? _language, _badge, _dockIcon;
     private bool _disposed, _filling, _dockIconApplied;
@@ -46,10 +45,7 @@ internal sealed partial class MacOsShellBinding : IDisposable
         {
             NativeMenu.SetMenu(application, _app);
             NativeDock.SetMenu(application, _dock);
-            _icons = TrayIcon.GetIcons(application) ?? new TrayIcons();
-            if (TrayIcon.GetIcons(application) is null) TrayIcon.SetIcons(application, _icons);
-            _tray = new TrayIcon { ToolTipText = "melodies", IsVisible = true, Menu = _status };
-            _icons.Add(_tray);
+            _tray = _window.SetPlatformTrayMenu(_status);
         }
         NativeMenu.SetMenu(window, _app);
         NativeDock.SetMenu(window, _dock);
@@ -165,6 +161,8 @@ internal sealed partial class MacOsShellBinding : IDisposable
         if (includeSearch)
         {
             menu.Items.Add(Sep());
+            menu.Items.Add(Mark("melodies Ultralight", _shell.UltraLightEnabled, () => _shell.UltraLightEnabled = !_shell.UltraLightEnabled));
+            menu.Items.Add(Item(_shell.Text["ultralight.hide"], _window.HideToTrayFromMenu));
             menu.Items.Add(Item(label("退出", "Quit"), _window.RequestExit));
         }
     }
@@ -234,7 +232,7 @@ internal sealed partial class MacOsShellBinding : IDisposable
         if (_lifetime is not null) _lifetime.Activated -= OnActivated;
         _playback.FilesOpened -= OnFilesOpened;
         _shell.Text.Changed -= Rebuild;
-        if (_tray is not null) { _icons?.Remove(_tray); _tray.Dispose(); }
+        _window.SetPlatformTrayMenu(null); _tray = null;
         if (global::Avalonia.Application.Current is { } application)
         {
             NativeMenu.SetMenu(application, null);

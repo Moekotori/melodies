@@ -3,5 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
     <PackageReference Include="Avalonia.Headless" />
+    <ProjectReference Include="../../src/Modules/Echo.Dsp/Echo.Dsp.csproj" />
+    <Compile Include="../DspFixtureResources.cs" Link="DspFixtureResources.cs" />
   </ItemGroup>
 </Project>

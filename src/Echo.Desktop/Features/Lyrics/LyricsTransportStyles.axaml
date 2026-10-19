@@ -32,4 +32,5 @@
   <Style Selector="icon|EchoIcon"><Setter Property="BaseBrush" Value="{DynamicResource LyricsControlInk}" /><Setter Property="AccentBrush" Value="{DynamicResource LyricsControlInk}" /></Style>
   <Style Selector="icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource LyricsControlInk}" /></Style>
   <Style Selector="Button.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource LyricsProgress}" /></Style>
+  <Style Selector="UserControl.docked Button.lyric-play"><Setter Property="Background" Value="Transparent" /></Style>
 </Styles>
