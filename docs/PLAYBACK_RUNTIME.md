@@ -53,3 +53,7 @@ App / Echo.Player
 本轮结果：上述两组定向检查通过，注入同一核心的 `DesktopComposition` 窗口关闭后，宿主与队列继续存在；退出核心后设备确认事实撤销。独立 `Echo.Player` 构建为 0 警告、0 错误。实际 Headless 预览为 `misc/playback-ui-smoke/zone-output.png`，日志在 `misc/zone-validation/`。
 
 构建、检查和重跑累计约 90 秒，包括首轮 UI 检查达到 60 秒上限后停止自有进程。修正检查程序在异常退出时依赖 UI 上下文等待释放的问题后，定向 UI 检查通过。混合播放检查曾在并行队列改动的 `remove after play` 断言失败；本轮只声称上述核心/Zone 定向检查通过，没有复跑或宣称全部播放检查通过。其间并行专辑页面编译错误随后已消失，最后桌面定向检查成功构建并运行。
+
+## 桥核分离增量（2026-10-19）
+
+默认桌面现在由 `App` 持有 `Echo.Core/CoreRuntime`，组合曲库与已有 `PlaybackRuntime`，并统一持有听歌记录器。窗口通过 `CreateWindow(core: core)` 接入；最终应用退出才释放 Core。独立注入播放 runtime 的原接口继续保留。曲库已不在 Desktop 内打开，完整服务化、音源及连接模块迁移边界见[桥核分离](BRIDGE_CORE_SEPARATION.md)。当前仍为进程内组合，不能据此声称应用退出后播放继续或独立 Bridge 已实现。

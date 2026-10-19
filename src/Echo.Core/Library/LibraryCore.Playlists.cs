@@ -1,8 +1,8 @@
 using Echo.Contracts.Library;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
-internal sealed partial class DesktopLibrary : IPlaylistLibrary
+public sealed partial class LibraryCore : IPlaylistLibrary
 {
     public async Task<PlaylistPage> GetPlaylistsAsync(PlaylistQuery query, CancellationToken cancellation = default)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetPlaylistsAsync(query, cancellation).ConfigureAwait(false);

@@ -4,6 +4,8 @@ Avalonia 桌面重写的新工作区。当前提供扫描、独立 SQLite 数据
 
 开发约束见 [开发文档](docs/ECHO_AVALONIA_DEVELOPMENT.md)，已实现能力及边界见 [扫描和数据库模块](docs/SCANNING_DATABASE.md)。
 
+桥核分离已开始迁移曲库与应用生命周期，当前落地及后续服务/输出端边界见 [桥核分离](docs/BRIDGE_CORE_SEPARATION.md)。
+
 ## 使用
 
 ### 桌面开发与热更新

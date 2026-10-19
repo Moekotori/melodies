@@ -1,8 +1,8 @@
 using Echo.Contracts.Remote;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
-internal sealed partial class DesktopLibrary : IRemoteTrackIndex
+public sealed partial class LibraryCore : IRemoteTrackIndex
 {
     public async Task<RemoteIndexReceipt> WriteAsync(IReadOnlyList<RemoteIndexTrack> tracks, string syncToken, CancellationToken token)
         => await (await Database().WaitAsync(token).ConfigureAwait(false)).WriteAsync(tracks, syncToken, token).ConfigureAwait(false);

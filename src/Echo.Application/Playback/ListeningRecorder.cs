@@ -2,10 +2,10 @@ using System.Diagnostics;
 using Echo.Contracts.Library;
 using Echo.Playback;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Application.Playback;
 
 // One subscription and one awaited write; the recorder outlives the home page.
-internal sealed class DesktopListeningRecorder : IAsyncDisposable
+public sealed class ListeningRecorder : IAsyncDisposable
 {
     private readonly IHomeLibrary library;
     private readonly Action changed;
@@ -18,7 +18,7 @@ internal sealed class DesktopListeningRecorder : IAsyncDisposable
     private long sampledAt, savedAt;
     private bool dirty;
 
-    public DesktopListeningRecorder(PlaybackZone zone, IHomeLibrary library, Action changed, Action<string> report)
+    public ListeningRecorder(PlaybackZone zone, IHomeLibrary library, Action changed, Action<string> report)
     {
         this.library = library; this.changed = changed; this.report = report;
         subscription = zone.Subscribe(PlaybackStateChanges.Playback | PlaybackStateChanges.Clock);

@@ -1,8 +1,8 @@
 using Echo.Contracts.Library;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
-internal sealed partial class DesktopLibrary : ILibraryReview
+public sealed partial class LibraryCore : ILibraryReview
 {
     public async Task<LibraryReviewPage> GetLibraryReviewAsync(bool hidden, int offset, CancellationToken cancellation)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetLibraryReviewAsync(hidden, offset, cancellation).ConfigureAwait(false);

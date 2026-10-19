@@ -1,8 +1,8 @@
 using Echo.Contracts.Library;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
-internal sealed partial class DesktopLibrary : IHistoryLibrary
+public sealed partial class LibraryCore : IHistoryLibrary
 {
     public async Task<long> GetHistoryEpochAsync(CancellationToken cancellation = default)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetHistoryEpochAsync(cancellation).ConfigureAwait(false);

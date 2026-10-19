@@ -14,6 +14,7 @@ using Echo.Infrastructure.Lyrics;
 using Echo.Desktop.Features.Lyrics;
 using Echo.Infrastructure.Preferences;
 using Echo.Application.Playback;
+using Echo.Core;
 using Echo.Infrastructure.Playback;
 using Echo.Desktop.Localization;
 using Echo.Desktop.Features.Settings.Runtime;
@@ -44,11 +45,26 @@ public static class DesktopComposition
         return runtime;
     }
 
-    public static MainWindow CreateWindow(bool restorePlayback = true, bool enableMedia = true,
-        IAlbumLibrary? albumLibrary = null, IAlbumArtwork? albumArtwork = null, PlaybackRuntime? playback = null)
+    public static CoreRuntime CreateCoreRuntime(bool restorePlayback = true, bool enableMedia = true,
+        PlaybackRuntime? playback = null)
     {
         var ownsPlayback = playback is null;
         playback ??= CreatePlaybackRuntime(restorePlayback, enableMedia);
+        return new(playback, Environment.GetEnvironmentVariable("ECHO_LIBRARY_DB") ??
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "ECHO Avalonia", "library.sqlite"), ownsPlayback);
+    }
+
+    public static MainWindow CreateWindow(bool restorePlayback = true, bool enableMedia = true,
+        IAlbumLibrary? albumLibrary = null, IAlbumArtwork? albumArtwork = null, PlaybackRuntime? playback = null,
+        CoreRuntime? core = null)
+    {
+        if (core is not null && (albumLibrary is not null || playback is not null && !ReferenceEquals(playback, core.Playback)))
+            throw new ArgumentException("A shared Core supplies both the library and playback runtime.");
+        var ownsCore = core is null && albumLibrary is null;
+        if (ownsCore) core = CreateCoreRuntime(restorePlayback, enableMedia, playback);
+        var ownsPlayback = core is null && playback is null;
+        playback = core?.Playback ?? playback ?? CreatePlaybackRuntime(restorePlayback, enableMedia);
         var shell = new ShellViewModel();
         shell.AttachRadio(new Echo.Application.Radio.RadioCatalog(restorePlayback
             ? new JsonRadioStationStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -69,8 +85,7 @@ public static class DesktopComposition
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia", "lyrics-settings.json"));
         var lyricsAppearance = new LyricsAppearance(lyricsSettings, shell.Text);
         shell.AttachLyrics(lyricsSource, lyricsAppearance);
-        var library = albumLibrary is null ? new DesktopLibrary(Environment.GetEnvironmentVariable("ECHO_LIBRARY_DB") ??
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia", "library.sqlite"), playback.BackgroundWork) : null;
+        var library = core?.Library;
         var artwork = new AlbumArtworkCache(albumArtwork ?? new Echo.Infrastructure.Remote.RemoteSidecarArtwork(new LocalAlbumArtwork(), remoteSources.Find, remoteFiles), playback.BackgroundWork);
         shell.AttachLibrary(albumLibrary ?? library!, artwork, library is null ? null : library.ImportAsync, new LocalDetailResources());
         if (OperatingSystem.IsWindows()) shell.Motion.SystemAllowsAnimation = WindowsAnimationPreference.Read();
@@ -94,9 +109,14 @@ public static class DesktopComposition
             podcastProgress = new(playback.LocalZone.Session, podcastLibrary);
             shell.AttachPodcasts(podcastLibrary, playback.LocalZone.Session);
         }
-        var listening = shell.HomeLibrary is { } homeLibrary
-            ? new DesktopListeningRecorder(playback.LocalZone, homeLibrary, shell.NotifyHomeDataChanged, message =>
-                Avalonia.Threading.Dispatcher.UIThread.Post(() => shell.Notice = shell.Text["home.listenSaveError"])) : null;
+        void ReportListening(string message) => Avalonia.Threading.Dispatcher.UIThread.Post(() => shell.Notice = shell.Text["home.listenSaveError"]);
+        var listening = core is null && shell.HomeLibrary is { } homeLibrary
+            ? new ListeningRecorder(playback.LocalZone, homeLibrary, shell.NotifyHomeDataChanged, ReportListening) : null;
+        if (core is not null)
+        {
+            core.ListeningChanged += shell.NotifyHomeDataChanged;
+            core.ListeningDiagnostic += ReportListening;
+        }
         playback.MediaDiagnosticChanged += shell.SetMediaTransportDiagnostic;
         playback.PersistenceDiagnosticChanged += player.SetPersistenceDiagnostic;
         shell.AttachMediaTransport(playback.RetryMediaTransport);
@@ -195,6 +215,11 @@ public static class DesktopComposition
             shell.ReleaseLocalization();
             window.ReleaseLibraryPage();
             window.ReleaseLyricsPage();
+            if (core is not null)
+            {
+                core.ListeningChanged -= shell.NotifyHomeDataChanged;
+                core.ListeningDiagnostic -= ReportListening;
+            }
             try { if (listening is not null) await listening.DisposeAsync(); } catch (Exception) { }
             player.Detach();
             try { if (podcastProgress is not null) await podcastProgress.DisposeAsync(); } catch (Exception) { }
@@ -203,7 +228,7 @@ public static class DesktopComposition
             playback.PersistenceDiagnosticChanged -= player.SetPersistenceDiagnostic;
             try { if (ownsPlayback) await playback.DisposeAsync(); } catch (Exception) { }
             try { await artwork.DisposeAsync(); } catch (Exception) { }
-            try { if (library is not null) await library.DisposeAsync(); } catch (Exception) { }
+            try { if (ownsCore) await core!.DisposeAsync(); } catch (Exception) { }
             try { await lyricsSettings.DisposeAsync(); } catch (Exception) { }
             try { await lyricsSource.DisposeAsync(); } catch (Exception) { }
             released = true;

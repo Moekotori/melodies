@@ -3,9 +3,9 @@ using Echo.Contracts.Scanning;
 using Echo.Infrastructure.Artwork;
 using Echo.Infrastructure.Files;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
-internal sealed partial class DesktopLibrary : IFolderOperations
+public sealed partial class LibraryCore : IFolderOperations
 {
     private readonly SemaphoreSlim _resourceCheck = new(1, 1);
     private FolderWatchCoordinator? _folderWatch;
@@ -72,8 +72,13 @@ internal sealed partial class DesktopLibrary : IFolderOperations
     public async Task SetFolderWatchAsync(string path, bool enabled, CancellationToken cancellation)
     {
         var rules = await GetFolderRulesAsync(cancellation).ConfigureAwait(false); var rule = rules.FirstOrDefault(item => LibraryPath.Key(item.Path) == LibraryPath.Key(path)) ?? new(path);
-        lock (_gate) { _folderWatch ??= new(ScanFolderAsync, changed => FolderChanged?.Invoke(changed)); }
-        await _folderWatch.SetAsync(path, enabled, cancellation).ConfigureAwait(false);
-        await SaveFolderRuleAsync(rule with { Watch = enabled }, cancellation).ConfigureAwait(false);
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _shutdown.Token);
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            _folderWatch ??= new(ScanFolderAsync, changed => FolderChanged?.Invoke(changed));
+        }
+        await _folderWatch.SetAsync(path, enabled, lifetime.Token).ConfigureAwait(false);
+        await SaveFolderRuleAsync(rule with { Watch = enabled }, lifetime.Token).ConfigureAwait(false);
     }
 }

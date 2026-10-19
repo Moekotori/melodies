@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Echo.Application/Echo.Application.csproj" />
+    <ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

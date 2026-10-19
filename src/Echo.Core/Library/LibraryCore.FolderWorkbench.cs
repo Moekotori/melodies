@@ -1,8 +1,8 @@
 using Echo.Contracts.Library;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
-internal sealed partial class DesktopLibrary : IFolderWorkbench
+public sealed partial class LibraryCore : IFolderWorkbench
 {
     public async Task<FolderUiState> GetFolderUiStateAsync(CancellationToken cancellation = default)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).GetFolderUiStateAsync(cancellation).ConfigureAwait(false);

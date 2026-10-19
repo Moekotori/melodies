@@ -1,6 +1,6 @@
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
-internal sealed partial class DesktopLibrary
+public sealed partial class LibraryCore
 {
     private int scanProfile = 1;
     public void SetScanProfile(string value) => Volatile.Write(ref scanProfile, value switch

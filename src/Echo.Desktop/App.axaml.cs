@@ -14,9 +14,9 @@ public partial class App : Avalonia.Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var playback = DesktopComposition.CreatePlaybackRuntime();
+            var core = DesktopComposition.CreateCoreRuntime();
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            desktop.MainWindow = DesktopComposition.CreateWindow(playback: playback);
+            desktop.MainWindow = DesktopComposition.CreateWindow(core: core);
             var exiting = false;
             var released = false;
             desktop.ShutdownRequested += (_, args) =>
@@ -29,7 +29,7 @@ public partial class App : Avalonia.Application
             {
                 if (exiting) return;
                 exiting = true;
-                try { await playback.DisposeAsync(); }
+                try { await core.DisposeAsync(); }
                 catch (Exception) { /* Core releases audio and storage even if a shutdown step fails. */ }
                 finally { released = true; desktop.Shutdown(); }
             };

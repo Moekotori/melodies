@@ -2,7 +2,7 @@ using System.Threading.Channels;
 using Echo.Contracts.Library;
 using Echo.Contracts.Scanning;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
 // One coalesced background scan consumer. Callbacks retain root IDs, never file contents or a whole tree.
 internal sealed class FolderWatchCoordinator : IAsyncDisposable
@@ -13,6 +13,7 @@ internal sealed class FolderWatchCoordinator : IAsyncDisposable
     private readonly Channel<string> _pending = Channel.CreateBounded<string>(new BoundedChannelOptions(32) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
     private readonly CancellationTokenSource _stop = new();
     private readonly Task _worker;
+    private bool _disposed;
     public FolderWatchCoordinator(Func<FolderScanOptions, IProgress<ScanProgress>, CancellationToken, Task<ScanReport>> scan, Action<string> changed)
     { _scan = scan; _changed = changed; _worker = Task.Run(WorkAsync); }
     public Task SetAsync(string path, bool enabled, CancellationToken cancellation) => Task.Run(() =>
@@ -20,6 +21,7 @@ internal sealed class FolderWatchCoordinator : IAsyncDisposable
         cancellation.ThrowIfCancellationRequested(); path = Path.GetFullPath(path);
         lock (_watchers)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_watchers.Remove(path, out var old)) old.Dispose();
             if (!enabled) return;
             if (_watchers.Count >= 16) throw new InvalidOperationException("最多同时监听 16 个根目录。");
@@ -61,7 +63,7 @@ internal sealed class FolderWatchCoordinator : IAsyncDisposable
     }
     public async ValueTask DisposeAsync()
     {
-        _stop.Cancel(); _pending.Writer.TryComplete(); lock (_watchers) { foreach (var watcher in _watchers.Values) watcher.Dispose(); _watchers.Clear(); }
+        _stop.Cancel(); _pending.Writer.TryComplete(); lock (_watchers) { _disposed = true; foreach (var watcher in _watchers.Values) watcher.Dispose(); _watchers.Clear(); }
         await _worker.ConfigureAwait(false); _stop.Dispose();
     }
 }

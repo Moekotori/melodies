@@ -1,8 +1,8 @@
 using Echo.Contracts.Library;
 
-namespace Echo.Desktop.Bootstrap;
+namespace Echo.Core.Library;
 
-internal sealed partial class DesktopLibrary : ILibraryMaintenance
+public sealed partial class LibraryCore : ILibraryMaintenance
 {
     public async Task<LibraryHealth> CheckAsync(CancellationToken cancellation)
         => await (await Database().WaitAsync(cancellation).ConfigureAwait(false)).CheckAsync(cancellation).ConfigureAwait(false);
