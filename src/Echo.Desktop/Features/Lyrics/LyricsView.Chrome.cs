@@ -16,8 +16,16 @@ public partial class LyricsView
     private LyricsPlayerVisibility? playerVisibility;
     private bool pointerOverHeader;
     private bool wasPlaying;
+    private bool? chromePaletteDark;
     private void InitializeChrome()
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            ChromeHeaderLayout.Margin = new Thickness(86, 0, 12, 0);
+            LyricsWindowButtons.IsVisible = false;
+        }
+        HeaderMoreButton.Flyout!.Opened += OnHeaderMenuChanged;
+        HeaderMoreButton.Flyout.Closed += OnHeaderMenuChanged;
         playerVisibility = new(Transport, Model, shell.Motion, () => shell.IsQuickSettingsOpen || shell.IsQueueDrawerOpen);
         Model.Appearance.PropertyChanged += OnChromeAppearance;
         shell.PropertyChanged += OnShellTheme;
@@ -50,6 +58,7 @@ public partial class LyricsView
         var color = a.IsAfterglow ? a.SelectedLook.Ink : a.SelectedStyle.Ink;
         var dark = Echo.Desktop.Controls.Lyrics.LyricsBackgroundInk.ChromeDark(a,shell.IsDark) ?? (color.Length > 0 ? Brightness(Color.Parse(color)) > 0.6 : shell.IsDark);
         ChromeTheme.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
+        if (chromePaletteDark != dark) { LyricsChromePalette.Apply(this, dark); chromePaletteDark = dark; }
         Transport.ApplyPalette(dark);
         ChromeHeader.Transitions = ChromeTransitions();
         Transport.ApplyMotion();
@@ -61,7 +70,7 @@ public partial class LyricsView
     {
         ChromeHeader.Transitions = ChromeTransitions();
         Transport.ApplyMotion();
-        if (!shell.Motion.IsWindowVisible) { hideHeader?.Dispose(); hideHeader = null; }
+        if (!shell.Motion.IsWindowVisible) { hideHeader?.Dispose(); hideHeader = null; HeaderMoreButton.Flyout?.Hide(); }
         else ShowHeader();
         playerVisibility?.Refresh();
     }
@@ -72,26 +81,30 @@ public partial class LyricsView
     }
     private void OnStagePointer(object? sender, PointerEventArgs e)
     {
-        pointerOverHeader = e.GetPosition(this).Y < 68;
+        pointerOverHeader = new Rect(ChromeHeader.Bounds.Size).Contains(e.GetPosition(ChromeHeader));
         ShowHeader(); playerVisibility?.PointerMoved(e.GetPosition(Transport));
     }
     private void OnStagePointerLeft(object? sender, PointerEventArgs e)
     {
-        pointerOverHeader = false; playerVisibility?.PointerLeft();
+        pointerOverHeader = false; ShowHeader(); playerVisibility?.PointerLeft();
     }
     private void OnChromeKey(object? sender, KeyEventArgs e) { ShowHeader(); playerVisibility?.Reveal(); }
     private void OnTransportInteraction() => playerVisibility?.Refresh();
+    private void OnHeaderMenuChanged(object? sender, EventArgs e)
+    { pointerOverHeader = ChromeHeader.IsPointerOver; ShowHeader(); }
     private void ShowHeader()
     {
         if (closed) return;
         hideHeader?.Dispose(); hideHeader = null;
         ChromeHeader.Opacity = 1; ChromeHeader.IsHitTestVisible = true;
+        KeyboardNavigation.SetTabNavigation(ChromeHeader, KeyboardNavigationMode.Continue);
         if (!Model.IsPlaying || !shell.Motion.IsWindowVisible) return;
         hideHeader = DispatcherTimer.RunOnce(() =>
         {
             hideHeader = null;
-            if (closed || !Model.IsPlaying || pointerOverHeader || ChromeHeader.IsKeyboardFocusWithin || shell.IsQuickSettingsOpen || shell.IsQueueDrawerOpen) return;
+            if (closed || !Model.IsPlaying || pointerOverHeader || ChromeHeader.IsKeyboardFocusWithin || HeaderMoreButton.Flyout?.IsOpen == true || shell.IsQuickSettingsOpen || shell.IsQueueDrawerOpen) return;
             ChromeHeader.Opacity = 0; ChromeHeader.IsHitTestVisible = false;
+            KeyboardNavigation.SetTabNavigation(ChromeHeader, KeyboardNavigationMode.None);
         }, TimeSpan.FromSeconds(2.6));
     }
     private void OnToggleFullscreen(object? sender, RoutedEventArgs e)
@@ -102,6 +115,9 @@ public partial class LyricsView
     private void OnClose(object? sender, RoutedEventArgs e) { if (TopLevel.GetTopLevel(this) is Window w) w.Close(); }
     private void DisposeChrome()
     {
+        HeaderMoreButton.Flyout!.Opened -= OnHeaderMenuChanged;
+        HeaderMoreButton.Flyout.Closed -= OnHeaderMenuChanged;
+        HeaderMoreButton.Flyout.Hide();
         hideHeader?.Dispose(); hideHeader = null; playerVisibility?.Dispose(); playerVisibility = null;
         Model.Appearance.PropertyChanged -= OnChromeAppearance; shell.PropertyChanged -= OnShellTheme;
         shell.Motion.PropertyChanged -= OnChromeMotion; Model.Changed -= OnChromePlayback; RemoveHandler(PointerMovedEvent, OnStagePointer);

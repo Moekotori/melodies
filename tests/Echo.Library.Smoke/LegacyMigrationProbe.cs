@@ -89,7 +89,7 @@ internal static class LegacyMigrationProbe
         Wave(Path.Combine(brokenDir,"other.wav"),3);
         await File.WriteAllTextAsync(Path.Combine(brokenDir,"bad.cue"),"FILE \"gone.wav\" WAVE\nTRACK 01 AUDIO\nINDEX 01 00:00:00",cancellation);
         var broken = await Scanner().ScanAsync(new(brokenDir,DetectMissing:true),cancellation:cancellation);
-        Check(broken.Failed>0 && broken.MarkedMissing==0 && broken.Inserted==0,"broken CUE directory deferral");
+        Check(broken.Failed>0 && broken.MarkedMissing==0 && broken.Inserted==1,"broken CUE isolated from unrelated audio");
 
         var rates = Path.Combine(root,"rates"); Directory.CreateDirectory(rates);
         Wave(Path.Combine(rates,"audio.wav"),3); Wave(Path.Combine(rates,"audio 2x.wav"),3);
@@ -171,8 +171,8 @@ internal static class LegacyMigrationProbe
             """, new UTF8Encoding(true), cancellation);
         var repeatReport = await Scanner().ScanAsync(new(repeat),cancellation:cancellation);
         var repeatAlbum = await db.GetAlbumsAsync(new(Search:"重复编号"),cancellation);
-        Check(repeatReport.Failed==0 && repeatAlbum.Total==1 && repeatAlbum.Items[0].TrackCount==1,
-            "repeated CUE track numbers do not fail the scan");
+        Check(repeatReport.Status==ScanStatus.Completed && repeatReport.Failed==1 && repeatAlbum.Total==0,
+            "ambiguous CUE numbers are isolated without silently discarding a track");
 
         var box = Path.Combine(root,"box");
         var grouping = await db.BeginScanAsync(box,false,cancellation);

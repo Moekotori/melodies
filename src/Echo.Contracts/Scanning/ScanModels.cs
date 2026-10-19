@@ -12,4 +12,6 @@ public sealed record ScanReport(string JobId, ScanStatus Status, long Discovered
 public sealed class MetadataReadException(string code) : Exception(code)
 {
     public string Code { get; } = code;
+    public bool IsInfrastructureFailure => Code is "native_cleanup_unconfirmed" or "native_scanner_unavailable"
+        or "native_protocol_unsupported" or "native_recovery_limit";
 }

@@ -1,6 +1,22 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+if (args.Length == 0 && ScannerFaultHost.TryRun()) return;
+if (args.Length > 0 && args[0] == "scanner-recovery")
+{
+    using var recoveryBudget = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+    await NativeScannerRecoveryProbe.RunAsync(Path.GetFullPath(args[1]), recoveryBudget.Token); return;
+}
+if (args.Length > 0 && args[0] == "scan-coverage")
+{
+    using var coverageBudget = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+    await ScanCoverageProbe.RunAsync(Path.GetFullPath(args[1]), coverageBudget.Token); return;
+}
+if (args[0] == "cue-compatibility")
+{
+    using var cueBudget = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+    await CueCompatibilityProbe.RunAsync(Path.GetFullPath(args[1]), cueBudget.Token); return;
+}
 if (args[0] == "sort-filter")
 {
     using var sortFilterBudget = new CancellationTokenSource(TimeSpan.FromSeconds(10));

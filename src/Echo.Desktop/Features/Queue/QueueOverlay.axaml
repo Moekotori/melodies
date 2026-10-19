@@ -3,8 +3,8 @@
              x:Class="Echo.Desktop.Features.Queue.QueueOverlay" x:DataType="shell:ShellViewModel">
   <Grid ClipToBounds="False">
     <motion:MotionSurface Name="OutsideSurface" Travel="0">
-      <Border Background="Transparent" PointerPressed="OnOutsidePressed" />
+      <Border Background="{DynamicResource DrawerScrim}" PointerPressed="OnOutsidePressed" />
     </motion:MotionSurface>
-    <motion:MotionSurface Name="DrawerSurface" HorizontalAlignment="Right" Margin="24,36,28,4" Axis="Horizontal" Travel="32" />
+    <motion:MotionSurface Name="DrawerSurface" HorizontalAlignment="Right" Axis="Horizontal" Travel="32" />
   </Grid>
 </UserControl>

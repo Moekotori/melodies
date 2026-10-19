@@ -20,9 +20,10 @@ public static class AudioFormatCatalog
     public static IReadOnlyList<string> DiscoveryExtensions { get; } = Array.AsReadOnly(Legacy.Concat([".osu"]).ToArray());
     public static bool IsDiscoveryExtension(ReadOnlySpan<char> extension)
     {
-        foreach (var candidate in DiscoveryExtensions)
-            if (extension.Equals(candidate, StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
+        // Enumeration supplies spans. Reuse the case-insensitive catalogue without allocating a string
+        // or comparing every extension for each file in a large directory.
+        return extension.Equals(".osu", StringComparison.OrdinalIgnoreCase)
+            || Known.GetAlternateLookup<ReadOnlySpan<char>>().Contains(extension);
     }
     public static bool IsLegacyExtension(string extension) => Known.Contains(extension);
     public static AudioFormatRoute Route(string extension) => extension.ToLowerInvariant() switch

@@ -42,6 +42,12 @@ internal static class SidebarDrawerSmoke
         model.OpenSidebarDrawerCommand.Execute(null); Pump(30);
         window.MouseDown(new Point(700, 200), MouseButton.Left); window.MouseUp(new Point(700, 200), MouseButton.Left); Pump(30);
         Require(!model.IsSidebarDrawerOpen, "outside click dismisses drawer");
+        model.OpenQuickSettingsCommand.Execute("lyrics"); Pump(30);
+        window.MouseMove(new Point(2, 200)); Pump(30);
+        Require(!model.IsSidebarDrawerOpen && model.IsQuickSettingsOpen, "hover edge does not open behind settings");
+        window.KeyPress(Key.B, RawInputModifiers.Control, PhysicalKey.B, null); Pump(30);
+        Require(model.IsSidebarDrawerOpen && !model.IsQuickSettingsOpen && panel.IsKeyboardFocusWithin, "keyboard sidebar replaces settings and owns focus");
+        model.CloseSidebarDrawerCommand.Execute(null); Pump(30);
         model.IsSidebarExpanded = false;
         model.OpenSidebarDrawerCommand.Execute(null); Pump(30);
         Require(model.IsSidebarLabelVisible, "drawer overrides icon-only presentation");

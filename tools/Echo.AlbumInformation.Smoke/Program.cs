@@ -8,11 +8,7 @@ using Echo.Core.Client;
 var cache = Path.Combine(Path.GetTempPath(), "echo-album-info-" + Guid.NewGuid().ToString("N"));
 if (args.Contains("--live"))
 {
-    using var live = new AlbumInformationService(cache);
-    var result = await live.ReadAsync(new(args.Contains("--chinese") ? new("七里香", "周杰伦", 2004, 10, "zh") : new("Wish You Were Here", "Pink Floyd", 1975, 5, "en")));
-    Console.WriteLine($"Live: {result.Status}; sources={string.Join(',', result.Sources)}; releases={result.Versions.Length}; credits={result.Credits.Length}; albumArticle={result.AlbumArticle is not null}; artistArticle={result.ArtistArticle is not null}");
-    foreach (var error in result.Errors) Console.WriteLine(error);
-    if ((!args.Contains("--chinese") && result.Release?.Artist != "Pink Floyd") || result.Versions.Length == 0) Environment.ExitCode = 1;
+    Environment.ExitCode = await AlbumInformationLiveSmoke.RunAsync(args);
     return;
 }
 if (args.Contains("--ipc"))
@@ -34,6 +30,8 @@ Check(results[0].AlbumArticle?.Title == "Test Album" && results[0].ArtistArticle
 Check(results[0].Links.All(link => Uri.TryCreate(link.Url, UriKind.Absolute, out var url) && url.Scheme == "https"), "safe source links");
 var count = handler.Calls;
 await service.ReadAsync(request); Check(handler.Calls == count, "fresh cache avoids network");
+var aliasResult = await service.ReadAsync(new(new("Test Album", "Test Artist Alias", 2020, 12, "en")));
+Check(aliasResult.ArtistArticle?.Title == "Test Artist", "provider-confirmed artist redirect remains valid");
 handler.Fail = true;
 var stale = await service.ReadAsync(request with { Refresh = true });
 Check(stale.Status == "stale" && stale.Release is not null, "provider failure preserves cached information");
@@ -60,8 +58,8 @@ sealed class FixtureHttp : HttpMessageHandler
             if (url.Contains("query=")) Searches++;
             json = url.Contains("query=") || url.Contains("release-group=") ? "{\"releases\":[" + release + "]}" : release;
         }
-        else if (url.Contains("list=search")) json = "{\"query\":{\"search\":[{\"title\":\"" + (url.Contains("srsearch=Test%20Artist") ? "Test Artist" : "Test Album") + "\"}]}}";
-        else json = "{\"query\":{\"pages\":[{\"title\":\"" + (url.Contains("Test%20Album") ? "Test Album" : "Test Artist") + "\",\"extract\":\"Test Album is an album by Test Artist.\",\"fullurl\":\"https://en.wikipedia.org/wiki/Test_Album\"}]}}";
+        else if (url.Contains("list=search")) json = "{\"query\":{\"search\":[{\"title\":\"" + (url.Contains("srsearch=Test%20Artist") ? "Test Artist" : "Test Album") + "\"},{\"title\":\"Unrelated Album\"}]}}";
+        else json = "{\"query\":{\"redirects\":[{\"from\":\"Test Artist Alias\",\"to\":\"Test Artist\"}],\"pages\":[{\"title\":\"Unrelated Album\",\"extract\":\"Test Artist recorded this after Test Album.\",\"fullurl\":\"https://en.wikipedia.org/wiki/Unrelated_Album\"},{\"title\":\"" + (url.Contains("Test%20Album") ? "Test Album" : "Test Artist") + "\",\"extract\":\"Test Album is an album by Test Artist.\",\"fullurl\":\"https://en.wikipedia.org/wiki/Test_Album\"}]}}";
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") });
     }
 }

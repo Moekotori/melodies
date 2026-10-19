@@ -45,7 +45,7 @@ public partial class FoldersView
                 _ => Model.Text["folders.scanError"]
             };
             CancelScanButton.IsEnabled = false;
-            await Model.Tree.RefreshAsync();
+            await Model.Wall.RefreshAsync();
             if (!_closed)
             {
                 Model.SelectBreadcrumb(new(path, System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(path)), 0, 0, 0));

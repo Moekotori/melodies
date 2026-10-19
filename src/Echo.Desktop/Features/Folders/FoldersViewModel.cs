@@ -20,6 +20,7 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     private bool _closed;
     private string? _playingId;
     public FolderTreeState Tree { get; }
+    public FolderWallState Wall { get; }
     public IReadOnlyList<FolderSortChoice> SortOptions { get; }
     public Echo.Desktop.Localization.LocalizationService Text => _shell.Text;
     [ObservableProperty] private FolderNode? selectedNode;
@@ -70,6 +71,7 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
         SortOptions = new[] { "folders.sortPath", "folders.sortTitle", "folders.sortArtist", "folders.sortAlbum", "folders.sortDuration" }
             .Select(key => new FolderSortChoice(key, Text[key])).ToArray();
         Tree = new(_library, Text, message => Error = message);
+        Wall = new(_library, Text, message => Error = message);
         Tree.Nodes.CollectionChanged += OnTreeChanged;
         Text.Changed += OnLanguageChanged;
         if (shell.Player is { } player)
@@ -79,18 +81,7 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     {
         await RestoreWorkbenchAsync();
         if (_closed) return;
-        await Tree.RefreshAsync();
-        await RestoreTreeExpansionAsync();
-        if (_closed) return;
-        var saved = _shell.LastFolderPath;
-        SelectedNode = Tree.Nodes.FirstOrDefault(node => node.Row.Path == saved) ?? Tree.Nodes.FirstOrDefault();
-        if (saved is not null && CurrentFolder?.Path != saved)
-        {
-            SelectedNode = null;
-            CurrentFolder = new(saved, System.IO.Path.GetFileName(saved), 0, 0, 0);
-            _shell.LastFolderPath = saved;
-            await LoadAsync();
-        }
+        await Wall.LoadAsync(null);
     }
     partial void OnSelectedNodeChanged(FolderNode? value)
     {
@@ -151,9 +142,9 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     }
     [RelayCommand] private Task PreviousAsync() => CanPrevious ? LoadAsync(_offset - 200) : Task.CompletedTask;
     [RelayCommand] private Task NextAsync() => CanNext ? LoadAsync(_offset + 200) : Task.CompletedTask;
-    [RelayCommand] private Task RetryAsync() => LoadAsync();
+    [RelayCommand] private Task RetryAsync() => RefreshAsync();
     [RelayCommand] private async Task RefreshAsync()
-    { await Tree.RefreshAsync(); if (!_closed) { SelectedNode = Tree.Nodes.FirstOrDefault(node => node.Row.Path == CurrentFolder?.Path); await LoadAsync(); } }
+    { Error = ""; if (HasFolder) await LoadAsync(); else await Wall.RefreshAsync(); }
     [RelayCommand] private Task PlayAsync() => ActAsync();
     [RelayCommand] private Task ShuffleAsync() => ActAsync(shuffle: true);
     [RelayCommand] private Task AppendAsync() => ActAsync(append: true);
@@ -166,7 +157,19 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
         catch (Exception) { if (!_closed) Error = Text["folders.openError"]; }
     }
     public void SelectBreadcrumb(FolderRow row)
-    { SelectedNode = Tree.Nodes.FirstOrDefault(node => !node.IsMore && node.Row.Path == row.Path); if (SelectedNode is null) { CurrentFolder = row; _shell.LastFolderPath = row.Path; _ = LoadAsync(); } }
+    {
+        for (var node = SelectedNode; node is not null; node = node.Parent)
+            if (node.Row.Path == row.Path) { SelectedNode = node; return; }
+        SelectedNode = new(row);
+    }
+    [RelayCommand] private void ShowRoots()
+    {
+        ++_generation; _request?.Cancel(); _request = null; SelectedNode = null; CurrentFolder = null;
+        Tracks = []; Total = 0; _revision = null; IsLoading = false; Error = ""; _shell.LastFolderPath = null;
+        _ = Wall.LoadAsync(null); NotifyPage();
+    }
+    [RelayCommand] private void BackFolder()
+    { if (SelectedNode?.Parent is { } parent) SelectedNode = parent; else ShowRoots(); }
     private void OnPlayback(PlaybackSnapshot snapshot)
     {
         var id = snapshot.Current?.TrackId;
@@ -177,7 +180,7 @@ public sealed partial class FoldersViewModel : ObservableObject, IDisposable
     {
         if (_closed) return;
         ReleaseWorkbench();
-        _closed = true; ++_generation; _request?.Cancel(); _lifetime.Cancel(); _lifetime.Dispose(); Tree.Dispose(); Tracks = [];
+        _closed = true; ++_generation; _request?.Cancel(); _lifetime.Cancel(); _lifetime.Dispose(); Wall.Dispose(); Tree.Dispose(); Tracks = [];
         Tree.Nodes.CollectionChanged -= OnTreeChanged; Text.Changed -= OnLanguageChanged;
         if (_shell.Player is { } player) player.Session.Changed -= OnPlayback;
     }

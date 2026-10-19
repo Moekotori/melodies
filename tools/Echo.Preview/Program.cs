@@ -56,8 +56,8 @@ if (args.Length >= 2 && args[0] == "--motion-depth")
 }
 if (args.Length >= 3 && args[0] == "--search")
 { LibrarySearchUiSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2])); return; }
-if (args.Length >= 2 && args[0] == "--details")
-{ DetailUiSmoke.Run(Path.GetFullPath(args[1])); return; }
+if (args.Length >= 2 && args[0] is "--details" or "--album-layout")
+{ DetailUiSmoke.Run(Path.GetFullPath(args[1]), layoutOnly: args[0] == "--album-layout"); return; }
 if (args.Length >= 2 && args[0] == "--folders")
 { FolderUiSmoke.Run(Path.GetFullPath(args[1])); return; }
 if (args.Length >= 2 && args[0] == "--i18n")

@@ -19,7 +19,7 @@
 - native/library-scanner 的初始源码复制到 native/vendor/echo-library-scanner；同工作区随后加入 FFmpeg metadata 回退等并行增强，当前 main.cpp 不再与初始 snapshot 完全一致。本轮已验证复制后构建的 v3 基础协议，不把并行新增能力算成全部已验收。
 - core/Echo.Core/Media/ScanCueReader.cs 与 ScanCueParser.cs 及协议 DTO 原样保留在 Infrastructure/Legacy/Cue。
 - OsuScanText、parseOsuFileMetadata、OsuFolderFileFacts、OsuRateMetadata、OsuSpeedVariants、OsuPackTags 对应独立 C# 文件；维持乱序章节、Unicode、编码回退、共享音频及有证据的速率合并规则。
-- 新目录扫描分两次枚举当前文件夹，先处理 CUE/osu 定义，再按 128 条音频批次流式输出；不驻留整库。
+- 新目录扫描先完成扫描范围内的 CUE 引用发现，再按 128 条音频批次输出；引用集合超预算落盘，跨目录音源不会被后续物理扫描替换。普通目录各枚举定义/音频一次，有 osu 的目录额外枚举谱面，不驻留整库。2026-10-19 的 CUE 解析更新、资源与验证边界见 [扫描和数据库模块](SCANNING_DATABASE.md)。
 
 ## 构建与运行
 

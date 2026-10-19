@@ -14,6 +14,6 @@ public sealed record ScanCueTrackDetails(string CuePath, string AudioPath, strin
     string? Title, string? Performer, string? Album, string? AlbumArtist,
     double? PregapStartSeconds, double StartSeconds, double? EndSeconds);
 public sealed record ScanCueTrack(int TrackNumber, string AudioPath, long SizeBytes, long MtimeMs, ScanCueTrackDetails? CueTrack = null);
-public sealed record ScanCueResult(List<ScanCueTrack> Tracks, string? Issue = null);
+public sealed record ScanCueResult(List<ScanCueTrack> Tracks, string? Issue = null, List<string>? SourcePaths = null);
 public sealed record ScanCueFileResult(string FilePath, ScanCueResult Result);
 public sealed record ScanCueBatchResult(List<ScanCueFileResult> Files);

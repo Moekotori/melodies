@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Echo.Desktop.Shell;
+using Echo.Desktop.Motion;
 
 namespace Echo.Desktop.Features.Queue;
 
@@ -13,6 +14,7 @@ public partial class QueueOverlay : UserControl
 {
     private ShellViewModel? model;
     private IInputElement? returnFocus;
+    private Window? window;
     private int focusGeneration;
     public QueueOverlay()
     {
@@ -31,15 +33,23 @@ public partial class QueueOverlay : UserControl
         model = DataContext as ShellViewModel;
         if (model is null) return;
         model.PropertyChanged += OnChanged;
+        model.Motion.PropertyChanged += OnPolicyChanged;
+        window = TopLevel.GetTopLevel(this) as Window;
+        window?.AddHandler(KeyDownEvent, OnWindowKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         UpdateWidth(); UpdateOpen();
     }
     private void Detach()
     {
         ++focusGeneration;
-        if (model is not null) model.PropertyChanged -= OnChanged;
+        if (model is not null)
+        {
+            model.PropertyChanged -= OnChanged;
+            model.Motion.PropertyChanged -= OnPolicyChanged;
+        }
+        window?.RemoveHandler(KeyDownEvent, OnWindowKey);
         DrawerSurface.IsOpen = OutsideSurface.IsOpen = false;
         DrawerSurface.Child = null;
-        model = null; returnFocus = null;
+        model = null; window = null; returnFocus = null;
     }
     private void OnChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -53,11 +63,13 @@ public partial class QueueOverlay : UserControl
         var top = TopLevel.GetTopLevel(this);
         if (open && DrawerSurface.Child is null)
         {
-            returnFocus = top?.FocusManager?.GetFocusedElement();
             DrawerSurface.Child = new QueueDrawer();
-            KeyboardNavigation.SetTabNavigation(DrawerSurface, KeyboardNavigationMode.Cycle);
         }
+        if (open && returnFocus is null && !DrawerSurface.IsKeyboardFocusWithin)
+            returnFocus = top?.FocusManager?.GetFocusedElement();
         DrawerSurface.IsOpen = OutsideSurface.IsOpen = open;
+        // MotionSurface sets Continue while opening; the modal boundary owns cycling.
+        KeyboardNavigation.SetTabNavigation(DrawerSurface, open ? KeyboardNavigationMode.Cycle : KeyboardNavigationMode.None);
         if (open)
             Dispatcher.UIThread.Post(() =>
             {
@@ -67,20 +79,35 @@ public partial class QueueOverlay : UserControl
         else
         {
             KeyboardNavigation.SetTabNavigation(DrawerSurface, KeyboardNavigationMode.None);
-            var previous = returnFocus; returnFocus = null;
+            var previous = returnFocus;
             Dispatcher.UIThread.Post(() =>
             {
-                if (focusGeneration == generation && previous is Control { IsEffectivelyVisible: true } control)
+                if (focusGeneration != generation) return;
+                returnFocus = null;
+                if (model is { IsQuickSettingsOpen: false, IsGlobalSearchOpen: false, IsSidebarDrawerOpen: false }
+                    && previous is Control { IsEffectivelyVisible: true } control)
                     control.Focus(NavigationMethod.Tab);
             });
         }
     }
     private void UpdateWidth()
     {
-        var inset = Bounds.Width < 520 ? 12d : 28d;
-        DrawerSurface.Margin = new Thickness(inset, Bounds.Height < 540 ? 12 : 36, inset, 4);
-        DrawerSurface.Width = Math.Min(440, Math.Max(0, Bounds.Width - inset * 2));
+        DrawerSurface.Width = Math.Min(440, Math.Max(0, Bounds.Width));
     }
     private void OnOutsidePressed(object? sender, PointerPressedEventArgs args)
     { model?.CloseQueueDrawerCommand.Execute(null); args.Handled = true; }
+    private void OnPolicyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(MotionPolicy.IsWindowVisible) && model?.Motion.IsWindowVisible == false)
+        {
+            model.CloseQueueDrawerCommand.Execute(null);
+            DrawerSurface.Settle(); OutsideSurface.Settle();
+        }
+    }
+    private void OnWindowKey(object? sender, KeyEventArgs args)
+    {
+        if (args.Handled || model?.IsQueueDrawerOpen != true || model.Shortcuts.IsRecording) return;
+        if (args.Key == Key.F && args.KeyModifiers.HasFlag(KeyModifiers.Control) && DrawerSurface.Child is QueueDrawer drawer)
+        { drawer.FocusSearch(); args.Handled = true; }
+    }
 }

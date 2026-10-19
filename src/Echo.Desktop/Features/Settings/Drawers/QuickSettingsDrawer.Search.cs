@@ -10,6 +10,6 @@ public partial class QuickSettingsDrawer
         var query = DrawerSearchInput.Text ?? "";
         var found = (DrawerContent.Content as IDrawerSearchTarget)?.FindSetting(query) != false;
         SearchFeedback.IsVisible = !found;
-        SearchFeedback.Text = !found ? "没有找到相关设置" : "";
+        SearchFeedback.Text = !found ? _model?.Text["ui.SettingsView.f80e5af47264"] : "";
     }
 }

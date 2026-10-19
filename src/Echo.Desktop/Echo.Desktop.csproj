@@ -20,6 +20,7 @@
     <ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" />
     <ProjectReference Include="../Echo.Platform/Echo.Platform.csproj" />
     <ProjectReference Include="../Echo.Visuals/Echo.Visuals.csproj" />
+    <ProjectReference Include="../Echo.Wallpapers/Echo.Wallpapers.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Semi.Avalonia" />
@@ -68,6 +69,7 @@
       <Link>native/echo-track-analysis.exe</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+  <Import Project="NativeAudioRuntime.targets" />
 <Target Name="PublishCoreMetadataHost" AfterTargets="Publish">
     <ConvertToAbsolutePath Paths="$(PublishDir)core/"><Output TaskParameter="AbsolutePaths" PropertyName="CoreMetadataPublishDir" /></ConvertToAbsolutePath>
     <MSBuild Projects="../Echo.Core.Host/Echo.Core.Host.csproj" Targets="Restore;Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(EchoNativeAudioRid);PublishDir=$(CoreMetadataPublishDir);PublishAot=$(PublishAot)" />
@@ -99,8 +101,10 @@
     <MSBuild Projects="../Echo.Core.Host/Echo.Core.Host.csproj" Targets="Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);PublishAot=$(PublishAot);PublishDir=$(CoreHostPublishDir)" />
     <MSBuild Projects="../Echo.Bridge.Host/Echo.Bridge.Host.csproj" Targets="Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);PublishAot=$(PublishAot);PublishDir=$(BridgeHostPublishDir)" />
     <ItemGroup>
-      <ResolvedFileToPublish Include="$(CoreHostPublishDir)**/*"><RelativePath>core/%(RecursiveDir)%(Filename)%(Extension)</RelativePath><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory></ResolvedFileToPublish>
-      <ResolvedFileToPublish Include="$(BridgeHostPublishDir)**/*"><RelativePath>bridge/%(RecursiveDir)%(Filename)%(Extension)</RelativePath><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory></ResolvedFileToPublish>
+      <CoreHostPublishFile Include="$(CoreHostPublishDir)**/*" />
+      <BridgeHostPublishFile Include="$(BridgeHostPublishDir)**/*" />
+      <ResolvedFileToPublish Include="@(CoreHostPublishFile)"><RelativePath>core/%(CoreHostPublishFile.RecursiveDir)%(CoreHostPublishFile.Filename)%(CoreHostPublishFile.Extension)</RelativePath><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory></ResolvedFileToPublish>
+      <ResolvedFileToPublish Include="@(BridgeHostPublishFile)"><RelativePath>bridge/%(BridgeHostPublishFile.RecursiveDir)%(BridgeHostPublishFile.Filename)%(BridgeHostPublishFile.Extension)</RelativePath><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory></ResolvedFileToPublish>
     </ItemGroup>
   </Target>
 

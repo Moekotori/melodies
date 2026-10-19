@@ -18,7 +18,11 @@ public sealed partial class ShellViewModel
     public bool IsSidebarLabelVisible => IsSidebarEditing || IsSidebarDrawerMode || IsSidebarExpanded;
     public double SidebarReservedWidth => IsSidebarSuppressed || SidebarAutoHideEnabled ? 0 : IsSidebarEditing || IsSidebarExpanded ? 220 : 72;
 
-    [RelayCommand] private void OpenSidebarDrawer() { if (IsSidebarDrawerMode) IsSidebarDrawerOpen = true; }
+    [RelayCommand] private void OpenSidebarDrawer()
+    {
+        if (!IsSidebarDrawerMode || IsQuickSettingsOpen || IsQueueDrawerOpen || IsGlobalSearchOpen) return;
+        IsSidebarDrawerOpen = true;
+    }
     [RelayCommand] private void CloseSidebarDrawer() => IsSidebarDrawerOpen = false;
     partial void OnSidebarAutoHideEnabledChanged(bool value) => RefreshSidebar();
     partial void OnHideSidebarInSettingsChanged(bool value) => RefreshSidebar();

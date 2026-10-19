@@ -68,11 +68,16 @@ internal static partial class TimedLyricsParser
         }
         if (words.Count == 0) return words;
         if (cursor < text.Length) words[^1] = words[^1] with { Text = words[^1].Text + text[cursor..] };
+        ResolveRelative(words, lineStart, duration);
+        return words;
+    }
+
+    internal static void ResolveRelative(List<LyricWord> words, double lineStart, double duration)
+    {
         var relative = words.All(w => w.EndMs <= duration + 50);
         var absolute = words.All(w => w.StartMs >= Math.Max(0, lineStart - 50) && w.EndMs <= lineStart + duration + 50);
         if (relative && !absolute)
             for (var i = 0; i < words.Count; i++) words[i] = words[i] with { StartMs = words[i].StartMs + lineStart, EndMs = words[i].EndMs + lineStart };
-        return words;
     }
 
     private static LyricsDocument AddLanguage(LyricsDocument document, string encoded, CancellationToken cancellation)

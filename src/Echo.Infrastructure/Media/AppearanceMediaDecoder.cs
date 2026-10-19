@@ -8,7 +8,7 @@ namespace Echo.Infrastructure.Media;
 // Track analysis is a separate one-shot of the audio engine and returns only the small result.
 public sealed class AppearanceMediaDecoder(string binary, string analysisBinary) : IAppearanceMedia
 {
-    public static bool IsVideo(string path) => new[] { ".mp4", ".webm", ".mkv", ".mov", ".m4v", ".avi", ".gif" }.Contains(Path.GetExtension(path).ToLowerInvariant());
+    public static bool IsVideo(string path) => WallpaperMediaFile.IsVideo(path);
     private Process Start(IEnumerable<string> args)
     {
         var info = new ProcessStartInfo(binary) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -26,7 +26,7 @@ public sealed class AppearanceMediaDecoder(string binary, string analysisBinary)
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (IOException) { }
     }
-    public async Task ReadVideoAsync(string path, Func<VideoFrame, CancellationToken, Task> display, CancellationToken cancellation)
+    public async Task<(int Width, int Height)> ProbeVideoAsync(string path, CancellationToken cancellation)
     {
         if (!Path.IsPathFullyQualified(path)) throw new InvalidDataException("请选择本地视频");
         // ffprobe metadata is bounded; no full-media buffering or audio output.
@@ -46,6 +46,11 @@ public sealed class AppearanceMediaDecoder(string binary, string analysisBinary)
         if (probe.ExitCode != 0 || json.RootElement.GetProperty("streams").GetArrayLength() == 0) throw new InvalidDataException("视频无法读取，请换一个文件");
         var stream = json.RootElement.GetProperty("streams")[0]; var w = stream.GetProperty("width").GetInt32(); var h = stream.GetProperty("height").GetInt32();
         if (w <= 0 || h <= 0 || w > 8192 || h > 8192 || (long)w * h > 32 * 1024 * 1024) throw new InvalidDataException("视频分辨率过大");
+        return (w, h);
+    }
+    public async Task ReadVideoAsync(string path, Func<VideoFrame, CancellationToken, Task> display, CancellationToken cancellation)
+    {
+        var (w, h) = await ProbeVideoAsync(path, cancellation).ConfigureAwait(false);
         var factor = Math.Min(1, 960d / Math.Max(w, h)); w = Math.Max(2, (int)(w * factor) / 2 * 2); h = Math.Max(2, (int)(h * factor) / 2 * 2);
         using var process = Start(["-v", "error", "-nostdin", "-threads", "1", "-filter_threads", "1", "-stream_loop", "-1", "-re", "-protocol_whitelist", "file,pipe",
             "-i", path, "-an", "-sn", "-dn", "-vf", $"fps=15,scale={w}:{h}", "-pix_fmt", "bgra", "-f", "rawvideo", "pipe:1"]);

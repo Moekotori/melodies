@@ -7,28 +7,39 @@ namespace Echo.Infrastructure.Files;
 
 internal static class CueFolderExpansion
 {
-    public static IEnumerable<FileSnapshot> Expand(FileSnapshot definition, string root,
-        FolderFileFacts facts, FolderSourceSet suppressed, bool embedded, CancellationToken cancellation)
+    // Only CUE/FLAC discovery fingerprints are invalidated; ordinary audio keeps incremental reuse.
+    internal const string DiscoveryVersion = "cue-discovery/v5";
+    public static FileSnapshot[] Expand(FileSnapshot definition, string root,
+        FolderFileFacts facts, FolderSourceSet suppressed, bool embedded, CancellationToken cancellation,
+        out bool unresolvedSources)
     {
         var result = ScanCueReader.Read(new ScanCueRequest
         { FilePath = definition.Path, Embedded = embedded, RootPath = root, IsolateFileErrors = true }, cancellation);
-        if (result.Issue is not null) throw new MetadataReadException(result.Issue);
-        if (result.Tracks.Count <= 1) yield break; // Same legacy expansion rule.
-        var identities = new HashSet<string>(StringComparer.Ordinal);
+        unresolvedSources = false;
+        if (result.Issue is { } issue)
+        {
+            // A failed sheet must not turn its physical audio into a replacement for old segments.
+            // Named sources can be protected without blocking unrelated files in the folder.
+            unresolvedSources = !embedded && result.SourcePaths is null;
+            foreach (var path in result.SourcePaths ?? []) suppressed.Add(LibraryPath.Key(path));
+            return [definition with { Issue = issue }];
+        }
+        var output = new List<FileSnapshot>(result.Tracks.Count);
+        // Protect every declared source before probing any one of them (cloud/link/probe failures).
+        foreach (var track in result.Tracks) suppressed.Add(LibraryPath.Key(track.AudioPath));
         foreach (var track in result.Tracks)
         {
             cancellation.ThrowIfCancellationRequested();
             if (track.CueTrack is not { } cue) continue;
-            // Legacy identity is cuePath#cueTrack=N. A repeated number cannot share that path.
+            // Parser validation rejects repeated numbers before producing legacy virtual identities.
             var virtualPath = definition.Path + "#cueTrack=" + track.TrackNumber;
-            if (!identities.Add(virtualPath)) continue;
             var audio = facts.Read(track.AudioPath);
-            suppressed.Add(audio.PathKey);
-            var source = new TrackSource("cue", audio.Path, definition.Path, SourceStamp.Compute(audio, definition),
+            var source = new TrackSource("cue", audio.Path, definition.Path, SourceStamp.Compute(audio, definition, DiscoveryVersion),
                 audio.SizeBytes, audio.ModifiedTicks, definition.SizeBytes, definition.ModifiedTicks,
                 cue.Title, cue.Performer, cue.Album, cue.AlbumArtist, cue.StartSeconds, cue.EndSeconds, cue.TrackNumber);
-            yield return new(virtualPath, LibraryPath.Key(virtualPath), audio.SizeBytes,
-                Math.Max(audio.ModifiedTicks, definition.ModifiedTicks), Source: source);
+            output.Add(new(virtualPath, LibraryPath.Key(virtualPath), audio.SizeBytes,
+                Math.Max(audio.ModifiedTicks, definition.ModifiedTicks), Source: source));
         }
+        return output.ToArray();
     }
 }

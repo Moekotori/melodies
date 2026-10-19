@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <LinearGradientBrush x:Key="DrawerSurface" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#FFFFFF" Offset="0" /><GradientStop Color="#FAFAFD" Offset="1" />
+      </LinearGradientBrush>
+      <SolidColorBrush x:Key="DrawerInset">#F2F3F8</SolidColorBrush>
+      <SolidColorBrush x:Key="DrawerStroke">#E2E4ED</SolidColorBrush>
+      <SolidColorBrush x:Key="DrawerHover">#E9EBF4</SolidColorBrush>
+      <SolidColorBrush x:Key="DrawerControl">#FFFFFF</SolidColorBrush>
+      <SolidColorBrush x:Key="DrawerScrim">#18191D30</SolidColorBrush>
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <LinearGradientBrush x:Key="DrawerSurface" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#272832" Offset="0" /><GradientStop Color="#20212A" Offset="1" />
+      </LinearGradientBrush>
+      <SolidColorBrush x:Key="DrawerInset">#1B1C24</SolidColorBrush>
+      <SolidColorBrush x:Key="DrawerStroke">#383A48</SolidColorBrush>
+      <SolidColorBrush x:Key="DrawerHover">#323440</SolidColorBrush>
+      <SolidColorBrush x:Key="DrawerControl">#2D2F3B</SolidColorBrush>
+      <SolidColorBrush x:Key="DrawerScrim">#4C080A12</SolidColorBrush>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

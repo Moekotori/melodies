@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Echo.Desktop.Features.Folders.FolderCard">
+  <UserControl.Resources>
+    <ControlTheme x:Key="FolderCardButton" TargetType="Button">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="2" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                              HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+    </ControlTheme>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="TextBlock.folder-title"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+    <Style Selector="Button:pointerover TextBlock.folder-title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="Button:pointerover Border.cover-frame"><Setter Property="BoxShadow" Value="0 4 14 0 #14000000" /></Style>
+  </UserControl.Styles>
+  <Button Name="OpenButton" Theme="{StaticResource FolderCardButton}" Click="OnOpen">
+    <Grid Name="CardLayout" RowDefinitions="Auto,Auto">
+      <Border Name="ArtworkFrame" Classes="cover-frame" CornerRadius="9" Background="{DynamicResource EchoPanelMuted}">
+        <Border CornerRadius="9" ClipToBounds="True">
+          <Grid>
+            <Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" />
+            <Image Name="Cover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+          </Grid>
+        </Border>
+      </Border>
+      <StackPanel Name="CardCaption" Grid.Row="1" Spacing="5" Margin="1,13,1,0">
+        <TextBlock Name="FolderName" Classes="folder-title" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+        <TextBlock Name="TrackCount" Foreground="{DynamicResource EchoMuted}" FontSize="12" />
+      </StackPanel>
+    </Grid>
+  </Button>
+</UserControl>

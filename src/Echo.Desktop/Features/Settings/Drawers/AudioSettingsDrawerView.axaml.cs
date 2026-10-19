@@ -11,6 +11,8 @@ public partial class AudioSettingsDrawerView : UserControl, IDisposable, IDrawer
 {
     private readonly ShellViewModel _shell;
     private bool _closed;
+    private bool _active;
+    private int _activation;
     private readonly DrawerSearch _search;
     public AudioSettingsDrawerView(ShellViewModel shell)
     {
@@ -20,8 +22,20 @@ public partial class AudioSettingsDrawerView : UserControl, IDisposable, IDrawer
             new(1, "输出格式 PCM DSD DoP Native", "OutputFormatInput"), new(1, "启用均衡器 EQ", "EqualizerInput"),
             new(1, "耳机交叉馈送 crossfeed", "CrossfeedInput"), new(1, "播放速度 倍速 speed", "PlaybackRateInput"),
             new(2, "复制诊断信息 diagnostic 信号路径", "CopyDiagnosticsButton"), new(2, "恢复默认 reset", "ResetOutputButton")]);
-        _ = shell.Player.AudioSettings.RefreshCommand.ExecuteAsync(null);
     }
+    internal async void Activate()
+    {
+        if (_active || _closed) return;
+        _active = true;
+        var version = ++_activation;
+        var settings = _shell.Player.AudioSettings;
+        // A reversal may reopen before the cancelled refresh or accepted apply has finished.
+        if (settings.RefreshCommand.ExecutionTask is { IsCompleted: false } read) await read;
+        if (settings.ApplyCommand.ExecutionTask is { IsCompleted: false } write) await write;
+        if (_active && !_closed && version == _activation) await settings.RefreshCommand.ExecuteAsync(null);
+    }
+    internal void Deactivate()
+    { _active = false; ++_activation; _search.Cancel(); _shell.Player.AudioSettings.CancelPendingRead(); }
     private void OnCategoryChanged(object? sender, SelectionChangedEventArgs e)
     { if (ApplyFooter is not null) ApplyFooter.IsVisible = AudioTabs.SelectedIndex == 1; }
     private async void OnDeviceReleased(object? sender, PointerReleasedEventArgs e)
@@ -39,9 +53,9 @@ public partial class AudioSettingsDrawerView : UserControl, IDisposable, IDrawer
             if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard) return;
             var player = _shell.Player;
             await clipboard.SetValueAsync(DataFormat.Text, $"{player.ZoneName}\n{player.OutputName}\n{player.SignalPath}\n{player.Error}");
-            if (!_closed) player.AudioSettings.Message = "诊断信息已复制。";
+            if (!_closed) player.AudioSettings.Message = _shell.Text["text.70f64fd35fd9"];
         }
-        catch (Exception) { if (!_closed) _shell.Player.AudioSettings.Message = "无法复制，请直接选中诊断文字。"; }
+        catch (Exception) { if (!_closed) _shell.Player.AudioSettings.Message = _shell.Text["text.efb36a83eb84"]; }
     }
-    public void Dispose() { if (_closed) return; _closed = true; _search.Cancel(); _shell.Player.AudioSettings.CancelPendingRead(); }
+    public void Dispose() { if (_closed) return; _closed = true; Deactivate(); }
 }

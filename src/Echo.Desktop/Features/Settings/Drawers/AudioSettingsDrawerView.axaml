@@ -95,6 +95,7 @@
             <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="36"><icon:GlyphIcon Kind="waves" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.PlayerBar.a8cc3c4658a5}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
             <SelectableTextBlock Text="{Binding Player.SignalPath}" FontSize="13" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Player.Error}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Player.AudioSettings.Message}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
             <Button Name="CopyDiagnosticsButton" Content="{DynamicResource ui.AudioSettingsDrawerView.bbce140b7682}" Classes="drawer-action" Click="OnCopyDiagnostics" HorizontalAlignment="Left" />
             <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,18,0,0"><StackPanel Spacing="14"><TextBlock Text="{DynamicResource drawer.audio.recovery}" Classes="drawer-section" /><Button Content="{DynamicResource ui.PlayerBar.f867a4c836db}" Classes="drawer-action" Command="{Binding Player.RecoverCommand}" HorizontalAlignment="Left" /><Button Name="ResetOutputButton" Content="{DynamicResource ui.AudioSettingsDrawerView.2365e710a56d}" Classes="drawer-action" Command="{Binding Player.AudioSettings.ResetCommand}" HorizontalAlignment="Left" /></StackPanel></Border>
           </StackPanel>
@@ -104,7 +105,7 @@
     <Border Name="ApplyFooter" Grid.Row="1" IsVisible="False" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="22,12">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
         <TextBlock Name="AudioFeedback" Text="{Binding Player.AudioSettings.Message}" Classes="muted" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" />
-        <Button Name="ApplyAudioButton" Grid.Column="1" Content="{DynamicResource ui.PlayerOutputPanel.a1a42cd9b16e}" Classes="drawer-action" Command="{Binding Player.AudioSettings.ApplyCommand}" IsEnabled="{Binding !Player.AudioSettings.IsRefreshing}" />
+        <Button Name="ApplyAudioButton" Grid.Column="1" Content="{DynamicResource ui.PlayerOutputPanel.a1a42cd9b16e}" Classes="drawer-action drawer-primary" Command="{Binding Player.AudioSettings.ApplyCommand}" IsEnabled="{Binding !Player.AudioSettings.IsRefreshing}" />
       </Grid>
     </Border>
   </Grid>

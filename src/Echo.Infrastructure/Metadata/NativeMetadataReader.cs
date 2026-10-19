@@ -15,7 +15,7 @@ public sealed class NativeMetadataReader(string scannerPath) : IMetadataReader
     private Process? _process;
     private BoundedLineReader? _lines;
     private long _sequence;
-    private int _consecutiveTransportFailures;
+    private int _transportFailures;
     private static readonly NativeRequestContext Json = new(new JsonSerializerOptions
     { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
@@ -23,7 +23,8 @@ public sealed class NativeMetadataReader(string scannerPath) : IMetadataReader
         => await ReadAsync(file, cancellation, false).ConfigureAwait(false);
     internal async ValueTask<TrackMetadata> ReadAsync(FileSnapshot file, CancellationToken cancellation, bool allowUntaggedMp3)
     {
-        if (_consecutiveTransportFailures >= 3) throw new MetadataReadException("native_circuit_open");
+        cancellation.ThrowIfCancellationRequested();
+        if (_transportFailures >= 8) throw new MetadataReadException("native_recovery_limit");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         deadline.CancelAfter(TimeSpan.FromSeconds(10));
         try
@@ -38,11 +39,9 @@ public sealed class NativeMetadataReader(string scannerPath) : IMetadataReader
             using var parsed = JsonDocument.Parse(await _lines!.ReadAsync(deadline.Token).ConfigureAwait(false));
             var root = parsed.RootElement;
             if (Text(root, "requestId") != id) throw new MetadataReadException("native_request_mismatch");
-            if (Text(root, "type") is "metadata" or "unsupported" or "error") _consecutiveTransportFailures = 0;
             if (Text(root, "type") == "unsupported") throw new MetadataReadException("native_format_unsupported");
             if (Text(root, "type") != "metadata") throw new MetadataReadException("native_metadata_failed");
             var fields = root.GetProperty("result").GetProperty("fields");
-            _consecutiveTransportFailures = 0;
             var value = new TrackMetadata(Text(fields, "title"), Text(fields, "artist"), Text(fields, "album"),
                 Text(fields, "albumArtist"), Double(fields, "duration"), Text(fields, "codec"),
                 Integer(fields, "sampleRate") ?? 0, Integer(fields, "bitDepth") ?? 0,
@@ -54,7 +53,7 @@ public sealed class NativeMetadataReader(string scannerPath) : IMetadataReader
             if (error is MetadataReadException
                 { Code: "native_format_unsupported" or "native_metadata_failed" or "invalid_audio_properties" or "metadata_text_limit" })
                 throw;
-            _consecutiveTransportFailures++;
+            if (!cancellation.IsCancellationRequested) _transportFailures++;
             await DisposeAsync().ConfigureAwait(false);
             if (cancellation.IsCancellationRequested) throw new OperationCanceledException(cancellation);
             if (deadline.IsCancellationRequested) throw new MetadataReadException("native_metadata_timeout");
@@ -71,7 +70,9 @@ public sealed class NativeMetadataReader(string scannerPath) : IMetadataReader
             RedirectStandardInput = true, RedirectStandardOutput = true,
             StandardInputEncoding = new UTF8Encoding(false), StandardOutputEncoding = new UTF8Encoding(false)
         };
-        var process = Process.Start(start) ?? throw new MetadataReadException("native_scanner_unavailable");
+        Process process;
+        try { process = Process.Start(start) ?? throw new MetadataReadException("native_scanner_unavailable"); }
+        catch (System.ComponentModel.Win32Exception) { throw new MetadataReadException("native_scanner_unavailable"); }
         _process = process;
         _lines = new(process.StandardOutput);
         try { process.PriorityClass = ProcessPriorityClass.BelowNormal; }

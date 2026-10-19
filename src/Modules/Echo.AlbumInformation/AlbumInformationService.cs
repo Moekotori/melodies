@@ -22,7 +22,7 @@ public sealed class AlbumInformationService : IAlbumInformationClient, IDisposab
         var album = request.Album;
         if (string.IsNullOrWhiteSpace(album.Title) || string.IsNullOrWhiteSpace(album.Artist) || album.Title.Length > 512 || album.Artist.Length > 512 || album.Language.Length > 16)
             throw new ArgumentException("Invalid album identity.");
-        var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"v2|{album.Title}|{album.Artist}|{album.Year}|{album.TrackCount}|{album.Language}")));
+        var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"v3|{album.Title}|{album.Artist}|{album.Year}|{album.TrackCount}|{album.Language}")));
         Task<AlbumInformationResult> task;
         lock (_gate)
         {

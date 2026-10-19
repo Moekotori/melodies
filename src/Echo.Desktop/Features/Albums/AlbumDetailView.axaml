@@ -15,9 +15,9 @@
     <Style Selector="Button.genre-link"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="0" /></Style>
     <Style Selector="Button.genre-link:pointerover"><Setter Property="Background" Value="Transparent" /></Style>
     <Style Selector="Button.genre-link:pointerover TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="TextDecorations" Value="Underline" /></Style>
-    <Style Selector="Button.detail-tab"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="0,0,0,11" /><Setter Property="MinHeight" Value="0" /><Setter Property="CornerRadius" Value="0" /><Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+    <Style Selector="Button.detail-tab"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="0,0,0,11" /><Setter Property="MinHeight" Value="0" /><Setter Property="CornerRadius" Value="0" /><Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="Normal" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="BorderThickness" Value="0,0,0,1" /><Setter Property="BorderBrush" Value="Transparent" /></Style>
     <Style Selector="Button.detail-tab:pointerover"><Setter Property="Background" Value="Transparent" /></Style>
-    <Style Selector="Button.detail-tab.active"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+    <Style Selector="Button.detail-tab.active"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccentText}" /></Style>
     <Style Selector="Button.album-play"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Foreground" Value="{DynamicResource EchoOnAccent}" /><Setter Property="Height" Value="40" /><Setter Property="MinHeight" Value="40" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="16,0,18,0" /><Setter Property="BorderThickness" Value="0" /></Style>
     <Style Selector="Button.album-play TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoOnAccent}" /><Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
     <Style Selector="Button.album-play:pointerover"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Opacity" Value="0.92" /></Style>
@@ -36,14 +36,14 @@
   </UserControl.Styles>
   <Grid>
   <ScrollViewer Name="PageScroll" HorizontalScrollBarVisibility="Disabled">
-  <Grid Name="PageContent" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="18" Margin="0,0,0,18">
+  <Grid Name="PageContent" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="18" MaxWidth="1600" HorizontalAlignment="Stretch" Margin="0,0,0,18">
     <Button Classes="content-link album-back" Click="OnBack" HorizontalAlignment="Left" VerticalAlignment="Top" Height="24" ZIndex="1" AutomationProperties.Name="{DynamicResource album.detail.back}">
       <StackPanel Orientation="Horizontal" Spacing="8">
         <icon:GlyphIcon Kind="chevron-left" Width="18" Height="18" Stroke="{DynamicResource EchoMuted}" />
         <TextBlock Text="{DynamicResource album.detail.back}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource EchoMuted}" />
       </StackPanel>
     </Button>
-    <Grid Name="Hero" Grid.Row="0" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="320,*,240" ColumnSpacing="48" RowSpacing="18" Margin="0,34,0,0" MaxWidth="1760" HorizontalAlignment="Stretch">
+    <Grid Name="Hero" Grid.Row="0" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="320,*,240" ColumnSpacing="48" RowSpacing="18" Margin="0,34,0,0" HorizontalAlignment="Stretch">
       <Button Name="CoverButton" Classes="cover-hit" Click="OnPreviewCover" IsEnabled="False" Padding="0" CornerRadius="8" VerticalAlignment="Top" HorizontalAlignment="Left" Cursor="Hand" ToolTip.Tip="{DynamicResource detail.cover.preview}" AutomationProperties.Name="{DynamicResource detail.cover.preview}">
         <Border Name="CoverFrame" Width="320" Height="320" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource EchoPanelMuted}" BorderThickness="0">
           <Grid><icon:GlyphIcon Name="CoverPlaceholder" Kind="disc" Width="58" Height="58" Stroke="{DynamicResource EchoSubtle}" StrokeWidth="1.25" /><Image Name="Cover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" /></Grid>
@@ -52,7 +52,7 @@
       <StackPanel Name="Console" Grid.Column="1" Spacing="24" VerticalAlignment="Top">
         <StackPanel Name="Copy" Spacing="14">
           <TextBlock Text="{DynamicResource album.detail.kicker}" Classes="muted" FontSize="13" FontWeight="Medium" LetterSpacing="1.6" />
-          <TextBlock Name="AlbumTitle" Text="{Binding Album.Title}" ToolTip.Tip="{Binding Album.Title}" Foreground="{DynamicResource EchoHeading}" FontSize="44" FontWeight="Medium" TextWrapping="Wrap" />
+          <TextBlock Name="AlbumTitle" Text="{Binding Album.Title}" ToolTip.Tip="{Binding Album.Title}" Foreground="{DynamicResource EchoHeading}" FontSize="44" FontWeight="Medium" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
           <Button Name="ArtistLink" Classes="artist-link" Click="OnArtist" HorizontalAlignment="Left" HorizontalContentAlignment="Left" FontSize="22" ToolTip.Tip="{DynamicResource ui.AlbumDetailView.5cec7079b8ac}">
             <TextBlock Name="ArtistLabel" Text="{Binding Album.Artist}" Foreground="{DynamicResource EchoText}" FontSize="22" FontWeight="Medium" TextWrapping="Wrap" />
           </Button>
@@ -104,7 +104,7 @@
       </Border>
     </Grid>
     <Border Grid.Row="1" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1"><ScrollViewer Name="TabScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
-    <StackPanel Name="Tabs" Orientation="Horizontal" Spacing="34" HorizontalAlignment="Center" Height="46" VerticalAlignment="Bottom">
+    <StackPanel Name="Tabs" Orientation="Horizontal" Spacing="30" HorizontalAlignment="Center" Height="46" VerticalAlignment="Bottom">
       <Button Classes="detail-tab" Classes.active="{Binding IsTracks}" Content="{DynamicResource ui.AlbumDetailView.739ed1896dcd}" Tag="0" Click="OnTab" VerticalAlignment="Bottom" />
       <Button Classes="detail-tab" Classes.active="{Binding IsLiked}" Content="{DynamicResource text.653b04330b75}" Tag="5" Click="OnTab" VerticalAlignment="Bottom" />
       <Button Classes="detail-tab" Classes.active="{Binding IsGallery}" Content="{DynamicResource ui.AlbumDetailView.c7225dbf105e}" Tag="1" Click="OnTab" VerticalAlignment="Bottom" />

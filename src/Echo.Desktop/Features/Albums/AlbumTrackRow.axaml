@@ -7,7 +7,8 @@
     <Style Selector="Button.track.playing"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
     <Style Selector="Button.track.album-page"><Setter Property="Background" Value="Transparent" /><Setter Property="CornerRadius" Value="8" /></Style>
     <Style Selector="Button.track.album-page:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
-    <Style Selector="Button.track.album-page.playing"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+    <Style Selector="Button.track.album-page.playing"><Setter Property="Background" Value="Transparent" /></Style>
+    <Style Selector="Button.track.album-page.playing:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
     <Style Selector="Button.album-page.liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoDanger}" /></Style>
     <Style Selector="icon|GlyphIcon.row-play"><Setter Property="Opacity" Value="0" /></Style>
     <Style Selector="TextBlock.title"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>

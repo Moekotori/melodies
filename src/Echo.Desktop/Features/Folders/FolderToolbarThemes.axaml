@@ -1,0 +1,48 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:icon="using:Echo.Desktop.Controls">
+  <ControlTheme x:Key="FolderToolbarToggle" TargetType="ToggleButton">
+    <Setter Property="Height" Value="36" /><Setter Property="MinHeight" Value="36" />
+    <Setter Property="Padding" Value="12,0" /><Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="FontSize" Value="12" />
+    <Setter Property="Template"><ControlTemplate>
+      <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+              BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+        <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                          Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+      </Border>
+    </ControlTemplate></Setter>
+    <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+    <Style Selector="^:checked"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+    <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+    <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+  </ControlTheme>
+  <ControlTheme x:Key="FolderToolbarChoice" TargetType="ComboBox" BasedOn="{StaticResource EchoSelect}">
+    <Setter Property="Height" Value="36" /><Setter Property="MinHeight" Value="36" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="BorderBrush" Value="Transparent" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" /><Setter Property="FontSize" Value="12" />
+    <Setter Property="Template"><ControlTemplate>
+      <Grid ColumnDefinitions="*,30" Background="Transparent">
+        <Border Name="ChoiceSurface" Grid.ColumnSpan="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" />
+        <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                          Foreground="{TemplateBinding Foreground}" Margin="12,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Left" IsHitTestVisible="False" />
+        <icon:GlyphIcon Grid.Column="1" Kind="chevron-down" Width="12" Height="12" IsHitTestVisible="False" />
+        <Popup Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}" PlacementTarget="ChoiceSurface"
+               Placement="BottomEdgeAlignedRight" VerticalOffset="6" MinWidth="180" IsLightDismissEnabled="True" ShouldUseOverlayLayer="True">
+          <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="10" Padding="5" BoxShadow="0 6 20 0 #18000000">
+            <ScrollViewer MaxHeight="260" HorizontalScrollBarVisibility="Disabled" IsScrollChainingEnabled="False">
+              <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+            </ScrollViewer>
+          </Border>
+        </Popup>
+      </Grid>
+    </ControlTemplate></Setter>
+    <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+    <Style Selector="^:dropdownopen"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+    <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+    <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+  </ControlTheme>
+</ResourceDictionary>

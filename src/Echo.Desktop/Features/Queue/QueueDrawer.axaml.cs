@@ -8,8 +8,10 @@ public partial class QueueDrawer : UserControl
     {
         InitializeComponent();
         _ = new QueuePresentationBinding(this, () => (DataContext as ShellViewModel)?.Player?.Queue);
-        SizeChanged += (_, _) => QueueSearch.IsVisible = Bounds.Height >= 500;
+        SizeChanged += (_, _) => HeaderScroll.MaxHeight = Math.Max(60, Bounds.Height - 212);
     }
+    public void FocusSearch()
+    { QueueSearch.Focus(Avalonia.Input.NavigationMethod.Tab); QueueSearch.BringIntoView(); }
     private void OnShortcuts(object? sender, RoutedEventArgs args)
     {
         if (DataContext is not ShellViewModel shell) return;

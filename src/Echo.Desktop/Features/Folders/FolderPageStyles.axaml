@@ -1,14 +1,17 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
-  <Style Selector="Grid.directory-overlay"><Setter Property="Background" Value="{DynamicResource EchoField}" /></Style>
-  <Style Selector="Button.folder-secondary, ToggleButton.folder-filter">
+  <Style Selector="Button.folder-breadcrumb">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector="Button.folder-breadcrumb:pointerover"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="Button.folder-secondary">
     <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource EchoText}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" />
-    <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="5" /><Setter Property="Padding" Value="10,0" /><Setter Property="MinHeight" Value="36" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="10,0" /><Setter Property="MinHeight" Value="38" />
   </Style>
-  <Style Selector="Button.folder-play"><Setter Property="CornerRadius" Value="5" /><Setter Property="Padding" Value="16,0" /><Setter Property="MinHeight" Value="36" /></Style>
-  <Style Selector="ToggleButton.folder-filter:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
-  <Style Selector="ToggleButton.folder-filter:checked"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
-  <Style Selector="ToggleButton.folder-filter:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+  <Style Selector="Button.folder-play"><Setter Property="CornerRadius" Value="20" /><Setter Property="Padding" Value="16,0" /><Setter Property="MinHeight" Value="38" /></Style>
+  <Style Selector="WrapPanel#ActionBar Button.folder-secondary"><Setter Property="CornerRadius" Value="20" /></Style>
   <Style Selector="ListBox#FolderTree ListBoxItem:selected TextBlock.folder-name"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
   <Style Selector="ListBox#FolderTree ListBoxItem:selected icon|GlyphIcon"><Setter Property="BaseBrush" Value="{DynamicResource EchoAccentText}" /></Style>
 </Styles>

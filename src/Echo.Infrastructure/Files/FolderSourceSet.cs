@@ -2,13 +2,14 @@ using Microsoft.Data.Sqlite;
 
 namespace Echo.Infrastructure.Files;
 
-// Scratch facts for one directory. Large CUE folders must not retain every audio path in RAM.
+// Scratch facts owned by one scan. Large CUE libraries must not retain every audio path in RAM.
 internal sealed class FolderSourceSet : IDisposable
 {
     private readonly HashSet<string> _memory = new(StringComparer.Ordinal);
     private int _characters;
     private string? _path;
     private SqliteConnection? _disk;
+    private SqliteTransaction? _transaction;
     private SqliteCommand? _add, _contains;
 
     public void Add(string key)
@@ -45,19 +46,17 @@ internal sealed class FolderSourceSet : IDisposable
         _contains = _disk.CreateCommand();
         _contains.CommandText = "SELECT 1 FROM sources WHERE key=$key";
         _contains.Parameters.Add(new("$key", SqliteType.Text)); _contains.Prepare();
-        using (var transaction = _disk.BeginTransaction())
-        {
-            _add.Transaction = transaction;
-            foreach (var key in _memory) { _add.Parameters[0].Value = key; _add.ExecuteNonQuery(); }
-            transaction.Commit();
-            _add.Transaction = null;
-        }
+        // Scratch never needs a durable commit. One transaction avoids an autocommit per source;
+        // SQLite still spills dirty pages within the 1 MiB page-cache budget.
+        _transaction = _disk.BeginTransaction();
+        _add.Transaction = _transaction; _contains.Transaction = _transaction;
+        foreach (var key in _memory) { _add.Parameters[0].Value = key; _add.ExecuteNonQuery(); }
         _memory.Clear(); _memory.TrimExcess(); _characters = 0;
     }
 
     public void Dispose()
     {
-        _add?.Dispose(); _contains?.Dispose(); _disk?.Dispose();
+        _add?.Dispose(); _contains?.Dispose(); _transaction?.Dispose(); _disk?.Dispose();
         if (_path is not null)
         {
             try { File.Delete(_path); }

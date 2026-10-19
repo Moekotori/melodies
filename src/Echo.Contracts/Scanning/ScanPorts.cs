@@ -15,6 +15,8 @@ public interface ILibraryStore : IAsyncDisposable
     Task<string> BeginScanAsync(string root, bool trackPresence, CancellationToken cancellation);
     Task<IReadOnlyDictionary<string, KnownTrack>> FindKnownAsync(
         IReadOnlyList<FileSnapshot> files, CancellationToken cancellation);
+    Task<IReadOnlyList<FileSnapshot>> ReadDefinitionTracksAsync(string definitionPath, string? afterPathKey,
+        CancellationToken cancellation);
     Task<BatchReceipt> CommitScanBatchAsync(string jobId, long sequence, IReadOnlyList<ScanEntry> entries,
         CancellationToken cancellation);
     Task<long> FinishScanAsync(string jobId, ScanStatus status, long discovered,

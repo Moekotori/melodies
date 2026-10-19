@@ -23,7 +23,7 @@ using SkiaSharp;
 
 internal static class DetailUiSmoke
 {
-    public static void Run(string output)
+    public static void Run(string output, bool layoutOnly = false)
     {
         Directory.CreateDirectory(output);
         var clock = Stopwatch.StartNew();
@@ -47,6 +47,7 @@ internal static class DetailUiSmoke
             var detail = wall.GetVisualDescendants().OfType<AlbumDetailView>().Single();
             var model = (AlbumDetailViewModel)detail.DataContext!;
             Until(() => model.Tracks.Count > 0 && !model.IsLoading);
+            if (layoutOnly) { AlbumDetailLayoutSmoke.Run(window, shell, detail, output); return; }
             Check(model.Tracks.Count == 200 && wall.Viewport.RealizedCards == 0, $"bounded album page: {model.Tracks.Count} tracks, {wall.Viewport.RealizedCards} wall cards, {model.Album.Artist}");
             Check(detail.GetVisualDescendants().OfType<AlbumTrackRow>().Count() < 40, "album tracks remain virtualized under page scrolling");
             var pageScroll = detail.FindControl<ScrollViewer>("PageScroll")!;

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Echo.Wallpapers/Echo.Wallpapers.csproj" />
+    <ProjectReference Include="../../src/Echo.Platform/Echo.Platform.csproj" />
+    <ProjectReference Include="../../src/Echo.Infrastructure/Echo.Infrastructure.csproj" />
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+</Project>

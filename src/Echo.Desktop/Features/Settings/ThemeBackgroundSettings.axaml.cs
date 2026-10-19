@@ -14,7 +14,7 @@ public partial class ThemeBackgroundSettings : UserControl
     {
         InitializeComponent();
         AttachedToVisualTree += (_, _) => _detached = false;
-        DetachedFromVisualTree += (_, _) => { _detached = true; _previewWindow?.Close(); };
+        DetachedFromVisualTree += (_, _) => { _detached = true; _previewWindow?.Close(); _wallpaperPicker?.Close(); _importCancellation?.Cancel(); };
         PropertyChanged += (_, args) => { if (args.Property == IsVisibleProperty && !IsVisible) _previewWindow?.Close(); };
         SizeChanged += (_, _) => Reflow();
         WindowPreview.ExpandRequested += OpenPreview;
@@ -54,14 +54,14 @@ public partial class ThemeBackgroundSettings : UserControl
         try
         {
             var files = await top.StorageProvider.OpenFilePickerAsync(new() { Title = portrait ? "选择竖屏背景" : "选择背景",
-                AllowMultiple = false, FileTypeFilter = [FilePickerFileTypes.ImageAll,
-                    new FilePickerFileType("视频") { Patterns = ["*.mp4", "*.webm", "*.mkv", "*.mov", "*.avi"] }] });
+                AllowMultiple = false, FileTypeFilter = [BackgroundFiles, FilePickerFileTypes.ImageAll,
+                    new FilePickerFileType("视频") { Patterns = ["*.mp4", "*.m4v", "*.webm", "*.mkv", "*.mov", "*.avi", "*.wmv", "*.gif"] }] });
             if (_detached || !ReferenceEquals(DataContext, model) || files.Count == 0) return;
-            if (files[0].TryGetLocalPath() is { } path) { model.Feedback = ""; model.SelectWallpaper(path, portrait); }
+            if (files[0].TryGetLocalPath() is { } path) await ImportMedia(path, portrait, model);
             else model.Feedback = "请选择本地图片或视频";
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
-        { if (!_detached) model.Feedback = "背景选择失败，请重试"; }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException)
+        { if (!_detached) model.Feedback = error is InvalidDataException ? error.Message : "背景导入失败，请重试"; }
         finally { _busy = false; }
     }
 }

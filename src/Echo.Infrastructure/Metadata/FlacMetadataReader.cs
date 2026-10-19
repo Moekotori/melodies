@@ -45,7 +45,7 @@ internal static class FlacMetadataReader
                 bits = (int)((packed >> 36) & 0x1f) + 1;
                 samples = (long)(packed & 0xfffffffff);
             }
-            else if (type == 5) { } // Legacy expansion consumes textual CUESHEET; binary blocks do not replace tags.
+            else if (type == 5) { } // Discovery owns textual/binary CUESHEET expansion; this reader only supplies audio metadata.
             else if (type == 4)
             {
                 if (length > CommentLimit) throw new MetadataReadException("flac_comment_size_limit");

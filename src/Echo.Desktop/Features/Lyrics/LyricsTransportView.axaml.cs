@@ -54,14 +54,13 @@ public partial class LyricsTransportView : UserControl
     public void Bind(ShellViewModel value) { shell = value; popover.Attach(value); ApplyMotion(); }
     public void ApplyPalette(bool lightInk = true)
     {
-        lightInk |= Model?.Appearance.MiniPlayer != false;
+        CapsuleSurface.Dark = lightInk;
         Resources["LyricsInk"] = new SolidColorBrush(Color.Parse(lightInk ? "#FAFAFA" : "#292D37"));
         Resources["LyricsControlInk"] = new SolidColorBrush(Color.Parse(lightInk ? "#D3D2DB" : "#4A4F5C"));
-        Resources["LyricsSurface"] = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-            GradientStops = [new GradientStop(Color.Parse("#303038"), 0), new GradientStop(Color.Parse("#202026"), 1)] };
-        Resources["LyricsRail"] = new SolidColorBrush(Color.Parse(lightInk ? "#50FFFFFF" : "#38292D37"));
-        Resources["LyricsProgress"] = new SolidColorBrush(Color.Parse(Model?.Appearance.MiniPlayer != false ? "#AAA4F6" : lightInk ? "#F0F0F5" : "#4A4F5C"));
+        Resources["LyricsSurface"] = new SolidColorBrush(Color.Parse(lightInk ? "#B82B303B" : "#C4F4F7FC"));
+        Resources["LyricsRail"] = new SolidColorBrush(Color.Parse(lightInk ? "#30FFFFFF" : "#28292D37"));
+        Resources["LyricsFocusRail"] = new SolidColorBrush(Color.Parse(lightInk ? "#66FFFFFF" : "#50292D37"));
+        Resources["LyricsProgress"] = new SolidColorBrush(Color.Parse(lightInk ? "#F0F0F5" : "#4A4F5C"));
         Resources["LyricsHover"] = new SolidColorBrush(Color.Parse(lightInk ? "#16FFFFFF" : "#12292D37"));
     }
     private void OnQueue(object? sender, RoutedEventArgs e)

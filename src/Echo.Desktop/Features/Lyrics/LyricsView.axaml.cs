@@ -17,7 +17,7 @@ public partial class LyricsView : UserControl, IDisposable
         this.shell = shell; this.backRoute = backRoute;
         Model = new(shell.Player, shell.LyricsSource!, shell.LyricsAppearance, shell.AlbumArtwork, shell.LyricsSelection);
         InitializeComponent(); DataContext = Model;
-        Transport.Bind(shell); LyricsQueueOverlay.DataContext = shell;
+        Transport.Bind(shell);
         Viewport.Bind(Model, shell.Motion);
         Backdrop.Bind(Model);
         BackgroundScene.Bind(Model,shell.Motion,shell.AppearanceVisuals);InitializeBackgroundInput();
@@ -52,6 +52,7 @@ public partial class LyricsView : UserControl, IDisposable
     private async void OnImport(object? sender, RoutedEventArgs e)
     {
         if (closed || TopLevel.GetTopLevel(this) is not { } top) return;
+        HeaderMoreButton.Flyout?.Hide();
         try
         {
             var files = await top.StorageProvider.OpenFilePickerAsync(new()

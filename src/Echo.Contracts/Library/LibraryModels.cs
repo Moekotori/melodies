@@ -1,7 +1,7 @@
 namespace Echo.Contracts.Library;
 
 public sealed record FileSnapshot(string Path, string PathKey, long SizeBytes, long ModifiedTicks,
-    bool Unavailable = false, TrackSource? Source = null, string? Issue = null);
+    bool Unavailable = false, TrackSource? Source = null, string? Issue = null, bool PreserveExisting = false);
 public sealed record TrackMetadata(
     string Title, string Artist, string Album, string AlbumArtist,
     double DurationSeconds, string Codec, int SampleRate, int BitDepth,
@@ -12,7 +12,7 @@ public sealed record TrackMetadata(
 }
 public sealed record KnownTrack(string Id, long SizeBytes, long ModifiedTicks, int ParserVersion, bool Missing,
     string Path = "", string? DependencyStamp = null);
-public enum ScanEntryKind { Metadata, Unchanged, Error }
+public enum ScanEntryKind { Metadata, Unchanged, Error, Preserved }
 public sealed record ScanEntry(FileSnapshot File, ScanEntryKind Kind,
     TrackMetadata? Metadata = null, string? ExistingId = null, string? ErrorCode = null);
 public sealed record BatchReceipt(int Inserted, int Updated, int Unchanged, int Failed, long Revision);

@@ -121,6 +121,9 @@ public partial class SidebarHost : UserControl
     private void OnRevealClicked(object? sender, RoutedEventArgs e) => OpenWithFocus();
     private void OpenWithFocus()
     {
+        _model?.CloseQuickSettingsCommand.Execute(null);
+        _model?.CloseQueueDrawerCommand.Execute(null);
+        _model?.CloseGlobalSearchCommand.Execute(null);
         _returnFocus = _window?.FocusManager?.GetFocusedElement();
         _model?.OpenSidebarDrawerCommand.Execute(null);
         NavigationPanel.GetVisualDescendants().OfType<Button>().FirstOrDefault(button => button.IsEffectivelyVisible && button.IsEnabled)?.Focus(NavigationMethod.Tab);

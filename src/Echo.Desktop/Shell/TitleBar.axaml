@@ -6,12 +6,13 @@
     <StyleInclude Source="TitleBarStyles.axaml" />
     <StyleInclude Source="TitleBarMenuStyles.axaml" />
   </UserControl.Styles>
-  <Border Name="TitlebarSurface" Background="{DynamicResource EchoTitlebar}" Padding="18,0,8,0" chrome:WindowDecorationProperties.ElementRole="TitleBar">
+  <Border Name="TitlebarSurface" Background="{DynamicResource EchoTitlebar}" Padding="20,0,6,0"
+          BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" chrome:WindowDecorationProperties.ElementRole="TitleBar">
     <Grid ColumnDefinitions="Auto,*,Auto" Background="Transparent">
       <TextBlock Text="melodies" FontFamily="avares://Echo.Desktop/Resources/Fonts#Outfit"
-                 FontSize="18" FontWeight="Bold" Foreground="{DynamicResource EchoHeading}"
+                 FontSize="17" FontWeight="Medium" LetterSpacing="0.3" Foreground="{DynamicResource EchoHeading}"
                  VerticalAlignment="Center" IsHitTestVisible="False" />
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="24,0,12,0" chrome:WindowDecorationProperties.ElementRole="User">
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="24,0,14,0" chrome:WindowDecorationProperties.ElementRole="User">
         <Button Name="GlobalSearchButton" Classes="icon titleAction" IsVisible="{Binding IsTitleSearchVisible}" Command="{Binding OpenSearchCommand}"
                 ToolTip.Tip="{DynamicResource ui.TitleBar.f1c10da84402}" AutomationProperties.Name="{DynamicResource ui.TitleBar.f1c10da84402}">
           <icon:GlyphIcon Kind="search" Width="16" Height="16" />
@@ -43,6 +44,7 @@
         </Button>
       </StackPanel>
       <StackPanel Name="WindowButtons" Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+        <Border Width="1" Height="16" Background="{DynamicResource EchoDivider}" Margin="0,0,8,0" VerticalAlignment="Center" IsHitTestVisible="False" />
         <Button Name="MinimizeButton" Classes="window titleWindow" chrome:WindowDecorationProperties.ElementRole="MinimizeButton" Click="OnMinimize" ToolTip.Tip="{DynamicResource ui.TitleBar.ac29e57a46f4}" AutomationProperties.Name="{DynamicResource ui.TitleBar.ac29e57a46f4}"><icon:GlyphIcon Kind="minus" Width="14" Height="14" /></Button>
         <Button Name="MaximizeButton" Classes="window titleWindow" chrome:WindowDecorationProperties.ElementRole="MaximizeButton" Click="OnMaximize" ToolTip.Tip="{DynamicResource ui.TitleBar.9949b1fb5f67}" AutomationProperties.Name="{DynamicResource ui.TitleBar.9949b1fb5f67}"><icon:GlyphIcon Kind="maximize" Width="13" Height="13" /></Button>
         <Button Name="CloseButton" Classes="window titleWindow close" chrome:WindowDecorationProperties.ElementRole="CloseButton" Click="OnClose" ToolTip.Tip="{DynamicResource ui.TitleBar.3fd47edce45b}" AutomationProperties.Name="{DynamicResource ui.TitleBar.3fd47edce45b}"><icon:GlyphIcon Kind="close" Width="14" Height="14" /></Button>

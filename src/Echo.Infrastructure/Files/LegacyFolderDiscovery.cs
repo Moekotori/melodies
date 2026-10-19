@@ -4,7 +4,7 @@ using Echo.Contracts.Scanning;
 
 namespace Echo.Infrastructure.Files;
 
-// Legacy CUE/osu discovery rules, with bounded per-folder facts rather than a whole-library list.
+// Scan-owned CUE references spill to disk; metadata facts remain bounded to the active folder.
 public sealed class LegacyFolderDiscovery(ILibraryStore? store = null, bool recursive = true, Func<string, bool>? ignored = null) : IFileDiscovery
 {
     public IEnumerable<FileSnapshot> Enumerate(string root, bool requireFullCoverage,
@@ -12,15 +12,53 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null, bool recu
     {
         root = LibraryPath.Canonical(root);
         if (!Directory.Exists(root)) throw new DirectoryNotFoundException("Scan root is unavailable.");
-        return Walk(root, root, requireFullCoverage, force, 0, cancellation);
+        using var suppressed = new FolderSourceSet();
+        using var deferred = new FolderSourceSet();
+        using var beatmapFolders = new FolderSourceSet();
+        // CUE may reference a later sibling or a nested folder. Discover references before any
+        // physical audio can reconcile away those segments; no whole-library path list is retained.
+        foreach (var directory in Directories(root, requireFullCoverage, 0, cancellation))
+        {
+            var facts = new FolderFileFacts();
+            var hasBeatmaps = false;
+            foreach (var cue in TopFiles(directory, requireFullCoverage, cancellation, definitions: true))
+            {
+                if (ignored?.Invoke(cue.Path) == true)
+                {
+                    if (Path.GetExtension(cue.Path).Equals(".cue", StringComparison.OrdinalIgnoreCase))
+                        foreach (var preserved in IgnoredCueProtection.Read(cue, store, suppressed, deferred, cancellation)) yield return preserved;
+                    continue;
+                }
+                if (Path.GetExtension(cue.Path).Equals(".osu", StringComparison.OrdinalIgnoreCase))
+                { hasBeatmaps = true; continue; }
+                FileSnapshot[] tracks;
+                try
+                {
+                    if (cue.Unavailable) throw new MetadataReadException("cloud_file_unavailable");
+                    tracks = CueFolderExpansion.Expand(cue, root, facts, suppressed, false, cancellation, out var unresolved);
+                    if (unresolved) deferred.Add(LibraryPath.Key(directory));
+                }
+                catch (Exception error) when (error is MetadataReadException or IOException or UnauthorizedAccessException)
+                { tracks = [cue with { Issue = Code(error) }]; deferred.Add(LibraryPath.Key(directory)); }
+                foreach (var track in tracks)
+                    yield return Included(track) ? track : track with { Source = null, PreserveExisting = true };
+            }
+            if (hasBeatmaps) beatmapFolders.Add(LibraryPath.Key(directory));
+        }
+        foreach (var directory in Directories(root, requireFullCoverage, 0, cancellation))
+            foreach (var file in FolderFiles(directory, root, requireFullCoverage, force, suppressed,
+                deferred.Contains(LibraryPath.Key(directory)), beatmapFolders.Contains(LibraryPath.Key(directory)), cancellation))
+                if (Included(file) || file.PreserveExisting) yield return file;
     }
 
-    private IEnumerable<FileSnapshot> Walk(string directory, string root, bool full, bool force,
-        int depth, CancellationToken cancellation)
+    private bool Included(FileSnapshot file) => ignored?.Invoke(file.Path) != true &&
+        (file.Source is null || ignored?.Invoke(file.Source.AudioPath) != true);
+
+    private IEnumerable<string> Directories(string directory, bool full, int depth, CancellationToken cancellation)
     {
+        cancellation.ThrowIfCancellationRequested();
         if (depth > 64) throw new MetadataReadException("scan_directory_depth_limit");
-        foreach (var file in FolderFiles(directory, root, full, force, cancellation))
-            if (ignored?.Invoke(file.Path) != true && (file.Source is null || ignored?.Invoke(file.Source.AudioPath) != true)) yield return file;
+        yield return directory;
         if (!recursive) yield break;
         // Do not retain a list of tens of thousands of child directories.
         foreach (var child in Directory.EnumerateDirectories(directory))
@@ -29,34 +67,20 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null, bool recu
             if (ignored?.Invoke(child) == true) continue;
             if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) != 0)
             { if (full) throw new IOException("Missing detection cannot exclude linked directories."); continue; }
-            foreach (var file in Walk(child, root, full, force, depth + 1, cancellation)) yield return file;
+            foreach (var descendant in Directories(child, full, depth + 1, cancellation)) yield return descendant;
         }
     }
 
     private IEnumerable<FileSnapshot> FolderFiles(string directory, string root, bool full, bool force,
-        CancellationToken cancellation)
+        FolderSourceSet suppressed, bool deferred, bool hasBeatmaps, CancellationToken cancellation)
     {
         var beatmaps = new List<FileSnapshot>();
         var facts = new FolderFileFacts();
-        using var suppressed = new FolderSourceSet();
-        var deferred = false;
-        foreach (var cue in TopFiles(directory, full, cancellation, definitions: true))
+        foreach (var cue in hasBeatmaps ? TopFiles(directory, full, cancellation, definitions: true) : [])
         {
-            if (ignored?.Invoke(cue.Path) == true) continue;
-            if (Path.GetExtension(cue.Path).Equals(".osu", StringComparison.OrdinalIgnoreCase))
-            {
-                if (beatmaps.Count >= 4096) throw new MetadataReadException("osu_folder_definition_limit");
-                beatmaps.Add(cue); continue;
-            }
-            FileSnapshot[] tracks;
-            try
-            {
-                if (cue.Unavailable) throw new MetadataReadException("cloud_file_unavailable");
-                tracks = CueFolderExpansion.Expand(cue, root, facts, suppressed, false, cancellation).ToArray();
-            }
-            catch (Exception error) when (error is MetadataReadException or IOException or UnauthorizedAccessException)
-            { tracks = [cue with { Issue = Code(error) }]; deferred = true; }
-            foreach (var track in tracks) yield return track;
+            if (ignored?.Invoke(cue.Path) == true || !Path.GetExtension(cue.Path).Equals(".osu", StringComparison.OrdinalIgnoreCase)) continue;
+            if (beatmaps.Count >= 4096) throw new MetadataReadException("osu_folder_definition_limit");
+            beatmaps.Add(cue);
         }
         beatmaps.Sort((left, right) => StringComparer.Ordinal.Compare(left.Path, right.Path));
         var issues = new List<FileSnapshot>();
@@ -72,17 +96,27 @@ public sealed class LegacyFolderDiscovery(ILibraryStore? store = null, bool recu
             foreach (var file in block)
             {
                 cancellation.ThrowIfCancellationRequested();
+                if (ignored?.Invoke(file.Path) == true)
+                {
+                    if (Path.GetExtension(file.Path).Equals(".flac", StringComparison.OrdinalIgnoreCase) ||
+                        Path.GetExtension(file.Path).Equals(".fla", StringComparison.OrdinalIgnoreCase))
+                    {
+                        foreach (var preserved in IgnoredCueProtection.Read(file, store, suppressed, null, cancellation)) yield return preserved;
+                    }
+                    yield return file with { PreserveExisting = true };
+                    continue;
+                }
                 if (suppressed.Contains(file.PathKey)) continue;
                 if (overlays.TryGetValue(file.PathKey, out var overlay)) { yield return overlay; continue; }
                 var extension = Path.GetExtension(file.Path);
                 if (file.Unavailable || !extension.Equals(".flac", StringComparison.OrdinalIgnoreCase) &&
                     !extension.Equals(".fla", StringComparison.OrdinalIgnoreCase)) { yield return file; continue; }
-                var stamp = SourceStamp.Compute(file, file);
+                var stamp = SourceStamp.Compute(file, file, CueFolderExpansion.DiscoveryVersion);
                 var reusable = !force && known is not null && known.TryGetValue(file.PathKey, out var old) &&
                     !old.Missing && old.ParserVersion == TrackMetadata.ParserVersion &&
                     old.SizeBytes == file.SizeBytes && old.ModifiedTicks == file.ModifiedTicks && old.DependencyStamp == stamp;
                 FileSnapshot[] embedded;
-                try { embedded = reusable ? [] : CueFolderExpansion.Expand(file, root, facts, suppressed, true, cancellation).ToArray(); }
+                try { embedded = reusable ? [] : CueFolderExpansion.Expand(file, root, facts, suppressed, true, cancellation, out _); }
                 catch (Exception error) when (error is MetadataReadException or IOException or UnauthorizedAccessException)
                 { embedded = [file with { Issue = Code(error) }]; }
                 if (embedded.Length > 0) foreach (var track in embedded) yield return track;

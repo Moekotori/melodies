@@ -82,6 +82,7 @@ public sealed partial class LibraryDatabase
                 continue;
             }
             if (entry.Kind == ScanEntryKind.Unchanged) { unchanged++; continue; }
+            if (entry.Kind == ScanEntryKind.Preserved) { if (entry.ExistingId is not null) unchanged++; continue; }
             var metadata = entry.Metadata!;
             object?[] values =
             [
@@ -150,7 +151,7 @@ public sealed partial class LibraryDatabase
                 (entry.Kind == ScanEntryKind.Unchanged && entry.ExistingId is null))
                 throw new ArgumentException("Invalid scan entry.");
             characters += entry.File.Path.Length + entry.File.PathKey.Length;
-            var sourceJson = TrackSourceJson.Encode(entry.File.Source);
+            var sourceJson = entry.Kind is ScanEntryKind.Error or ScanEntryKind.Preserved ? null : TrackSourceJson.Encode(entry.File.Source);
             if (sourceJson?.Length > 16384) throw new ArgumentException("Virtual source exceeds 16 KiB.");
             characters += sourceJson?.Length ?? 0;
             if (entry.Kind == ScanEntryKind.Metadata)

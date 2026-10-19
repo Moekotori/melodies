@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><InternalsVisibleTo Include="Echo.Playback.Smoke" /></ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Echo.Audio.Contracts/Echo.Audio.Contracts.csproj" />
   </ItemGroup>

@@ -28,7 +28,7 @@ internal static class ScanBatchFingerprint
             foreach (var entry in entries)
             {
                 Text(entry.File.Path); Text(entry.File.PathKey); Text(entry.ExistingId); Text(entry.ErrorCode);
-                if (TrackSourceJson.Encode(entry.File.Source) is { } source)
+                if (entry.Kind is not (ScanEntryKind.Error or ScanEntryKind.Preserved) && TrackSourceJson.Encode(entry.File.Source) is { } source)
                     foreach (var segment in source.Chunk(4096)) Text(new string(segment));
                 BinaryPrimitives.WriteInt64LittleEndian(buffer, entry.File.SizeBytes);
                 BinaryPrimitives.WriteInt64LittleEndian(buffer.AsSpan(8), entry.File.ModifiedTicks);

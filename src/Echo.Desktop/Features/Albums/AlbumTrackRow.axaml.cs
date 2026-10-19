@@ -23,8 +23,7 @@ public partial class AlbumTrackRow : UserControl
     private void UpdateColumns()
     {
         var albumPage = Classes.Contains("album-page");
-        var width = TopLevel.GetTopLevel(this)?.ClientSize.Width ?? Bounds.Width;
-        var narrow = albumPage ? width <= 980 || Bounds.Width < 720 : Bounds.Width < 720;
+        var narrow = Bounds.Width < 720;
         Signal.IsVisible = !narrow;
         Columns.ColumnDefinitions[0].Width = new(narrow ? albumPage ? 38 : 28 : albumPage && DataContext is AlbumTrackItem item && item.Number.Contains('-') ? 58 : 46);
         Columns.ColumnDefinitions[2].Width = new(narrow ? 0 : 230);

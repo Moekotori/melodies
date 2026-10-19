@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Numerics;
 using SkiaSharp;
 
 namespace Echo.Visuals.Cassette;
@@ -17,6 +18,9 @@ internal sealed class CassetteEffect : IDisposable
     }
     public void Set(string name, ReadOnlySpan<float> value) { if (uniforms.Contains(name)) uniforms[name] = value; }
     public void Set(string name, float value) { if (uniforms.Contains(name)) uniforms[name] = value; }
+    public void Set(string name, Vector2 value) => Set(name, [value.X, value.Y]);
+    public void Set(string name, Vector3 value) => Set(name, [value.X, value.Y, value.Z]);
+    public void Set(string name, Vector4 value) => Set(name, [value.X, value.Y, value.Z, value.W]);
     public void Texture(string name, SKShader shader, float width, float height)
     { children[name] = shader; Set(name + "_size", [width, height]); }
     public SKShader Shader() => effect.ToShader(uniforms, children);

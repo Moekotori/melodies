@@ -1,13 +1,63 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="LyricsMenuPresenter" TargetType="MenuFlyoutPresenter">
+      <Setter Property="MinWidth" Value="200" /><Setter Property="Padding" Value="5" />
+      <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate></Setter>
+      <Setter Property="Template"><ControlTemplate>
+        <Border Background="{DynamicResource LyricsChromeMenu}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+          <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+        </Border>
+      </ControlTemplate></Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="LyricsMenuItem" TargetType="MenuItem">
+      <Setter Property="Foreground" Value="{DynamicResource LyricsChromeInk}" />
+      <Setter Property="FontSize" Value="13" /><Setter Property="MinHeight" Value="36" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Name="MenuRow" Background="Transparent" CornerRadius="6" Padding="10,0">
+          <Grid ColumnDefinitions="18,*" ColumnSpacing="10">
+            <ContentPresenter Content="{TemplateBinding Icon}" VerticalAlignment="Center" />
+            <ContentPresenter Grid.Column="1" Content="{TemplateBinding Header}" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}" />
+          </Grid>
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:selected /template/ Border#MenuRow"><Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" /></Style>
+      <Style Selector="^:pointerover /template/ Border#MenuRow"><Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#MenuRow"><Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" /></Style>
+      <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="Border.lyrics-tool-group">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
   <Style Selector="Button.lyrics-chrome">
     <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Width" Value="34" /><Setter Property="Height" Value="32" />
+    <Setter Property="MinHeight" Value="32" /><Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="Transparent" />
-    <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
-    <Setter Property="MinHeight" Value="32" /><Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource LyricsChromeInk}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="CornerRadius" Value="7" />
   </Style>
-  <Style Selector="Button.lyrics-chrome TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
-  <Style Selector="Button.lyrics-chrome icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoText}" /></Style>
-  <Style Selector="Button.lyrics-chrome:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
-  <Style Selector="Button.lyrics-chrome:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="Button.lyrics-back">
+    <Setter Property="Width" Value="36" /><Setter Property="Height" Value="36" /><Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="Button.lyrics-window"><Setter Property="Width" Value="38" /></Style>
+  <Style Selector="Button.lyrics-follow">
+    <Setter Property="Width" Value="NaN" /><Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="16,0" /><Setter Property="CornerRadius" Value="18" />
+    <Setter Property="Background" Value="{DynamicResource LyricsChromeSurface}" />
+  </Style>
+  <Style Selector="Button.lyrics-chrome TextBlock"><Setter Property="Foreground" Value="{DynamicResource LyricsChromeInk}" /></Style>
+  <Style Selector="Button.lyrics-chrome icon|GlyphIcon, MenuItem.lyrics-menu icon|GlyphIcon">
+    <Setter Property="Stroke" Value="{DynamicResource LyricsChromeInk}" /><Setter Property="StrokeWidth" Value="1.7" />
+  </Style>
+  <Style Selector="Button.lyrics-window icon|GlyphIcon"><Setter Property="StrokeWidth" Value="1.5" /></Style>
+  <Style Selector="Button.lyrics-chrome:pointerover"><Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" /></Style>
+  <Style Selector="Button.lyrics-chrome:focus-visible"><Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" /></Style>
   <Style Selector="Button.lyrics-chrome:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
+  <Style Selector="Button.lyrics-close:pointerover"><Setter Property="Background" Value="#E5484D" /></Style>
+  <Style Selector="Button.lyrics-close:pointerover icon|GlyphIcon"><Setter Property="Stroke" Value="White" /></Style>
 </Styles>

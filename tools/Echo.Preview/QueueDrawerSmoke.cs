@@ -9,6 +9,8 @@ using Avalonia.VisualTree;
 using Echo.Desktop.Features.Albums;
 using Echo.Desktop.Features.Player;
 using Echo.Desktop.Features.Queue;
+using Echo.Desktop.Features.Lyrics;
+using Echo.Desktop.Features.Settings.Drawers;
 using Echo.Desktop.Motion;
 using Echo.Desktop.Shell;
 using Echo.Infrastructure.Artwork;
@@ -26,6 +28,7 @@ internal static class QueueDrawerSmoke
         var player = new PlayerViewModel(new PlaybackZone("local", "本机", session), shell.Text);
         var artwork = new AlbumArtworkCache(new LocalAlbumArtwork());
         shell.AttachPlayback(player); player.Queue.Artwork = artwork;
+        shell.AttachLyrics(new EmptyLyricsSource(), new LyricsAppearance(text: shell.Text));
         shell.Motion.SelectedChoice = shell.Motion.Choices.First(x => x.Mode == MotionMode.Off);
         var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
         string[] titles = ["老人与海", "さよーならまたいつか！ - Sayonara", "青春病", "(2004)PRINCESS BRAVE!(130cm)",
@@ -46,6 +49,13 @@ internal static class QueueDrawerSmoke
             openButton.Focus(); shell.ToggleQueueDrawerCommand.Execute(null); Settle();
             var drawer = Drawer();
             var list = drawer.FindControl<QueueList>("PendingList")!;
+            var overlay = window.GetVisualDescendants().OfType<QueueOverlay>().Single();
+            Check(KeyboardNavigation.GetTabNavigation(overlay.FindControl<MotionSurface>("DrawerSurface")!) == KeyboardNavigationMode.Cycle, "Motion overwrote modal focus cycle");
+            for (var i = 0; i < 24; i++)
+            {
+                window.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null); Settle();
+                Check(overlay.IsKeyboardFocusWithin, "Tab escaped queue drawer");
+            }
             Check(player.Queue.DrawerRows.Count == 10 && player.Queue.DrawerRows.All(x => !x.IsCurrent), "Current track duplicated in upcoming list");
             Check(player.Queue.PendingCountText == "10 首待播", "Upcoming count includes current track");
             Check(list.GetVisualDescendants().OfType<ListBoxItem>().Any(), "Drawer list did not bind");
@@ -81,8 +91,27 @@ internal static class QueueDrawerSmoke
             Pump(session.SetQueueAsync(tracks, tracks[0].ItemId));
             shell.Text.SetLanguage("en-US"); window.Width = 800; window.Height = 640; Save("queue-window-compact-en.png");
             Check(Drawer().Bounds.Right <= window.Bounds.Right && Drawer().Bounds.Height > 300, "Compact drawer escaped viewport");
+            shell.UiScalePercent = 150; Settle();
+            window.KeyPress(Key.F, RawInputModifiers.Control, PhysicalKey.F, null); Settle();
+            Check(Drawer().FindControl<TextBox>("QueueSearch")!.IsFocused, "Compact drawer search is inaccessible");
+            Check(Drawer().FindControl<QueueList>("PendingList")!.Bounds.Height > 40, "Compact header consumed queue viewport");
+            Save("queue-window-scaled.png"); shell.UiScalePercent = 100;
             shell.CloseQueueDrawerCommand.Execute(null); shell.NavigateCommand.Execute("lyrics"); shell.ToggleQueueDrawerCommand.Execute(null); Settle();
             Check(Drawer().IsEffectivelyVisible, "Queue unavailable above lyrics stage"); Save("queue-window-lyrics.png");
+            Check(window.GetVisualDescendants().OfType<LyricsView>().Any(), "Lyrics stage was not mounted");
+            window.Hide(); Settle();
+            Check(!shell.IsQueueDrawerOpen && !window.GetVisualDescendants().OfType<QueueDrawer>().Any(), "Hidden window retained queue drawer");
+            window.Show(); Settle();
+            shell.ToggleQueueDrawerCommand.Execute(null); Settle();
+            shell.OpenQuickSettingsCommand.Execute("lyrics"); Settle();
+            var settings = window.GetVisualDescendants().OfType<QuickSettingsDrawer>().Single();
+            Check(!shell.IsQueueDrawerOpen && settings.IsKeyboardFocusWithin, "Retiring queue stole settings focus");
+            var search = settings.FindControl<TextBox>("DrawerSearchInput")!;
+            search.Text = "desktop lyrics"; Settle();
+            Check(settings.GetVisualDescendants().OfType<LyricsSettingsDrawerView>().Single().FindControl<TabControl>("LyricsTabs")!.SelectedIndex == 3, "Desktop lyrics missing from drawer search");
+            shell.OpenSearchCommand.Execute(null); Settle();
+            shell.OpenQuickSettingsCommand.Execute("lyrics"); Settle();
+            Check(!shell.IsGlobalSearchOpen && shell.IsQuickSettingsOpen, "Search and quick settings overlap");
             Console.WriteLine($"PASS actual Avalonia drawer: row remove/undo, current/pending split, search, clear retains audio, 30 clocks retain rows, focus/Esc/outside close, English compact/lyrics, 999 rows/{realized} realized; simulated audio ({watch.ElapsedMilliseconds} ms).");
         }
         finally
@@ -107,6 +136,11 @@ internal static class QueueDrawerSmoke
             Settle(); using var frame = window.CaptureRenderedFrame() ?? throw new IOException("Queue drawer frame missing");
             frame.Save(Path.Combine(output, name), PngBitmapEncoderOptions.Default); Console.WriteLine(Path.Combine(output, name));
         }
+    }
+    private sealed class EmptyLyricsSource : Echo.Contracts.Lyrics.ILyricsSource
+    {
+        public Task<Echo.Contracts.Lyrics.LyricsText?> ReadAsync(string audioPath, string? explicitPath, CancellationToken cancellation)
+            => Task.FromResult<Echo.Contracts.Lyrics.LyricsText?>(null);
     }
     private static void Check(bool value, string reason) { if (!value) throw new InvalidOperationException(reason); }
 }

@@ -40,3 +40,11 @@ dotnet run --project tests/Echo.Playback.Smoke -- <当前平台宿主路径> --n
 本轮已通过契约检查、实际 DSP ViewModel/宿主参数往返，以及含旧机架迁移、驱动管理缓冲和进程恢复的播放短测。随后新增的同文件手动游标用例及最终桌面重编，在共享工作区并行编译期间达到时限；停止本轮自有验证进程，没有中断其他会话。该最后一轮不记为通过，也不把较早通过的检查描述为最新全部源码完整验收。
 
 本轮不做 Windows/Linux、ASIO/KS/DSD/HDMI/CUDA 硬件验收，不做 AOT 发布、打包或长期播放测试。Windows 的旧运行库需要用更新后的构建脚本重编；正式发行依赖与签名仍按平台验收。编译能力查询不等于把独立 HDMI/盲听工具接成默认播放后端。
+
+## Windows 运行库修复（2026-10-19）
+
+Windows 预编译运行库此前没有 `hostIdentity`，被当前 Core 拒绝，文件夹页仅显示通用播放失败。现已从本仓库源码重建 Windows x64 宿主，保留 CUDA 编译能力，并更新开发运行库及本机 `artifacts/melodies-win-x64/native`。对应构建回执随二进制保存和复制；Windows 发布检查拒绝缺少回执或 SHA256 不匹配的宿主。播放、设备和队列的 owner 边界未改变。
+
+实际 Windows / Realtek 共享输出通过静音 WAV 的播放、暂停、seek/resume、EOF/FIFO、同音源 occurrence、宿主恢复及释放检查。`Echo.Playback.Smoke` 可用 `--device-index 1` 显式指定本机测试设备；索引以当次设备枚举为准。另用隔离数据目录验证已打包 Core、类型化 Control 和新宿主的播放链路，并通过 Core 查询曲库副本后对一首实际 MP3 做静音解码输出。
+
+当次默认 Mini-i 设备的 WASAPI 初始化返回 `0x800700aa`（设备忙），未通过该设备播放验收；没有更改用户输出设置或停止其他音频程序。CUDA 仅确认编译能力保留，未做 GPU DSP、专业输出、跨平台或听感验收。验证日志在本地忽略目录 `misc/playback-repair/`。

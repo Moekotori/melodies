@@ -29,9 +29,10 @@
               <TextBlock Text="{Binding WallpaperFileName}" FontSize="14" FontWeight="Medium" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource EchoText}" ToolTip.Tip="{Binding Wallpaper}" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="选择图片或视频" Classes="theme-save" Click="ChooseImage" AutomationProperties.Name="选择主背景" />
+              <Button Content="导入图片或视频" Classes="theme-save" Click="ChooseImage" AutomationProperties.Name="导入主背景" />
               <Button Content="移除" Classes="theme-quiet" Command="{Binding ClearWallpaperCommand}" IsEnabled="{Binding HasWallpaperFile}" VerticalAlignment="Center" />
             </StackPanel>
+            <Button Content="从 Wallpaper Engine 选择" Classes="theme-action" Click="ChooseWallpaperEngine" HorizontalAlignment="Left" />
           </StackPanel>
         </Border>
         <StackPanel Spacing="8">
@@ -97,6 +98,7 @@
               </StackPanel>
             </Grid>
           </Border>
+          <Button Content="从 Wallpaper Engine 选择" Classes="theme-action" Click="ChoosePortraitWallpaperEngine" HorizontalAlignment="Left" />
           <ComboBox ItemsSource="{Binding WallpaperChoices}" SelectedItem="{Binding SelectedPortraitFit, Mode=TwoWay}" HorizontalAlignment="Left" Width="200" AutomationProperties.Name="竖屏图片适配" />
           <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="24" RowSpacing="12">
             <StackPanel Spacing="4"><TextBlock Text="水平位置" Classes="wallpaper-label" /><Slider Classes="wallpaper-slider" Minimum="0" Maximum="100" Value="{Binding PortraitX, Mode=TwoWay}" AutomationProperties.Name="竖屏水平位置" /></StackPanel>

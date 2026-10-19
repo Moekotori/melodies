@@ -12,6 +12,7 @@ using Echo.Contracts.Settings;
 using Echo.Desktop.Theming;
 using Echo.Infrastructure.Media;
 using SkiaSharp;
+using Echo.Wallpapers;
 
 namespace Echo.Desktop.Bootstrap;
 
@@ -47,6 +48,7 @@ internal sealed partial class ThemeWallpaper : IDisposable
     public ThemeWallpaper(Window window, ThemeViewModel theme)
     {
         _theme = theme; _window = window; _view = window.FindControl<WallpaperViewport>("ThemeWallpaperLayer")!;
+        AttachBrowserPresentation();
         _decoder = new AppearanceMediaDecoder(AppearanceMediaPath.Resolve(), AppearanceMediaPath.AnalysisHost());
         var token = _stop.Token;
         _decodeTask = Task.Run(() => DecodeLoop(token));
@@ -62,7 +64,10 @@ internal sealed partial class ThemeWallpaper : IDisposable
         _view.Zoom = framing.Fit is "Uniform" or "UniformToFill" ? framing.Zoom / 100 : 1; _view.Blur = p.WallpaperBlur;
         NoteBrightness(a.WallpaperBrightness / 100); _view.InvalidateVisual();
         var visible = _window.IsVisible && _window.WindowState != WindowState.Minimized;
-        var running = visible && (!AppearanceMediaDecoder.IsVideo(path) || animationAllowed && (a.VideoPauseMode != "smart" || _window.IsActive));
+        var project = WallpaperPaths.IsProject(path);
+        UpdateBrowserState(a.VideoPauseMode == "smart" && !_window.IsActive);
+        // A visible project freezes in place under the explicit pause setting; hidden projects release their process.
+        var running = visible && (project || !AppearanceMediaDecoder.IsVideo(path) || animationAllowed && (a.VideoPauseMode != "smart" || _window.IsActive));
         if (_path == path && _playing == running) return;
         var changed = _path != path; _path = path; _playing = running; var revision = ++_revision;
         _active?.Cancel(); _active?.Dispose(); _active = null;
@@ -110,7 +115,9 @@ internal sealed partial class ThemeWallpaper : IDisposable
                 if (request.Cancellation.IsCancellationRequested) continue;
                 try
                 {
-                    if (AppearanceMediaDecoder.IsVideo(request.Path))
+                    if (WallpaperPaths.IsProject(request.Path))
+                        await ReadBrowser(request);
+                    else if (AppearanceMediaDecoder.IsVideo(request.Path))
                         await _decoder.ReadVideoAsync(request.Path, (frame, token) => DisplayVideo(request, frame, token), request.Cancellation);
                     else
                     {
@@ -123,7 +130,7 @@ internal sealed partial class ThemeWallpaper : IDisposable
                     }
                 }
                 catch (OperationCanceledException) when (request.Cancellation.IsCancellationRequested) { }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException or OperationCanceledException or JsonException or System.ComponentModel.Win32Exception)
+                catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException or OperationCanceledException or JsonException or System.ComponentModel.Win32Exception)
                 {
                     await Dispatcher.UIThread.InvokeAsync(() => { if (Current(request)) { ClearMedia(); _theme.WallpaperStatus = error is InvalidDataException ? error.Message : "背景无法读取，请重新选择或切换素材后重试"; } });
                 }
@@ -161,7 +168,7 @@ internal sealed partial class ThemeWallpaper : IDisposable
             {
                 if (!Current(request) || epoch != Volatile.Read(ref _lookEpoch)) return;
                 Upload(pixels, frame.Width, frame.Height);
-                _theme.WallpaperStatus = "已应用静音视频背景";
+                _theme.WallpaperStatus = WallpaperPaths.IsProject(request.Path) ? "已应用 Wallpaper Engine 动态背景" : "已应用静音视频背景";
             }, DispatcherPriority.Background);
         }
         finally
@@ -193,6 +200,7 @@ internal sealed partial class ThemeWallpaper : IDisposable
     public void Dispose()
     {
         if (_disposed) return; _disposed = true; ++_revision; _active?.Cancel(); _active?.Dispose(); _active = null;
+        _window.PointerMoved -= BrowserPointer; _browserMedia = null;
         _stop.Cancel(); _requests.Writer.TryComplete(); _grades.Writer.TryComplete(); ClearMedia();
         _ = Task.WhenAll(_decodeTask, _gradeTask).ContinueWith(_ => _stop.Dispose(), TaskScheduler.Default);
     }

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
@@ -111,14 +112,40 @@ internal static class FolderUiSmoke
             window.Show(); Settle(); shell.NavigateCommand.Execute("folders"); Settle();
             if (isolated) MountFolderPage();
             var view = window.GetVisualDescendants().OfType<FoldersView>().Single(); var model = view.Model;
-            Wait(() => !model.IsLoading && model.Total == entries.Count, "folder page startup");
+            Wait(() => !model.Wall.IsLoading && model.Wall.HasItems, "folder wall startup");
+            Require(!model.HasFolder && model.Tracks.Count == 0, "wall home avoids track loading");
+            Save("folders-wall-light.png");
+            var rootCard = view.GetVisualDescendants().OfType<FolderCard>().Single(card => card.Node.Row.Path == root);
+            Click(rootCard.FindControl<Button>("OpenButton")!);
+            Wait(() => !model.IsLoading && model.Total == entries.Count, "wall root open");
+            Require(!view.FindControl<Grid>("WallPane")!.IsVisible && !view.GetVisualDescendants().OfType<FolderCard>().Any(), "detail omits descendant browser");
             Require(model.Tracks.Count <= 200, "resident rows");
-            var rootNode = model.Tree.Nodes.Single(node => node.Row.Path == root);
-            var expand = view.GetVisualDescendants().OfType<Button>().First(button => button.DataContext == rootNode && button.Name == "ExpandFolder");
-            Click(expand); Wait(() => rootNode.IsExpanded && model.Tree.Nodes.Count == 5, "native tree expand");
-            // Read/play only this album, then return to the root for the wall preview.
-            model.SelectedNode = model.Tree.Nodes.Single(node => node.Name == albums[0]);
+            var rootNode = model.SelectedNode!;
+            Save("folders-detail.png");
+            var searchToggle = view.FindControl<ToggleButton>("SearchToggle")!;
+            var searchInput = view.FindControl<Grid>("SearchInput")!;
+            Require(!searchInput.IsVisible, "search starts collapsed");
+            Click(searchToggle); Require(searchInput.IsVisible && view.FindControl<TextBox>("SearchField")!.IsFocused, "click expands and focuses search");
+            model.Search = "Moonlight"; Wait(() => !model.IsLoading && model.Total == 1, "expanded search filters tracks");
+            Save("folders-search-open.png");
+            Press(Key.Escape); Wait(() => !model.IsLoading && model.Total == entries.Count, "escape restores unfiltered tracks");
+            Require(!searchInput.IsVisible && model.HasFolder && model.Search.Length == 0, "escape collapses search without leaving folder");
+            var sortBox = view.FindControl<ComboBox>("SortBox")!;
+            Click(sortBox); Require(sortBox.IsDropDownOpen, "sort choice opens"); Save("folders-sort-open.png");
+            Press(Key.Down); Press(Key.Enter); Wait(() => !model.IsLoading && model.SortIndex == 1, "keyboard selects sort choice");
+            model.SortIndex = 0; Wait(() => !model.IsLoading, "sort restore");
+            var lossless = view.FindControl<ToggleButton>("LosslessToggle")!;
+            Click(lossless); Wait(() => !model.IsLoading && model.LosslessOnly && model.Total == 172, "lossless toggle filters tracks");
+            Save("folders-filter-selected.png"); Click(lossless); Wait(() => !model.IsLoading && model.Total == entries.Count, "lossless toggle restore");
+            var childPage = database.GetFoldersAsync(new(root), budget.Token); Pump(childPage);
+            model.SelectedNode = new(childPage.Result.Items.Single(row => row.Name == albums[0]), rootNode);
             Wait(() => !model.IsLoading && model.Total == 9, "child selection");
+            Save("folders-leaf.png");
+            window.Width = 800; Settle(); Save("folders-leaf-narrow.png");
+            var originalFolder = model.CurrentFolder!;
+            model.CurrentFolder = originalFolder with { Name = "01 · 夜行电台 — The Complete Midnight Sessions / 高解析度现场录音珍藏版" };
+            Settle(); Save("folders-long-title.png"); model.CurrentFolder = originalFolder;
+            window.Width = 1440; Settle();
             Pump(model.ActAsync());
             Require(runtime.LocalZone.Session.QueueState.Items.Count == 9 && runtime.LocalZone.Session.QueueState.Items[0].Origin?.Kind == "folder",
                 $"folder playback and origin: queue={runtime.LocalZone.Session.QueueState.Items.Count}, loading={model.IsLoading}, busy={model.IsActing}, error={model.Error}");
@@ -130,11 +157,8 @@ internal static class FolderUiSmoke
             var favorite = model.Tracks[0]; Pump(favorite.ToggleFavoriteCommand.ExecuteAsync(null));
             var favoriteLookup = database.FindTrackByPathAsync(favorite.Row.Path, budget.Token); Pump(favoriteLookup);
             Require(favoriteLookup.Result?.Favorite == true, "favorite persistence");
-            model.SelectedNode = rootNode; Wait(() => !model.IsLoading && model.Total == entries.Count, "return to root");
+            model.BackFolderCommand.Execute(null); Wait(() => !model.Wall.IsLoading && !model.IsLoading && model.Total == entries.Count, "return to root");
             Save("folders-light.png"); CheckAlignment(view);
-            var tableTop = view.FindControl<FolderTrackList>("TrackPanel")!.TranslatePoint(default, window)!.Value.Y;
-            Require(tableTop < 320, $"compact directory header: table starts at {tableTop}");
-            Console.WriteLine($"Compact folder table top: {tableTop:0.#}px at 1440×900.");
             shell.IsDark = true; Settle(); Save("folders-dark.png");
             model.Search = "no-such-track"; model.Search = "Moonlight";
             Wait(() => !model.IsLoading && model.Total == 1, "latest search");
@@ -156,24 +180,25 @@ internal static class FolderUiSmoke
             Save("folders-english.png"); shell.Text.SetLanguage("zh-CN");
             window.Width = 980; Settle(); CheckAlignment(view); Save("folders-narrow.png");
             window.Width = 800; Settle(); CheckAlignment(view); Save("folders-800.png");
-            var treeToggle = view.FindControl<Button>("DirectoryToggle")!;
-            Require(treeToggle.IsVisible, "minimum window directory control");
-            Click(treeToggle); Settle(); Require(view.FindControl<Grid>("TreePane")!.IsVisible, "compact directory open");
-            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Settle();
-            Require(!view.FindControl<Grid>("TreePane")!.IsVisible, "compact directory keyboard close");
+            model.ShowRootsCommand.Execute(null); Wait(() => !model.Wall.IsLoading && !model.HasFolder, "return to wall");
+            Save("folders-wall-narrow.png");
             window.Width = 1440; Settle();
             view.SetWindowVisible(false); window.Hide(); Settle(); window.Show(); view.SetWindowVisible(true); Settle();
             shell.NavigateCommand.Execute("home"); Settle();
-            Require(model.Tracks.Count == 0 && model.Tree.Nodes.Count == 0, "page release");
+            Require(model.Tracks.Count == 0 && model.Wall.Items.Count == 0, "page release");
             shell.NavigateCommand.Execute("folders"); Settle();
             if (isolated) MountFolderPage();
             var restored = window.GetVisualDescendants().OfType<FoldersView>().Single();
-            Wait(() => !restored.Model.IsLoading && restored.Model.CurrentFolder?.Path == root && restored.Model.Total == entries.Count, "navigation restore");
-            Console.WriteLine("PASS folders: isolated SQLite, retained roots after 33 scans, lazy tree, bounded pages, path boundary, cancellation, filters/search, favorites, playback, native light/dark/narrow/English renders, column alignment and disposal. Audio simulated.");
+            Wait(() => !restored.Model.Wall.IsLoading && restored.Model.Wall.HasItems && !restored.Model.HasFolder, "navigation returns to wall");
+            Console.WriteLine("PASS folders: isolated SQLite, retained roots after 33 scans, folder wall navigation, bounded pages, path boundary, cancellation, filters/search, favorites, playback, native light/dark/narrow/English renders, column alignment and disposal. Audio simulated.");
 
-            void Click(Button button)
+            void Click(Control button)
             { var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value; window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Settle(); }
+            void Press(Key key)
+            {
+                var physical = key switch { Key.Down => PhysicalKey.ArrowDown, Key.Enter => PhysicalKey.Enter, _ => PhysicalKey.Escape };
+                window.KeyPress(key, RawInputModifiers.None, physical, null); window.KeyRelease(key, RawInputModifiers.None, physical, null); Settle();
+            }
             void Save(string name)
             {
                 window.MouseMove(new Point(window.Bounds.Width - 20, 50));

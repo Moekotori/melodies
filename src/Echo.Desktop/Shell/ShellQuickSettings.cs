@@ -12,6 +12,7 @@ public sealed partial class ShellViewModel
     [RelayCommand] private void OpenQuickSettings(string? kind)
     {
         if (kind is not ("audio" or "lyrics")) return;
+        CloseGlobalSearchCommand.Execute(null);
         CloseSidebarDrawerCommand.Execute(null); CloseQueueDrawerCommand.Execute(null);
         QuickSettingsKind = QuickSettingsKind == kind ? "" : kind;
     }

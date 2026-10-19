@@ -10,10 +10,12 @@ public sealed class LyricsPlayerSurface : Control
     public static readonly StyledProperty<double> ExpansionProperty = AvaloniaProperty.Register<LyricsPlayerSurface, double>(nameof(Expansion), 1);
     public static readonly StyledProperty<double> CompactWidthProperty = AvaloniaProperty.Register<LyricsPlayerSurface, double>(nameof(CompactWidth), 320);
     public static readonly StyledProperty<IBrush?> SurfaceBrushProperty = AvaloniaProperty.Register<LyricsPlayerSurface, IBrush?>(nameof(SurfaceBrush));
+    public static readonly StyledProperty<bool> DarkProperty = AvaloniaProperty.Register<LyricsPlayerSurface, bool>(nameof(Dark), true);
     public double Expansion { get => GetValue(ExpansionProperty); set => SetValue(ExpansionProperty, value); }
     public double CompactWidth { get => GetValue(CompactWidthProperty); set => SetValue(CompactWidthProperty, value); }
     public IBrush? SurfaceBrush { get => GetValue(SurfaceBrushProperty); set => SetValue(SurfaceBrushProperty, value); }
-    static LyricsPlayerSurface() => AffectsRender<LyricsPlayerSurface>(ExpansionProperty, CompactWidthProperty, SurfaceBrushProperty);
+    public bool Dark { get => GetValue(DarkProperty); set => SetValue(DarkProperty, value); }
+    static LyricsPlayerSurface() => AffectsRender<LyricsPlayerSurface>(ExpansionProperty, CompactWidthProperty, SurfaceBrushProperty, DarkProperty);
     public Rect CapsuleBounds
     {
         get
@@ -25,16 +27,10 @@ public sealed class LyricsPlayerSurface : Control
             return new Rect((Bounds.Width - width) / 2, Bounds.Height - height, width, height);
         }
     }
-    private static readonly IPen Edge = new Pen(new SolidColorBrush(Color.Parse("#20FFFFFF")), 1);
-    private static readonly IBrush Shadow = new SolidColorBrush(Color.Parse("#10000000"));
-
     public override void Render(DrawingContext context)
     {
         var bounds = CapsuleBounds;
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
-        var radius = bounds.Height / 2;
-        // Fixed brushes and one local shape: no blur surfaces or per-frame resource allocation.
-        context.DrawRectangle(Shadow, null, bounds.Translate(new Vector(0, 3)).Inflate(2), radius + 2, radius + 2);
-        context.DrawRectangle(SurfaceBrush, Edge, bounds.Deflate(.5), radius, radius);
+        context.Custom(new LyricsGlassDrawOperation(bounds, Dark, SurfaceBrush?.ToImmutable()));
     }
 }

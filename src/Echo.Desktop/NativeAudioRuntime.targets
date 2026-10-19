@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <EchoWindowsAudioRuntime>$(MSBuildThisFileDirectory)../../native/runtime/win-x64/</EchoWindowsAudioRuntime>
+  </PropertyGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) And Exists('$(EchoWindowsAudioRuntime)echo-audio-host.build.json')">
+    <Content Include="$(EchoWindowsAudioRuntime)echo-audio-host.build.json">
+      <Link>native/echo-audio-host.build.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <!-- Never ship the legacy host that the playback protocol rejects at startup. -->
+  <Target Name="ValidateNativeAudioRuntime" BeforeTargets="PrepareForPublish"
+          Condition="$([MSBuild]::IsOSPlatform('Windows')) And '$(EchoNativeAudioRid)' == 'win-x64'">
+    <Error Condition="!Exists('$(EchoWindowsAudioRuntime)echo-audio-host.exe') Or !Exists('$(EchoWindowsAudioRuntime)echo-audio-host.build.json')"
+           Text="Rebuild the Windows audio host with scripts/build-native-audio.ps1 before publishing; its executable and build receipt are required." />
+    <ReadLinesFromFile File="$(EchoWindowsAudioRuntime)echo-audio-host.build.json">
+      <Output TaskParameter="Lines" ItemName="EchoNativeAudioReceipt" />
+    </ReadLinesFromFile>
+    <GetFileHash Files="$(EchoWindowsAudioRuntime)echo-audio-host.exe" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="EchoNativeAudioHash" />
+    </GetFileHash>
+    <PropertyGroup><EchoNativeAudioReceiptJson>@(EchoNativeAudioReceipt)</EchoNativeAudioReceiptJson></PropertyGroup>
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(EchoNativeAudioReceiptJson)', '(?i)&quot;artifactSha256&quot;\s*:\s*&quot;$(EchoNativeAudioHash)&quot;'))"
+           Text="Windows audio host does not match its build receipt. Rebuild it with scripts/build-native-audio.ps1 before publishing." />
+  </Target>
+</Project>

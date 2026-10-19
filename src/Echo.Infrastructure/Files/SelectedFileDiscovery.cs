@@ -35,12 +35,12 @@ public sealed class SelectedFileDiscovery(string path, ILibraryStore? store = nu
         var flac = extension.Equals(".flac", StringComparison.OrdinalIgnoreCase) || extension.Equals(".fla", StringComparison.OrdinalIgnoreCase);
         if (cue || flac)
         {
-            var tracks = CueFolderExpansion.Expand(file, root, facts, suppressed, !cue, cancellation);
+            var tracks = CueFolderExpansion.Expand(file, root, facts, suppressed, !cue, cancellation, out _);
             var expanded = false;
             foreach (var track in tracks) { expanded = true; yield return track; }
             if (expanded) yield break;
         }
-        yield return flac ? file with { Source = new("local", file.Path, file.Path, SourceStamp.Compute(file, file),
+        yield return flac ? file with { Source = new("local", file.Path, file.Path, SourceStamp.Compute(file, file, CueFolderExpansion.DiscoveryVersion),
             file.SizeBytes, file.ModifiedTicks, file.SizeBytes, file.ModifiedTicks) } : file;
     }
 }

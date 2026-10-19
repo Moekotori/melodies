@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:Echo.Desktop.Features.Settings" xmlns:media="using:Echo.Infrastructure.Media"
+        x:Class="Echo.Desktop.Features.Settings.WallpaperEnginePicker" x:DataType="local:WallpaperEnginePickerModel"
+        Title="Wallpaper Engine" Width="760" Height="600" MinWidth="560" MinHeight="420"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource EchoPage}">
+  <Window.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /></Window.Styles>
+  <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <TextBlock Text="Wallpaper Engine" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" />
+      <Button Grid.Column="1" Content="选择目录" Classes="theme-action" Click="ChooseFolder" IsEnabled="{Binding CanScan}" />
+    </Grid>
+    <TextBox Grid.Row="1" Text="{Binding Query, Mode=TwoWay}" PlaceholderText="搜索壁纸" Classes="theme-input" AutomationProperties.Name="搜索 Wallpaper Engine 壁纸" />
+    <Grid Grid.Row="2" ColumnDefinitions="*,220" ColumnSpacing="20">
+      <ListBox ItemsSource="{Binding VisibleProjects}" SelectedItem="{Binding Selected, Mode=TwoWay}"
+               Background="{DynamicResource EchoPanelMuted}" BorderThickness="0" AutomationProperties.Name="Wallpaper Engine 壁纸库">
+        <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="media:WallpaperEngineProject">
+            <StackPanel Spacing="4" Margin="4,5" Opacity="1">
+              <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource EchoText}" />
+              <TextBlock Text="{Binding TypeLabel}" FontSize="12" Foreground="{DynamicResource EchoMuted}" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <StackPanel Grid.Column="1" Spacing="12">
+        <Border Height="160" Background="{DynamicResource EchoPanelMuted}" CornerRadius="6" ClipToBounds="True">
+          <Image Source="{Binding Preview}" Stretch="UniformToFill" />
+        </Border>
+        <TextBlock Text="{Binding Selected.Title}" TextWrapping="Wrap" FontWeight="Medium" Foreground="{DynamicResource EchoText}" />
+        <TextBlock Text="{Binding Selected.TypeLabel}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource EchoMuted}" />
+      </StackPanel>
+    </Grid>
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{DynamicResource EchoMuted}" FontSize="12" />
+      <Button Grid.Column="1" Content="取消" Classes="theme-quiet" Click="Cancel" />
+      <Button Grid.Column="2" Content="导入并应用" Classes="theme-save" Click="Select" IsEnabled="{Binding CanSelect}" />
+    </Grid>
+  </Grid>
+</Window>

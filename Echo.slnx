@@ -20,6 +20,7 @@
     <Project Path="src/Echo.Core.Host/Echo.Core.Host.csproj" />
     <Project Path="src/Echo.Bridge.Host/Echo.Bridge.Host.csproj" />
     <Project Path="src/Echo.Desktop/Echo.Desktop.csproj" />
+    <Project Path="src/Echo.Wallpapers/Echo.Wallpapers.csproj" />
     <Project Path="src/Echo.Cli/Echo.Cli.csproj" />
     <Project Path="src/Modules/Echo.AlbumInformation/Echo.AlbumInformation.csproj" />
     <Project Path="src/Modules/Echo.Dsp/Echo.Dsp.csproj" />

@@ -64,7 +64,7 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
                     }
                     if (!enumeration.MoveNext()) break;
                     var file = enumeration.Current;
-                    var size = file.Path.Length + file.PathKey.Length;
+                    var size = ScanTextBudget.Estimate(file);
                     if (batch.Count != 0 && (batch.Count == request.BatchSize || characters + size > 256 * 1024))
                     {
                         await files.Writer.WriteAsync(batch.ToArray(), stop.Token).ConfigureAwait(false);
@@ -93,7 +93,9 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
                     stop.Token.ThrowIfCancellationRequested();
                     known.TryGetValue(file.PathKey, out var existing);
                     ScanEntry entry;
-                    if (file.Issue is { } issue)
+                    if (file.PreserveExisting)
+                        entry = new(file, ScanEntryKind.Preserved, ExistingId: existing?.Id);
+                    else if (file.Issue is { } issue)
                         entry = new(file, ScanEntryKind.Error, ExistingId: existing?.Id, ErrorCode: issue);
                     else if (file.Unavailable)
                         entry = new(file, ScanEntryKind.Error, ExistingId: existing?.Id, ErrorCode: "cloud_file_unavailable");
@@ -166,7 +168,8 @@ public sealed class ScanCoordinator(ILibraryStore store, IFileDiscovery discover
             }
             return new(file, ScanEntryKind.Metadata, metadata, existingId);
         }
-        catch (MetadataReadException error) { return new(file, ScanEntryKind.Error, ExistingId: existingId, ErrorCode: error.Code); }
+        catch (MetadataReadException error) when (!error.IsInfrastructureFailure)
+        { return new(file with { Source = null }, ScanEntryKind.Error, ExistingId: existingId, ErrorCode: error.Code); }
         catch (IOException) { return new(file, ScanEntryKind.Error, ExistingId: existingId, ErrorCode: "metadata_io_failed"); }
         catch (UnauthorizedAccessException) { return new(file, ScanEntryKind.Error, ExistingId: existingId, ErrorCode: "file_access_denied"); }
         catch (OverflowException) { return new(file, ScanEntryKind.Error, ExistingId: existingId, ErrorCode: "invalid_audio_size"); }

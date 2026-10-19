@@ -3,7 +3,15 @@
              x:Class="Echo.Desktop.Shell.SidebarHost" x:DataType="shell:ShellViewModel">
   <UserControl.Styles>
     <Style Selector="Border.navigationSurface"><Setter Property="Background" Value="{DynamicResource EchoSidebar}" /></Style>
-    <Style Selector="Border.navigationSurface.drawer"><Setter Property="Background" Value="{DynamicResource EchoSidebar}" /></Style>
+    <Style Selector="Border.navigationSurface.drawer">
+      <Setter Property="Background" Value="{DynamicResource DrawerSurface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DrawerStroke}" /><Setter Property="BorderThickness" Value="0,1,1,1" />
+      <Setter Property="CornerRadius" Value="0,16,16,0" />
+    </Style>
+    <Style Selector="Border.navigationSurface.drawer Button.nav"><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="10,0" /></Style>
+    <Style Selector="Border.navigationSurface.drawer Button.nav.active"><Setter Property="Background" Value="{DynamicResource EchoQueueActive}" /></Style>
+    <Style Selector="Border.navigationSurface.drawer Button.nav:pointerover"><Setter Property="Background" Value="{DynamicResource DrawerHover}" /></Style>
+    <Style Selector="Border.navigationSurface.drawer TextBlock.sidebar-caption"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Margin" Value="10,6,10,2" /></Style>
   </UserControl.Styles>
   <Grid ClipToBounds="True">
     <Grid Name="DrawerSlide" HorizontalAlignment="Left" VerticalAlignment="Stretch">
@@ -20,8 +28,8 @@
       </Border>
       <Grid Name="EdgeReveal" Width="22" HorizontalAlignment="Left" Background="Transparent" PointerEntered="OnEdgeEntered">
         <Button Name="RevealButton" Width="22" Height="64" MinHeight="64" Padding="0" HorizontalAlignment="Left" VerticalAlignment="Center"
-                Background="{DynamicResource EchoSidebar}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,1,1"
-                CornerRadius="0,6,6,0" Click="OnRevealClicked" ToolTip.Tip="{DynamicResource ui.SidebarHost.f5a2e8aeefd1}" AutomationProperties.Name="{DynamicResource ui.SidebarHost.658ff1eade42}">
+                Background="{DynamicResource DrawerControl}" BorderBrush="{DynamicResource DrawerStroke}" BorderThickness="0,1,1,1"
+                CornerRadius="0,10,10,0" Click="OnRevealClicked" ToolTip.Tip="{DynamicResource ui.SidebarHost.f5a2e8aeefd1}" AutomationProperties.Name="{DynamicResource ui.SidebarHost.658ff1eade42}">
           <icon:GlyphIcon Kind="chevron-right" Scope="sidebar" StrokeWidth="1.25" Width="14" Height="14" />
         </Button>
       </Grid>

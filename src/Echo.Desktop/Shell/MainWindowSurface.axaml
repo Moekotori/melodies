@@ -39,7 +39,7 @@
   </icon:UiScaleViewport>
   <ContentControl Name="LyricsStageHost" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
   <icon:UiScaleViewport Name="QueueScaleHost" LayoutTransform="{Binding #UiScaleHost.LayoutTransform}">
-    <queue:QueueOverlay Margin="0,40,0,108" />
+    <queue:QueueOverlay />
   </icon:UiScaleViewport>
   <icon:UiScaleViewport Name="QuickSettingsScaleHost">
     <drawers:QuickSettingsDrawer Name="QuickSettingsOverlay" />

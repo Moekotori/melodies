@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
-using Avalonia.VisualTree;
 using Echo.Contracts.Library;
 using Echo.Desktop.Shell;
 
@@ -15,9 +14,7 @@ public partial class FoldersView : UserControl, IDisposable
     private ShellViewModel _shell = null!;
     private bool _closed;
     private bool _visible = true;
-    private bool _compactTree;
-    private bool _treeOpen;
-    private double _dockedWidth = 208;
+    private FolderWallViewport? _wall;
     public FoldersViewModel Model { get; private set; } = null!;
     public static readonly StyledProperty<Echo.Desktop.Features.Albums.AlbumArtworkCache?> ArtworkProperty =
         AvaloniaProperty.Register<FoldersView, Echo.Desktop.Features.Albums.AlbumArtworkCache?>(nameof(Artwork));
@@ -28,12 +25,22 @@ public partial class FoldersView : UserControl, IDisposable
     {
         _shell = shell; Model = new(shell); DataContext = Model;
         Artwork = shell.AlbumArtwork;
+        _wall = new(Model.Wall, shell.AlbumArtwork, Model.Text);
+        _wall.Open += node => Model.SelectedNode = node;
+        WallHost.Content = _wall;
+        Model.Wall.Changed += ApplyLayout;
         Model.PropertyChanged += OnModelChanged;
         AttachedToVisualTree += (_, _) => _ = Model.InitializeAsync();
         DetachedFromVisualTree += (_, _) => Dispose();
         SizeChanged += (_, _) => ApplyLayout();
         MainPane.SizeChanged += (_, _) => ApplyLayout();
-        KeyDown += (_, args) => { if (args.Key == Key.Escape && _treeOpen) { SetTreeOpen(false); args.Handled = true; } };
+        HeaderActions.SizeChanged += (_, _) => ApplyLayout();
+        KeyDown += (_, args) =>
+        {
+            if (args.Handled || args.Key != Key.Escape || !Model.HasFolder) return;
+            if (SearchInput.IsVisible) SetSearchOpen(false, clear: true); else Model.BackFolderCommand.Execute(null);
+            args.Handled = true;
+        };
         ApplyLayout();
         ImportButton.IsEnabled = shell.ImportLibrary is not null;
         RescanButton.IsVisible = shell.ImportLibrary is not null;
@@ -41,72 +48,44 @@ public partial class FoldersView : UserControl, IDisposable
     private void ApplyLayout()
     {
         var narrow = Bounds.Width is > 0 and < 860;
-        var compactTree = Bounds.Width is > 0 and < 730;
-        if (compactTree != _compactTree)
-        {
-            if (compactTree) _dockedWidth = Math.Max(180, FolderLayout.ColumnDefinitions[0].Width.Value);
-            _compactTree = compactTree; _treeOpen = false;
-            FolderLayout.ColumnDefinitions[0].Width = new(compactTree ? 0 : _dockedWidth);
-            FolderLayout.ColumnDefinitions[1].Width = new(compactTree ? 0 : 5);
-            Grid.SetColumn(TreePane, compactTree ? 2 : 0);
-            TreePane.Width = compactTree ? 240 : double.NaN;
-            TreePane.HorizontalAlignment = compactTree ? Avalonia.Layout.HorizontalAlignment.Left : Avalonia.Layout.HorizontalAlignment.Stretch;
-            TreePane.ZIndex = compactTree ? 3 : 0;
-            TreePane.Classes.Set("directory-overlay", compactTree);
-        }
-        DirectoryToggle.IsVisible = compactTree; TreeSplitter.IsVisible = TreeDivider.IsVisible = !compactTree;
-        TreePane.IsVisible = !compactTree || _treeOpen;
-        TreeDismissLayer.IsVisible = compactTree && _treeOpen;
-        TreePane.Margin = compactTree ? new(0) : new(0, 0, 18, 0);
-        FolderLayout.ColumnDefinitions[0].MinWidth = compactTree ? 0 : 180;
-        FolderLayout.ColumnDefinitions[0].MaxWidth = narrow ? 210 : 300;
-        MainPane.Margin = new(compactTree ? 0 : 30, 0, 0, 0);
-        var stackedActions = MainPane.Bounds.Width is > 0 and < 790 || compactTree;
-        Hero.ColumnDefinitions[0].Width = new(narrow ? 80 : 100);
-        CoverStack.Width = CoverStack.Height = narrow ? 76 : 96;
-        Hero.ColumnSpacing = narrow ? 14 : 18;
-        FolderTitle.FontSize = narrow ? 24 : 28;
-        Grid.SetRow(ActionBar, stackedActions ? 1 : 0);
-        Grid.SetColumn(ActionBar, stackedActions ? 1 : 2);
-        Grid.SetColumnSpan(ActionBar, stackedActions ? 2 : 1);
-        Hero.RowSpacing = stackedActions ? 8 : 0;
-        ActionBar.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
+        var home = !Model.HasFolder;
+        MainPane.RowDefinitions[1].Height = home ? new(1, GridUnitType.Star) : GridLength.Auto;
+        MainPane.RowDefinitions[4].Height = home ? new(0) : new(1, GridUnitType.Star);
+        WallPane.IsVisible = home;
+
+        _wall?.SetSuspended(!_visible || !WallPane.IsVisible);
+        var coverSize = narrow ? 112 : 160;
+        HeroSurface.Padding = new(narrow ? 18 : 24);
+        Hero.ColumnDefinitions[0].Width = new(coverSize);
+        CoverStack.Width = CoverStack.Height = coverSize;
+        Hero.ColumnSpacing = narrow ? 20 : 28;
+        FolderTitle.FontSize = narrow ? 28 : 40;
+        SearchInput.Width = Math.Clamp(Bounds.Width * .34, 160, 280);
+        BreadcrumbBar.MaxWidth = Math.Max(80, Bounds.Width - HeaderActions.Bounds.Width - 56);
         // Keep search and sort usable in the minimum desktop window.
         LosslessToggle.IsVisible = !narrow;
         FilterBar.ColumnDefinitions[1].Width = new(narrow ? 0 : 1, narrow ? Avalonia.Controls.GridUnitType.Pixel : Avalonia.Controls.GridUnitType.Auto);
     }
-    private void SetTreeOpen(bool value)
-    { _treeOpen = value; TreePane.IsVisible = !_compactTree || value; TreeDismissLayer.IsVisible = _compactTree && value; if (value) FolderTree.Focus(); else DirectoryToggle.Focus(); }
-    private void OnToggleTree(object? sender, RoutedEventArgs args) => SetTreeOpen(!_treeOpen);
-    private void OnDismissTree(object? sender, PointerPressedEventArgs args) { SetTreeOpen(false); args.Handled = true; }
-    public void FocusSearch() => SearchField.Focus();
+    public void FocusSearch() { if (Model.HasFolder) SetSearchOpen(true); else WallHost.Focus(); }
     private void OnModelChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName == nameof(FoldersViewModel.CurrentFolder)) { _coverSamples = []; ReleaseArtwork(); }
+        if (args.PropertyName == nameof(FoldersViewModel.CurrentFolder)) { _coverSamples = []; ReleaseArtwork(); SetSearchOpen(Model.HasFolder && Model.Search.Length > 0, focus: false); ApplyLayout(); }
+        if (args.PropertyName == nameof(FoldersViewModel.Search) && Model.Search.Length > 0) SetSearchOpen(true, focus: false);
         if (args.PropertyName == nameof(FoldersViewModel.Tracks)) _ = LoadArtworkAsync();
     }
-    private void OnExpand(object? sender, RoutedEventArgs args)
-    { if (sender is Button { DataContext: FolderNode node }) _ = Model.Tree.ExpandAsync(node); args.Handled = true; }
-    private void OnTreeKey(object? sender, KeyEventArgs args)
-    {
-        if (Model.SelectedNode is not { } node) return;
-        if (args.Key == Key.Right && !node.IsExpanded || args.Key == Key.Left && node.IsExpanded)
-        { _ = Model.Tree.ExpandAsync(node); args.Handled = true; }
-        else if (args.Key == Key.Left && node.Parent is not null)
-        { Model.SelectedNode = node.Parent; args.Handled = true; }
-        else if (args.Key == Key.Enter && _compactTree && _treeOpen)
-        { SetTreeOpen(false); args.Handled = true; }
-        else if (args.Key == Key.Enter)
-        { _ = Model.Tree.ExpandAsync(node); args.Handled = true; }
-    }
-    private void OnTreePointerReleased(object? sender, PointerReleasedEventArgs args)
-    {
-        if (!_compactTree || !_treeOpen || args.Source is not Visual source) return;
-        var ancestors = source.GetVisualAncestors().ToArray();
-        if (ancestors.Any(ancestor => ancestor is ListBoxItem) && !ancestors.Any(ancestor => ancestor is Button)) SetTreeOpen(false);
-    }
     private void OnSearchKey(object? sender, KeyEventArgs args)
-    { if (args.Key == Key.Enter) { _ = Model.LoadAsync(); args.Handled = true; } }
+    {
+        if (args.Key == Key.Escape) { SetSearchOpen(false, clear: true); args.Handled = true; }
+        else if (args.Key == Key.Enter) { _ = Model.LoadAsync(); args.Handled = true; }
+    }
+    private void OnToggleSearch(object? sender, RoutedEventArgs args) => SetSearchOpen(SearchToggle.IsChecked == true, clear: SearchToggle.IsChecked != true);
+    private void SetSearchOpen(bool open, bool clear = false, bool focus = true)
+    {
+        SearchInput.IsVisible = open; SearchToggle.IsChecked = open;
+        if (clear) Model.Search = "";
+        if (open && focus) { SearchField.Focus(); SearchField.SelectAll(); }
+        else if (!open && focus) SearchToggle.Focus();
+    }
     private void OnClearSearch(object? sender, RoutedEventArgs args) { Model.Search = ""; FocusSearch(); }
     private void OnBreadcrumb(object? sender, RoutedEventArgs args)
     { if (sender is Button { Tag: FolderRow row }) Model.SelectBreadcrumb(row); }
@@ -120,6 +99,7 @@ public partial class FoldersView : UserControl, IDisposable
     public void SetWindowVisible(bool visible)
     {
         _visible = visible;
+        _wall?.SetSuspended(!visible || Model.HasFolder);
         Artwork = visible && !_closed ? _shell.AlbumArtwork : null;
         if (visible) _ = LoadArtworkAsync(); else ReleaseArtwork();
     }
@@ -127,6 +107,7 @@ public partial class FoldersView : UserControl, IDisposable
     {
         if (_closed) return;
         _closed = true; _scan?.Cancel(); Artwork = null; ReleaseArtwork();
+        Model.Wall.Changed -= ApplyLayout; _wall?.Dispose(); _wall = null;
         Model.PropertyChanged -= OnModelChanged; Model.Dispose();
         TrackPanel.DataContext = null;
     }

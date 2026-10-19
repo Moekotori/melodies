@@ -23,8 +23,7 @@ internal static class ScanCommitPump
                 while (source.TryRead(out var entry))
                 {
                     batch.Add(entry);
-                    characters += entry.File.Path.Length + entry.File.PathKey.Length +
-                        (entry.Metadata is { } m ? m.Title.Length + m.Artist.Length + m.Album.Length + m.AlbumArtist.Length + m.Genre.Length : 0);
+                    characters += ScanTextBudget.Estimate(entry.File, entry.Metadata);
                     if (batch.Count == batchSize || characters >= 200 * 1024) break;
                 }
                 if (batch.Count == batchSize || characters >= 200 * 1024) break;

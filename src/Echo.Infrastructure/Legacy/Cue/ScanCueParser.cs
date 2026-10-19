@@ -7,21 +7,53 @@ namespace Echo.Core.Media;
 /// <summary>Returns bounded virtual-track facts so metadata workers do not reopen the CUE source.</summary>
 internal static partial class ScanCueParser
 {
-    [GeneratedRegex("^FILE\\s+(?:\"([^\"]+)\"|(\\S+))", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex FileLine();
-    [GeneratedRegex("^TRACK\\s+(\\d+)\\s+\\S+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex TrackLine();
-    [GeneratedRegex("^INDEX\\s+(00|01)\\s+([0-9]+):([0-9]{2}):([0-9]{2})$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex IndexLine();
-    [GeneratedRegex("^(TITLE|PERFORMER)\\s+(?:\"([^\"]*)\"|(.*))$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex TextLine();
+    // Names only. A failed source probe must not hide other FILE references later in the sheet.
+    public static List<string>? ReadSourcePaths(string text, string cuePath, string? rootPath, CancellationToken cancellation)
+    {
+        var paths = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var found = false;
+        long chars = 0;
+        using var lines = new StringReader(text);
+        while (lines.ReadLine() is { } rawLine) {
+            cancellation.ThrowIfCancellationRequested();
+            var line = CueSyntax.Line(rawLine);
+            if (!line.StartsWith("FILE", StringComparison.OrdinalIgnoreCase)) continue;
+            var name = CueSyntax.FileName(line);
+            if (name is null) return null;
+            found = true;
+            string source;
+            try { source = CueAudioSource.ResolvePath(cuePath, name); }
+            catch (ArgumentException) { return null; }
+            var extension = Path.GetExtension(source).ToLowerInvariant();
+            var candidates = extension is ".wav" or ".wave"
+                ? new[] { source, source[..^extension.Length] + ".flac", source[..^extension.Length] + ".ape", source[..^extension.Length] + ".wv" }
+                : new[] { source };
+            foreach (var path in candidates) {
+                if (rootPath is not null) {
+                    var suffix = Path.GetRelativePath(rootPath, path);
+                    if (Path.IsPathRooted(suffix) || suffix == ".." || suffix.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)) continue;
+                }
+                if (paths.Contains(path)) continue;
+                chars += path.Length;
+                if (path.Length > 4096 || paths.Count >= 4096 || chars > 1024 * 1024) return null;
+                paths.Add(path);
+            }
+        }
+        return found ? paths.ToList() : null;
+    }
 
     public static ScanCueResult Parse(string text, string cuePath, bool embedded, CancellationToken cancellation, string? rootPath = null, bool isolateFileErrors = false)
     {
+        if (isolateFileErrors) ScanCueValidation.Validate(text, cuePath, embedded, cancellation);
         var tracks = new List<ScanCueTrack>();
         var sources = new Dictionary<string, (long Size, long Mtime)>(OperatingSystem.IsWindows()
             ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         string? audioPath = embedded ? cuePath : null;
+        var nonAudioTrack = false;
+        var dataTrack = false;
+        var sourceComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var resolvedSources = new Dictionary<string, string>(sourceComparer);
+        var lastTrackBySource = new Dictionary<string, int>(sourceComparer);
         int? trackNumber = null;
         double? start = null, pregap = null;
         string? title = null, performer = null, album = null, albumArtist = null;
@@ -30,86 +62,114 @@ internal static partial class ScanCueParser
         {
             cancellation.ThrowIfCancellationRequested();
             if (trackNumber is not { } number || start is not { } seconds || audioPath is null) return;
+            var resolvedAudioPath = audioPath;
             // Check the selected folder before touching a CUE-referenced file (including UNC paths).
             if (rootPath is not null) {
                 var root = Path.GetFullPath(rootPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
                 if (!audioPath.Equals(root, comparison) && !audioPath.StartsWith(root + Path.DirectorySeparatorChar, comparison)) return;
             }
-            if (!embedded && !File.Exists(audioPath) && Path.GetExtension(audioPath).ToLowerInvariant() is ".wav" or ".wave") {
-                var stem = audioPath[..^Path.GetExtension(audioPath).Length];
-                var candidates = new[] { ".flac", ".ape", ".wv" }.Select(extension => stem + extension).Where(File.Exists).ToArray();
-                if (candidates.Length == 1) audioPath = candidates[0];
-            }
-            if (!sources.TryGetValue(audioPath, out var source))
+            if (!embedded) resolvedAudioPath = resolvedSources.TryGetValue(audioPath, out var knownSource)
+                ? knownSource : CueAudioSource.ResolveSource(audioPath, isolateFileErrors);
+            if (!sources.TryGetValue(resolvedAudioPath, out var source))
             {
-                var info = new FileInfo(audioPath);
-                if (!info.Exists || info.Attributes.HasFlag(FileAttributes.Directory)) {
+                var info = new FileInfo(resolvedAudioPath);
+                if (!isolateFileErrors && !info.Exists) return;
+                // Preserve the actual missing/denied exception for isolated scan diagnostics.
+                // FileInfo.Exists hides those failures and mislabeled them as unreadable media.
+                var attributes = File.GetAttributes(resolvedAudioPath);
+                if (attributes.HasFlag(FileAttributes.Directory)) {
                     if (isolateFileErrors) throw new IOException("CUE referenced audio is unavailable.");
                     return;
                 }
                 source = (info.Length, (info.LastWriteTimeUtc.Ticks - DateTime.UnixEpoch.Ticks + 5000) / 10000);
-                sources.Add(audioPath, source);
+                sources.Add(resolvedAudioPath, source);
             }
-            pathChars += audioPath.Length + cuePath.Length + (title?.Length ?? 0) + (performer?.Length ?? 0)
+            pathChars += resolvedAudioPath.Length + cuePath.Length + (title?.Length ?? 0) + (performer?.Length ?? 0)
                 + (album?.Length ?? 0) + (albumArtist?.Length ?? 0);
             if (tracks.Count >= 4096 || pathChars > 1024 * 1024)
                 throw new ProtocolLimitException("CUE discovery result is too large.");
-            if (tracks.LastOrDefault() is { CueTrack: { } previous } last && previous.AudioPath == audioPath)
-                tracks[^1] = last with { CueTrack = previous with { EndSeconds = seconds } };
-            tracks.Add(new(number, audioPath, source.Size, source.Mtime,
-                new(cuePath, audioPath, embedded ? "embedded" : "sidecar", number,
+            if (lastTrackBySource.TryGetValue(resolvedAudioPath, out var previousIndex)) {
+                var last = tracks[previousIndex];
+                var previous = last.CueTrack!;
+                if (seconds <= previous.StartSeconds) throw new IOException("CUE has duplicate or unordered audio ranges.");
+                if (previous.EndSeconds is null) tracks[previousIndex] = last with { CueTrack = previous with { EndSeconds = seconds } };
+            }
+            lastTrackBySource[resolvedAudioPath] = tracks.Count;
+            tracks.Add(new(number, resolvedAudioPath, source.Size, source.Mtime,
+                new(cuePath, resolvedAudioPath, embedded ? "embedded" : "sidecar", number,
                     title, performer, album, albumArtist, pregap, seconds, null)));
+            resolvedSources[audioPath] = resolvedAudioPath;
         }
         using var lines = new StringReader(text);
         while (lines.ReadLine() is { } rawLine)
         {
             cancellation.ThrowIfCancellationRequested();
-            var line = rawLine.Trim();
-            var file = FileLine().Match(line);
-            if (file.Success)
+            var line = CueSyntax.Line(rawLine);
+            var file = CueSyntax.FileName(line);
+            if (file is not null)
             {
-                Commit(); trackNumber = null; start = null; pregap = null; title = null; performer = null;
-                audioPath = embedded ? cuePath : Path.GetFullPath(
-                    file.Groups[1].Success ? file.Groups[1].Value : file.Groups[2].Value,
-                    Path.GetDirectoryName(cuePath)!);
+                var nextAudioPath = embedded ? cuePath : CueAudioSource.ResolvePath(cuePath, file);
+                var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+                // A pregap in the old file is not a playable range in the new file.
+                if (trackNumber is not null && start is null) {
+                    if (!string.Equals(audioPath, nextAudioPath, comparison)) pregap = null;
+                } else {
+                    Commit(); trackNumber = null; start = null; pregap = null; title = null; performer = null;
+                }
+                audioPath = nextAudioPath;
                 continue;
             }
-            var track = TrackLine().Match(line);
+            var track = CueSyntax.TrackLine().Match(line);
             if (track.Success)
             {
                 Commit(); start = null; pregap = null; title = null; performer = null;
-                trackNumber = int.TryParse(track.Groups[1].Value, CultureInfo.InvariantCulture, out var number) ? number : null;
+                nonAudioTrack = !track.Groups[2].Value.Equals("AUDIO", StringComparison.OrdinalIgnoreCase);
+                dataTrack = CueSyntax.IsDataMode(track.Groups[2].Value);
+                trackNumber = !nonAudioTrack && int.TryParse(track.Groups[1].Value, CultureInfo.InvariantCulture, out var number) ? number : null;
                 continue;
             }
-            var label = TextLine().Match(line);
-            if (label.Success)
-            {
-                var value = (label.Groups[2].Success ? label.Groups[2].Value : label.Groups[3].Value).Trim();
-                if (value.Length == 0) continue;
-                if (label.Groups[1].Value.Equals("TITLE", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (trackNumber is not null) title = value;
-                    else album = value;
+            if (nonAudioTrack) {
+                var boundary = dataTrack ? CueSyntax.IndexSeconds(line, 0) ?? CueSyntax.IndexSeconds(line, 1) : null;
+                var canonical = audioPath is null ? null : resolvedSources.GetValueOrDefault(audioPath, audioPath);
+                if (audioPath is not null && !embedded && !resolvedSources.ContainsKey(audioPath)
+                    && CueAudioSource.LosslessCandidates(audioPath).Any(lastTrackBySource.ContainsKey)) {
+                    canonical = CueAudioSource.ResolveSource(audioPath, isolateFileErrors);
+                    if (resolvedSources.Count >= 4096) throw new ProtocolLimitException("CUE discovery result is too large.");
+                    resolvedSources[audioPath] = canonical;
                 }
-                else if (trackNumber is not null) performer = value;
-                else albumArtist = value;
+                if (boundary is { } seconds && canonical is not null && lastTrackBySource.TryGetValue(canonical, out var previousIndex)) {
+                    var last = tracks[previousIndex]; var previous = last.CueTrack!;
+                    if (seconds > previous.StartSeconds)
+                        tracks[previousIndex] = last with { CueTrack = previous with { EndSeconds = previous.EndSeconds is { } end ? Math.Min(end, seconds) : seconds } };
+                }
                 continue;
             }
-            var index = IndexLine().Match(line);
+            var labelTitle = CueSyntax.TextValue(line, "TITLE");
+            var labelPerformer = CueSyntax.TextValue(line, "PERFORMER");
+            if (labelTitle is not null || labelPerformer is not null)
+            {
+                if (labelTitle is not null)
+                {
+                    if (trackNumber is not null) title = labelTitle;
+                    else album = labelTitle;
+                }
+                else if (trackNumber is not null) performer = labelPerformer;
+                else albumArtist = labelPerformer;
+                continue;
+            }
+            var index = CueSyntax.IndexLine().Match(line);
             if (index.Success && trackNumber is not null)
             {
-                double? seconds = null;
-                var second = int.Parse(index.Groups[3].Value, CultureInfo.InvariantCulture);
-                var frame = int.Parse(index.Groups[4].Value, CultureInfo.InvariantCulture);
-                if (double.TryParse(index.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var minute)
-                    && double.IsFinite(minute) && second <= 59 && frame <= 74)
-                    seconds = minute * 60 + second + frame / 75.0;
-                if (index.Groups[1].Value == "00") pregap = seconds;
+                var indexNumber = int.Parse(index.Groups[1].Value, CultureInfo.InvariantCulture);
+                var seconds = CueSyntax.IndexSeconds(line, indexNumber);
+                if (indexNumber == 0) pregap = seconds;
                 else start = seconds;
             }
         }
         Commit();
+        if (isolateFileErrors && resolvedSources.Any(pair => !sourceComparer.Equals(pair.Key, pair.Value)))
+            ScanCueValidation.Validate(text, cuePath, embedded, cancellation, path => resolvedSources.GetValueOrDefault(path, path));
         return new(tracks);
     }
 }

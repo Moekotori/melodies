@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <InternalsVisibleTo Include="Echo.PodcastSmoke" />
+    <InternalsVisibleTo Include="Echo.Library.Smoke" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" />

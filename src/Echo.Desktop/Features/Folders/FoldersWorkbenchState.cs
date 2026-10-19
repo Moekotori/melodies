@@ -124,7 +124,7 @@ public sealed partial class FoldersViewModel
         finally { if (ReferenceEquals(_facts, request)) _facts = null; }
     }
     private void OnWatchedFolderChanged(string path) => Dispatcher.UIThread.Post(() =>
-    { if (!_closed) { _ = Tree.RefreshAsync(); if (CurrentFolder?.Path.StartsWith(path, StringComparison.Ordinal) == true) _ = LoadAsync(); } });
+    { if (!_closed) { if (!HasFolder) _ = Wall.RefreshAsync(); if (CurrentFolder?.Path.StartsWith(path, StringComparison.Ordinal) == true) _ = LoadAsync(); } });
     private void ReleaseWorkbench()
     {
         _ruleSave?.Cancel(); _facts?.Cancel(); _treeRequest?.Cancel();

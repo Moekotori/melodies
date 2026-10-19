@@ -33,6 +33,14 @@ await using (var player = new PlaybackSessionCoordinator(host))
     var devices = await player.GetDevicesAsync();
     Console.WriteLine($"Native device enumeration: {devices.GetArrayLength()} entries");
     if (args.Contains("--native-only")) await NativeEngineParityChecks.RunAsync(player, host);
+    var deviceArgument = Array.IndexOf(args, "--device-index");
+    if (deviceArgument >= 0)
+    {
+        var index = int.Parse(args[deviceArgument + 1], System.Globalization.CultureInfo.InvariantCulture);
+        var device = (await player.GetOutputDevicesAsync("shared")).Single(item => item.Index == index);
+        await player.ConfigureOutputAsync(new AudioOutputConfiguration(Device: device, BufferFrames: 0));
+        Console.WriteLine($"Native output: {device.Name}");
+    }
     await player.SetVolumeAsync(0); // Real device render, silent fixture.
     using var rate = JsonDocument.Parse("[{\"rate\":1,\"mode\":\"speed\"}]");
     await player.DspAsync("playbackRate.configure", rate.RootElement, true);
