@@ -1,5 +1,7 @@
 # 独立网络 Output V1
 
+> 当前 V1 的原始文件转发仍在 Output 侧解码/DSP，尚未满足更新后的 Core 原生处理端 → Output 原生输出端分工。原生 PCM 管道的新增入口和剩余工作见 [NATIVE_PCM_DATA_PLANE.md](NATIVE_PCM_DATA_PLANE.md)；它尚未替换本文的默认网络路径。
+
 2026-10-19。新增 `Echo.Output.Host`，负责设备所在机器的原生音频进程、设备能力、媒体接入及播放事实回报；Core 通过 `INativeAudio` 使用它。已有 `Echo.Bridge.Host` 继续承担 DLNA/Link/MQTT 等协议网关职责。
 
 ```text
@@ -106,7 +108,7 @@ Core 控制连接每 5 秒有界健康探测，普通请求不会重放到重连
 
 `tests/Echo.NetworkOutput.Smoke` 运行独立 Core、Output、音频协议替身进程，经真实 TCP/TLS 将超过 1 MiB 的 WAV 文件流式传到原生侧替身，校验完整 SHA-256 和 Range，检查设备枚举、播放/暂停/恢复、源身份、角色/文件能力拒绝、单 Core 租约、Control 断开、Core 崩溃后原生回收，以及无额外参数重启 Core 后输出绑定保留。本检查不修改既有 `Echo.Output.Smoke` 原生设备测试。
 
-这证明协议、字节流和生命周期，不证明真实解码或出声。本检出没有可用于本次 macOS 出声验收的音频宿主，使用协议替身；尚未验收真实 DAC、两台物理机器、实际 LAN/防火墙、Windows/Linux、Native AOT 发布、时钟漂移/同步或进程树性能。没有 SSH、服务器部署或系统服务安装。多 Zone 分组、采样时钟同步与 RAAT 兼容不在该版本内。
+这证明协议、字节流和生命周期，不证明真实解码或出声。该轮验证使用协议替身；后续已编译真实 macOS 原生宿主并检查解码/PCM 管道，但没有打开设备做出声验收；尚未验收真实 DAC、两台物理机器、实际 LAN/防火墙、Windows/Linux、Native AOT 发布、时钟漂移/同步或进程树性能。没有 SSH、服务器部署或系统服务安装。多 Zone 分组、采样时钟同步与 RAAT 兼容不在该版本内。
 
 
 本次聚焦验证：Release 解决方案编译通过，14.8 秒、0 错误、9 个既有 Avalonia 警告；网络 Output 冒烟 5.8 秒、远程 Control 冒烟 4.4 秒、本机 IPC 冒烟 3.8 秒均通过。构建使用单节点并在命令行关闭 trim/AOT 和普通分析器，生产项目的 AOT 声明未改变。依赖守卫与 diff whitespace 检查通过。没有扩大到全量设备长测。

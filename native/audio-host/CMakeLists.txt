@@ -162,6 +162,9 @@ set(ECHO_AUDIO_HOST_COMMON_SOURCES
   src/PcmRingAudioSource.cpp
   src/ProcessMemoryTelemetry.cpp
   src/RawPcmInputReader.cpp
+  src/PcmWireProtocol.cpp
+  src/PcmWireInputBinding.cpp
+  src/DecodePcmCommand.cpp
   src/RpcOutputWriter.cpp
   src/NativeDaemonBootstrap.cpp
   src/WindowsCddaReader.cpp
@@ -450,6 +453,30 @@ add_dependencies(echo-audio-engine-tests echo-native-pcm-channel-tests)
 add_test(NAME echo-native-pcm-channel-tests COMMAND echo-native-pcm-channel-tests "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
 if(APPLE AND ECHO_FFMPEG_ROOT)
   set_tests_properties(echo-native-pcm-channel-tests PROPERTIES ENVIRONMENT "DYLD_LIBRARY_PATH=${ECHO_FFMPEG_ROOT}/lib")
+endif()
+# Native data-plane check: real decoder plus bounded pipe, no device/DSP host.
+add_executable(echo-pcm-wire-tests EXCLUDE_FROM_ALL
+  tests/pcm_wire_tests.cpp src/PcmWireProtocol.cpp src/RawPcmInputReader.cpp src/DecodePcmCommand.cpp)
+target_compile_features(echo-pcm-wire-tests PRIVATE cxx_std_20)
+target_include_directories(echo-pcm-wire-tests PRIVATE src ../audio-engine)
+if(WIN32 OR (APPLE AND ECHO_FFMPEG_ROOT))
+  target_include_directories(echo-pcm-wire-tests PRIVATE "${ECHO_FFMPEG_ROOT}/include")
+  target_link_directories(echo-pcm-wire-tests PRIVATE "${ECHO_FFMPEG_ROOT}/lib")
+  target_link_libraries(echo-pcm-wire-tests PRIVATE avformat avcodec swresample avutil)
+elseif(APPLE)
+  target_link_libraries(echo-pcm-wire-tests PRIVATE PkgConfig::ECHO_MACOS_FFMPEG)
+else()
+  target_link_libraries(echo-pcm-wire-tests PRIVATE avformat avcodec swresample avutil)
+endif()
+if(MSVC)
+  set_property(TARGET echo-pcm-wire-tests PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+else()
+  target_link_libraries(echo-pcm-wire-tests PRIVATE pthread)
+endif()
+add_test(NAME echo-pcm-wire-tests COMMAND echo-pcm-wire-tests)
+if(APPLE AND ECHO_FFMPEG_ROOT)
+  set_tests_properties(echo-pcm-wire-tests PROPERTIES ENVIRONMENT "DYLD_LIBRARY_PATH=${ECHO_FFMPEG_ROOT}/lib")
 endif()
 # Decoder-only regression: do not pull device, DSP, CUDA or ASIO targets into
 # a focused seek check.

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PcmWireProtocol.h"
+#include <memory>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -28,6 +30,8 @@ public:
     RawPcmInputReader(const RawPcmInputReader&) = delete;
     RawPcmInputReader& operator=(const RawPcmInputReader&) = delete;
 
+    void enableFraming(echo::pcm_wire::Format format,
+        std::function<void()> begin, std::function<void()> end);
     void start();
     void stop();
     uint64_t bytesConsumed() const noexcept;
@@ -37,6 +41,7 @@ public:
 private:
     void run();
 
+    std::unique_ptr<echo::pcm_wire::Reader> wire_;
     int fd_ = -1;
     int channels_ = 0;
     int bytesPerSample_ = static_cast<int>(sizeof(float));

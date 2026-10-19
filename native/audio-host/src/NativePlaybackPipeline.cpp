@@ -830,7 +830,7 @@ void NativePlaybackPipeline::continueSessionAfterDrain()
     nativeDsd_.beginSession();
 }
 
-void NativePlaybackPipeline::markInputEnded()
+void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
 {
     PreparedOutput tail;
     bool hasPreparedTail = false;
@@ -840,6 +840,8 @@ void NativePlaybackPipeline::markInputEnded()
     bool gaplessStateChanged = false;
     {
         std::lock_guard<std::mutex> lock(processingMutex_);
+        if (expectedGeneration && expectedGeneration != pcm_.session_.generation())
+            return;
         endedFormat = outputFormat_;
         switch (endedFormat)
         {

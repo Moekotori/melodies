@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstring>
 #include <limits>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -84,6 +85,15 @@ RawPcmInputReader::~RawPcmInputReader()
     stop();
 }
 
+void RawPcmInputReader::enableFraming(echo::pcm_wire::Format format,
+    std::function<void()> begin, std::function<void()> end)
+{
+    if (running_.load() || wire_ || !pushFrames_ || format.channels != channels_)
+        throw std::runtime_error("invalid framed PCM input configuration");
+    wire_ = std::make_unique<echo::pcm_wire::Reader>(format, pushFrames_,
+        std::move(begin), std::move(end));
+}
+
 void RawPcmInputReader::start()
 {
     if (fd_ < 0 || channels_ <= 0 || bytesPerSample_ <= 0
@@ -140,13 +150,23 @@ void RawPcmInputReader::run()
     const size_t frameBytes = static_cast<size_t>(channels_) * static_cast<size_t>(bytesPerSample_);
     std::vector<char> readBuffer(readBufferBytes);
     std::vector<char> pending;
-    pending.reserve(readBufferBytes + frameBytes);
+    if (!wire_) pending.reserve(readBufferBytes + frameBytes);
 
     while (running_.load(std::memory_order_acquire))
     {
         const int bytesRead = readPipeFd(fd_, readBuffer.data(), readBuffer.size());
         if (bytesRead > 0)
         {
+            if (wire_)
+            {
+                try
+                {
+                    wire_->feed(std::span<const std::byte>(
+                        reinterpret_cast<const std::byte*>(readBuffer.data()), bytesRead));
+                }
+                catch (const std::exception& error) { onError_(error.what()); break; }
+                continue;
+            }
             pending.insert(pending.end(), readBuffer.begin(), readBuffer.begin() + bytesRead);
             const size_t completeBytes = (pending.size() / frameBytes) * frameBytes;
             if (completeBytes == 0)
@@ -208,6 +228,11 @@ void RawPcmInputReader::run()
 
         if (bytesRead == 0)
         {
+            if (wire_ && running_.load(std::memory_order_acquire))
+            {
+                try { wire_->finish(); }
+                catch (const std::exception& error) { onError_(error.what()); }
+            }
             if (running_.load(std::memory_order_acquire) && ! pending.empty())
                 onError_("audio input pipe closed with a partial frame");
             break;

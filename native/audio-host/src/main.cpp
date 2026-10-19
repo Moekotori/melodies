@@ -1,6 +1,9 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "HostCommon.h"
 #include "NativeDaemonBootstrap.h"
+#include "DecodePcmCommand.h"
+#include "PcmWireProtocol.h"
+#include "PcmWireInputBinding.h"
 #include "NativePcmChannelPolicy.h"
 #include "MqaPassthroughPolicy.h"
 #include "ProcessMemoryTelemetry.h"
@@ -325,6 +328,11 @@ Options parseOptions(const std::vector<std::string>& args)
         else if (arg == "--rpc-stdout-fd" && i + 1 < args.size())
         {
             options.rpcStdoutFd = std::max(0, parseInt(args[++i], options.rpcStdoutFd));
+        }
+        else if (arg == "--pcm-wire-epoch")
+        {
+            if (i + 1 == args.size()) throw std::runtime_error("missing PCM wire epoch");
+            options.pcmWireEpoch = echo::pcm_wire::parseEpoch(args[++i]);
         }
         else if (arg == "--pcm-input-fd" && i + 1 < args.size())
         {
@@ -3849,50 +3857,6 @@ void cleanupMiniaudioSharedAndAck(PcmRingAudioSource& source, MiniaudioSharedOut
         shutdownAckSent);
 }
 
-int runLibavDecodePcm(const Options& options)
-{
-    if (options.decodeFile.empty())
-        throw std::runtime_error("libav decode failed: missing input file");
-
-#ifdef _WIN32
-    _setmode(_fileno(stdout), _O_BINARY);
-#endif
-
-    echo::LibavPcmStreamDecoder decoder;
-    decoder.open(options.decodeFile);
-
-    const int sourceSampleRate = decoder.sampleRate();
-    if (sourceSampleRate <= 0)
-        throw std::runtime_error("libav decode failed: source sample rate unavailable");
-
-    if (sourceSampleRate != options.sampleRate)
-        throw std::runtime_error("libav decode resampling unsupported: source=" + std::to_string(sourceSampleRate) + " requested=" + std::to_string(options.sampleRate));
-
-    const int sourceChannels = decoder.channels();
-    if (sourceChannels <= 0 || sourceChannels > maxNativePcmChannels)
-        throw std::runtime_error("libav decode unsupported channel count: " + std::to_string(sourceChannels));
-
-    if (sourceChannels != options.channels)
-        throw std::runtime_error("libav decode channel remap unsupported: source=" + std::to_string(sourceChannels) + " requested=" + std::to_string(options.channels));
-
-    if (options.decodeStartSeconds > 0.0)
-        decoder.seek(options.decodeStartSeconds);
-
-    constexpr int blockFrames = 4096;
-    while (! decoder.eof())
-    {
-        auto chunk = decoder.readFrames(blockFrames);
-        if (chunk.frames <= 0)
-            break;
-        const auto bytes = static_cast<std::streamsize>(chunk.frames * sourceChannels * static_cast<int>(sizeof(float)));
-        std::cout.write(reinterpret_cast<const char*>(chunk.samples.data()), bytes);
-        if (! std::cout.good())
-            throw std::runtime_error("libav decode failed while writing PCM");
-    }
-
-    return 0;
-}
-
 int readJsonRpcFd(int fd, char* buffer, size_t bytes)
 {
 #ifdef _WIN32
@@ -5036,10 +5000,19 @@ int runNativePcmHost(const Options& options)
         headroomProcessor, replayGainProcessor, rateProcessor, meterProcessor);
     const bool eqControlReady = eqControlServer.start();
 
+    auto rpcOutputWriter = std::make_shared<RpcOutputWriter>(options.rpcStdoutFd);
     std::unique_ptr<RawPcmInputReader> pcmInputReader;
     if (options.pcmInputFd >= 0)
     {
-        const auto onInputError = [](const std::string& error) { logLine(error); };
+        const auto onInputError = [&playbackPipeline, &options, rpcOutputWriter](const std::string& error) {
+            logLine(error);
+            if (options.pcmWireEpoch)
+            {
+                playbackPipeline.requestStopForGeneration(1);
+                rpcOutputWriter->enqueue(echo::JsonRpcProtocol::createJsonRpcNotification(
+                    "audio.pcmTransportError", {{"epoch", options.pcmWireEpoch}, {"message", error}}) + "\n");
+            }
+        };
         if (options.asioNativeDsdOutput)
         {
             pcmInputReader = std::make_unique<RawPcmInputReader>(
@@ -5079,9 +5052,14 @@ int runNativePcmHost(const Options& options)
             pcmInputReader = std::make_unique<RawPcmInputReader>(
                 options.pcmInputFd,
                 options.channels,
-                [&playbackPipeline](const float* samples, int frames) { return playbackPipeline.push(samples, frames); },
+                [&playbackPipeline, &options](const float* samples, int frames) {
+                    return options.pcmWireEpoch
+                        ? playbackPipeline.pushForGeneration(samples, frames, 1)
+                        : playbackPipeline.push(samples, frames);
+                },
                 onInputError);
         }
+        if (options.pcmWireEpoch) bindPcmWireInput(*pcmInputReader, playbackPipeline, options);
         pcmInputReader->start();
     }
 
@@ -5113,7 +5091,6 @@ int runNativePcmHost(const Options& options)
 
     std::atomic<bool> jsonRpcRunning{true};
     std::unique_ptr<std::thread> jsonRpcThread;
-    auto rpcOutputWriter = std::make_shared<RpcOutputWriter>(options.rpcStdoutFd);
     if (options.rpcStdinFd >= 0 && options.rpcStdoutFd >= 0)
     {
         if (options.deviceOpenDeferred)
@@ -5617,6 +5594,7 @@ int main(int argc, char* argv[])
     try
     {
         options = parseOptions(getCommandLineArgs(argc, argv));
+        validatePcmWireOptions(options);
         if (options.deviceOpenDeferred && options.channelInitializationDeferred)
         {
             if (options.rpcStdinFd < 0 || options.rpcStdoutFd < 0)

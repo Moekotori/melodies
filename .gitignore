@@ -1,6 +1,7 @@
 **/bin/
 **/obj/
 artifacts/
+/out/native-pcm-wire/
 misc/
 *.sqlite
 *.sqlite-wal

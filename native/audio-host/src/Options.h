@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 
 struct Options
 {
@@ -38,6 +39,7 @@ struct Options
     int rpcStdinFd = -1;
     int rpcStdoutFd = -1;
     int pcmInputFd = -1;
+    uint64_t pcmWireEpoch = 0;
     int listenTogetherOutputFd = -1;
     int listenTogetherInputFd = -1;
     bool noStdin = false;

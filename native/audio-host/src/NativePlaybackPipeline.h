@@ -218,7 +218,7 @@ public:
 
     void beginSession(bool startPaused = false);
     void continueSessionAfterDrain();
-    void markInputEnded();
+    void markInputEnded(uint64_t expectedGeneration = 0);
     void requestStop();
     bool requestStopForGeneration(uint64_t generation);
     void allowTailDrainAfterStop();
