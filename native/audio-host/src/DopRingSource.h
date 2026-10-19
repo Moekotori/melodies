@@ -1,12 +1,14 @@
 #pragma once
 
 #include "NativePrimitives.h"
+#include "SdmTransportTelemetry.h"
 
 #include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 class DopRingSource final
@@ -20,7 +22,8 @@ public:
 
     uint32_t renderInterleaved(uint32_t* output, uint32_t frameCount, uint32_t outputChannels);
     bool push(const uint32_t* samples, int frameCount);
-    bool pushForGeneration(const uint32_t* samples, int frameCount, uint64_t generation);
+    bool pushForGeneration(const uint32_t* samples, int frameCount, uint64_t generation,
+        std::optional<std::chrono::steady_clock::time_point> deadline = std::nullopt);
     int replaceBufferedAudio(const uint32_t* samples, int frameCount, bool pausedAfterReplace);
     void beginSession();
     void reconfigureCapacity(int capacityFrames);
@@ -34,6 +37,7 @@ public:
     uint64_t getFramesPlayed() const;
     uint64_t getUnderrunCallbacks() const;
     uint64_t getUnderrunFrames() const;
+    echo_audio_host::SdmTransportTelemetry realtimeTelemetry() const noexcept;
     uint64_t generation() const noexcept { return sessionGeneration.load(std::memory_order_acquire); }
 
 #if defined(ECHO_AUDIO_ENGINE_TESTS) && ECHO_AUDIO_ENGINE_TESTS

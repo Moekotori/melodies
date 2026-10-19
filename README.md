@@ -1,4 +1,4 @@
-# ECHO Avalonia
+# melodies
 
 Avalonia 桌面重写的新工作区。当前提供扫描、独立 SQLite 数据库、分页查询及 CLI，并已接入桌面界面和原生播放；完整旧版功能与旧库迁移尚未完成。
 

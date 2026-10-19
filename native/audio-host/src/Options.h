@@ -15,6 +15,7 @@ struct Options
     int channels = 2;
     int deviceIndex = -1;
     int bufferSize = 0;
+    bool deviceBufferManaged = false;
     int asioOutputChannelStart = 0;
     int fifoCapacityMs = 0;
     int startupPrebufferMs = 0;

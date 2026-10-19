@@ -35,7 +35,7 @@ public sealed class DlnaReceiverHost : IDisposable
         try
         {
             if (Running) return;
-            Name = "ECHO " + ConnectAddress.Machine();
+            Name = "melodies " + ConnectAddress.Machine();
             uuid = DlnaReceiverPages.Uuid(preferences);
             listener = Bind(out var port);
             Port = port;

@@ -29,6 +29,7 @@ internal sealed class SourceMetadataReader
             Album = string.IsNullOrWhiteSpace(source.Album) ? metadata.Album : source.Album,
             AlbumArtist = string.IsNullOrWhiteSpace(source.AlbumArtist) ? metadata.AlbumArtist : source.AlbumArtist,
             TrackNumber = source.TrackNumber ?? metadata.TrackNumber,
+            Bpm = source.Bpm ?? metadata.Bpm,
             DurationSeconds = source.Kind == "cue" ? end - source.StartSeconds : metadata.DurationSeconds
         });
     }

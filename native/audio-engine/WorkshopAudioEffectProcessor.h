@@ -2,6 +2,7 @@
 
 #include "buffer.h"
 #include "WorkshopToneRamp.h"
+#include "VocalCutCenterFilter.h"
 
 #include <atomic>
 #include <cstdint>
@@ -22,6 +23,7 @@ const char* workshopAudioEffectTypeName(WorkshopAudioEffectType type) noexcept;
 
 struct WorkshopAudioEffectState
 {
+    bool operator==(const WorkshopAudioEffectState&) const = default;
     bool enabled = false;
     int bitDepth = 8;
     int sampleRateHz = 11025;
@@ -73,45 +75,32 @@ public:
 
     void prepare(double sampleRate, int maximumBlockSize, int channelCount);
     void reset();
-    void processBlock(FloatAudioBuffer& buffer, int startSample, int numSamples);
+    template <typename Sample>
+    void processBlock(PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples);
     bool isActive() const noexcept;
     bool hasClippingRisk() const noexcept;
 
 private:
-    struct VocalCutFilterState
-    {
-        float integrator1 = 0.0f;
-        float integrator2 = 0.0f;
-    };
-
     WorkshopAudioEffectController& controller_;
+    friend struct DspPreparedRuntime;
     WorkshopAudioEffectState lastState_;
-    std::vector<float> heldSamples_;
+    std::vector<double> heldSamples_;
     double sourceSampleRate_ = 44100.0;
     double holdPhase_ = 1.0;
-    float wetMix_ = 0.0f;
-    float chiptuneMix_ = 0.0f;
-    float vocalCutMix_ = 0.0f;
-    float vocalCutStrengthSmoothed_ = 1.0f;
-    float vocalCutStrengthTarget_ = 1.0f;
-    float vocalCutFilterA1_ = 1.0f;
-    float vocalCutFilterA2_ = 0.0f;
-    float vocalCutFilterA3_ = 0.0f;
-    float vocalCutFilterTargetA1_ = 1.0f;
-    float vocalCutFilterTargetA2_ = 0.0f;
-    float vocalCutFilterTargetA3_ = 0.0f;
-    float vocalCutBassPreserveHzTarget_ = 160.0f;
-    VocalCutFilterState vocalCutFilterStage1_;
-    VocalCutFilterState vocalCutFilterStage2_;
-    float chipHeldSample_ = 0.0f;
-    float chipBassSample_ = 0.0f;
-    float chipNoiseEnvelope_ = 0.0f;
-    float chipInputEnvelope_ = 0.0f;
-    float outputGainSmoothed_ = 1.0f;
+    double wetMix_ = 0.0;
+    double chiptuneMix_ = 0.0;
+    double vocalCutMix_ = 0.0;
+    double vocalCutStrengthSmoothed_ = 1.0;
+    double vocalCutStrengthTarget_ = 1.0;
+    VocalCutCenterFilter vocalCutCenterFilter_;
+    double chipHeldSample_ = 0.0;
+    double chipBassSample_ = 0.0;
+    double chipNoiseEnvelope_ = 0.0;
+    double chipInputEnvelope_ = 0.0;
+    double outputGainSmoothed_ = 1.0;
     WorkshopToneRamp toneRamp_;
     uint32_t chipNoiseLfsr_ = 0x1ffffu;
     int smoothingSamples_ = 1;
     int vocalCutStrengthRampRemaining_ = 0;
-    int vocalCutFilterRampRemaining_ = 0;
 };
 } // namespace echo

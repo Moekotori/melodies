@@ -10,6 +10,8 @@ public sealed record PlaybackPerformance(long OperationId, long Timestamp, long 
     long? HostUnderrunCallbacks, long? HostUnderrunFrames,
     ProcessingStagePerformance? Src, ProcessingStagePerformance? Sdm)
 {
+    public NativeProcessResources? NativeResources { get; init; }
+    public SdmRealtimePerformance? SdmRealtime { get; init; }
     public double? BufferedMilliseconds => BufferedFrames is { } frames && PcmSampleRate is > 0
         ? frames * 1000d / PcmSampleRate.Value : null;
     public static PlaybackPerformance Unknown { get; } = new(0, 0, 0, null, null, null, null, null, null, null);
@@ -49,7 +51,11 @@ public sealed partial class PlaybackSessionCoordinator
             value.TryGetProperty("inputEnded", out var ended) && ended.ValueKind is JsonValueKind.True or JsonValueKind.False ? ended.GetBoolean() : null,
             hostUnderruns, hostUnderrunFrames,
             Stage(processing, "echoSrc", "SRC", now) ?? previous.Src,
-            Stage(processing, "sdm", "SDM", now) ?? previous.Sdm);
+            Stage(processing, "sdm", "SDM", now) ?? previous.Sdm)
+        {
+            NativeResources = NativeProcessingTelemetry.Resources(processing) ?? previous.NativeResources,
+            SdmRealtime = NativeProcessingTelemetry.Sdm(processing) ?? previous.SdmRealtime
+        };
     }
 
     private static long? Counter(JsonElement value, string name)

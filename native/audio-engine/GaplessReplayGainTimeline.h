@@ -17,7 +17,8 @@ public:
     void publish(int index, uint64_t frame) {
         if (index > 0 && index < 32) boundaries[static_cast<size_t>(index)].store(frame, std::memory_order_release);
     }
-    void process(ReplayGainProcessor& processor, FloatAudioBuffer& buffer, int start, int count) {
+    template <typename Sample>
+    void process(ReplayGainProcessor& processor, PlanarAudioBuffer<Sample>& buffer, int start, int count) {
         uint64_t cursor = consumed.load(std::memory_order_acquire);
         while (count > 0) {
             int index = 0;

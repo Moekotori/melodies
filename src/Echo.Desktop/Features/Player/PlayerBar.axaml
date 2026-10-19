@@ -7,7 +7,7 @@
   <Grid>
   <icon:MeasuredWaveform Name="TopWaveform" Envelope="{Binding AppearanceVisuals.Envelope}" Position="{Binding Player.Position}" IsVisible="{Binding AppearanceVisuals.TopWaveform}" Brush="{DynamicResource EchoAccent}" Height="20" VerticalAlignment="Top" Margin="0,-20,0,0" IsHitTestVisible="False" />
   <Border Name="BarSurface" Background="{DynamicResource EchoPlayer}" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource EchoBorder}" Padding="14,6,28,6">
-    <Grid ColumnDefinitions="*,691.2,*" ColumnSpacing="16" Name="PlayerLayout">
+    <Grid ColumnDefinitions="*,691.2,*" ColumnSpacing="16" Name="PlayerLayout" Background="{DynamicResource EchoPlayerGlow}">
       <Grid Name="NowPlaying" ColumnDefinitions="84,*" ColumnSpacing="14" VerticalAlignment="Center" ClipToBounds="True">
         <Button Name="CoverButton" Classes="player-cover" Width="84" Height="84" Padding="0"
                 Command="{Binding OpenNowPlayingCommand}" ToolTip.Tip="{Binding Player.NowPlayingViewLabel}" AutomationProperties.Name="{Binding Player.NowPlayingViewLabel}">

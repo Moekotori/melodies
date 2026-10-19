@@ -33,7 +33,7 @@ public sealed partial class ConnectWorkspaceItem : ObservableObject
         [
             new("output", ConnectWorkspaceGroup.Cast, "播放到设备", "切换本机输出，或把当前曲目投到 DLNA。", "本机与 DLNA", "speaker"),
             new("hqplayer", ConnectWorkspaceGroup.Cast, "HQPlayer", "连接控制协议，再把当前曲目送出去。", "外部渲染器", "waves"),
-            new("receive", ConnectWorkspaceGroup.Incoming, "从设备接收", "让手机把音乐推到这台 ECHO。", "DLNA 渲染器", "download"),
+            new("receive", ConnectWorkspaceGroup.Incoming, "从设备接收", "让手机把音乐推到这台 melodies。", "DLNA 渲染器", "download"),
             new("mobile", ConnectWorkspaceGroup.Incoming, "手机遥控", "用配对码让手机控制本机播放。", "配对码", "user"),
             new("smartHome", ConnectWorkspaceGroup.Incoming, "家居联动", "发布播放状态，并接收家居命令。", "MQTT", "zap")
         ];

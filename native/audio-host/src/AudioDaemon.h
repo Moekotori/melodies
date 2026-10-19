@@ -1,11 +1,13 @@
 #pragma once
 
 #include "AutomixHandoffSchedule.h"
+#include "automix-alpha/AlphaParameters.h"
 struct WorkshopTransitionWindow;
 #include "DualTrackMixDecoder.h"
 
 #include <atomic>
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <mutex>
@@ -14,6 +16,7 @@ struct WorkshopTransitionWindow;
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "../../audio-engine/libav_decoder.h"
@@ -77,7 +80,7 @@ public:
         std::function<bool()> isDrained;
         std::function<bool()> requiresRenderedStopDrain;
         std::function<void(const echo::AudioProbe&)> configureMqaPassthrough;
-        std::function<uint64_t(uint64_t, uint64_t, double, double, double, double, bool, bool, bool, double, double, double, double, double, AutomixHandoffSchedule)> prepareAutomixDeckFrames;
+        std::function<uint64_t(uint64_t, uint64_t, double, double, double, double, bool, bool, bool, double, double, double, double, double, AutomixHandoffSchedule, echo::automix_alpha::Parameters)> prepareAutomixDeckFrames;
         std::function<bool(uint64_t, const float* samples, int frames)> pushAutomixDeck;
         std::function<void(uint64_t)> markAutomixDeckEnded;
         std::function<void(uint64_t, uint64_t)> failAutomixDeck;
@@ -93,6 +96,9 @@ public:
         std::function<void(int, uint64_t)> publishGaplessReplayGainBoundary;
         std::function<bool()> requiresReplayGainPreparation;
         std::function<void(std::shared_ptr<DualTrackMixBuffer>)> installDualTrackMix;
+        std::function<bool(std::chrono::steady_clock::time_point)> markInputEndedUntil;
+        std::function<std::pair<uint64_t, uint64_t>()> playbackClockFrames;
+        std::function<echo::DspMeasurement()> levelMeterMeasurement;
     };
 
     // Queue state for autonomous track advancement
@@ -165,7 +171,7 @@ public:
         double initialFrameScale,
         uint64_t tempoRampOutputFrames);
 
-#ifdef ECHO_AUDIO_ENGINE_TESTS
+#if defined(ECHO_AUDIO_ENGINE_TESTS) || defined(ECHO_DAEMON_CONTROL_TESTS)
     void stopForTests(nlohmann::json& result) { onStop(result); }
     bool pauseForTests(bool pause) { return onPause(pause); }
     bool pauseForTests(bool pause, uint64_t expectedOperationId) { return onPause(pause, expectedOperationId); }
@@ -185,6 +191,20 @@ public:
     {
         return onSeek(positionSeconds, result);
     }
+    void cacheFileForSeekTests(const std::string& path)
+    {
+        echo::LibavDecoder decoder;
+        const int rate = source_.decoderSampleRateFor ? source_.decoderSampleRateFor(sampleRate_) : sampleRate_;
+        auto audio = decoder.decode(path, 0.0, 0.0, rate);
+        auto cached = std::make_shared<CachedTrack>();
+        cached->samples = std::make_shared<const std::vector<float>>(std::move(audio.samples));
+        cached->sampleRate = audio.sampleRate;
+        cached->channels = audio.channels;
+        cached->complete = true;
+        cached->cachedDurationSeconds = static_cast<double>(cached->samples->size()) / audio.channels / audio.sampleRate;
+        std::lock_guard<std::mutex> lock(cacheMutex_);
+        cache_[path] = std::move(cached);
+    }
     void setPlaybackRateForTests(float rate, echo::SpeedMode mode)
     {
         onSetPlaybackRate(rate, mode);
@@ -201,7 +221,8 @@ public:
         const nlohmann::json& items,
         const std::string& repeatMode,
         uint64_t revision,
-        const std::string& currentItemId);
+        const std::string& currentItemId,
+        uint64_t cursorOperationId = 0);
     void onQueueClear();
 
 private:
@@ -219,6 +240,10 @@ private:
     float mixBalance_ = 0.5f;
     bool onPause(bool pause, uint64_t expectedOperationId = 0);
     bool onSeek(double positionSeconds, nlohmann::json& result, uint64_t expectedOperationId = 0);
+    bool seekLocked(double positionSeconds, nlohmann::json& result,
+                    bool allowRecovery = true, bool preserveOperationId = false);
+    bool recoverFailedSeek(double previousPosition, uint64_t previousOperationId,
+                           bool allowRecovery, nlohmann::json& result);
     bool onStop(nlohmann::json& result, uint64_t expectedOperationId = 0);
     bool onPrefetch(const std::string& filePath, int targetSampleRate);
     bool onGaplessPrepare(const nlohmann::json& request, nlohmann::json& result);
@@ -290,6 +315,7 @@ private:
     std::shared_ptr<RpcOutputWriter> rpcOutputWriter_;
     DecodePath decodePath_ = DecodePath::StreamingLibav;
     bool paused_ = false;
+    uint64_t failedSeekOperationId_ = UINT64_MAX; // Guarded by operationMutex_.
     std::atomic<double> playbackTempoRatio_ { 1.0 };
 
     // Shared shutdown signal (set by signal handler, read by main loop)
@@ -307,6 +333,9 @@ private:
     std::array<std::atomic<float>, maximumLevelMeterChannels_> pendingLevelMeterPeakDb_ {};
     std::array<std::atomic<float>, maximumLevelMeterChannels_> pendingLevelMeterRmsDb_ {};
     std::array<std::atomic<float>, maximumLevelMeterSpectrumBuckets_> pendingLevelMeterSpectrum_ {};
+    std::array<std::atomic<float>, echo::levelMeterVisualWaveformSampleCount> pendingLevelMeterWaveform_ {};
+    std::atomic<size_t> pendingLevelMeterWaveformSamples_ { 0 };
+    std::atomic<double> pendingLevelMeterWaveformSampleRate_ { 0.0 };
     std::atomic<size_t> pendingLevelMeterChannels_ { 0 };
     std::atomic<size_t> pendingLevelMeterSpectrumBuckets_ { 0 };
     std::atomic<double> pendingLevelMeterTimestampMs_ { 0.0 };

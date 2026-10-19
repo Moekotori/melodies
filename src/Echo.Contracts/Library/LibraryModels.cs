@@ -5,10 +5,10 @@ public sealed record FileSnapshot(string Path, string PathKey, long SizeBytes, l
 public sealed record TrackMetadata(
     string Title, string Artist, string Album, string AlbumArtist,
     double DurationSeconds, string Codec, int SampleRate, int BitDepth,
-    int? TrackNumber = null, int? DiscNumber = null, int? Year = null, string Genre = "")
+    int? TrackNumber = null, int? DiscNumber = null, int? Year = null, string Genre = "", int? Bitrate = null, double? Bpm = null)
 {
     // Version changes invalidate incremental metadata reuse.
-    public const int ParserVersion = 2;
+    public const int ParserVersion = 3;
 }
 public sealed record KnownTrack(string Id, long SizeBytes, long ModifiedTicks, int ParserVersion, bool Missing,
     string Path = "", string? DependencyStamp = null);
@@ -22,8 +22,8 @@ public sealed record TrackRow(string Id, string Path, string Title, string Artis
     string Genre = "");
 public sealed record TrackCursor(string SortKey, string Id, long Revision, int Offset = 0, string? QueryKey = null);
 public sealed record TrackQuery(int Limit = 100, string? Search = null, TrackCursor? After = null,
-    IReadOnlyList<TrackOrder>? Order = null, LibraryFilter? Filter = null, int Offset = 0, long? Revision = null);
-public sealed record TrackPage(IReadOnlyList<TrackRow> Items, TrackCursor? Next, long Revision);
+    IReadOnlyList<TrackOrder>? Order = null, LibraryFilter? Filter = null, int Offset = 0, long? Revision = null, int RandomSeed = 1);
+public sealed record TrackPage(IReadOnlyList<TrackRow> Items, TrackCursor? Next, long Revision, int? Total = null, double? TotalDurationSeconds = null);
 public sealed record LibraryStats(long Tracks, long Missing, long Revision);
 public sealed class LibraryChangedException() : Exception("Library changed; refresh the first page.");
 public sealed class LibraryBusyException() : Exception("The bounded database lane is busy.");

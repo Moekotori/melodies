@@ -50,6 +50,7 @@ public static class DesktopComposition
         var ownsPlayback = playback is null;
         playback ??= CreatePlaybackRuntime(restorePlayback, enableMedia);
         var shell = new ShellViewModel();
+        shell.AlbumInformation = new Echo.Core.Client.AlbumInformationClient();
         shell.AttachRadio(new Echo.Application.Radio.RadioCatalog(restorePlayback
             ? new JsonRadioStationStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ECHO Avalonia", "radio-stations.json")) : null));

@@ -42,13 +42,13 @@
       <StackPanel Orientation="Horizontal" Spacing="7" IsEnabled="{Binding IsEnabled}">
         <Border BorderThickness="1" BorderBrush="{DynamicResource SettingsBorder}" CornerRadius="6" Background="{DynamicResource EchoField}" ClipToBounds="True">
           <Grid ColumnDefinitions="38,70,38" Height="34">
-            <Button Command="{Binding DecreaseCommand}" Padding="0" ToolTip.Tip="{DynamicResource ui.SettingRowView.a6878682a7b8}">
+            <Button Classes="settings-step" Command="{Binding DecreaseCommand}" Padding="0" ToolTip.Tip="{DynamicResource ui.SettingRowView.a6878682a7b8}">
               <icon:GlyphIcon Kind="minus" Width="15" Height="15" />
             </Button>
             <Border Grid.Column="1" BorderThickness="1,0" BorderBrush="{DynamicResource SettingsBorder}">
-              <TextBlock Text="{Binding ScaleLabel}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding ScaleLabel}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
-            <Button Grid.Column="2" Command="{Binding IncreaseCommand}" Padding="0" ToolTip.Tip="{DynamicResource ui.SettingRowView.b7eaf4a368f3}">
+            <Button Classes="settings-step" Grid.Column="2" Command="{Binding IncreaseCommand}" Padding="0" ToolTip.Tip="{DynamicResource ui.SettingRowView.b7eaf4a368f3}">
               <icon:GlyphIcon Kind="plus" Width="15" Height="15" />
             </Button>
           </Grid>
@@ -82,11 +82,11 @@
       </ItemsControl>
     </DataTemplate>
   </UserControl.Resources>
-  <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource SettingsDivider}" Padding="20,8" MinHeight="{Binding RowHeight}" Background="Transparent" Name="RowBorder" ToolTip.Tip="{Binding UnavailableHint}">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+  <Border BorderThickness="0" BorderBrush="{DynamicResource SettingsDivider}" Padding="0,14" MinHeight="64" CornerRadius="6" Background="Transparent" Name="RowBorder" ToolTip.Tip="{Binding UnavailableHint}">
+    <Grid Name="RowLayout" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="20">
       <StackPanel VerticalAlignment="Center" Spacing="5" Margin="0,0,6,0">
         <WrapPanel>
-          <TextBlock Text="{Binding Title}" FontSize="15" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" TextWrapping="Wrap" />
           <Border IsVisible="{Binding HasBadge}" Margin="8,0,0,0" Padding="6,3" Background="{DynamicResource SettingsBadge}" CornerRadius="10">
             <TextBlock Text="{Binding Badge}" Foreground="{DynamicResource SettingsBadgeText}" FontSize="10" />
           </Border>
@@ -95,7 +95,7 @@
           </Button>
         </WrapPanel>
       </StackPanel>
-      <ContentControl Name="RowEditor" Grid.Column="1" VerticalAlignment="Center" MaxWidth="520" />
+      <ContentControl Name="RowEditor" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" MaxWidth="520" />
     </Grid>
   </Border>
 </UserControl>

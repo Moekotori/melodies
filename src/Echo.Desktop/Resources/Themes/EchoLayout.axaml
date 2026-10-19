@@ -1,12 +1,14 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Styles.Resources>
     <x:Double x:Key="EchoPageTitleSize">28</x:Double>
-    <Thickness x:Key="EchoPageInset">32,28,32,28</Thickness>
+    <Thickness x:Key="EchoPageInset">42,24,42,28</Thickness>
   </Styles.Resources>
   <Style Selector="TextBlock.page-title"><Setter Property="FontSize" Value="{StaticResource EchoPageTitleSize}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
   <Style Selector="Button.quiet, Button.content-link">
     <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="Padding" Value="8,0" />
+    <Setter Property="FontWeight" Value="Normal" />
   </Style>
   <Style Selector="Button.quiet:pointerover, Button.content-link:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
   <Style Selector="Button.content-link"><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="24" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>

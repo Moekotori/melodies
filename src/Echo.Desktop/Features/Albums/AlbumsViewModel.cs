@@ -15,7 +15,7 @@ public sealed partial class AlbumsViewModel : ObservableObject, IDisposable
     public AlbumsViewModel(IAlbumLibrary library, ArtistRow? artist = null, LocalizationService? text = null, LibraryViewPreferences? preference = null, string? genreId = null)
     { this.library = library; this.artist = artist; this.genreId = genreId; Filters.AttachLibrary(library);
         if (preference is not null) { sortIndex = Math.Clamp(preference.SortIndex,0,11); descending = preference.Descending; Filters.Restore(preference.Filter); }
-        Text = text ?? new(); Text.Changed += OnLanguageChanged; Filters.Changed += OnFiltersChanged; RebuildSortOptions(); }
+        Text = text ?? new(); Filters.FormatActive = count => Text.Format("query.activeFilters", count); Text.Changed += OnLanguageChanged; Filters.Changed += OnFiltersChanged; RebuildSortOptions(); }
     public LibraryFilterViewModel Filters { get; } = new();
     public event Action? PreferenceChanged;
     public LibraryViewPreferences Preference => new("albums", SortIndex, Descending, Filter: Filters.Snapshot() with { LosslessOnly = LosslessOnly || Filters.LosslessOnly });

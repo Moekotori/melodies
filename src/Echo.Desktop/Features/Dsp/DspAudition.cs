@@ -11,17 +11,19 @@ public sealed partial class DspViewModel
 
     partial void OnSelectedModuleChanging(DspModule? oldValue, DspModule newValue)
     {
-        if (oldValue is null || oldValue.ConfiguresOutput || newValue == oldValue || IsBusy || !IsDirty || confirmed is null || session is null || oldValue.WriteMethod is null) return;
+        if (oldValue is null || oldValue.DraftOnly || newValue == oldValue || IsBusy || !IsDirty || confirmed is null || session is null || oldValue.WriteMethod is null) return;
         auditionEpoch++;
         var state = CaptureDraft();
         _ = CommitModuleAsync(oldValue, state);
     }
 
-    partial void OnSelectedBandChanged(EqBandViewModel? value) => OnPropertyChanged(nameof(CanResetBand));
+    public string CurveScopeLabel => "参数响应示意 · " + (SelectedBand?.Scope.Label ?? "立体声") + " · 不含动态实时增益";
+    partial void OnSelectedBandChanged(EqBandViewModel? value)
+    { OnPropertyChanged(nameof(CanResetBand)); OnPropertyChanged(nameof(CurveScopeLabel)); }
 
     private void NoteEdit()
     {
-        if (projecting || !CanEdit || SelectedModule.ConfiguresOutput || SelectedModule.WriteMethod is null || confirmed is null) return;
+        if (projecting || !CanEdit || SelectedModule.DraftOnly || SelectedModule.WriteMethod is null || confirmed is null) return;
         var epoch = ++auditionEpoch;
         _ = HearAsync(epoch);
     }
@@ -80,6 +82,7 @@ public sealed partial class DspViewModel
     {
         if (session is null || module.WriteMethod is null) throw new IOException("播放服务尚未连接。");
         if (module.Id == "room") return await PushRoomAsync(state, retain, token);
+        if (module.Id == "limiter") return await PushLimiterAsync(state, retain, token);
         return await session.DspAsync(module.WriteMethod, Json(ParametersFor(module, state)), retain, token);
     }
 
@@ -103,7 +106,7 @@ public sealed partial class DspViewModel
     {
         "headroom" => new(state["headroomDb"]!.DeepClone()),
         "safety" => new(state["safetyLimiterEnabled"]?.DeepClone() ?? JsonValue.Create(false)),
-        "rack" => new(new JsonObject { ["order"] = state["order"]?.DeepClone() ?? new JsonArray() }),
+        "rack" => new(state),
         _ => new(state),
     };
 

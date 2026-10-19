@@ -51,7 +51,7 @@ public sealed partial class LibraryDatabase
         using var upsert = Prepared(connection, transaction, UpsertSql,
             ["$id","$path","$key","$size","$mtime","$version","$title","$sort","$artist","$album",
              "$albumArtist","$duration","$codec","$rate","$bits","$track","$disc","$year","$genre",
-             "$source","$stamp","$physical","$kind"]);
+             "$source","$stamp","$physical","$kind","$bitrate","$bpm"]);
         using var seen = Prepared(connection, transaction,
             "INSERT OR IGNORE INTO scan_seen(scan_id,path_key) VALUES($job,$key)", ["$job","$key"]);
         using var error = Prepared(connection, transaction,
@@ -91,7 +91,7 @@ public sealed partial class LibraryDatabase
                 metadata.DurationSeconds, metadata.Codec, metadata.SampleRate, metadata.BitDepth,
                 metadata.TrackNumber, metadata.DiscNumber, metadata.Year, metadata.Genre,
                 TrackSourceJson.Encode(entry.File.Source), entry.File.Source?.Stamp,
-                entry.File.Source?.AudioPath, entry.File.Source?.Kind
+                entry.File.Source?.AudioPath, entry.File.Source?.Kind, metadata.Bitrate, metadata.Bpm
             ];
             for (var i = 0; i < values.Length; i++) upsert.Parameters[i].Value = values[i] ?? DBNull.Value;
             if (upsert.ExecuteNonQuery() == 0)
@@ -158,7 +158,8 @@ public sealed partial class LibraryDatabase
                 var m = entry.Metadata ?? throw new ArgumentException("Metadata is required.");
                 if (m.Title.Length is 0 or > 1024 || m.Artist.Length > 512 || m.Album.Length > 512 ||
                     m.AlbumArtist.Length > 512 || m.Genre.Length > 256 || m.Codec.Length > 64 ||
-                    !double.IsFinite(m.DurationSeconds) || m.DurationSeconds < 0 || m.SampleRate < 0 || m.BitDepth < 0)
+                    !double.IsFinite(m.DurationSeconds) || m.DurationSeconds < 0 || m.SampleRate < 0 || m.BitDepth < 0 || m.Bitrate is < 0 ||
+                    (m.Bpm is { } bpm && (!double.IsFinite(bpm) || bpm <= 0 || bpm > 10000)))
                     throw new ArgumentException("Invalid bounded metadata.");
                 characters += m.Title.Length + m.Artist.Length + m.Album.Length + m.AlbumArtist.Length + m.Genre.Length;
             }
@@ -169,9 +170,9 @@ public sealed partial class LibraryDatabase
     private const string UpsertSql = """
         INSERT INTO tracks(id,path,path_key,size_bytes,modified_ticks,parser_version,title,sort_key,artist,
           album,album_artist,duration,codec,sample_rate,bit_depth,track_no,disc_no,year,genre,updated_at,
-          source_json,dependency_stamp,physical_path,source_kind,album_key)
+          source_json,dependency_stamp,physical_path,source_kind,bitrate,bpm,album_key)
         VALUES($id,$path,$key,$size,$mtime,$version,$title,$sort,$artist,$album,$albumArtist,$duration,
-          $codec,$rate,$bits,$track,$disc,$year,$genre,unixepoch(),$source,$stamp,$physical,$kind,
+          $codec,$rate,$bits,$track,$disc,$year,$genre,unixepoch(),$source,$stamp,$physical,$kind,$bitrate,$bpm,
           echo_album_key($path,$album,$albumArtist,coalesce($kind,''),coalesce($source,'')))
         ON CONFLICT(path_key) DO UPDATE SET
           path=excluded.path,size_bytes=excluded.size_bytes,modified_ticks=excluded.modified_ticks,
@@ -181,7 +182,8 @@ public sealed partial class LibraryDatabase
           bit_depth=excluded.bit_depth,track_no=excluded.track_no,disc_no=excluded.disc_no,
           year=excluded.year,genre=excluded.genre,missing=0,updated_at=excluded.updated_at,
           source_json=excluded.source_json,dependency_stamp=excluded.dependency_stamp,
-          physical_path=excluded.physical_path,source_kind=excluded.source_kind,album_key=excluded.album_key
+          physical_path=excluded.physical_path,source_kind=excluded.source_kind,album_key=excluded.album_key,
+          bitrate=excluded.bitrate,bpm=excluded.bpm
         WHERE tracks.path=excluded.path COLLATE BINARY
         """;
 }

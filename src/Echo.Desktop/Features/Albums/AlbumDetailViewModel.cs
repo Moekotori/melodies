@@ -16,7 +16,9 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
     private bool _closed;
     private int _generation, _offset;
     private long? _revision;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanPlay))] private IReadOnlyList<AlbumTrackItem> tracks = [];
+    private int _trackTotal = album.TrackCount;
+    private double _trackDuration = album.DurationSeconds;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(CanPlay), nameof(IsEmpty), nameof(Quality), nameof(HasQuality))] private IReadOnlyList<AlbumTrackItem> tracks = [];
     [ObservableProperty] private string error = "";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanPlay))] private bool isBusy;
     [ObservableProperty] private bool favorite = album.Favorite;
@@ -27,6 +29,7 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasDiscs), nameof(DiscText))] private int discCount;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasGenres), nameof(GenreText))] private IReadOnlyList<string> genres = [];
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanPlay))] private bool isLoading;
+    public bool IsEmpty => !IsLoading && Tracks.Count == 0;
     public bool CanPlay => !IsBusy && !IsLoading && Tracks.Count > 0;
     private string? _playingId;
     public AlbumRow Album => album;
@@ -41,17 +44,14 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
     public string Quality => Tracks.FirstOrDefault()?.Signal ?? "";
     public bool HasQuality => Quality.Length > 0;
     public bool HasDuration => album.DurationSeconds > 0;
-    public string DurationLabel
+    public string DurationLabel => FormatDuration(album.DurationSeconds);
+    private string FormatDuration(double seconds)
     {
-        get
-        {
-            if (album.DurationSeconds <= 0) return "";
-            var totalMinutes = Math.Max(1, (int)Math.Round(album.DurationSeconds / 60d));
-            var hours = totalMinutes / 60;
-            var minutes = totalMinutes % 60;
-            if (text is null) return hours > 0 ? $"{hours} 小时 {minutes} 分钟" : $"{totalMinutes} 分钟";
-            return hours > 0 ? text.Format("album.detail.hours", hours, minutes) : text.Format("album.detail.minutes", totalMinutes);
-        }
+        if (seconds <= 0) return "";
+        var totalMinutes = Math.Max(1, (int)Math.Round(seconds / 60d));
+        var hours = totalMinutes / 60; var minutes = totalMinutes % 60;
+        if (text is null) return hours > 0 ? $"{hours} 小时 {minutes} 分钟" : $"{totalMinutes} 分钟";
+        return hours > 0 ? text.Format("album.detail.hours", hours, minutes) : text.Format("album.detail.minutes", totalMinutes);
     }
     public string Meta => string.Join(" · ", new[] { YearText, HasDiscs ? DiscText : "", TrackCountText }.Where(part => part.Length > 0));
     public string Summary => string.Join("     |     ", new[] { TrackCountText, HasDuration ? DurationLabel : "", HasQuality ? Quality : "" }.Where(part => part.Length > 0));
@@ -60,9 +60,15 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
     public string HeartIcon => Favorite ? "heart-filled" : "heart";
     public string FavoriteAction => Favorite ? "取消收藏专辑" : "收藏专辑";
     public bool CanPersonalState => library is IAlbumPersonalState;
-    public bool HasMultiplePages => album.TrackCount > 200;
+    public bool HasMultiplePages => _trackTotal > 200;
+    public bool IsLiked => ActiveTab == 5;
+    public bool IsTrackPanel => IsTracks || IsLiked;
     public bool IsTracks => ActiveTab == 0;
     public bool IsGallery => ActiveTab == 1;
+    public bool IsOnline => ActiveTab is 2 or 3 or 4;
+    public string TrackPanelDuration => IsLiked ? FormatDuration(_trackDuration) : DurationLabel;
+    public bool TrackPanelHasDuration => IsLiked ? _trackDuration > 0 : HasDuration;
+    public string TrackPanelCountText => IsLoading ? "正在读取曲目…" : IsLiked ? $"{_trackTotal:N0} 首喜欢的歌曲" : TrackCountText;
     public bool IsSources => ActiveTab == 2;
     public bool IsVersions => ActiveTab == 3;
     public bool IsInformation => ActiveTab == 4;
@@ -70,8 +76,14 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
     partial void OnFavoriteChanged(bool value) { OnPropertyChanged(nameof(Heart)); OnPropertyChanged(nameof(HeartIcon)); OnPropertyChanged(nameof(FavoriteAction)); }
     partial void OnActiveTabChanged(int value)
     {
-        OnPropertyChanged(nameof(IsTracks)); OnPropertyChanged(nameof(IsGallery)); OnPropertyChanged(nameof(IsSources));
-        OnPropertyChanged(nameof(IsVersions)); OnPropertyChanged(nameof(IsInformation));
+        OnPropertyChanged(nameof(IsTracks)); OnPropertyChanged(nameof(IsLiked)); OnPropertyChanged(nameof(IsTrackPanel));
+        if (value is 0 or 5)
+        {
+            foreach (var old in Tracks) old.PropertyChanged -= OnTrackPersonalStateChanged;
+            Tracks = []; _trackTotal = 0; _trackDuration = 0; _revision = null; _ = LoadAsync();
+        }
+        OnPropertyChanged(nameof(IsGallery)); OnPropertyChanged(nameof(IsSources));
+        OnPropertyChanged(nameof(IsVersions)); OnPropertyChanged(nameof(IsInformation)); OnPropertyChanged(nameof(IsOnline));
     }
     public void ObservePlayback()
     {
@@ -90,11 +102,11 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
         if (Interlocked.Exchange(ref _playingId, id) == id) return;
         Dispatcher.UIThread.Post(() => { if (!_lifetime.IsCancellationRequested) foreach (var track in Tracks.Where(track => track.IsPlaying || track.Row.Id == _playingId)) track.IsPlaying = track.Row.Id == _playingId; });
     }
-    public string PageText => $"{(_offset / 200) + 1} / {Math.Max(1, (album.TrackCount + 199) / 200)}";
+    public string PageText => $"{(_offset / 200) + 1} / {Math.Max(1, (_trackTotal + 199) / 200)}";
     public bool CanPrevious => _offset > 0 && !IsLoading;
-    public bool CanNext => _offset + 200 < album.TrackCount && !IsLoading;
+    public bool CanNext => _offset + 200 < _trackTotal && !IsLoading;
     partial void OnIsBusyChanged(bool value) { OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext)); }
-    partial void OnIsLoadingChanged(bool value) { OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext)); }
+    partial void OnIsLoadingChanged(bool value) { OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext)); OnPropertyChanged(nameof(HasMultiplePages)); OnPropertyChanged(nameof(IsEmpty)); OnPropertyChanged(nameof(TrackPanelCountText)); }
     partial void OnSortIndexChanged(int value) => _ = LoadAsync();
     partial void OnDescendingChanged(bool value) => _ = LoadAsync();
 
@@ -107,13 +119,18 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
         try
         {
             var page = await library.GetAlbumTracksAsync(new(album.Id, offset, Revision: _revision,
-                Sort: (DetailTrackSort)Math.Clamp(SortIndex, 0, 3), Descending: Descending), request.Token);
+                Sort: (DetailTrackSort)Math.Clamp(SortIndex, 0, 3), Descending: Descending, FavoriteOnly: IsLiked), request.Token);
             if (_lifetime.IsCancellationRequested || generation != _generation) return;
+            _trackTotal = page.Total ?? album.TrackCount;
+            _trackDuration = page.TotalDurationSeconds ?? album.DurationSeconds;
+            if (offset > 0 && page.Items.Count == 0 && IsLiked)
+            { await LoadAsync(Math.Max(0, ((_trackTotal - 1) / 200) * 200)); return; }
             _revision = page.Revision; _offset = offset;
+            OnPropertyChanged(nameof(TrackPanelCountText)); OnPropertyChanged(nameof(TrackPanelDuration)); OnPropertyChanged(nameof(TrackPanelHasDuration));
             var discs = page.Items.Select(row => row.DiscNumber).Where(number => number is > 0).Select(number => number!.Value).Distinct().ToArray();
             var multiDisc = discs.Length > 1 || discs.Any(number => number > 1);
-            DiscCount = discs.Length;
-            Genres = page.Items.Select(row => row.Genre.Trim()).Where(genre => genre.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(12).ToArray();
+            if (!IsLiked) DiscCount = discs.Length;
+            if (!IsLiked) Genres = page.Items.Select(row => row.Genre.Trim()).Where(genre => genre.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(12).ToArray();
             var showDiscs = multiDisc && SortIndex == 0 && !Descending;
             int? previousDisc = null;
             var items = new AlbumTrackItem[page.Items.Count];
@@ -128,7 +145,9 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
                 }
                 items[index] = new AlbumTrackItem(row, offset + index + 1, library as IAlbumPersonalState, _lifetime.Token,
                     message => Error = message, multiDisc, header) { IsPlaying = row.Id == _playingId };
+                items[index].PropertyChanged += OnTrackPersonalStateChanged;
             }
+            foreach (var old in Tracks) old.PropertyChanged -= OnTrackPersonalStateChanged;
             Tracks = items;
             OnPropertyChanged(nameof(PageText));
             OnPropertyChanged(nameof(Quality)); OnPropertyChanged(nameof(HasQuality)); OnPropertyChanged(nameof(Summary)); OnPropertyChanged(nameof(Meta));
@@ -137,6 +156,11 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
         catch (LibraryChangedException) { if (!_closed && generation == _generation) { _revision = null; Error = "曲库已变化，请刷新曲目。"; } }
         catch (Exception) { if (!_closed && generation == _generation) Error = "曲目读取失败，点击重试。"; }
         finally { if (generation == _generation) { IsLoading = false; _request = null; } }
+    }
+    private void OnTrackPersonalStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (IsLiked && args.PropertyName == nameof(AlbumTrackItem.Favorite) && sender is AlbumTrackItem { Favorite: false })
+        { _revision = null; _ = LoadAsync(_offset); }
     }
     [RelayCommand] private Task RetryAsync() { _revision = null; return LoadAsync(); }
     [RelayCommand] private Task PreviousAsync() => CanPrevious ? LoadAsync(_offset - 200) : Task.CompletedTask;
@@ -211,5 +235,5 @@ public sealed partial class AlbumDetailViewModel(AlbumRow album, IAlbumLibrary l
         new Dictionary<string, string?> { ["title"] = track.Title, ["artist"] = track.Artist, ["album"] = track.Album,
             ["duration"] = track.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture), ["codec"] = track.Codec },
         Origin: new("album", album.Title, album.Id), SampleRate: track.SampleRate > 0 ? track.SampleRate : null);
-    public void Dispose() { if (_closed) return; _closed = true; if (text is not null) text.Changed -= OnLanguage; player.Session.Changed -= OnPlayback; _request?.Cancel(); _lifetime.Cancel(); ++_generation; Tracks = []; PersonalStateChanged = null; }
+    public void Dispose() { if (_closed) return; _closed = true; if (text is not null) text.Changed -= OnLanguage; player.Session.Changed -= OnPlayback; _request?.Cancel(); _lifetime.Cancel(); ++_generation; foreach (var track in Tracks) track.PropertyChanged -= OnTrackPersonalStateChanged; Tracks = []; PersonalStateChanged = null; }
 }

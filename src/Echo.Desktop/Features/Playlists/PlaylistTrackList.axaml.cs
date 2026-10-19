@@ -26,7 +26,7 @@ public partial class PlaylistTrackList : UserControl
     { if (args.Property == ScrollViewer.ViewportProperty) UpdateHeader(); }
     private void UpdateHeader()
     {
-        var width = Math.Max(0, (scroll?.Viewport.Width ?? TrackList.Bounds.Width) - 16);
+        var width = Math.Max(0, (scroll?.Viewport.Width ?? TrackList.Bounds.Width) - 58);
         if (Math.Abs(HeaderColumns.Width - width) > 0.5 || double.IsNaN(HeaderColumns.Width)) HeaderColumns.Width = width;
     }
     private PlaylistsViewModel? Model => DataContext as PlaylistsViewModel;

@@ -4,7 +4,7 @@
   <StackPanel Spacing="24">
     <StackPanel Spacing="16">
       <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource EchoDivider}" Padding="0,0,0,10">
-        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource home.thisWeek}" Classes="heading" FontSize="16" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{DynamicResource ui.ListeningOverview.b0385cfe4b42}" Command="{Binding Shell.NavigateCommand}" CommandParameter="history" FontSize="12" /></Grid>
+        <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource home.thisWeek}" Classes="heading" FontSize="16" VerticalAlignment="Center" /><Button Grid.Column="1" Classes="quiet" Content="{DynamicResource ui.ListeningOverview.b0385cfe4b42}" Command="{Binding Shell.NavigateCommand}" CommandParameter="history" FontSize="12" /></Grid>
       </Border>
       <Grid ColumnDefinitions="*,*">
         <StackPanel Spacing="4"><TextBlock Text="{DynamicResource ui.ListeningOverview.7f86543bdd77}" Classes="muted" FontSize="12" /><StackPanel Orientation="Horizontal" Spacing="6"><TextBlock Text="{Binding WeekPlays}" FontSize="19" Classes="heading" FontWeight="Medium" /><TextBlock Text="{DynamicResource ui.ListeningOverview.172fb7e67b9b}" Classes="muted" FontSize="11" VerticalAlignment="Bottom" Margin="0,0,0,4" /></StackPanel></StackPanel>

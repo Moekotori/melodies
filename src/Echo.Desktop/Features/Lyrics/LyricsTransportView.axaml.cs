@@ -55,34 +55,35 @@ public partial class LyricsTransportView : UserControl
     public void ApplyPalette()
     {
         Resources["LyricsInk"] = new SolidColorBrush(Color.Parse("#FAFAFA"));
-        Resources["LyricsControlInk"] = new SolidColorBrush(Color.Parse("#C4C3C2"));
-        Resources["LyricsSurface"] = new SolidColorBrush(Color.Parse("#232120"));
-        Resources["LyricsRail"] = new SolidColorBrush(Color.Parse("#585655"));
-        Resources["LyricsProgress"] = new SolidColorBrush(Color.Parse("#7770DF"));
+        Resources["LyricsControlInk"] = new SolidColorBrush(Color.Parse("#D3D2DB"));
+        Resources["LyricsSurface"] = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+            GradientStops = [new GradientStop(Color.Parse("#303038"), 0), new GradientStop(Color.Parse("#202026"), 1)] };
+        Resources["LyricsRail"] = new SolidColorBrush(Color.Parse("#50FFFFFF"));
+        Resources["LyricsProgress"] = new SolidColorBrush(Color.Parse("#AAA4F6"));
         Resources["LyricsHover"] = new SolidColorBrush(Color.Parse("#16FFFFFF"));
     }
     public void Fit(double width)
     {
         var mini = Model?.Appearance.MiniPlayer != false;
-        var barWidth = Math.Max(280, Math.Min(width - (width >= 1050 ? 108 : 48), mini ? 760 : 1440));
+        var barWidth = Math.Max(280, Math.Min(width - (width >= 1050 ? 108 : 48), mini ? 740 : 1120));
         TransportLayout.Width = barWidth;
-        var narrow = barWidth < 1050;
-        TransportLayout.Height = BarSurface.Height = mini ? 56 : narrow ? 64 : 88;
-        IdleSurface.Width = Math.Min(340, barWidth);
+        TransportLayout.Height = BarSurface.Height = mini ? 52 : 60;
+        IdleSurface.Width = Math.Min(320, barWidth);
         var tiny = barWidth < 500;
         ModeButton.IsVisible = QueueButton.IsVisible = LyricsButton.IsVisible = barWidth >= 640;
         FavoriteButton.IsVisible = !tiny;
         foreach (var button in PlaybackControls.Children.OfType<Button>().Concat(AuxiliaryControls.Children.OfType<Button>()))
-            button.Width = button.Height = narrow ? tiny ? 32 : 36 : 44;
-        PlaybackControls.Spacing = tiny ? 6 : mini ? 10 : narrow ? 12 : 28;
-        AuxiliaryControls.Spacing = narrow ? 8 : 12;
-        BarSurface.Padding = new Thickness(tiny ? 12 : mini ? 16 : narrow ? 20 : 28, 0);
-        ProgressRow.Margin = new Thickness(tiny ? 8 : mini ? 12 : narrow ? 16 : 32, 0, tiny ? 8 : mini ? 18 : narrow ? 20 : 60, 0);
-        ProgressRow.ColumnSpacing = tiny ? 6 : narrow ? 8 : 16;
-        ProgressRow.ColumnDefinitions[0].Width = new GridLength(tiny ? 32 : narrow ? 40 : 52);
-        ProgressRow.ColumnDefinitions[2].Width = new GridLength(tiny ? 0 : narrow ? 40 : 52);
+            button.Width = button.Height = tiny ? 30 : 32;
+        PlaybackControls.Spacing = tiny ? 4 : mini ? 6 : 10;
+        AuxiliaryControls.Spacing = 8;
+        BarSurface.Padding = new Thickness(tiny ? 10 : 16, 0);
+        ProgressRow.Margin = new Thickness(tiny ? 8 : 16, 0, tiny ? 8 : 20, 0);
+        ProgressRow.ColumnSpacing = tiny ? 6 : 10;
+        ProgressRow.ColumnDefinitions[0].Width = new GridLength(tiny ? 32 : 42);
+        ProgressRow.ColumnDefinitions[2].Width = new GridLength(tiny ? 0 : 42);
         DurationLabel.IsVisible = !tiny;
-        ElapsedText.FontSize = DurationLabel.FontSize = narrow ? 13 : 18;
+        ElapsedText.FontSize = DurationLabel.FontSize = 12;
     }
     private void OnQueue(object? sender, RoutedEventArgs e)
     { MoreButton.Flyout?.Hide(); shell?.ToggleQueueDrawerCommand.Execute(null); }

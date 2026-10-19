@@ -13,7 +13,7 @@ class WorkshopToneRamp
 public:
     enum Parameter { Bits, CaptureIncrement, BassCoefficient, NoiseRelease,
         EnvelopeRelease, Pulse, Triangle, Noise, Drive, Count };
-    using Values = std::array<float, Count>;
+    using Values = std::array<double, Count>;
 
     void setTarget(const Values& values, int samples, bool immediate)
     {
@@ -25,23 +25,23 @@ public:
     {
         if (remaining_ <= 0) return;
         for (size_t i = 0; i < Count; ++i)
-            current_[i] += (target_[i] - current_[i]) / static_cast<float>(remaining_);
+            current_[i] += (target_[i] - current_[i]) / static_cast<double>(remaining_);
         --remaining_;
     }
 
-    float operator[](Parameter parameter) const { return current_[parameter]; }
+    double operator[](Parameter parameter) const { return current_[parameter]; }
 
-    float quantize(float input) const
+    double quantize(double input) const
     {
-        const float bits = std::clamp(current_[Bits], 4.0f, 16.0f);
+        const double bits = std::clamp(current_[Bits], 4.0, 16.0);
         const int lowBits = static_cast<int>(bits);
         const int lowMax = (1 << (lowBits - 1)) - 1;
-        const float value = std::clamp(input, -1.0f, 1.0f);
-        const float low = std::round(value * lowMax) / lowMax;
-        const float fraction = bits - lowBits;
-        if (fraction == 0.0f) return low;
+        const double value = std::clamp(input, -1.0, 1.0);
+        const double low = std::round(value * lowMax) / lowMax;
+        const double fraction = bits - lowBits;
+        if (fraction == 0.0) return low;
         const int highMax = (1 << lowBits) - 1;
-        const float high = std::round(value * highMax) / highMax;
+        const double high = std::round(value * highMax) / highMax;
         return low + (high - low) * fraction;
     }
 

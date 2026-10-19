@@ -4,15 +4,11 @@
       <Setter Property="Focusable" Value="True" /><Setter Property="Padding" Value="13,8" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Template"><ControlTemplate>
         <Border Name="RowSurface" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
-          <Grid ColumnDefinitions="2,*" ColumnSpacing="10">
-            <Border Name="SelectedLine" Background="{DynamicResource EchoAccent}" Width="2" Height="22" Opacity="0" VerticalAlignment="Center" />
-            <ContentPresenter Grid.Column="1" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
-          </Grid>
+          <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
         </Border>
       </ControlTemplate></Setter>
       <Style Selector="^:pointerover /template/ Border#RowSurface"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
       <Style Selector="^:selected /template/ Border#RowSurface"><Setter Property="Background" Value="{DynamicResource EchoField}" /></Style>
-      <Style Selector="^:selected /template/ Border#SelectedLine"><Setter Property="Opacity" Value="1" /></Style>
       <Style Selector="^:focus-visible /template/ Border#RowSurface"><Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" /><Setter Property="BorderThickness" Value="1" /></Style>
     </ControlTheme>
     <ControlTheme x:Key="ThemeHueThumb" TargetType="Thumb">

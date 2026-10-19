@@ -3,8 +3,15 @@
   <ControlTheme x:Key="PlaylistListItem" TargetType="ListBoxItem" BasedOn="{StaticResource FolderListItem}">
     <Style Selector="^:selected">
       <Setter Property="Background" Value="{DynamicResource EchoHover}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
-      <Setter Property="BorderThickness" Value="2,0,0,0" />
+      <Setter Property="BorderThickness" Value="0" />
     </Style>
+  </ControlTheme>
+  <ControlTheme x:Key="PlaylistWallRow" TargetType="ListBoxItem">
+    <Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Focusable" Value="False" />
+    <Setter Property="Template"><ControlTemplate>
+      <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" />
+    </ControlTemplate></Setter>
   </ControlTheme>
 </ResourceDictionary>

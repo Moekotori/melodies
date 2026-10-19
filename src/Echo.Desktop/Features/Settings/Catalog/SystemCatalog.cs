@@ -7,7 +7,7 @@ public static partial class SettingsCatalog
     private static IReadOnlyList<SettingsSectionDefinition> Backup() => [
         Section("数据与备份", Action("data-backup", "自动数据备份", "选择目录", "立即备份", "导入备份", "打开目录"),
             Action("settings-export", "导入 / 导出设置", "导出设置", "导入设置"),
-            Action("data-package", "一键导出 / 迁移 ECHO 数据包", "导出 ECHO 数据包", "恢复入口"),
+            Action("data-package", "一键导出 / 迁移 melodies 数据包", "导出 melodies 数据包", "恢复入口"),
             Action("webdav-backup", "网盘备份 · WebDAV", "配置网盘备份")),
         Section("定时备份", Toggle("automatic-backup-enabled", "启用自动一致性备份"),
             Choices("automatic-backup-hours", "备份间隔（小时）", ["1", "6", "12", "24", "48", "168"], "24"),

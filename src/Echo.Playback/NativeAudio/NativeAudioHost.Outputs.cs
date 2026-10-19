@@ -30,6 +30,7 @@ public sealed partial class NativeAudioHost : INativeOutputControl
             Interlocked.Exchange(ref started, 0);
             OutputChannels = channels;
             Capabilities = null;
+            HostIdentity = null;
             foreach (var request in pending)
                 if (pending.TryRemove(request.Key, out var completion)) completion.TrySetException(new IOException("输出声道布局正在重建"));
         }

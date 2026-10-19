@@ -5,19 +5,20 @@ namespace Echo.Desktop.Features.Dsp;
 // RBJ biquad response for the editor. This is a parameter model, not an output measurement.
 internal static class EqResponse
 {
-    public static double Db(IReadOnlyList<EqBandViewModel> bands, double frequency, int rate, double strength, double tilt)
+    public static double Db(IReadOnlyList<EqBandViewModel> bands, double frequency, int rate, double strength, double tilt, string? scope = null)
     {
         var sum = 0d;
         foreach (var band in bands)
         {
-            if (!band.Enabled) continue;
-            var w = 2 * Math.PI * Math.Clamp(band.FrequencyHz, 10, rate * 0.45) / rate;
-            var c = Math.Cos(w); var s = Math.Sin(w); var alpha = s / (2 * Math.Clamp(band.Q, 0.1, 24));
+            if (!band.Enabled || scope is not null && band.Scope.Key != "stereo" && band.Scope.Key != scope) continue;
+            var w = 2 * Math.PI * Math.Clamp(band.FrequencyHz, band.IsCorrection ? 1 : 10,
+                band.IsCorrection ? Math.BitDecrement(rate * 0.5) : rate * 0.45) / rate;
+            var c = Math.Cos(w); var s = Math.Sin(w); var alpha = s / (2 * Math.Max(band.Q, 0.1));
             var tiltOffset = band.Filter.Key is "peaking" or "lowShelf" or "highShelf"
                 ? tilt * (2 * Math.Log10(Math.Clamp(band.FrequencyHz, 20, 20000) / 20) / 3 - 1) : 0;
-            var a = Math.Pow(10, Math.Clamp(band.GainDb * strength / 100 + tiltOffset, -24, 12) / 40);
+            var a = Math.Pow(10, Math.Clamp(band.GainDb * strength / 100 + tiltOffset, band.GainMinimum, band.GainMaximum) / 40);
             double b0, b1, b2, a0, a1, a2;
-            var shelfAlpha = s / 2 * Math.Sqrt(Math.Max(0, (a + 1 / a) * (1 / Math.Max(0.1, band.Q) - 1) + 2));
+            var shelfAlpha = s / 2 * Math.Sqrt(Math.Max(0, (a + 1 / a) * (1 / Math.Max(band.QMinimum, band.Q) - 1) + 2));
             var beta = 2 * Math.Sqrt(a) * shelfAlpha;
             switch (band.Filter.Key)
             {

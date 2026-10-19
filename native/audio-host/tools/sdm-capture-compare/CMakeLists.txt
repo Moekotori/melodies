@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.24)
+project(echo_sdm_capture_compare LANGUAGES CXX)
+add_executable(echo-sdm-capture-compare main.cpp ../sdm-analysis-lab/SdmSpectrumAnalysis.cpp)
+target_compile_features(echo-sdm-capture-compare PRIVATE cxx_std_20)
+if(MSVC)
+  set_property(TARGET echo-sdm-capture-compare PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  target_compile_options(echo-sdm-capture-compare PRIVATE /W4 /utf-8)
+endif()

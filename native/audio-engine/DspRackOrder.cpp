@@ -32,7 +32,7 @@ DspRackOrder::Snapshot DspRackOrder::snapshot() const noexcept
     }
 }
 
-bool DspRackOrder::setOrder(const std::vector<DspRackModuleId>& order, std::string& error) noexcept
+bool DspRackOrder::setOrder(const std::vector<DspRackModuleId>& order, std::string& error, bool publishFilters)
 {
     if (order.size() != moduleCount)
     {
@@ -59,23 +59,33 @@ bool DspRackOrder::setOrder(const std::vector<DspRackModuleId>& order, std::stri
         next[index] = order[index];
     }
 
+    if (publishFilters) {
+        auto base = nlohmann::json::array();
+        for (auto m : order) base.push_back(moduleIdText(m));
+        if (!filters.setState(base, nullptr, nullptr, error)) return false;
+    }
     storeOrder(next);
     error.clear();
     return true;
 }
 
-void DspRackOrder::resetToDefault() noexcept
+void DspRackOrder::resetToDefault()
 {
-    storeOrder(defaultOrder());
+    const auto order = defaultOrder();
+    std::string error;
+    setOrder(std::vector<DspRackModuleId>(order.begin(), order.end()), error);
 }
 
 DspRackOrder::Snapshot DspRackOrder::defaultOrder() noexcept
 {
     return {
         DspRackModuleId::Equalizer,
+        DspRackModuleId::Procedural,
         DspRackModuleId::Convolution,
         DspRackModuleId::ReplayGain,
         DspRackModuleId::Compressor,
+        DspRackModuleId::Multiband,
+        DspRackModuleId::Deesser,
         DspRackModuleId::Crossfeed,
         DspRackModuleId::StereoField,
         DspRackModuleId::ChannelMatrix,
@@ -87,10 +97,13 @@ const char* DspRackOrder::moduleIdText(DspRackModuleId module) noexcept
 {
     switch (module)
     {
+        case DspRackModuleId::Procedural:     return "procedural";
         case DspRackModuleId::Equalizer:      return "equalizer";
         case DspRackModuleId::Convolution:    return "convolution";
         case DspRackModuleId::ReplayGain:     return "replayGain";
         case DspRackModuleId::Compressor:     return "compressor";
+        case DspRackModuleId::Multiband:      return "multiband";
+        case DspRackModuleId::Deesser:        return "deesser";
         case DspRackModuleId::Crossfeed:      return "crossfeed";
         case DspRackModuleId::StereoField:    return "stereoField";
         case DspRackModuleId::ChannelMatrix:  return "channelMatrix";
@@ -101,7 +114,9 @@ const char* DspRackOrder::moduleIdText(DspRackModuleId module) noexcept
 
 bool DspRackOrder::parseModuleId(const std::string& text, DspRackModuleId& module) noexcept
 {
-    if (text == "equalizer")
+    if (text == "procedural")
+        module = DspRackModuleId::Procedural;
+    else if (text == "equalizer")
         module = DspRackModuleId::Equalizer;
     else if (text == "convolution")
         module = DspRackModuleId::Convolution;
@@ -109,6 +124,10 @@ bool DspRackOrder::parseModuleId(const std::string& text, DspRackModuleId& modul
         module = DspRackModuleId::ReplayGain;
     else if (text == "compressor")
         module = DspRackModuleId::Compressor;
+    else if (text == "multiband")
+        module = DspRackModuleId::Multiband;
+    else if (text == "deesser")
+        module = DspRackModuleId::Deesser;
     else if (text == "crossfeed")
         module = DspRackModuleId::Crossfeed;
     else if (text == "stereoField")

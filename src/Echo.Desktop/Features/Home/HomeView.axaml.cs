@@ -108,8 +108,9 @@ public partial class HomeView : UserControl, IDisposable
         HeroCopy.Margin = new(0, stacked ? 20 : 0, 0, 0);
         HeroGrid.ColumnSpacing = width <= 820 ? 20 : width <= 1100 ? 24 : 26;
         HeroGrid.MinHeight = edge; HeroArtwork.Width = HeroArtwork.Height = edge;
-        HeroCopy.Spacing = width <= 1100 ? 6 : 12;
-        HeroTitle.FontSize = width <= 600 ? 24 : width <= 1100 ? 32 : Math.Clamp(width * .032, 28, 38);
+        HeroCopy.Spacing = 12;
+        HeroTitle.FontSize = width <= 600 ? 24 : Math.Clamp(width * .032, 28, 38);
+        HeroTitle.LineHeight = HeroTitle.FontSize * 1.16;
     }
     public void SetWindowVisible(bool visible)
     {

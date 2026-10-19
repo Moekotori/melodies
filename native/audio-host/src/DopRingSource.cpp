@@ -69,6 +69,7 @@ uint32_t DopRingSource::renderInterleaved(uint32_t* output, uint32_t frameCount,
         {
             if (
                 ! inputEnded.load(std::memory_order_acquire)
+                && ! stopRequested.load(std::memory_order_acquire)
                 && sessionHasAudio.load(std::memory_order_acquire))
             {
                 underrunCallbacks.fetch_add(1, std::memory_order_relaxed);
@@ -103,12 +104,25 @@ uint32_t DopRingSource::renderInterleaved(uint32_t* output, uint32_t frameCount,
     return framesReadTotal;
 }
 
+echo_audio_host::SdmTransportTelemetry DopRingSource::realtimeTelemetry() const noexcept
+{
+    std::lock_guard<std::mutex> lock(fifoMutex);
+    return {generation(), static_cast<uint64_t>(fifo.getNumReady()) * 16u,
+        static_cast<uint64_t>(fifo.getTotalSize()) * 16u,
+        framesPlayed.load(std::memory_order_relaxed) * 16u,
+        underrunCallbacks.load(std::memory_order_relaxed), underrunFrames.load(std::memory_order_relaxed) * 16u,
+        paused.load(std::memory_order_acquire), prebuffering.load(std::memory_order_acquire),
+        inputEnded.load(std::memory_order_acquire), stopRequested.load(std::memory_order_acquire),
+        sessionHasAudio.load(std::memory_order_acquire)};
+}
+
 bool DopRingSource::push(const uint32_t* samples, int frameCount)
 {
     return pushForGeneration(samples, frameCount, generation());
 }
 
-bool DopRingSource::pushForGeneration(const uint32_t* samples, int frameCount, uint64_t expectedGeneration)
+bool DopRingSource::pushForGeneration(const uint32_t* samples, int frameCount, uint64_t expectedGeneration,
+    std::optional<std::chrono::steady_clock::time_point> deadline)
 {
     if (samples == nullptr || frameCount <= 0)
         return frameCount == 0 && expectedGeneration == generation();
@@ -119,7 +133,8 @@ bool DopRingSource::pushForGeneration(const uint32_t* samples, int frameCount, u
 
     while (written < frameCount
         && expectedGeneration == generation()
-        && ! stopRequested.load(std::memory_order_acquire))
+        && ! stopRequested.load(std::memory_order_acquire)
+        && (!deadline || std::chrono::steady_clock::now() < *deadline))
     {
         int start1 = 0;
         int size1 = 0;
@@ -171,6 +186,9 @@ int DopRingSource::replaceBufferedAudio(const uint32_t* samples, int frameCount,
     copyFromInput(samples, start1, size1);
     copyFromInput(samples + static_cast<size_t>(size1) * channels, start2, size2);
     fifo.finishedWrite(size1 + size2);
+    framesPlayed.store(0, std::memory_order_relaxed);
+    underrunCallbacks.store(0, std::memory_order_relaxed);
+    underrunFrames.store(0, std::memory_order_relaxed);
     paused.store(pausedAfterReplace, std::memory_order_release);
     return size1 + size2;
 }

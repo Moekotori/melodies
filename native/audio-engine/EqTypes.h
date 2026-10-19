@@ -31,11 +31,43 @@ enum class EqFilterType : int
     Notch = 5,
 };
 
+enum class EqBandScope : int
+{
+    Stereo = 0,
+    Left = 1,
+    Right = 2,
+    Mid = 3,
+    Side = 4,
+};
+
+enum class EqDynamicMode : int
+{
+    Off = 0,
+    Down = 1,
+    Up = 2,
+};
+
+constexpr int eqMaxDynamicBands = 4;
+constexpr float eqDynamicThresholdMinDb = -48.0f;
+constexpr float eqDynamicThresholdMaxDb = 0.0f;
+constexpr float eqDynamicRatioMin = 1.0f;
+constexpr float eqDynamicRatioMax = 20.0f;
+constexpr float eqDynamicAttackMinMs = 0.5f;
+constexpr float eqDynamicAttackMaxMs = 80.0f;
+constexpr float eqDynamicReleaseMinMs = 10.0f;
+constexpr float eqDynamicReleaseMaxMs = 400.0f;
+constexpr float eqDynamicThresholdDefaultDb = -24.0f;
+constexpr float eqDynamicRatioDefault = 2.0f;
+constexpr float eqDynamicAttackDefaultMs = 5.0f;
+constexpr float eqDynamicReleaseDefaultMs = 80.0f;
+
 using EqGainArray = std::array<float, eqBandCount>;
 using EqFrequencyArray = std::array<float, eqBandCount>;
 using EqQArray = std::array<float, eqBandCount>;
 using EqFilterTypeArray = std::array<EqFilterType, eqBandCount>;
 using EqBandEnabledArray = std::array<bool, eqBandCount>;
+using EqBandScopeArray = std::array<EqBandScope, eqBandCount>;
+using EqDynamicModeArray = std::array<EqDynamicMode, eqBandCount>;
 
 inline constexpr EqFrequencyArray eqFrequenciesHz {
     20.0f,
@@ -78,6 +110,14 @@ inline constexpr EqQArray eqDefaultQ {
     1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 };
 
+constexpr EqGainArray eqDefaultFilledGain(float value)
+{
+    EqGainArray values {};
+    for (auto& entry : values)
+        entry = value;
+    return values;
+}
+
 inline constexpr EqBandEnabledArray eqDefaultBandEnabled {
     true, true, true, true, true, true, true, true,
     true, true, true, true, true, true, true, true,
@@ -92,10 +132,17 @@ struct EqBandState
     float q = 1.0f;
     EqFilterType filterType = EqFilterType::Peaking;
     bool enabled = true;
+    EqBandScope scope = EqBandScope::Stereo;
+    EqDynamicMode dynamicMode = EqDynamicMode::Off;
+    float dynamicThresholdDb = eqDynamicThresholdDefaultDb;
+    float dynamicRatio = eqDynamicRatioDefault;
+    float dynamicAttackMs = eqDynamicAttackDefaultMs;
+    float dynamicReleaseMs = eqDynamicReleaseDefaultMs;
 };
 
 struct EqState
 {
+    bool operator==(const EqState&) const = default;
     bool enabled = false;
     float preampDb = 0.0f;
     float strengthPercent = 100.0f;
@@ -105,8 +152,108 @@ struct EqState
     EqQArray bandQ = eqDefaultQ;
     EqFilterTypeArray bandFilterTypes {};
     EqBandEnabledArray bandEnabled = eqDefaultBandEnabled;
+    EqBandScopeArray bandScopes {};
+    EqDynamicModeArray bandDynamicModes {};
+    EqGainArray bandDynamicThresholdDb = eqDefaultFilledGain(eqDynamicThresholdDefaultDb);
+    EqGainArray bandDynamicRatio = eqDefaultFilledGain(eqDynamicRatioDefault);
+    EqGainArray bandDynamicAttackMs = eqDefaultFilledGain(eqDynamicAttackDefaultMs);
+    EqGainArray bandDynamicReleaseMs = eqDefaultFilledGain(eqDynamicReleaseDefaultMs);
     std::string presetName = "Flat";
 };
+
+inline EqBandScope normalizeEqBandScope(int value)
+{
+    switch (value)
+    {
+        case static_cast<int>(EqBandScope::Left): return EqBandScope::Left;
+        case static_cast<int>(EqBandScope::Right): return EqBandScope::Right;
+        case static_cast<int>(EqBandScope::Mid): return EqBandScope::Mid;
+        case static_cast<int>(EqBandScope::Side): return EqBandScope::Side;
+        case static_cast<int>(EqBandScope::Stereo):
+        default:
+            return EqBandScope::Stereo;
+    }
+}
+
+inline EqDynamicMode normalizeEqDynamicMode(int value)
+{
+    switch (value)
+    {
+        case static_cast<int>(EqDynamicMode::Down): return EqDynamicMode::Down;
+        case static_cast<int>(EqDynamicMode::Up): return EqDynamicMode::Up;
+        case static_cast<int>(EqDynamicMode::Off):
+        default:
+            return EqDynamicMode::Off;
+    }
+}
+
+inline const char* eqBandScopeText(EqBandScope scope)
+{
+    switch (scope)
+    {
+        case EqBandScope::Left: return "left";
+        case EqBandScope::Right: return "right";
+        case EqBandScope::Mid: return "mid";
+        case EqBandScope::Side: return "side";
+        case EqBandScope::Stereo: return "stereo";
+    }
+    return "stereo";
+}
+
+inline EqBandScope parseEqBandScope(const std::string& text)
+{
+    if (text == "left") return EqBandScope::Left;
+    if (text == "right") return EqBandScope::Right;
+    if (text == "mid") return EqBandScope::Mid;
+    if (text == "side") return EqBandScope::Side;
+    return EqBandScope::Stereo;
+}
+
+inline const char* eqDynamicModeText(EqDynamicMode mode)
+{
+    switch (mode)
+    {
+        case EqDynamicMode::Down: return "down";
+        case EqDynamicMode::Up: return "up";
+        case EqDynamicMode::Off: return "off";
+    }
+    return "off";
+}
+
+inline EqDynamicMode parseEqDynamicMode(const std::string& text)
+{
+    if (text == "down") return EqDynamicMode::Down;
+    if (text == "up") return EqDynamicMode::Up;
+    return EqDynamicMode::Off;
+}
+
+inline float clampEqDynamicThresholdDb(float value)
+{
+    if (! std::isfinite(value))
+        return eqDynamicThresholdDefaultDb;
+    return std::clamp(value, eqDynamicThresholdMinDb, eqDynamicThresholdMaxDb);
+}
+
+inline float clampEqDynamicRatio(float value)
+{
+    if (! std::isfinite(value))
+        return eqDynamicRatioDefault;
+    return std::clamp(value, eqDynamicRatioMin, eqDynamicRatioMax);
+}
+
+inline float clampEqDynamicAttackMs(float value)
+{
+    if (! std::isfinite(value))
+        return eqDynamicAttackDefaultMs;
+    return std::clamp(value, eqDynamicAttackMinMs, eqDynamicAttackMaxMs);
+}
+
+inline float clampEqDynamicReleaseMs(float value)
+{
+    if (! std::isfinite(value))
+        return eqDynamicReleaseDefaultMs;
+    return std::clamp(value, eqDynamicReleaseMinMs, eqDynamicReleaseMaxMs);
+}
 
 struct EqPreset
 {

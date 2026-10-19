@@ -11,60 +11,31 @@ constexpr int minimumBitDepth = 4;
 constexpr int maximumBitDepth = 16;
 constexpr int minimumSampleRateHz = 1000;
 constexpr int maximumSampleRateHz = 192000;
-constexpr float minimumOutputGainDb = -24.0f;
-constexpr float maximumOutputGainDb = 6.0f;
-constexpr float minimumChiptuneDrive = 1.0f;
-constexpr float maximumChiptuneDrive = 8.0f;
-constexpr float minimumVocalCutBassPreserveHz = 80.0f;
-constexpr float maximumVocalCutBassPreserveHz = 300.0f;
-constexpr float pi = 3.14159265358979323846f;
-constexpr float butterworthQInverse = 1.4142135623730950488f;
+constexpr double minimumOutputGainDb = -24.0;
+constexpr double maximumOutputGainDb = 6.0;
+constexpr double minimumChiptuneDrive = 1.0;
+constexpr double maximumChiptuneDrive = 8.0;
+constexpr double minimumVocalCutBassPreserveHz = 80.0;
+constexpr double maximumVocalCutBassPreserveHz = 300.0;
+constexpr double pi = 3.14159265358979323846;
 
-struct VocalCutFilterCoefficients
+double dbToGain(double db)
 {
-    float a1;
-    float a2;
-    float a3;
-};
-
-float dbToGain(float db)
-{
-    return std::pow(10.0f, db / 20.0f);
+    return std::pow(10.0, db / 20.0);
 }
 
-float moveTowards(float current, float target, float step)
+double moveTowards(double current, double target, double step)
 {
     if (std::abs(target - current) <= step)
         return target;
     return current + (target > current ? step : -step);
 }
 
-float triangleFold(float value)
+double triangleFold(double value)
 {
-    return (2.0f / pi) * std::asin(std::sin(value * (pi * 0.5f)));
+    return (2.0 / pi) * std::asin(std::sin(value * (pi * 0.5)));
 }
 
-VocalCutFilterCoefficients makeVocalCutFilterCoefficients(float cutoffHz, double sampleRate)
-{
-    const float safeSampleRate = static_cast<float>(std::max(1.0, sampleRate));
-    const float safeCutoff = std::clamp(cutoffHz, minimumVocalCutBassPreserveHz,
-        std::min(maximumVocalCutBassPreserveHz, safeSampleRate * 0.45f));
-    const float g = std::tan(pi * safeCutoff / safeSampleRate);
-    const float a1 = 1.0f / (1.0f + g * (g + butterworthQInverse));
-    const float a2 = g * a1;
-    return { a1, a2, g * a2 };
-}
-
-float processVocalCutLowpass(float input, const VocalCutFilterCoefficients& coefficients,
-    float& integrator1, float& integrator2)
-{
-    const float v3 = input - integrator2;
-    const float v1 = coefficients.a1 * integrator1 + coefficients.a2 * v3;
-    const float v2 = integrator2 + coefficients.a2 * integrator1 + coefficients.a3 * v3;
-    integrator1 = 2.0f * v1 - integrator1;
-    integrator2 = 2.0f * v2 - integrator2;
-    return v2;
-}
 } // namespace
 
 const char* workshopAudioEffectTypeName(WorkshopAudioEffectType type) noexcept
@@ -209,8 +180,8 @@ WorkshopAudioEffectProcessor::WorkshopAudioEffectProcessor(WorkshopAudioEffectCo
 void WorkshopAudioEffectProcessor::prepare(double sampleRate, int, int channelCount)
 {
     sourceSampleRate_ = sampleRate > 0.0 ? sampleRate : 44100.0;
-    heldSamples_.assign(static_cast<size_t>(std::max(1, channelCount)), 0.0f);
-    smoothingSamples_ = std::max(1, static_cast<int>(sourceSampleRate_ * 0.008));
+    heldSamples_.assign(static_cast<size_t>(std::max<double>(1, channelCount)), 0.0f);
+    smoothingSamples_ = std::max<double>(1, static_cast<int>(sourceSampleRate_ * 0.008));
     reset();
 }
 
@@ -224,18 +195,7 @@ void WorkshopAudioEffectProcessor::reset()
     vocalCutStrengthSmoothed_ = 1.0f;
     vocalCutStrengthTarget_ = 1.0f;
     vocalCutStrengthRampRemaining_ = 0;
-    vocalCutBassPreserveHzTarget_ = 160.0f;
-    const auto vocalCutCoefficients = makeVocalCutFilterCoefficients(
-        vocalCutBassPreserveHzTarget_, sourceSampleRate_);
-    vocalCutFilterA1_ = vocalCutCoefficients.a1;
-    vocalCutFilterA2_ = vocalCutCoefficients.a2;
-    vocalCutFilterA3_ = vocalCutCoefficients.a3;
-    vocalCutFilterTargetA1_ = vocalCutCoefficients.a1;
-    vocalCutFilterTargetA2_ = vocalCutCoefficients.a2;
-    vocalCutFilterTargetA3_ = vocalCutCoefficients.a3;
-    vocalCutFilterRampRemaining_ = 0;
-    vocalCutFilterStage1_ = {};
-    vocalCutFilterStage2_ = {};
+    vocalCutCenterFilter_.prepare(sourceSampleRate_, 160.0f);
     chipHeldSample_ = 0.0f;
     chipBassSample_ = 0.0f;
     chipNoiseEnvelope_ = 0.0f;
@@ -244,36 +204,36 @@ void WorkshopAudioEffectProcessor::reset()
     chipNoiseLfsr_ = 0x7fffu;
 }
 
-void WorkshopAudioEffectProcessor::processBlock(FloatAudioBuffer& buffer, int startSample, int numSamples)
+template <typename Sample>
+void WorkshopAudioEffectProcessor::processBlock(PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples)
 {
     if (numSamples <= 0 || heldSamples_.empty())
         return;
 
     controller_.tryGetState(lastState_);
     const auto& state = lastState_;
-    const float targetWetMix = state.enabled ? state.mix : 0.0f;
-    if (targetWetMix <= 0.0f && wetMix_ <= 0.0f)
+    const double targetWetMix = state.enabled ? state.mix : 0.0;
+    if (targetWetMix <= 0.0 && wetMix_ <= 0.0)
     {
         // The filter does not receive input while fully dry. Clear its history
         // so a later activation cannot revive stale center-band energy.
-        vocalCutFilterStage1_ = {};
-        vocalCutFilterStage2_ = {};
-        chipHeldSample_ = 0.0f;
-        chipBassSample_ = 0.0f;
-        chipNoiseEnvelope_ = 0.0f;
-        chipInputEnvelope_ = 0.0f;
+        vocalCutCenterFilter_.reset();
+        chipHeldSample_ = 0.0;
+        chipBassSample_ = 0.0;
+        chipNoiseEnvelope_ = 0.0;
+        chipInputEnvelope_ = 0.0;
         chipNoiseLfsr_ = 0x7fffu;
         holdPhase_ = 1.0;
         return;
     }
 
-    const int channels = std::min(buffer.getNumChannels(), static_cast<int>(heldSamples_.size()));
-    const float outputGain = dbToGain(state.outputGainDb);
-    const float captureIncrement = static_cast<float>(std::min(1.0, static_cast<double>(state.sampleRateHz) / sourceSampleRate_));
-    const float mixStep = 1.0f / static_cast<float>(smoothingSamples_);
-    float targetChiptuneMix = state.effect == WorkshopAudioEffectType::Chiptune ? 1.0f : 0.0f;
-    float targetVocalCutMix = state.effect == WorkshopAudioEffectType::VocalCut ? 1.0f : 0.0f;
-    if (targetWetMix <= 0.0f && wetMix_ > 0.0f)
+    const int channels = std::min<double>(buffer.getNumChannels(), static_cast<int>(heldSamples_.size()));
+    const double outputGain = dbToGain(state.outputGainDb);
+    const double captureIncrement = static_cast<double>(std::min<double>(1.0, static_cast<double>(state.sampleRateHz) / sourceSampleRate_));
+    const double mixStep = 1.0 / static_cast<double>(smoothingSamples_);
+    double targetChiptuneMix = state.effect == WorkshopAudioEffectType::Chiptune ? 1.0 : 0.0;
+    double targetVocalCutMix = state.effect == WorkshopAudioEffectType::VocalCut ? 1.0 : 0.0;
+    if (targetWetMix <= 0.0 && wetMix_ > 0.0)
     {
         // Keep the selected effect stable until its wet signal has fully faded.
         // Otherwise restoring a disabled module can briefly crossfade through a
@@ -281,7 +241,7 @@ void WorkshopAudioEffectProcessor::processBlock(FloatAudioBuffer& buffer, int st
         targetChiptuneMix = chiptuneMix_;
         targetVocalCutMix = vocalCutMix_;
     }
-    else if (targetWetMix > 0.0f && wetMix_ <= 0.0f)
+    else if (targetWetMix > 0.0 && wetMix_ <= 0.0)
     {
         // Effect selection is inaudible while fully dry, so switch it before
         // ramping wet mix. This prevents bitcrusher bleed on first activation.
@@ -289,130 +249,129 @@ void WorkshopAudioEffectProcessor::processBlock(FloatAudioBuffer& buffer, int st
         vocalCutMix_ = targetVocalCutMix;
         outputGainSmoothed_ = outputGain;
     }
-    const float captureRate = std::min(static_cast<float>(sourceSampleRate_), static_cast<float>(state.sampleRateHz));
-    const float bassCutoff = std::clamp(captureRate * 0.035f, 80.0f, 260.0f);
-    const float bassCoefficient = 1.0f - std::exp(-2.0f * pi * bassCutoff / std::max(1.0f, captureRate));
-    const float noiseRelease = std::exp(-1.0f / std::max(1.0f, captureRate * 0.06f));
-    const float envelopeRelease = std::exp(-1.0f / std::max(1.0f, captureRate * 0.01f));
+    const double captureRate = std::min<double>(static_cast<double>(sourceSampleRate_), static_cast<double>(state.sampleRateHz));
+    const double bassCutoff = std::clamp<double>(captureRate * 0.035, 80.0, 260.0);
+    const double bassCoefficient = 1.0 - std::exp(-2.0 * pi * bassCutoff / std::max<double>(1.0, captureRate));
+    const double noiseRelease = std::exp(-1.0 / std::max<double>(1.0, captureRate * 0.06));
+    const double envelopeRelease = std::exp(-1.0 / std::max<double>(1.0, captureRate * 0.01));
     // Normalize before interpolation so near-zero layer totals cannot turn a
     // tiny slider step into an immediate change of the entire audible voice.
-    const float targetLayerWeight = state.pulseMix + state.triangleMix + state.noiseMix;
-    toneRamp_.setTarget({ static_cast<float>(state.bitDepth), captureIncrement,
+    const double targetLayerWeight = state.pulseMix + state.triangleMix + state.noiseMix;
+    toneRamp_.setTarget({ static_cast<double>(state.bitDepth), captureIncrement,
         bassCoefficient, noiseRelease, envelopeRelease, state.pulseMix / targetLayerWeight,
         state.triangleMix / targetLayerWeight, state.noiseMix / targetLayerWeight,
-        state.drive }, smoothingSamples_, wetMix_ <= 0.0f);
-    if (std::abs(state.vocalCutStrength - vocalCutStrengthTarget_) > 0.000001f)
+        state.drive }, smoothingSamples_, wetMix_ <= 0.0);
+    if (std::abs(state.vocalCutStrength - vocalCutStrengthTarget_) > 0.000001)
     {
         vocalCutStrengthTarget_ = state.vocalCutStrength;
         vocalCutStrengthRampRemaining_ = smoothingSamples_;
     }
-    if (std::abs(state.vocalCutBassPreserveHz - vocalCutBassPreserveHzTarget_) > 0.0001f)
+    vocalCutCenterFilter_.setCutoff(state.vocalCutBassPreserveHz, smoothingSamples_, wetMix_ <= 0.0);
+    if (targetVocalCutMix >= 1.0 && vocalCutMix_ >= 1.0)
     {
-        vocalCutBassPreserveHzTarget_ = state.vocalCutBassPreserveHz;
-        const auto targetCoefficients = makeVocalCutFilterCoefficients(
-            vocalCutBassPreserveHzTarget_, sourceSampleRate_);
-        vocalCutFilterTargetA1_ = targetCoefficients.a1;
-        vocalCutFilterTargetA2_ = targetCoefficients.a2;
-        vocalCutFilterTargetA3_ = targetCoefficients.a3;
-        vocalCutFilterRampRemaining_ = smoothingSamples_;
+        // Dormant stylizers need no PCM history. Start a later effect selection
+        // with fresh envelope/noise state instead of stale unrelated audio.
+        chipHeldSample_ = chipBassSample_ = chipNoiseEnvelope_ = chipInputEnvelope_ = 0.0;
+        chipNoiseLfsr_ = 0x7fffu;
     }
 
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        toneRamp_.advance();
         wetMix_ = moveTowards(wetMix_, targetWetMix, mixStep);
         outputGainSmoothed_ = moveTowards(outputGainSmoothed_, outputGain, mixStep);
         chiptuneMix_ = moveTowards(chiptuneMix_, targetChiptuneMix, mixStep);
         vocalCutMix_ = moveTowards(vocalCutMix_, targetVocalCutMix, mixStep);
         if (vocalCutStrengthRampRemaining_ > 0)
         {
-            const float remaining = static_cast<float>(vocalCutStrengthRampRemaining_);
+            const double remaining = static_cast<double>(vocalCutStrengthRampRemaining_);
             vocalCutStrengthSmoothed_ += (vocalCutStrengthTarget_ - vocalCutStrengthSmoothed_) / remaining;
             --vocalCutStrengthRampRemaining_;
         }
-        if (vocalCutFilterRampRemaining_ > 0)
+        double vocalCutLeft = 0.0;
+        double vocalCutRight = 0.0;
+        if (channels >= 2 && (targetVocalCutMix > 0.0 || vocalCutMix_ > 0.0))
         {
-            const float remaining = static_cast<float>(vocalCutFilterRampRemaining_);
-            vocalCutFilterA1_ += (vocalCutFilterTargetA1_ - vocalCutFilterA1_) / remaining;
-            vocalCutFilterA2_ += (vocalCutFilterTargetA2_ - vocalCutFilterA2_) / remaining;
-            vocalCutFilterA3_ += (vocalCutFilterTargetA3_ - vocalCutFilterA3_) / remaining;
-            --vocalCutFilterRampRemaining_;
-        }
-        float vocalCutLeft = 0.0f;
-        float vocalCutRight = 0.0f;
-        if (channels >= 2 && (targetVocalCutMix > 0.0f || vocalCutMix_ > 0.0f))
-        {
-            const float dryLeft = buffer.getReadPointer(0, startSample)[sample];
-            const float dryRight = buffer.getReadPointer(1, startSample)[sample];
-            const float mid = 0.5f * (dryLeft + dryRight);
-            const float side = 0.5f * (dryLeft - dryRight);
-            const VocalCutFilterCoefficients coefficients {
-                vocalCutFilterA1_, vocalCutFilterA2_, vocalCutFilterA3_
-            };
-            const float stage1 = processVocalCutLowpass(mid, coefficients,
-                vocalCutFilterStage1_.integrator1, vocalCutFilterStage1_.integrator2);
-            const float preservedCenter = processVocalCutLowpass(stage1, coefficients,
-                vocalCutFilterStage2_.integrator1, vocalCutFilterStage2_.integrator2);
-            const float processedMid = mid
+            const double dryLeft = buffer.getReadPointer(0, startSample)[sample];
+            const double dryRight = buffer.getReadPointer(1, startSample)[sample];
+            const double mid = 0.5 * (dryLeft + dryRight);
+            const double side = 0.5 * (dryLeft - dryRight);
+            const double preservedCenter = vocalCutCenterFilter_.process(mid);
+            const double processedMid = mid
                 + (preservedCenter - mid) * vocalCutStrengthSmoothed_;
             vocalCutLeft = processedMid + side;
             vocalCutRight = processedMid - side;
         }
+        if (targetVocalCutMix >= 1.0 && vocalCutMix_ >= 1.0)
+        {
+            // Pure vocal cut skips bitcrusher/chiptune capture and transcendental
+            // waveshaping. Crossfades still run the shared path below.
+            for (int channel = 0; channel < channels; ++channel)
+            {
+                auto* samples = buffer.getWritePointer(channel, startSample);
+                const double dry = samples[sample];
+                const double wet = (channels < 2 ? dry
+                    : channel == 0 ? vocalCutLeft : channel == 1 ? vocalCutRight : dry) * outputGainSmoothed_;
+                samples[sample] = dry + (wet - dry) * wetMix_;
+            }
+            holdPhase_ = 1.0;
+            continue;
+        }
+        toneRamp_.advance();
         const bool capture = holdPhase_ >= 1.0;
         if (capture)
         {
             holdPhase_ -= std::floor(holdPhase_);
-            float mono = 0.0f;
+            double mono = 0.0;
             for (int channel = 0; channel < channels; ++channel)
             {
                 const auto* samples = buffer.getReadPointer(channel, startSample);
-                const float dry = samples[sample];
+                const double dry = samples[sample];
                 mono += dry;
                 heldSamples_[static_cast<size_t>(channel)] = toneRamp_.quantize(dry);
             }
-            mono /= static_cast<float>(std::max(1, channels));
+            mono /= static_cast<double>(std::max<double>(1, channels));
             // Quantize relative to the source envelope: quiet passages must not
             // be expanded into loud square waves or a fixed-level noise floor.
-            chipInputEnvelope_ = std::max(std::abs(mono), chipInputEnvelope_ * toneRamp_[WorkshopToneRamp::EnvelopeRelease]);
-            const float normalizedMono = chipInputEnvelope_ > 0.000001f ? mono / chipInputEnvelope_ : 0.0f;
-            const float quantizedMono = toneRamp_.quantize(normalizedMono);
+            chipInputEnvelope_ = std::max<double>(std::abs(mono), chipInputEnvelope_ * toneRamp_[WorkshopToneRamp::EnvelopeRelease]);
+            const double normalizedMono = chipInputEnvelope_ > 0.000001 ? mono / chipInputEnvelope_ : 0.0;
+            const double quantizedMono = toneRamp_.quantize(normalizedMono);
             chipBassSample_ += toneRamp_[WorkshopToneRamp::BassCoefficient] * (quantizedMono - chipBassSample_);
-            const float transient = std::abs(quantizedMono - chipBassSample_);
-            chipNoiseEnvelope_ = std::max(transient, chipNoiseEnvelope_ * toneRamp_[WorkshopToneRamp::NoiseRelease]);
+            const double transient = std::abs(quantizedMono - chipBassSample_);
+            chipNoiseEnvelope_ = std::max<double>(transient, chipNoiseEnvelope_ * toneRamp_[WorkshopToneRamp::NoiseRelease]);
 
             const uint32_t feedback = (chipNoiseLfsr_ ^ (chipNoiseLfsr_ >> 1u)) & 1u;
             chipNoiseLfsr_ = (chipNoiseLfsr_ >> 1u) | (feedback << 14u);
-            const float noise = (chipNoiseLfsr_ & 1u) != 0u ? 1.0f : -1.0f;
-            const float noiseGate = std::clamp((chipNoiseEnvelope_ - 0.025f) * 5.0f, 0.0f, 1.0f);
-            const float driven = quantizedMono * toneRamp_[WorkshopToneRamp::Drive];
-            const float pulse = driven / (1.0f + std::abs(driven));
-            const float triangle = triangleFold(std::clamp(chipBassSample_ * toneRamp_[WorkshopToneRamp::Drive], -1.0f, 1.0f));
-            const float layerWeight = std::max(0.00001f, toneRamp_[WorkshopToneRamp::Pulse]
+            const double noise = (chipNoiseLfsr_ & 1u) != 0u ? 1.0 : -1.0;
+            const double noiseGate = std::clamp<double>((chipNoiseEnvelope_ - 0.025) * 5.0, 0.0, 1.0);
+            const double driven = quantizedMono * toneRamp_[WorkshopToneRamp::Drive];
+            const double pulse = driven / (1.0 + std::abs(driven));
+            const double triangle = triangleFold(std::clamp<double>(chipBassSample_ * toneRamp_[WorkshopToneRamp::Drive], -1.0, 1.0));
+            const double layerWeight = std::max<double>(0.00001, toneRamp_[WorkshopToneRamp::Pulse]
                 + toneRamp_[WorkshopToneRamp::Triangle] + toneRamp_[WorkshopToneRamp::Noise]);
-            const float chip = (pulse * toneRamp_[WorkshopToneRamp::Pulse]
+            const double chip = (pulse * toneRamp_[WorkshopToneRamp::Pulse]
                 + triangle * toneRamp_[WorkshopToneRamp::Triangle]
-                + noise * noiseGate * toneRamp_[WorkshopToneRamp::Noise] * 0.15f) / layerWeight;
+                + noise * noiseGate * toneRamp_[WorkshopToneRamp::Noise] * 0.15) / layerWeight;
             chipHeldSample_ = toneRamp_.quantize(chip) * chipInputEnvelope_;
         }
 
         for (int channel = 0; channel < channels; ++channel)
         {
             auto* samples = buffer.getWritePointer(channel, startSample);
-            const float dry = samples[sample];
-            const float bitcrusher = heldSamples_[static_cast<size_t>(channel)];
-            const float stylized = bitcrusher + (chipHeldSample_ - bitcrusher) * chiptuneMix_;
-            const float vocalCut = channels >= 2
+            const double dry = samples[sample];
+            const double bitcrusher = heldSamples_[static_cast<size_t>(channel)];
+            const double stylized = bitcrusher + (chipHeldSample_ - bitcrusher) * chiptuneMix_;
+            const double vocalCut = channels >= 2
                 ? (channel == 0 ? vocalCutLeft : (channel == 1 ? vocalCutRight : dry))
                 : dry;
-            const float selectedEffect = stylized + (vocalCut - stylized) * vocalCutMix_;
-            const float wet = selectedEffect * outputGainSmoothed_;
+            const double selectedEffect = stylized + (vocalCut - stylized) * vocalCutMix_;
+            const double wet = selectedEffect * outputGainSmoothed_;
             samples[sample] = dry + (wet - dry) * wetMix_;
         }
         holdPhase_ += toneRamp_[WorkshopToneRamp::CaptureIncrement];
     }
     // DspChain may skip us as soon as isActive() becomes false. Cleanup must
     // happen on the final fade block, not depend on a later inactive callback.
-    if (targetWetMix <= 0.0f && wetMix_ <= 0.0f)
+    if (targetWetMix <= 0.0 && wetMix_ <= 0.0)
         reset();
 }
 
@@ -429,4 +388,6 @@ bool WorkshopAudioEffectProcessor::hasClippingRisk() const noexcept
         && (state.outputGainDb > 0.0001f
             || (state.effect == WorkshopAudioEffectType::VocalCut && state.vocalCutStrength > 0.0001f));
 }
+template void WorkshopAudioEffectProcessor::processBlock<float>(PlanarAudioBuffer<float>&, int, int);
+template void WorkshopAudioEffectProcessor::processBlock<double>(PlanarAudioBuffer<double>&, int, int);
 } // namespace echo

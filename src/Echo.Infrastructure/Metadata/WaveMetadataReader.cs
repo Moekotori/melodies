@@ -108,6 +108,6 @@ internal static class WaveMetadataReader
         if (dataBytes < 0 || bytesPerSecond <= 0 || sampleRate <= 0 || bits <= 0)
             throw new MetadataReadException("invalid_wave_properties");
         return MetadataRules.Normalize(file, new(title, artist, album, "", (double)dataBytes / bytesPerSecond,
-            codec, sampleRate, bits, trackNumber, Year: year, Genre: genre));
+            codec, sampleRate, bits, trackNumber, Year: year, Genre: genre, Bitrate: (int)Math.Min((long)bytesPerSecond * 8, int.MaxValue)));
     }
 }

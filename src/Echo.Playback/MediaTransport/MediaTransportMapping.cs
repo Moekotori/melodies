@@ -23,7 +23,7 @@ public static class MediaTransportMapping
         if (!Path.IsPathFullyQualified(cover)) cover = "";
         var file = track?.FilePath;
         if (string.IsNullOrWhiteSpace(file) || !Path.IsPathFullyQualified(file)) file = null;
-        return new(playable ? track?.ItemId : null, Text("title", track is null ? "ECHO" : Path.GetFileNameWithoutExtension(track.FilePath)),
+        return new(playable ? track?.ItemId : null, Text("title", track is null ? "melodies" : Path.GetFileNameWithoutExtension(track.FilePath)),
             Text("artist"), Text("album"), Text("albumArtist"), cover.Length == 0 ? null : cover,
             state.Status switch { PlaybackStatus.Playing => "playing", PlaybackStatus.Paused => "paused", PlaybackStatus.Loading => "loading", _ => "stopped" },
             position, duration, playable, active && state.Status is PlaybackStatus.Playing or PlaybackStatus.Loading,

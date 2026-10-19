@@ -58,6 +58,9 @@ internal static class LibraryFilterSql
             conditions.Add($"(({alias}.source_json IS NULL AND {alias}.path_key>={lo} AND {alias}.path_key<{hi}) OR " +
                 $"({alias}.source_json IS NOT NULL AND lower(replace(json_extract({alias}.source_json,'$.AudioPath'),'\\','/')) LIKE {pattern} ESCAPE '\\'))");
         }
+        if (filter.DuplicatesOnly) conditions.Add($"EXISTS(SELECT 1 FROM tracks peer WHERE peer.missing=0 AND peer.id<>{alias}.id"
+            + $" AND echo_fold(peer.title)=echo_fold({alias}.title) AND echo_fold(peer.artist)=echo_fold({alias}.artist)"
+            + $" AND {alias}.duration>0 AND peer.duration BETWEEN {alias}.duration-0.5 AND {alias}.duration+0.5)");
         if (filter.FavoriteOnly) conditions.Add($"{alias}.favorite=1");
         if (filter.LosslessOnly) conditions.Add($"{codec} IN ('FLAC','ALAC','WAV','WAVE','AIFF','AIF','AIFC','APE','WV','DSF','DFF','DSD','PCM')");
         if (filter.Source == LibrarySource.Files) conditions.Add($"{alias}.source_json IS NULL");

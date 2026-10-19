@@ -178,7 +178,7 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
             new(L("actualRate"), Rate(rate) is { Length: > 0 } actualRate ? actualRate : Unknown)];
         var chain = new List<SignalPathNode> { new("music", L("source"), Spec, state.Current?.Source?.Kind == "http" ? L("http") : L("local")),
             new("waves", L("decode"), "PCM", L("hostDecode")) };
-        if (dsp || converted || attenuated) chain.Add(new("sliders", L("processing"), route, Join(Flag(src, "active") ? "ECHO SRC" : null,
+        if (dsp || converted || attenuated) chain.Add(new("sliders", L("processing"), route, Join(Flag(src, "active") ? "melodies SRC" : null,
             Flag(sdm, "active") ? "PCM → DSD" : null, Flag(dither, "active") ? Text(dither, "mode") : null, attenuated ? $"{L("volume")} {state.Volume:P0}" : null, dsp ? L("dspOn") : null)));
         chain.Add(new("headphones", L("output"), device, Join(mode, Rate(rate))));
         Nodes = chain; Layers = player.Text.Format("signal.layers", chain.Count);

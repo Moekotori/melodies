@@ -92,7 +92,8 @@ public sealed partial class PlaybackSessionCoordinator
         var prepared = await PrepareNativeQueueAsync(projected, current, mode).ConfigureAwait(false);
         var next = revision + 1;
         var payload = JsonSerializer.SerializeToElement(new NativeQueue(next, current,
-            current is not null && !items.Any(x => x.ItemId == current) ? "off" : prepared.Repeat, prepared.Items), PlaybackJsonContext.Default.NativeQueue);
+            current is not null && !items.Any(x => x.ItemId == current) ? "off" : prepared.Repeat, prepared.Items,
+            current == snapshot.Current?.ItemId ? snapshot.OperationId : 0), PlaybackJsonContext.Default.NativeQueue);
         var result = await native.CallAsync("queue.set", payload).ConfigureAwait(false);
         if (result.Long("queueRevision") != next) throw new IOException("Native 队列版本未确认");
         revision = next;

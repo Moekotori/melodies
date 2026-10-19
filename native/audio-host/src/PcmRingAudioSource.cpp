@@ -6,6 +6,7 @@
 #include <cstring>
 #include <limits>
 #include <thread>
+#include <type_traits>
 
 namespace
 {
@@ -116,12 +117,12 @@ const echo_audio_host::NativeFifo& PcmRingAudioSource::fifoForDeck(int deckSlot)
     return deckSlot == 0 ? fifo : automixFifo;
 }
 
-std::vector<float>& PcmRingAudioSource::bufferForDeck(int deckSlot)
+std::vector<double>& PcmRingAudioSource::bufferForDeck(int deckSlot)
 {
     return deckSlot == 0 ? buffer : automixBuffer;
 }
 
-const std::vector<float>& PcmRingAudioSource::bufferForDeck(int deckSlot) const
+const std::vector<double>& PcmRingAudioSource::bufferForDeck(int deckSlot) const
 {
     return deckSlot == 0 ? buffer : automixBuffer;
 }
@@ -163,7 +164,9 @@ PcmRingAudioSource::PcmRingAudioSource(
     echo::PlaybackRateProcessor& rateProcessorToUse,
     echo::LevelMeterProcessor& meterProcessorToUse,
     echo::DspRackOrder* rackOrderToUse,
-    echo::WorkshopAudioEffectController* workshopAudioEffectControllerToUse)
+    echo::WorkshopAudioEffectController* workshopAudioEffectControllerToUse,
+    echo::MultibandCompressorProcessor* multibandProcessorToUse,
+    echo::DeEsserProcessor* deEsserProcessorToUse)
     : channels(channelCount),
       gain(static_cast<float>(std::max(0.0, std::min(1.0, gainToUse)))),
       startupPrebufferFrames(std::max(0, startupPrebufferFramesToUse)),
@@ -185,7 +188,8 @@ PcmRingAudioSource::PcmRingAudioSource(
       meterProcessor(&meterProcessorToUse),
       dspChain(eqProcessorToUse, *convolutionProcessor, channelBalanceProcessorToUse, *headroomProcessor,
                *replayGainProcessor, *compressorProcessor, *spatialDspProcessor,
-               *rateProcessor, *meterProcessor, rackOrderToUse, workshopAudioEffectControllerToUse)
+               *rateProcessor, *meterProcessor, rackOrderToUse, workshopAudioEffectControllerToUse,
+               multibandProcessorToUse, deEsserProcessorToUse)
 {
 }
 
@@ -198,7 +202,10 @@ void PcmRingAudioSource::prepareRenderScratchBuffers(int maxFramesPerCallback)
         playbackRateFrames,
         static_cast<double>(std::numeric_limits<int>::max())));
     playbackRateInputBuffer.setSize(channels, safePlaybackRateFrames);
-    dspRenderBuffer.setSize(channels, safeFrames);
+    legacyRateInputBuffer.setSize(channels, safePlaybackRateFrames);
+    programmeTapBuffer.setSize(std::max(8, channels), safeFrames);
+    dspRenderBuffer.setSize(std::max(8, channels), safeFrames);
+    if (convolutionProcessor != nullptr) convolutionProcessor->setDeviceOutputChannels(deviceOutputChannels.load(std::memory_order_acquire));
 }
 
 void PcmRingAudioSource::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
@@ -215,11 +222,18 @@ void PcmRingAudioSource::prepareForNativeRender(int maxFramesPerCallback, double
 {
     echo_audio_host::RenderEpoch::QuiescenceGuard renderQuiescence(renderEpoch);
     const int safeFrames = std::max(1, maxFramesPerCallback);
-    nativeRenderBuffer.setSize(channels, safeFrames);
+    nativeRenderBuffer.setSize(std::max(8, channels), safeFrames);
+    nativeRenderBuffer.setActiveChannels(channels);
     prepareRenderScratchBuffers(safeFrames);
     configureDeclickRamp(sampleRate);
     dspChain.prepare(sampleRate, safeFrames, channels);
     renderSampleRate.store(static_cast<int>(std::lround(sampleRate)), std::memory_order_release);
+}
+
+void PcmRingAudioSource::releaseDspRackLeaseForTransition()
+{
+    echo_audio_host::RenderEpoch::QuiescenceGuard renderQuiescence(renderEpoch);
+    dspChain.releaseRackLease();
 }
 
 void PcmRingAudioSource::releaseResources()
@@ -228,9 +242,21 @@ void PcmRingAudioSource::releaseResources()
     dspChain.resetForHardReplace();
 }
 
+int PcmRingAudioSource::requestedDspOutputChannels(double sampleRate) const noexcept
+{
+    const int requested = convolutionProcessor ? convolutionProcessor->requestedOutputChannels(channels, sampleRate > 0 ? sampleRate : renderSampleRate.load(std::memory_order_acquire)) : 0;
+    return requested > 0 ? requested : channels;
+}
+
+void PcmRingAudioSource::setDeviceOutputChannels(int count) noexcept
+{
+    deviceOutputChannels.store(count, std::memory_order_release);
+    if (convolutionProcessor) convolutionProcessor->setDeviceOutputChannels(count);
+}
+
 bool PcmRingAudioSource::isDspActive() const
 {
-    return dspChain.isActive() || ditherProcessor.active();
+    return preparedEqPlayback.load(std::memory_order_acquire) || dspChain.isActive() || ditherProcessor.active();
 }
 
 bool PcmRingAudioSource::hasDspClippingRisk() const
@@ -251,6 +277,11 @@ bool PcmRingAudioSource::isDspLimiterEnabled() const
 float PcmRingAudioSource::getDspLimiterGainReductionDb() const
 {
     return dspChain.safetyLimiterGainReductionDb();
+}
+
+float PcmRingAudioSource::getDspLimiterTruePeakDb() const
+{
+    return dspChain.safetyLimiterTruePeakDb();
 }
 
 float PcmRingAudioSource::getDspLimiterCeilingDb() const
@@ -303,20 +334,19 @@ uint32_t PcmRingAudioSource::renderInterleaved(echo_audio_host::FloatInterleaved
             frameCount - renderedFrames));
         const auto framesRead = renderPlanarUnderLease(nativeRenderBuffer, 0, framesThisChunk);
         const bool transparentPassthrough = lastRenderUsedMqaPassthrough_.load(std::memory_order_acquire);
-        copyPlanarToInterleaved(
-            nativeRenderBuffer,
-            output + static_cast<size_t>(renderedFrames) * outputChannels,
-            framesThisChunk,
-            static_cast<int>(outputChannels));
-        const auto boundedFramesRead = std::min<uint64_t>(
-            framesRead,
-            static_cast<uint64_t>(framesThisChunk));
-        if (boundedFramesRead > 0 && ! transparentPassthrough)
+        const auto boundedFramesRead = std::min<uint64_t>(framesRead, static_cast<uint64_t>(framesThisChunk));
+        if (boundedFramesRead > 0 && !transparentPassthrough && ditherProcessor.active())
         {
-            ditherProcessor.process(
-                output + static_cast<size_t>(renderedFrames) * outputChannels,
-                static_cast<size_t>(boundedFramesRead) * outputChannels);
+            for (int frame = 0; frame < static_cast<int>(boundedFramesRead); ++frame)
+                for (int channel = 0; channel < nativeRenderBuffer.getNumChannels(); ++channel)
+                {
+                    auto* samples = nativeRenderBuffer.getWritePointer(channel);
+                    samples[frame] = ditherProcessor.processSample(samples[frame], channel);
+                }
         }
+        copyPlanarToInterleaved(nativeRenderBuffer,
+            output + static_cast<size_t>(renderedFrames) * outputChannels,
+            framesThisChunk, static_cast<int>(outputChannels));
         totalFramesRead += static_cast<uint32_t>(boundedFramesRead);
         renderedFrames += static_cast<uint32_t>(framesThisChunk);
     }
@@ -336,11 +366,13 @@ uint64_t PcmRingAudioSource::renderPlanar(echo::FloatAudioBuffer& output, int st
     return renderPlanarUnderLease(output, startSample, frameCount);
 }
 
+template <typename Sample>
 uint64_t PcmRingAudioSource::renderPlanarUnderLease(
-    echo::FloatAudioBuffer& output,
+    echo::PlanarAudioBuffer<Sample>& output,
     int startSample,
     int frameCount)
 {
+    output.setActiveChannels(std::min<double>(channels, output.getChannelCapacity()));
     output.clear(startSample, frameCount);
 
     // Capture session identity before the pause gate. If a control operation
@@ -386,23 +418,27 @@ uint64_t PcmRingAudioSource::renderPlanarUnderLease(
     const auto rateConfiguration = rateProcessor != nullptr
         ? rateProcessor->getConfiguration()
         : echo::PlaybackRateProcessor::Configuration {};
-    const float playbackRate = rateConfiguration.rate;
+    const double playbackRate = rateConfiguration.rate;
     const bool playbackRateActive = rateConfiguration.mode != echo::SpeedMode::Speed
-        && std::abs(playbackRate - 1.0f) > 0.0001f;
+        && std::abs(playbackRate - 1.0) > 0.0001;
     const int sourceFrameTarget = playbackRateActive && rateProcessor != nullptr
         ? rateProcessor->sourceFramesRequired(frameCount, rateConfiguration)
         : frameCount;
+    auto& rateInput = [&]() -> echo::PlanarAudioBuffer<Sample>& {
+        if constexpr (std::is_same_v<Sample, double>) return playbackRateInputBuffer;
+        else return legacyRateInputBuffer;
+    }();
     if (playbackRateActive)
     {
-        if (sourceFrameTarget > playbackRateInputBuffer.getNumSamples())
+        if (sourceFrameTarget > rateInput.getNumSamples())
         {
             currentFifo.releaseReadLease(currentReadLease);
             return 0;
         }
-        playbackRateInputBuffer.clear(0, sourceFrameTarget);
+        rateInput.clear(0, sourceFrameTarget);
     }
 
-    echo::FloatAudioBuffer& renderBuffer = playbackRateActive ? playbackRateInputBuffer : output;
+    auto& renderBuffer = playbackRateActive ? rateInput : output;
     const int renderStartSample = playbackRateActive ? 0 : startSample;
     int framesNeeded = sourceFrameTarget;
     int outputOffset = 0;
@@ -487,7 +523,7 @@ uint64_t PcmRingAudioSource::renderPlanarUnderLease(
     const uint64_t renderedFrames = ! transparentPassthrough && automixPlan.enabled.load(std::memory_order_acquire)
         ? (gaplessActive && mainInputEnded
             ? framesReadTotal + automixFramesRead
-            : mainInputEnded ? std::max(framesReadTotal, automixFramesRead) : framesReadTotal)
+            : mainInputEnded ? std::max<double>(framesReadTotal, automixFramesRead) : framesReadTotal)
         : framesReadTotal;
 
     // Replace only the prepared window before the ordinary DSP chain.
@@ -546,30 +582,38 @@ uint64_t PcmRingAudioSource::renderPlanarUnderLease(
                 sourceTrackFrames.load(std::memory_order_relaxed) - renderedFrames,
                 absoluteStartFrame, renderSampleRate.load(std::memory_order_acquire),
                 outputFramesRendered == static_cast<uint64_t>(frameCount), playbackRate);
-            sink->onProgramPcm(
-                output,
-                startSample,
-                frameCount,
-                renderSampleRate.load(std::memory_order_acquire));
+            if constexpr (std::is_same_v<Sample, double>) {
+                programmeTapBuffer.setActiveChannels(output.getNumChannels());
+                for (int c = 0; c < output.getNumChannels(); ++c)
+                    std::copy_n(output.getReadPointer(c, startSample), frameCount, programmeTapBuffer.getWritePointer(c));
+                sink->onProgramPcm(programmeTapBuffer, 0, frameCount, renderSampleRate.load(std::memory_order_acquire));
+            } else sink->onProgramPcm(output, startSample, frameCount, renderSampleRate.load(std::memory_order_acquire));
         }
         // The shared programme contains the A/B mix and host speed, but never
         // the host's listening volume. Apply local gain exactly once, before
         // the existing DSP graph, without another PCM buffer or allocation.
-        const float localOutputGain = gain.load(std::memory_order_acquire);
-        if (localOutputGain != 1.0f)
-            for (int channel = 0; channel < output.getNumChannels(); ++channel)
-                output.applyGain(channel, startSample, frameCount, localOutputGain);
+
     }
 
-    const bool hadDspTail = !dspChain.isTailDrained();
-    if (! transparentPassthrough && frameCount <= dspRenderBuffer.getNumSamples())
+    const bool preparedEq = preparedEqPlayback.load(std::memory_order_acquire);
+    const bool hadDspTail = !preparedEq && !dspChain.isTailDrained();
+    if (! preparedEq && ! transparentPassthrough && frameCount <= dspRenderBuffer.getNumSamples())
     {
-        for (int c = 0; c < output.getNumChannels(); ++c)
-        {
-            const float* src = output.getReadPointer(c, startSample);
-            float* dst = dspRenderBuffer.getWritePointer(c);
-            std::copy_n(src, static_cast<std::size_t>(frameCount), dst);
+        auto& dspBuffer = [&]() -> echo::DoubleAudioBuffer& {
+            if constexpr (std::is_same_v<Sample, double>) return output;
+            else return dspRenderBuffer;
+        }();
+        const int dspStart = std::is_same_v<Sample, double> ? startSample : 0;
+        if constexpr (!std::is_same_v<Sample, double>) {
+            dspBuffer.setActiveChannels(output.getNumChannels());
+            dspBuffer.clear(0, frameCount);
+            for (int c = 0; c < output.getNumChannels(); ++c)
+                std::copy_n(output.getReadPointer(c, startSample), frameCount, dspBuffer.getWritePointer(c));
         }
+        const double localOutputGain = gain.load(std::memory_order_acquire);
+        if (localOutputGain != 1.0)
+            for (int c = 0; c < dspBuffer.getNumChannels(); ++c)
+                dspBuffer.applyGain(c, dspStart, frameCount, localOutputGain);
         // The user DSP graph is deliberately downstream of the A/B sum so
         // EQ, convolution, balance, headroom and metering each run once.
         // Smart Transition applies ReplayGain per Deck, so the global
@@ -580,17 +624,21 @@ uint64_t PcmRingAudioSource::renderPlanarUnderLease(
         const bool promotedDeckGainActive =
             currentDeckLease.load(std::memory_order_acquire) != 0;
         dspChain.processBlock(
-            dspRenderBuffer,
-            0,
+            dspBuffer,
+            dspStart,
             frameCount,
             ! gaplessActive && ! smartTransitionActive && ! promotedDeckGainActive,
             smartTransitionActive);
-        for (int c = 0; c < output.getNumChannels(); ++c)
-        {
-            float* dst = output.getWritePointer(c, startSample);
-            const float* src = dspRenderBuffer.getReadPointer(c);
-            std::copy_n(src, static_cast<std::size_t>(frameCount), dst);
+        if constexpr (!std::is_same_v<Sample, double>) {
+            output.setActiveChannels(std::min(dspBuffer.getNumChannels(), output.getChannelCapacity()));
+            for (int c = 0; c < output.getNumChannels(); ++c)
+                std::copy_n(dspBuffer.getReadPointer(c), frameCount, output.getWritePointer(c, startSample));
         }
+    }
+    else if (!transparentPassthrough)
+    {
+        const double localOutputGain = gain.load(std::memory_order_acquire);
+        for (int c = 0; c < output.getNumChannels(); ++c) output.applyGain(c, startSample, frameCount, localOutputGain);
     }
     if (hadDspTail || !dspChain.isTailDrained())
         outputFramesRendered = static_cast<uint64_t>(frameCount);
@@ -603,12 +651,14 @@ uint64_t PcmRingAudioSource::renderPlanarUnderLease(
     return outputFramesRendered;
 }
 
-bool PcmRingAudioSource::push(const float* samples, int frameCount)
+template <typename Sample>
+bool PcmRingAudioSource::push(const Sample* samples, int frameCount)
 {
     return pushForGeneration(samples, frameCount, session_.generation());
 }
 
-bool PcmRingAudioSource::pushForGeneration(const float* samples, int frameCount, uint64_t generation)
+template <typename Sample>
+bool PcmRingAudioSource::pushForGeneration(const Sample* samples, int frameCount, uint64_t generation)
 {
     if (samples == nullptr || frameCount <= 0)
         return frameCount == 0
@@ -675,7 +725,8 @@ bool PcmRingAudioSource::pushForGeneration(const float* samples, int frameCount,
         && !session_.isStopRequested();
 }
 
-int PcmRingAudioSource::replaceBufferedAudio(const float* samples, int frameCount, bool pausedAfterReplace)
+template <typename Sample>
+int PcmRingAudioSource::replaceBufferedAudio(const Sample* samples, int frameCount, bool pausedAfterReplace)
 {
     // Close the callback admission gate before changing generation or deck
     // identity. A callback already admitted under the old state is drained by
@@ -749,13 +800,15 @@ int PcmRingAudioSource::replaceBufferedAudio(const float* samples, int frameCoun
     return framesWritten;
 }
 
-bool PcmRingAudioSource::pushAutomixNext(const float* samples, int frameCount)
+template <typename Sample>
+bool PcmRingAudioSource::pushAutomixNext(const Sample* samples, int frameCount)
 {
     const uint64_t deckLease = pendingAutomixDeckLease.load(std::memory_order_acquire);
     return deckLease != 0 && pushAutomixDeck(deckLease, samples, frameCount);
 }
 
-bool PcmRingAudioSource::pushAutomixDeck(uint64_t deckLease, const float* samples, int frameCount)
+template <typename Sample>
+bool PcmRingAudioSource::pushAutomixDeck(uint64_t deckLease, const Sample* samples, int frameCount)
 {
     if (deckLease == 0 || samples == nullptr || frameCount <= 0)
         return frameCount == 0 && deckLease != 0;
@@ -850,7 +903,8 @@ bool PcmRingAudioSource::prepareAutomixFrames(
     double echoFeedback,
     double vocalExitStartProgress,
     double vocalEntryStartProgress,
-    AutomixHandoffSchedule handoffSchedule)
+    AutomixHandoffSchedule handoffSchedule,
+    echo::automix_alpha::Parameters alpha)
 {
     return prepareAutomixDeck(
         fadeStartFrame,
@@ -867,7 +921,7 @@ bool PcmRingAudioSource::prepareAutomixFrames(
         echoFeedback,
         vocalExitStartProgress,
         vocalEntryStartProgress,
-        handoffSchedule) != 0;
+        handoffSchedule, alpha) != 0;
 }
 
 uint64_t PcmRingAudioSource::prepareAutomixDeck(
@@ -885,9 +939,12 @@ uint64_t PcmRingAudioSource::prepareAutomixDeck(
     double echoFeedback,
     double vocalExitStartProgress,
     double vocalEntryStartProgress,
-    AutomixHandoffSchedule handoffSchedule)
+    AutomixHandoffSchedule handoffSchedule,
+    echo::automix_alpha::Parameters alpha)
 {
-    if (session_.isStopRequested())
+    if (session_.isStopRequested() || (alpha.enabled
+        && (!alpha.valid() || channels > echo::automix_alpha::MixDsp::maximumChannels
+            || rhythmicBassSwap || tailRide || echoThrow)))
         return 0;
     // Fade frames live on the host's monotonic render clock. A stale plan can
     // otherwise activate immediately (for example after a previous autonomous
@@ -923,6 +980,7 @@ uint64_t PcmRingAudioSource::prepareAutomixDeck(
     deckAudioAvailable[static_cast<size_t>(nextDeckSlot)].store(false, std::memory_order_release);
     pendingAutomixDeckLease.store(deckLease, std::memory_order_release);
 
+    automixAlphaParameters.store(alpha);
     const auto safeOverlapFrames = overlapFrames;
     const auto releaseFrames = std::max<uint64_t>(1, safeOverlapFrames / 2);
     automixPlan.gapless.store(false, std::memory_order_release);
@@ -1257,6 +1315,7 @@ void PcmRingAudioSource::beginSession(bool startPaused)
 {
     sessionPaused.store(true, std::memory_order_release);
     echo_audio_host::RenderEpoch::QuiescenceGuard renderQuiescence(renderEpoch);
+    preparedEqPlayback.store(false, std::memory_order_release);
     dspChain.applySessionTransition(echo::DspSessionTransition::HardReplace);
     std::lock_guard<std::mutex> gateLock(initialPlayGateMutex);
     const auto previousGateGeneration = initialPlayGateGeneration.load(std::memory_order_acquire);
@@ -1636,7 +1695,7 @@ bool PcmRingAudioSource::isAutomixActive() const
 
 void PcmRingAudioSource::configureDither(echo::PcmDitherMode mode, int bitDepth)
 {
-    ditherProcessor.configure(mode, bitDepth, channels);
+    ditherProcessor.configure(mode, bitDepth, std::max(8, channels));
 }
 
 void PcmRingAudioSource::resetDither()
@@ -1747,23 +1806,24 @@ echo::LevelMeterProcessor* PcmRingAudioSource::getMeterProcessor()
     return meterProcessor;
 }
 
-void PcmRingAudioSource::copyFromInput(const float* source, int startFrame, int frameCount, int deckSlot)
+template <typename Sample>
+void PcmRingAudioSource::copyFromInput(const Sample* source, int startFrame, int frameCount, int deckSlot)
 {
     if (frameCount <= 0)
         return;
 
-    std::memcpy(
-        bufferForDeck(deckSlot).data() + static_cast<size_t>(startFrame * channels),
-        source,
-        static_cast<size_t>(frameCount * channels) * sizeof(float));
+    // The FIFO stores double PCM; float producers need sample conversion,
+    // and double producers must write the entire block.
+    std::copy_n(source, static_cast<size_t>(frameCount) * channels,
+        bufferForDeck(deckSlot).data() + static_cast<size_t>(startFrame) * channels);
 }
 
-float PcmRingAudioSource::dbToGain(double db)
+double PcmRingAudioSource::dbToGain(double db)
 {
     if (! std::isfinite(db))
-        return 1.0f;
+        return 1.0;
 
-    return static_cast<float>(std::pow(10.0, std::max(-24.0, std::min(12.0, db)) / 20.0));
+    return static_cast<double>(std::pow(10.0, std::max<double>(-24.0, std::min<double>(12.0, db)) / 20.0));
 }
 
 void PcmRingAudioSource::activateAutomixFadeIfReady(uint64_t absoluteStartFrame, int frameCount)
@@ -1921,8 +1981,8 @@ void PcmRingAudioSource::stopAutomixEchoThrow()
     automixEchoGeneration.fetch_add(1, std::memory_order_acq_rel);
 }
 
-float PcmRingAudioSource::processAutomixEchoSample(
-    float sample,
+double PcmRingAudioSource::processAutomixEchoSample(
+    double sample,
     int channel,
     uint64_t absoluteFrame)
 {
@@ -1930,18 +1990,18 @@ float PcmRingAudioSource::processAutomixEchoSample(
         || channel < 0
         || channel >= channels
         || automixEchoCapacityFrames < 2)
-        return 0.0f;
+        return 0.0;
 
     const uint64_t ringEndFrame = automixEchoRingEndFrame.load(std::memory_order_acquire);
     if (absoluteFrame >= ringEndFrame)
     {
         automixEchoRinging.store(false, std::memory_order_release);
-        return 0.0f;
+        return 0.0;
     }
 
     const uint64_t generation = automixEchoGeneration.load(std::memory_order_acquire);
     const uint64_t delayFrames = automixEchoDelayFrames.load(std::memory_order_acquire);
-    float delayed = 0.0f;
+    double delayed = 0.0;
     if (absoluteFrame >= delayFrames)
     {
         const uint64_t readFrame = absoluteFrame - delayFrames;
@@ -1954,7 +2014,7 @@ float PcmRingAudioSource::processAutomixEchoSample(
         }
     }
 
-    float sendGain = 0.0f;
+    double sendGain = 0.0;
     const uint64_t captureStart = automixEchoCaptureStartFrame.load(std::memory_order_acquire);
     const uint64_t captureEnd = automixEchoCaptureEndFrame.load(std::memory_order_acquire);
     if (automixPlan.fadeActivated.load(std::memory_order_acquire)
@@ -1976,20 +2036,21 @@ float PcmRingAudioSource::processAutomixEchoSample(
     return delayed;
 }
 
-void PcmRingAudioSource::applyDeclickRamp(echo::FloatAudioBuffer& output, int startSample, int frameCount)
+template <typename Sample>
+void PcmRingAudioSource::applyDeclickRamp(echo::PlanarAudioBuffer<Sample>& output, int startSample, int frameCount)
 {
     const auto generation = declickFadeGeneration.load(std::memory_order_acquire);
     if (generation != appliedDeclickFadeGeneration)
     {
         appliedDeclickFadeGeneration = generation;
-        declickGain = 0.0f;
+        declickGain = 0.0;
     }
 
-    const float targetGain = stopFadeRequested.load(std::memory_order_acquire) ? 0.0f : 1.0f;
-    if (declickGain == targetGain && targetGain == 1.0f)
+    const double targetGain = stopFadeRequested.load(std::memory_order_acquire) ? 0.0 : 1.0;
+    if (declickGain == targetGain && targetGain == 1.0)
         return;
 
-    const float step = 1.0f / static_cast<float>(std::max(1, declickRampFrames));
+    const double step = 1.0 / static_cast<double>(std::max<double>(1, declickRampFrames));
     const int outputChannels = output.getNumChannels();
 
     for (int frame = 0; frame < frameCount; ++frame)
@@ -1998,57 +2059,57 @@ void PcmRingAudioSource::applyDeclickRamp(echo::FloatAudioBuffer& output, int st
             output.getWritePointer(ch, startSample)[frame] *= declickGain;
 
         if (declickGain < targetGain)
-            declickGain = std::min(targetGain, declickGain + step);
+            declickGain = std::min<double>(targetGain, declickGain + step);
         else if (declickGain > targetGain)
-            declickGain = std::max(targetGain, declickGain - step);
+            declickGain = std::max<double>(targetGain, declickGain - step);
     }
 }
 
-float PcmRingAudioSource::promotedDeckGainEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::promotedDeckGainEnvelope(uint64_t absoluteFrame) const
 {
     if (currentDeckLease.load(std::memory_order_acquire) == 0)
-        return 1.0f;
+        return 1.0;
     const uint64_t startFrame = promotedDeckReleaseStartFrame.load(std::memory_order_acquire);
     const uint64_t endFrame = promotedDeckReleaseEndFrame.load(std::memory_order_acquire);
-    const float startGain = promotedDeckReleaseStartGain.load(std::memory_order_acquire);
+    const double startGain = promotedDeckReleaseStartGain.load(std::memory_order_acquire);
     if (absoluteFrame <= startFrame)
         return startGain;
     if (absoluteFrame >= endFrame || endFrame <= startFrame)
-        return 1.0f;
+        return 1.0;
     const double progress = static_cast<double>(absoluteFrame - startFrame)
         / static_cast<double>(endFrame - startFrame);
-    return startGain + (1.0f - startGain) * smoothStep(progress);
+    return startGain + (1.0 - startGain) * smoothStep(progress);
 }
 
-float PcmRingAudioSource::currentAutomixEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::currentAutomixEnvelope(uint64_t absoluteFrame) const
 {
     if (automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
     {
         const uint64_t start = automixPlan.faultFadeStartFrame.load(std::memory_order_acquire);
         const uint64_t end = automixPlan.faultFadeEndFrame.load(std::memory_order_acquire);
-        const float startGain = automixPlan.faultCurrentStartGain.load(std::memory_order_acquire);
+        const double startGain = automixPlan.faultCurrentStartGain.load(std::memory_order_acquire);
         if (absoluteFrame >= end)
-            return 1.0f;
+            return 1.0;
         if (absoluteFrame >= start)
         {
-            const float progress = static_cast<float>(absoluteFrame - start)
-                / static_cast<float>(std::max<uint64_t>(1, end - start));
-            return startGain + (1.0f - startGain) * progress;
+            const double progress = static_cast<double>(absoluteFrame - start)
+                / static_cast<double>(std::max<uint64_t>(1, end - start));
+            return startGain + (1.0 - startGain) * progress;
         }
     }
     const bool enabled = automixPlan.enabled.load(std::memory_order_acquire);
     const bool fadeActivated = automixPlan.fadeActivated.load(std::memory_order_acquire);
     const uint64_t fadeStartFrame = automixPlan.fadeStartFrame.load(std::memory_order_acquire);
     const uint64_t fadeEndFrame = automixPlan.fadeEndFrame.load(std::memory_order_acquire);
-    const float currentGain = automixPlan.currentGain.load(std::memory_order_acquire);
+    const double currentGain = automixPlan.currentGain.load(std::memory_order_acquire);
     if (! enabled)
-        return 1.0f;
+        return 1.0;
 
     if (! fadeActivated || absoluteFrame < fadeStartFrame)
-        return 1.0f;
+        return 1.0;
 
     if (absoluteFrame >= fadeEndFrame)
-        return 0.0f;
+        return 0.0;
 
     const double progress = static_cast<double>(absoluteFrame - fadeStartFrame)
         / static_cast<double>(std::max<uint64_t>(1, fadeEndFrame - fadeStartFrame));
@@ -2057,25 +2118,25 @@ float PcmRingAudioSource::currentAutomixEnvelope(uint64_t absoluteFrame) const
         : automixHeldProgress(progress,
             automixPlan.holdStart.load(std::memory_order_acquire),
             automixPlan.holdEnd.load(std::memory_order_acquire));
-    const float smoothProgress = smoothStep(envelopeProgress);
-    const float gainMatch = 1.0f + ((currentGain - 1.0f) * smoothProgress);
-    return gainMatch * static_cast<float>(std::cos(envelopeProgress * halfPi));
+    const double smoothProgress = smoothStep(envelopeProgress);
+    const double gainMatch = 1.0 + ((currentGain - 1.0) * smoothProgress);
+    return gainMatch * static_cast<double>(std::cos(envelopeProgress * halfPi));
 }
 
-float PcmRingAudioSource::nextAutomixEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::nextAutomixEnvelope(uint64_t absoluteFrame) const
 {
     if (automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
     {
         const uint64_t start = automixPlan.faultFadeStartFrame.load(std::memory_order_acquire);
         const uint64_t end = automixPlan.faultFadeEndFrame.load(std::memory_order_acquire);
-        const float startGain = automixPlan.faultNextStartGain.load(std::memory_order_acquire);
+        const double startGain = automixPlan.faultNextStartGain.load(std::memory_order_acquire);
         if (absoluteFrame >= end)
-            return 0.0f;
+            return 0.0;
         if (absoluteFrame >= start)
         {
-            const float progress = static_cast<float>(absoluteFrame - start)
-                / static_cast<float>(std::max<uint64_t>(1, end - start));
-            return startGain * (1.0f - progress);
+            const double progress = static_cast<double>(absoluteFrame - start)
+                / static_cast<double>(std::max<uint64_t>(1, end - start));
+            return startGain * (1.0 - progress);
         }
     }
     const bool enabled = automixPlan.enabled.load(std::memory_order_acquire);
@@ -2083,19 +2144,19 @@ float PcmRingAudioSource::nextAutomixEnvelope(uint64_t absoluteFrame) const
     const uint64_t fadeStartFrame = automixPlan.fadeStartFrame.load(std::memory_order_acquire);
     const uint64_t fadeEndFrame = automixPlan.fadeEndFrame.load(std::memory_order_acquire);
     const uint64_t gainReleaseEndFrame = automixPlan.gainReleaseEndFrame.load(std::memory_order_acquire);
-    const float nextGain = automixPlan.nextGain.load(std::memory_order_acquire);
+    const double nextGain = automixPlan.nextGain.load(std::memory_order_acquire);
     if (! enabled || ! fadeActivated || absoluteFrame < fadeStartFrame)
-        return 0.0f;
+        return 0.0;
 
     if (absoluteFrame >= gainReleaseEndFrame)
-        return 1.0f;
+        return 1.0;
 
     if (absoluteFrame >= fadeEndFrame)
     {
         const double releaseProgress = static_cast<double>(absoluteFrame - fadeEndFrame)
             / static_cast<double>(std::max<uint64_t>(1, gainReleaseEndFrame - fadeEndFrame));
-        const float smoothRelease = smoothStep(releaseProgress);
-        return nextGain + ((1.0f - nextGain) * smoothRelease);
+        const double smoothRelease = smoothStep(releaseProgress);
+        return nextGain + ((1.0 - nextGain) * smoothRelease);
     }
 
     const double progress = static_cast<double>(absoluteFrame - fadeStartFrame)
@@ -2105,12 +2166,12 @@ float PcmRingAudioSource::nextAutomixEnvelope(uint64_t absoluteFrame) const
         : automixHeldProgress(progress,
             automixPlan.holdStart.load(std::memory_order_acquire),
             automixPlan.holdEnd.load(std::memory_order_acquire));
-    return nextGain * static_cast<float>(std::sin(envelopeProgress * halfPi));
+    return nextGain * static_cast<double>(std::sin(envelopeProgress * halfPi));
 }
 
-float PcmRingAudioSource::currentAutomixLowEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::currentAutomixLowEnvelope(uint64_t absoluteFrame) const
 {
-    const float regularEnvelope = currentAutomixEnvelope(absoluteFrame);
+    const double regularEnvelope = currentAutomixEnvelope(absoluteFrame);
     const bool shapedHandoff = automixPlan.rhythmicBassSwap.load(std::memory_order_acquire)
         || automixPlan.tailRide.load(std::memory_order_acquire);
     if (! shapedHandoff || automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
@@ -2125,15 +2186,15 @@ float PcmRingAudioSource::currentAutomixLowEnvelope(uint64_t absoluteFrame) cons
         / static_cast<double>(std::max<uint64_t>(1, fadeEndFrame - fadeStartFrame));
     const double swapStart = automixPlan.lowSwapStart.load(std::memory_order_acquire);
     const double swapEnd = automixPlan.lowSwapEnd.load(std::memory_order_acquire);
-    const double bassProgress = std::clamp((progress - swapStart) / (swapEnd - swapStart), 0.0, 1.0);
-    const float currentGain = automixPlan.currentGain.load(std::memory_order_acquire);
-    const float gainMatch = 1.0f + ((currentGain - 1.0f) * smoothStep(progress));
-    return gainMatch * static_cast<float>(std::cos(bassProgress * halfPi));
+    const double bassProgress = std::clamp<double>((progress - swapStart) / (swapEnd - swapStart), 0.0, 1.0);
+    const double currentGain = automixPlan.currentGain.load(std::memory_order_acquire);
+    const double gainMatch = 1.0 + ((currentGain - 1.0) * smoothStep(progress));
+    return gainMatch * static_cast<double>(std::cos(bassProgress * halfPi));
 }
 
-float PcmRingAudioSource::nextAutomixLowEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::nextAutomixLowEnvelope(uint64_t absoluteFrame) const
 {
-    const float regularEnvelope = nextAutomixEnvelope(absoluteFrame);
+    const double regularEnvelope = nextAutomixEnvelope(absoluteFrame);
     const bool shapedHandoff = automixPlan.rhythmicBassSwap.load(std::memory_order_acquire)
         || automixPlan.tailRide.load(std::memory_order_acquire);
     if (! shapedHandoff || automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
@@ -2148,14 +2209,14 @@ float PcmRingAudioSource::nextAutomixLowEnvelope(uint64_t absoluteFrame) const
         / static_cast<double>(std::max<uint64_t>(1, fadeEndFrame - fadeStartFrame));
     const double swapStart = automixPlan.lowSwapStart.load(std::memory_order_acquire);
     const double swapEnd = automixPlan.lowSwapEnd.load(std::memory_order_acquire);
-    const double bassProgress = std::clamp((progress - swapStart) / (swapEnd - swapStart), 0.0, 1.0);
-    const float nextGain = automixPlan.nextGain.load(std::memory_order_acquire);
-    return nextGain * static_cast<float>(std::sin(bassProgress * halfPi));
+    const double bassProgress = std::clamp<double>((progress - swapStart) / (swapEnd - swapStart), 0.0, 1.0);
+    const double nextGain = automixPlan.nextGain.load(std::memory_order_acquire);
+    return nextGain * static_cast<double>(std::sin(bassProgress * halfPi));
 }
 
-float PcmRingAudioSource::currentAutomixHighEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::currentAutomixHighEnvelope(uint64_t absoluteFrame) const
 {
-    const float regularEnvelope = currentAutomixEnvelope(absoluteFrame);
+    const double regularEnvelope = currentAutomixEnvelope(absoluteFrame);
     if (! automixPlan.rhythmicBassSwap.load(std::memory_order_acquire)
         || automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
         return regularEnvelope;
@@ -2169,15 +2230,15 @@ float PcmRingAudioSource::currentAutomixHighEnvelope(uint64_t absoluteFrame) con
         / static_cast<double>(std::max<uint64_t>(1, fadeEndFrame - fadeStartFrame));
     const double swapStart = automixPlan.highSwapStart.load(std::memory_order_acquire);
     const double swapEnd = automixPlan.highSwapEnd.load(std::memory_order_acquire);
-    const double highHandoffProgress = std::clamp((progress - swapStart) / (swapEnd - swapStart), 0.0, 1.0);
-    const float currentGain = automixPlan.currentGain.load(std::memory_order_acquire);
-    const float gainMatch = 1.0f + ((currentGain - 1.0f) * smoothStep(progress));
-    return gainMatch * static_cast<float>(std::cos(highHandoffProgress * halfPi));
+    const double highHandoffProgress = std::clamp<double>((progress - swapStart) / (swapEnd - swapStart), 0.0, 1.0);
+    const double currentGain = automixPlan.currentGain.load(std::memory_order_acquire);
+    const double gainMatch = 1.0 + ((currentGain - 1.0) * smoothStep(progress));
+    return gainMatch * static_cast<double>(std::cos(highHandoffProgress * halfPi));
 }
 
-float PcmRingAudioSource::nextAutomixHighEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::nextAutomixHighEnvelope(uint64_t absoluteFrame) const
 {
-    const float regularEnvelope = nextAutomixEnvelope(absoluteFrame);
+    const double regularEnvelope = nextAutomixEnvelope(absoluteFrame);
     if (! automixPlan.rhythmicBassSwap.load(std::memory_order_acquire)
         || automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
         return regularEnvelope;
@@ -2191,14 +2252,14 @@ float PcmRingAudioSource::nextAutomixHighEnvelope(uint64_t absoluteFrame) const
         / static_cast<double>(std::max<uint64_t>(1, fadeEndFrame - fadeStartFrame));
     const double swapStart = automixPlan.highSwapStart.load(std::memory_order_acquire);
     const double swapEnd = automixPlan.highSwapEnd.load(std::memory_order_acquire);
-    const double highHandoffProgress = std::clamp((progress - swapStart) / (swapEnd - swapStart), 0.0, 1.0);
-    const float nextGain = automixPlan.nextGain.load(std::memory_order_acquire);
-    return nextGain * static_cast<float>(std::sin(highHandoffProgress * halfPi));
+    const double highHandoffProgress = std::clamp<double>((progress - swapStart) / (swapEnd - swapStart), 0.0, 1.0);
+    const double nextGain = automixPlan.nextGain.load(std::memory_order_acquire);
+    return nextGain * static_cast<double>(std::sin(highHandoffProgress * halfPi));
 }
 
-float PcmRingAudioSource::currentAutomixCenterEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::currentAutomixCenterEnvelope(uint64_t absoluteFrame) const
 {
-    const float regularEnvelope = currentAutomixEnvelope(absoluteFrame);
+    const double regularEnvelope = currentAutomixEnvelope(absoluteFrame);
     if (! automixPlan.rhythmicBassSwap.load(std::memory_order_acquire)
         || automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
         return regularEnvelope;
@@ -2211,16 +2272,16 @@ float PcmRingAudioSource::currentAutomixCenterEnvelope(uint64_t absoluteFrame) c
     const double progress = static_cast<double>(absoluteFrame - fadeStartFrame)
         / static_cast<double>(std::max<uint64_t>(1, fadeEndFrame - fadeStartFrame));
     const double exitStart = automixPlan.vocalExitStartProgress.load(std::memory_order_acquire);
-    const double exitEnd = std::min(0.94, exitStart + 0.27);
-    const double exitProgress = std::clamp((progress - exitStart) / (exitEnd - exitStart), 0.0, 1.0);
-    const float currentGain = automixPlan.currentGain.load(std::memory_order_acquire);
-    const float gainMatch = 1.0f + ((currentGain - 1.0f) * smoothStep(progress));
-    return gainMatch * static_cast<float>(std::cos(exitProgress * halfPi));
+    const double exitEnd = std::min<double>(0.94, exitStart + 0.27);
+    const double exitProgress = std::clamp<double>((progress - exitStart) / (exitEnd - exitStart), 0.0, 1.0);
+    const double currentGain = automixPlan.currentGain.load(std::memory_order_acquire);
+    const double gainMatch = 1.0 + ((currentGain - 1.0) * smoothStep(progress));
+    return gainMatch * static_cast<double>(std::cos(exitProgress * halfPi));
 }
 
-float PcmRingAudioSource::nextAutomixCenterEnvelope(uint64_t absoluteFrame) const
+double PcmRingAudioSource::nextAutomixCenterEnvelope(uint64_t absoluteFrame) const
 {
-    const float regularEnvelope = nextAutomixEnvelope(absoluteFrame);
+    const double regularEnvelope = nextAutomixEnvelope(absoluteFrame);
     if (! automixPlan.rhythmicBassSwap.load(std::memory_order_acquire)
         || automixPlan.nextDeckFaulted.load(std::memory_order_acquire))
         return regularEnvelope;
@@ -2233,16 +2294,17 @@ float PcmRingAudioSource::nextAutomixCenterEnvelope(uint64_t absoluteFrame) cons
     const double progress = static_cast<double>(absoluteFrame - fadeStartFrame)
         / static_cast<double>(std::max<uint64_t>(1, fadeEndFrame - fadeStartFrame));
     const double entryStart = automixPlan.vocalEntryStartProgress.load(std::memory_order_acquire);
-    const double entryEnd = std::min(0.96, entryStart + 0.16);
-    const double entryProgress = std::clamp((progress - entryStart) / (entryEnd - entryStart), 0.0, 1.0);
-    const float nextGain = automixPlan.nextGain.load(std::memory_order_acquire);
-    return nextGain * static_cast<float>(std::sin(entryProgress * halfPi));
+    const double entryEnd = std::min<double>(0.96, entryStart + 0.16);
+    const double entryProgress = std::clamp<double>((progress - entryStart) / (entryEnd - entryStart), 0.0, 1.0);
+    const double nextGain = automixPlan.nextGain.load(std::memory_order_acquire);
+    return nextGain * static_cast<double>(std::sin(entryProgress * halfPi));
 }
 
+template <typename Sample>
 void PcmRingAudioSource::copyToOutput(
     int startFrame,
     int frameCount,
-    echo::FloatAudioBuffer& output,
+    echo::PlanarAudioBuffer<Sample>& output,
     int outputStart,
     uint64_t absoluteOutputStartFrame,
     int sourceFrameOffset,
@@ -2253,7 +2315,7 @@ void PcmRingAudioSource::copyToOutput(
     if (frameCount <= 0)
         return;
 
-    const float* source = bufferForDeck(deckSlot).data() + static_cast<size_t>(startFrame * channels);
+    const auto* source = bufferForDeck(deckSlot).data() + static_cast<size_t>(startFrame * channels);
     const bool smartTransitionActive =
         automixPlan.enabled.load(std::memory_order_acquire)
         && ! automixPlan.gapless.load(std::memory_order_acquire);
@@ -2261,21 +2323,21 @@ void PcmRingAudioSource::copyToOutput(
         && automixPlan.rhythmicBassSwap.load(std::memory_order_acquire);
     const bool shapedHandoff = rhythmicBassSwap
         || (smartTransitionActive && automixPlan.tailRide.load(std::memory_order_acquire));
-    const float lowPassCoefficient = automixLowPassCoefficient.load(std::memory_order_acquire);
-    const float presenceLowPassCoefficient = automixPresenceLowPassCoefficient.load(std::memory_order_acquire);
-    const float deckReplayGain = smartTransitionActive
+    const double lowPassCoefficient = automixLowPassCoefficient.load(std::memory_order_acquire);
+    const double presenceLowPassCoefficient = automixPresenceLowPassCoefficient.load(std::memory_order_acquire);
+    const double deckReplayGain = smartTransitionActive
         ? automixPlan.currentReplayGain.load(std::memory_order_acquire)
         : currentDeckLease.load(std::memory_order_acquire) != 0
             ? promotedDeckReplayGain.load(std::memory_order_acquire)
-            : 1.0f;
+            : 1.0;
     const int outputChannels = output.getNumChannels();
 
     if (transparentPassthrough)
     {
         for (int channel = 0; channel < outputChannels; ++channel)
         {
-            float* destination = output.getWritePointer(channel, outputStart);
-            const int sourceChannel = std::min(channel, channels - 1);
+            auto* destination = output.getWritePointer(channel, outputStart);
+            const int sourceChannel = std::min<double>(channel, channels - 1);
             for (int frame = 0; frame < frameCount; ++frame)
                 destination[frame] = source[frame * channels + sourceChannel];
         }
@@ -2287,38 +2349,38 @@ void PcmRingAudioSource::copyToOutput(
     // presence band is handed over separately from the stereo accompaniment.
     if (rhythmicBassSwap && channels == 2 && outputChannels == 2)
     {
-        float* leftDestination = output.getWritePointer(0, outputStart);
-        float* rightDestination = output.getWritePointer(1, outputStart);
-        float& leftLowState = automixCurrentLowState[0];
-        float& rightLowState = automixCurrentLowState[1];
-        float& leftPresenceState = automixCurrentPresenceState[0];
-        float& rightPresenceState = automixCurrentPresenceState[1];
+        auto* leftDestination = output.getWritePointer(0, outputStart);
+        auto* rightDestination = output.getWritePointer(1, outputStart);
+        double& leftLowState = automixCurrentLowState[0];
+        double& rightLowState = automixCurrentLowState[1];
+        double& leftPresenceState = automixCurrentPresenceState[0];
+        double& rightPresenceState = automixCurrentPresenceState[1];
         for (int frame = 0; frame < frameCount; ++frame)
         {
-            const float left = source[frame * channels];
-            const float right = source[frame * channels + 1];
+            const double left = source[frame * channels];
+            const double right = source[frame * channels + 1];
             leftLowState += lowPassCoefficient * (left - leftLowState);
             rightLowState += lowPassCoefficient * (right - rightLowState);
             leftPresenceState += presenceLowPassCoefficient * (left - leftPresenceState);
             rightPresenceState += presenceLowPassCoefficient * (right - rightPresenceState);
 
-            const float leftMiddle = leftPresenceState - leftLowState;
-            const float rightMiddle = rightPresenceState - rightLowState;
-            const float centerMiddle = (leftMiddle + rightMiddle) * 0.5f;
-            const float leftSideMiddle = leftMiddle - centerMiddle;
-            const float rightSideMiddle = rightMiddle - centerMiddle;
-            const float leftHigh = left - leftPresenceState;
-            const float rightHigh = right - rightPresenceState;
+            const double leftMiddle = leftPresenceState - leftLowState;
+            const double rightMiddle = rightPresenceState - rightLowState;
+            const double centerMiddle = (leftMiddle + rightMiddle) * 0.5;
+            const double leftSideMiddle = leftMiddle - centerMiddle;
+            const double rightSideMiddle = rightMiddle - centerMiddle;
+            const double leftHigh = left - leftPresenceState;
+            const double rightHigh = right - rightPresenceState;
             const uint64_t absoluteFrame = absoluteOutputStartFrame + static_cast<uint64_t>(std::floor(
                 static_cast<double>(sourceFrameOffset + frame)
-                / std::max(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
-            const float deckEnvelope = currentAutomixEnvelope(absoluteFrame)
+                / std::max<double>(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
+            const double deckEnvelope = currentAutomixEnvelope(absoluteFrame)
                 * promotedDeckGainEnvelope(absoluteFrame);
-            const float lowEnvelope = currentAutomixLowEnvelope(absoluteFrame)
+            const double lowEnvelope = currentAutomixLowEnvelope(absoluteFrame)
                 * promotedDeckGainEnvelope(absoluteFrame);
-            const float highEnvelope = currentAutomixHighEnvelope(absoluteFrame)
+            const double highEnvelope = currentAutomixHighEnvelope(absoluteFrame)
                 * promotedDeckGainEnvelope(absoluteFrame);
-            const float centerEnvelope = currentAutomixCenterEnvelope(absoluteFrame)
+            const double centerEnvelope = currentAutomixCenterEnvelope(absoluteFrame)
                 * promotedDeckGainEnvelope(absoluteFrame);
             leftDestination[frame] = (leftLowState * lowEnvelope
                 + leftSideMiddle * deckEnvelope
@@ -2338,18 +2400,18 @@ void PcmRingAudioSource::copyToOutput(
 
     for (int channel = 0; channel < outputChannels; ++channel)
     {
-        float* destination = output.getWritePointer(channel, outputStart);
-        const int sourceChannel = std::min(channel, channels - 1);
+        auto* destination = output.getWritePointer(channel, outputStart);
+        const int sourceChannel = std::min<double>(channel, channels - 1);
 
-        float& lowState = automixCurrentLowState[static_cast<size_t>(sourceChannel)];
-        float& presenceState = automixCurrentPresenceState[static_cast<size_t>(sourceChannel)];
+        double& lowState = automixCurrentLowState[static_cast<size_t>(sourceChannel)];
+        double& presenceState = automixCurrentPresenceState[static_cast<size_t>(sourceChannel)];
         for (int frame = 0; frame < frameCount; ++frame)
         {
-            const float sample = source[frame * channels + sourceChannel];
+            const double sample = source[frame * channels + sourceChannel];
             const uint64_t absoluteFrame = absoluteOutputStartFrame + static_cast<uint64_t>(std::floor(
                 static_cast<double>(sourceFrameOffset + frame)
-                / std::max(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
-            const float envelope = currentAutomixEnvelope(absoluteFrame)
+                / std::max<double>(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
+            const double envelope = currentAutomixEnvelope(absoluteFrame)
                 * promotedDeckGainEnvelope(absoluteFrame);
             if (workshopWindow.load(std::memory_order_acquire) != nullptr
                 && absoluteFrame < automixPlan.fadeStartFrame.load(std::memory_order_acquire))
@@ -2361,9 +2423,9 @@ void PcmRingAudioSource::copyToOutput(
             {
                 lowState += lowPassCoefficient * (sample - lowState);
                 presenceState += presenceLowPassCoefficient * (sample - presenceState);
-                const float middle = presenceState - lowState;
-                const float high = sample - presenceState;
-                const float middleEnvelope = rhythmicBassSwap
+                const double middle = presenceState - lowState;
+                const double high = sample - presenceState;
+                const double middleEnvelope = rhythmicBassSwap
                     ? currentAutomixCenterEnvelope(absoluteFrame)
                         * promotedDeckGainEnvelope(absoluteFrame)
                     : envelope;
@@ -2384,21 +2446,21 @@ void PcmRingAudioSource::copyToOutput(
     }
 }
 
-void PcmRingAudioSource::copyToAutomixBuffer(const float* source, int startFrame, int frameCount, int deckSlot)
+template <typename Sample>
+void PcmRingAudioSource::copyToAutomixBuffer(const Sample* source, int startFrame, int frameCount, int deckSlot)
 {
     if (frameCount <= 0)
         return;
 
-    std::memcpy(
-        bufferForDeck(deckSlot).data() + static_cast<size_t>(startFrame * channels),
-        source,
-        static_cast<size_t>(frameCount * channels) * sizeof(float));
+    std::copy_n(source, static_cast<size_t>(frameCount) * channels,
+        bufferForDeck(deckSlot).data() + static_cast<size_t>(startFrame) * channels);
 }
 
+template <typename Sample>
 void PcmRingAudioSource::addAutomixToOutput(
     int startFrame,
     int frameCount,
-    echo::FloatAudioBuffer& output,
+    echo::PlanarAudioBuffer<Sample>& output,
     int outputStart,
     uint64_t absoluteOutputStartFrame,
     int sourceFrameOffset,
@@ -2408,48 +2470,107 @@ void PcmRingAudioSource::addAutomixToOutput(
     if (frameCount <= 0)
         return;
 
-    const float* source = bufferForDeck(deckSlot).data() + static_cast<size_t>(startFrame * channels);
-    const float deckReplayGain = automixPlan.nextReplayGain.load(std::memory_order_acquire);
+    const auto* source = bufferForDeck(deckSlot).data() + static_cast<size_t>(startFrame * channels);
+    const double deckReplayGain = automixPlan.nextReplayGain.load(std::memory_order_acquire);
     const bool rhythmicBassSwap = automixPlan.rhythmicBassSwap.load(std::memory_order_acquire);
     const bool shapedHandoff = rhythmicBassSwap
         || automixPlan.tailRide.load(std::memory_order_acquire);
-    const float lowPassCoefficient = automixLowPassCoefficient.load(std::memory_order_acquire);
-    const float presenceLowPassCoefficient = automixPresenceLowPassCoefficient.load(std::memory_order_acquire);
+    const double lowPassCoefficient = automixLowPassCoefficient.load(std::memory_order_acquire);
+    const double presenceLowPassCoefficient = automixPresenceLowPassCoefficient.load(std::memory_order_acquire);
     const int outputChannels = output.getNumChannels();
+
+    // Alpha replaces the ordinary two-deck sum with its native DSP. The legacy
+    // output remains available for a gradual recovery if the incoming deck fails.
+    if (automixAlphaParameters.enabled.load(std::memory_order_acquire)
+        && !automixPlan.gapless.load(std::memory_order_acquire)
+        && outputChannels <= echo::automix_alpha::MixDsp::maximumChannels)
+    {
+        const uint64_t start = automixPlan.fadeStartFrame.load(std::memory_order_acquire);
+        const uint64_t end = automixPlan.fadeEndFrame.load(std::memory_order_acquire);
+        const auto lease = pendingAutomixDeckLease.load(std::memory_order_acquire);
+        if (automixAlphaRender.needsPrepare(lease)) {
+            const double rate = std::max<double>(8000, getRenderSampleRate());
+            const int featureFrames = static_cast<int>(std::clamp<double>(
+                (end - start) * std::max<double>(0.0001, sourceFramesPerOutputFrame) / rate / 0.02, 1.0, 800.0));
+            automixAlphaRender.prepare(lease, automixAlphaParameters.snapshot(), rate, featureFrames);
+        }
+        std::array<double, echo::automix_alpha::MixDsp::maximumChannels> a {}, b {}, mixed {};
+        std::array<Sample*, echo::automix_alpha::MixDsp::maximumChannels> destinations {};
+        for (int c = 0; c < outputChannels; ++c) destinations[c] = output.getWritePointer(c, outputStart);
+        for (int frame = 0; frame < frameCount; ++frame)
+        {
+            const uint64_t absoluteFrame = absoluteOutputStartFrame + static_cast<uint64_t>(std::floor(
+                (sourceFrameOffset + frame) / std::max<double>(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
+            const bool recovering = automixPlan.nextDeckFaulted.load(std::memory_order_acquire);
+            const double p = std::clamp<double>(static_cast<double>(absoluteFrame > start ? absoluteFrame - start : 0)
+                / std::max<uint64_t>(1, end - start), 0.0, 1.0);
+            const double envelopeA = currentAutomixEnvelope(absoluteFrame);
+            const double envelopeB = nextAutomixEnvelope(absoluteFrame);
+            for (int c = 0; c < outputChannels; ++c) {
+                a[c] = destinations[c][frame];
+                b[c] = source[frame * channels + std::min(c, channels - 1)] * deckReplayGain;
+            }
+            if (absoluteFrame >= start && (absoluteFrame < end || recovering)) {
+                const double mixProgress = recovering ? automixAlphaRender.lastProgress() : p;
+                const double baseA = 1 + (automixPlan.currentGain.load(std::memory_order_acquire) - 1)
+                    * smoothStep(mixProgress);
+                // A fault can arrive after fade completion, during native gain
+                // release. Freeze the actual incoming gain at that fault rather
+                // than restoring the preparation's older gain match value.
+                const double baseB = recovering
+                    ? automixPlan.faultNextStartGain.load(std::memory_order_acquire)
+                        / static_cast<double>(std::max<double>(1e-6, std::sin(mixProgress * halfPi)))
+                    : automixPlan.nextGain.load(std::memory_order_acquire);
+                double recovery = 0;
+                if (recovering) {
+                    const uint64_t faultStart = automixPlan.faultFadeStartFrame.load(std::memory_order_acquire);
+                    const uint64_t faultEnd = automixPlan.faultFadeEndFrame.load(std::memory_order_acquire);
+                    if (absoluteFrame > faultStart)
+                        recovery = static_cast<double>(absoluteFrame - faultStart) / std::max<uint64_t>(1, faultEnd - faultStart);
+                }
+                automixAlphaRender.mixFrame(a.data(), b.data(), mixed.data(), outputChannels,
+                    p, envelopeA, envelopeB, baseA, baseB, recovering, recovery);
+                for (int c = 0; c < outputChannels; ++c) destinations[c][frame] = mixed[c];
+            } else {
+                for (int c = 0; c < outputChannels; ++c) destinations[c][frame] += b[c] * envelopeB;
+            }
+        }
+        return;
+    }
 
     // Mirror the outgoing pseudo-stem split so each musical role changes hands
     // at its own moment while the user's DSP still runs once on the final sum.
     if (rhythmicBassSwap && channels == 2 && outputChannels == 2)
     {
-        float* leftDestination = output.getWritePointer(0, outputStart);
-        float* rightDestination = output.getWritePointer(1, outputStart);
-        float& leftLowState = automixNextLowState[0];
-        float& rightLowState = automixNextLowState[1];
-        float& leftPresenceState = automixNextPresenceState[0];
-        float& rightPresenceState = automixNextPresenceState[1];
+        auto* leftDestination = output.getWritePointer(0, outputStart);
+        auto* rightDestination = output.getWritePointer(1, outputStart);
+        double& leftLowState = automixNextLowState[0];
+        double& rightLowState = automixNextLowState[1];
+        double& leftPresenceState = automixNextPresenceState[0];
+        double& rightPresenceState = automixNextPresenceState[1];
         for (int frame = 0; frame < frameCount; ++frame)
         {
-            const float left = source[frame * channels];
-            const float right = source[frame * channels + 1];
+            const double left = source[frame * channels];
+            const double right = source[frame * channels + 1];
             leftLowState += lowPassCoefficient * (left - leftLowState);
             rightLowState += lowPassCoefficient * (right - rightLowState);
             leftPresenceState += presenceLowPassCoefficient * (left - leftPresenceState);
             rightPresenceState += presenceLowPassCoefficient * (right - rightPresenceState);
 
-            const float leftMiddle = leftPresenceState - leftLowState;
-            const float rightMiddle = rightPresenceState - rightLowState;
-            const float centerMiddle = (leftMiddle + rightMiddle) * 0.5f;
-            const float leftSideMiddle = leftMiddle - centerMiddle;
-            const float rightSideMiddle = rightMiddle - centerMiddle;
-            const float leftHigh = left - leftPresenceState;
-            const float rightHigh = right - rightPresenceState;
+            const double leftMiddle = leftPresenceState - leftLowState;
+            const double rightMiddle = rightPresenceState - rightLowState;
+            const double centerMiddle = (leftMiddle + rightMiddle) * 0.5;
+            const double leftSideMiddle = leftMiddle - centerMiddle;
+            const double rightSideMiddle = rightMiddle - centerMiddle;
+            const double leftHigh = left - leftPresenceState;
+            const double rightHigh = right - rightPresenceState;
             const uint64_t absoluteFrame = absoluteOutputStartFrame + static_cast<uint64_t>(std::floor(
                 static_cast<double>(sourceFrameOffset + frame)
-                / std::max(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
-            const float deckEnvelope = nextAutomixEnvelope(absoluteFrame);
-            const float lowEnvelope = nextAutomixLowEnvelope(absoluteFrame);
-            const float highEnvelope = nextAutomixHighEnvelope(absoluteFrame);
-            const float centerEnvelope = nextAutomixCenterEnvelope(absoluteFrame);
+                / std::max<double>(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
+            const double deckEnvelope = nextAutomixEnvelope(absoluteFrame);
+            const double lowEnvelope = nextAutomixLowEnvelope(absoluteFrame);
+            const double highEnvelope = nextAutomixHighEnvelope(absoluteFrame);
+            const double centerEnvelope = nextAutomixCenterEnvelope(absoluteFrame);
             leftDestination[frame] += (leftLowState * lowEnvelope
                 + leftSideMiddle * deckEnvelope
                 + centerMiddle * centerEnvelope
@@ -2464,25 +2585,25 @@ void PcmRingAudioSource::addAutomixToOutput(
 
     for (int channel = 0; channel < outputChannels; ++channel)
     {
-        float* destination = output.getWritePointer(channel, outputStart);
-        const int sourceChannel = std::min(channel, channels - 1);
+        auto* destination = output.getWritePointer(channel, outputStart);
+        const int sourceChannel = std::min<double>(channel, channels - 1);
 
-        float& lowState = automixNextLowState[static_cast<size_t>(sourceChannel)];
-        float& presenceState = automixNextPresenceState[static_cast<size_t>(sourceChannel)];
+        double& lowState = automixNextLowState[static_cast<size_t>(sourceChannel)];
+        double& presenceState = automixNextPresenceState[static_cast<size_t>(sourceChannel)];
         for (int frame = 0; frame < frameCount; ++frame)
         {
-            const float sample = source[frame * channels + sourceChannel];
+            const double sample = source[frame * channels + sourceChannel];
             const uint64_t absoluteFrame = absoluteOutputStartFrame + static_cast<uint64_t>(std::floor(
                 static_cast<double>(sourceFrameOffset + frame)
-                / std::max(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
-            const float envelope = nextAutomixEnvelope(absoluteFrame);
+                / std::max<double>(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
+            const double envelope = nextAutomixEnvelope(absoluteFrame);
             if (shapedHandoff)
             {
                 lowState += lowPassCoefficient * (sample - lowState);
                 presenceState += presenceLowPassCoefficient * (sample - presenceState);
-                const float middle = presenceState - lowState;
-                const float high = sample - presenceState;
-                const float middleEnvelope = rhythmicBassSwap
+                const double middle = presenceState - lowState;
+                const double high = sample - presenceState;
+                const double middleEnvelope = rhythmicBassSwap
                     ? nextAutomixCenterEnvelope(absoluteFrame)
                     : envelope;
                 destination[frame] += (lowState * nextAutomixLowEnvelope(absoluteFrame)
@@ -2502,28 +2623,30 @@ void PcmRingAudioSource::addAutomixToOutput(
     }
 }
 
+template <typename Sample>
 void PcmRingAudioSource::copyGaplessToOutput(
     int startFrame,
     int frameCount,
-    echo::FloatAudioBuffer& output,
+    echo::PlanarAudioBuffer<Sample>& output,
     int outputStart)
 {
     if (frameCount <= 0)
         return;
 
-    const float* source = automixBuffer.data() + static_cast<size_t>(startFrame * channels);
+    const auto* source = automixBuffer.data() + static_cast<size_t>(startFrame * channels);
     const int outputChannels = output.getNumChannels();
     for (int channel = 0; channel < outputChannels; ++channel)
     {
-        float* destination = output.getWritePointer(channel, outputStart);
-        const int sourceChannel = std::min(channel, channels - 1);
+        auto* destination = output.getWritePointer(channel, outputStart);
+        const int sourceChannel = std::min<double>(channel, channels - 1);
         for (int frame = 0; frame < frameCount; ++frame)
             destination[frame] = source[frame * channels + sourceChannel];
     }
 }
 
+template <typename Sample>
 uint64_t PcmRingAudioSource::mixGaplessNext(
-    echo::FloatAudioBuffer& output,
+    echo::PlanarAudioBuffer<Sample>& output,
     int startSample,
     int frameCount,
     uint64_t absoluteStartFrame,
@@ -2580,7 +2703,7 @@ uint64_t PcmRingAudioSource::mixGaplessNext(
 
         const uint64_t boundary = absoluteStartFrame + static_cast<uint64_t>(std::floor(
             static_cast<double>(currentFramesRead)
-            / std::max(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
+            / std::max<double>(0.0001, static_cast<double>(sourceFramesPerOutputFrame))));
         uint64_t unsetBoundary = UINT64_MAX;
         gaplessBoundaryFrame.compare_exchange_strong(
             unsetBoundary,
@@ -2603,8 +2726,9 @@ uint64_t PcmRingAudioSource::mixGaplessNext(
     return framesReadTotal;
 }
 
+template <typename Sample>
 uint64_t PcmRingAudioSource::mixAutomixNext(
-    echo::FloatAudioBuffer& output,
+    echo::PlanarAudioBuffer<Sample>& output,
     int startSample,
     int frameCount,
     uint64_t absoluteStartFrame,
@@ -2620,7 +2744,7 @@ uint64_t PcmRingAudioSource::mixAutomixNext(
     auto& nextFifo = fifoForDeck(nextDeckSlot);
 
     const uint64_t fadeStartFrame = automixPlan.fadeStartFrame.load(std::memory_order_acquire);
-    const double safeRate = std::max(0.0001, static_cast<double>(sourceFramesPerOutputFrame));
+    const double safeRate = std::max<double>(0.0001, static_cast<double>(sourceFramesPerOutputFrame));
     const uint64_t outputFrameSpan = static_cast<uint64_t>(std::ceil(
         static_cast<double>(frameCount) / safeRate));
     if (absoluteStartFrame + outputFrameSpan <= fadeStartFrame)
@@ -2628,7 +2752,7 @@ uint64_t PcmRingAudioSource::mixAutomixNext(
 
     const int startOffset = absoluteStartFrame >= fadeStartFrame
         ? 0
-        : std::min(frameCount, static_cast<int>(std::ceil(
+        : std::min<double>(frameCount, static_cast<int>(std::ceil(
             static_cast<double>(fadeStartFrame - absoluteStartFrame) * safeRate)));
     int framesNeeded = frameCount - startOffset;
     int outputOffset = startOffset;
@@ -2710,7 +2834,8 @@ int PcmRingAudioSource::requiredStartupSourceFrames() const noexcept
         static_cast<double>(startupPrebufferFrames) * rate)));
 }
 
-void PcmRingAudioSource::copyPlanarToInterleaved(const echo::FloatAudioBuffer& source, float* output, int frameCount, int outputChannels) const
+template <typename Sample>
+void PcmRingAudioSource::copyPlanarToInterleaved(const echo::PlanarAudioBuffer<Sample>& source, float* output, int frameCount, int outputChannels) const
 {
     if (output == nullptr || frameCount <= 0 || outputChannels <= 0)
         return;
@@ -2723,9 +2848,8 @@ void PcmRingAudioSource::copyPlanarToInterleaved(const echo::FloatAudioBuffer& s
     {
         for (int channel = 0; channel < outputChannels; ++channel)
         {
-            const int sourceChannel = std::min(channel, sourceChannels - 1);
-            output[static_cast<size_t>(frame) * outputChannels + channel] =
-                source.getReadPointer(sourceChannel)[frame];
+            output[static_cast<size_t>(frame) * outputChannels + channel] = channel < sourceChannels
+                ? source.getReadPointer(channel)[frame] : 0.0f;
         }
     }
 }
@@ -2750,3 +2874,35 @@ bool PcmRingAudioSource::shouldHoldForStartupPrebuffer()
 
     return true;
 }
+
+template void PcmRingAudioSource::copyPlanarToInterleaved<float>(const echo::PlanarAudioBuffer<float>&, float*, int, int) const;
+template void PcmRingAudioSource::copyPlanarToInterleaved<double>(const echo::PlanarAudioBuffer<double>&, float*, int, int) const;
+template uint64_t PcmRingAudioSource::mixAutomixNext<float>(echo::PlanarAudioBuffer<float>&, int, int, uint64_t, float);
+template uint64_t PcmRingAudioSource::mixAutomixNext<double>(echo::PlanarAudioBuffer<double>&, int, int, uint64_t, float);
+template uint64_t PcmRingAudioSource::mixGaplessNext<float>(echo::PlanarAudioBuffer<float>&, int, int, uint64_t, uint64_t, float);
+template uint64_t PcmRingAudioSource::mixGaplessNext<double>(echo::PlanarAudioBuffer<double>&, int, int, uint64_t, uint64_t, float);
+template void PcmRingAudioSource::copyGaplessToOutput<float>(int, int, echo::PlanarAudioBuffer<float>&, int);
+template void PcmRingAudioSource::copyGaplessToOutput<double>(int, int, echo::PlanarAudioBuffer<double>&, int);
+template void PcmRingAudioSource::addAutomixToOutput<float>(int, int, echo::PlanarAudioBuffer<float>&, int, uint64_t, int, float, int);
+template void PcmRingAudioSource::addAutomixToOutput<double>(int, int, echo::PlanarAudioBuffer<double>&, int, uint64_t, int, float, int);
+template void PcmRingAudioSource::copyToOutput<float>(int, int, echo::PlanarAudioBuffer<float>&, int, uint64_t, int, float, bool, int);
+template void PcmRingAudioSource::copyToOutput<double>(int, int, echo::PlanarAudioBuffer<double>&, int, uint64_t, int, float, bool, int);
+template void PcmRingAudioSource::applyDeclickRamp<float>(echo::PlanarAudioBuffer<float>&, int, int);
+template void PcmRingAudioSource::applyDeclickRamp<double>(echo::PlanarAudioBuffer<double>&, int, int);
+template uint64_t PcmRingAudioSource::renderPlanarUnderLease<float>(echo::PlanarAudioBuffer<float>&, int, int);
+template uint64_t PcmRingAudioSource::renderPlanarUnderLease<double>(echo::PlanarAudioBuffer<double>&, int, int);
+
+template void PcmRingAudioSource::copyToAutomixBuffer<float>(const float*, int, int, int);
+template void PcmRingAudioSource::copyToAutomixBuffer<double>(const double*, int, int, int);
+template void PcmRingAudioSource::copyFromInput<float>(const float*, int, int, int);
+template void PcmRingAudioSource::copyFromInput<double>(const double*, int, int, int);
+template bool PcmRingAudioSource::pushAutomixDeck<float>(uint64_t, const float*, int);
+template bool PcmRingAudioSource::pushAutomixDeck<double>(uint64_t, const double*, int);
+template bool PcmRingAudioSource::pushAutomixNext<float>(const float*, int);
+template bool PcmRingAudioSource::pushAutomixNext<double>(const double*, int);
+template int PcmRingAudioSource::replaceBufferedAudio<float>(const float*, int, bool);
+template int PcmRingAudioSource::replaceBufferedAudio<double>(const double*, int, bool);
+template bool PcmRingAudioSource::pushForGeneration<float>(const float*, int, uint64_t);
+template bool PcmRingAudioSource::pushForGeneration<double>(const double*, int, uint64_t);
+template bool PcmRingAudioSource::push<float>(const float*, int);
+template bool PcmRingAudioSource::push<double>(const double*, int);

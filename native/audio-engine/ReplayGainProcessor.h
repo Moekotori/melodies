@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <array>
+#include <mutex>
 #include <vector>
 
 namespace echo
@@ -14,6 +15,7 @@ constexpr int replayGainModeAlbum = 2;
 
 struct ReplayGainConfig
 {
+    bool operator==(const ReplayGainConfig&) const = default;
     float trackGainDb = 0.0f;
     float albumGainDb = 0.0f;
     float peak = 1.0f;
@@ -25,14 +27,26 @@ struct ReplayGainConfig
 class ReplayGainProcessor
 {
 public:
+    struct ConfigurationSnapshot
+    {
+        ReplayGainConfig config;
+        std::array<float, 32> sequenceGains {};
+        int sequenceCount = 0;
+        int sequenceIndex = 0;
+        bool trackPreparationRequired = false;
+        bool operator==(const ConfigurationSnapshot&) const = default;
+    };
     ReplayGainProcessor();
 
     void prepare(double sampleRate, int maximumBlockSize, int channelCount);
     void reset();
-    void processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples);
+    template <typename Sample>
+    void processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples);
 
     void setConfig(const ReplayGainConfig& config);
     ReplayGainConfig getConfig() const;
+    ConfigurationSnapshot configurationSnapshot() const;
+    void applyConfiguration(const ConfigurationSnapshot& snapshot);
     bool isActive() const;
     float getAppliedGainDb() const;
     bool hasClippingRisk() const;
@@ -42,9 +56,11 @@ public:
     bool requiresTrackPreparation() const { return trackPreparationRequired.load(std::memory_order_acquire); }
 
 private:
-    static float dbToLinear(float db);
-    static float sanitize(float value);
-    float effectiveTargetDb() const;
+    friend struct DspPreparedRuntime;
+    mutable std::mutex configurationMutex;
+    static double dbToLinear(double db);
+    static double sanitize(double value);
+    double effectiveTargetDb() const;
 
     std::atomic<float> targetGainDb { 0.0f };
     std::array<std::atomic<float>, 32> sequenceGains {};
@@ -52,12 +68,12 @@ private:
     std::atomic<int> sequenceIndex { 0 };
     std::atomic<bool> trackPreparationRequired { false };
     std::atomic<float> appliedGainDb { 0.0f };
-    float currentLinearGain = 1.0f;
-    float rampStartLinearGain = 1.0f;
-    float rampTargetLinearGain = 1.0f;
+    double currentLinearGain = 1.0;
+    double rampStartLinearGain = 1.0;
+    double rampTargetLinearGain = 1.0;
     std::atomic<bool> clippingRisk { false };
     ReplayGainConfig currentConfig;
-    float sampleRate = 44100.0f;
+    double sampleRate = 44100.0;
     int rampSamples = 0;
     int rampPosition = 0;
 };

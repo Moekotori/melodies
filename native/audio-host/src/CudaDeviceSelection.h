@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include "CudaRuntimeLeaseRegistry.h"
 
 #include <algorithm>
 #include <iostream>
@@ -21,15 +22,38 @@ struct CudaDeviceSelection
     int singleToDoublePrecisionPerfRatio = 0;
 };
 
+struct EchoCudaRuntimeApi final
+{
+    static bool setDevice(int device, const char* prefix, std::string& error)
+    {
+        const auto status = cudaSetDevice(device);
+        if (status == cudaSuccess) return true;
+        error = std::string(prefix) + "set_device_failed:" + cudaGetErrorString(status);
+        return false;
+    }
+    static void resetDevice(int device) noexcept
+    {
+        const auto selected = cudaSetDevice(device);
+        const auto status = selected == cudaSuccess ? cudaDeviceReset() : selected;
+        std::cerr << "[echo-audio-host] CUDA runtime reset: device=" << device
+                  << " status=" << cudaGetErrorString(status) << std::endl;
+    }
+};
+
 class CudaDeviceSelector final
 {
 public:
+    using RuntimeLease = CudaRuntimeLeaseRegistry<EchoCudaRuntimeApi>::Lease;
     static bool select(
         const char* errorPrefix,
         CudaDeviceSelection& selection,
+        RuntimeLease& lease,
         std::string& error,
         CudaDeviceWorkload workload = CudaDeviceWorkload::Throughput)
     {
+        // Retain before CUDA enumeration as well as device activation. Another
+        // processor's last release cannot reset a context during this probe.
+        ProbeHold probe;
         std::lock_guard<std::mutex> lock(selectionMutex_);
         const bool preferDoublePrecision =
             workload == CudaDeviceWorkload::DoublePrecision;
@@ -38,8 +62,9 @@ public:
             : cachedThroughputSelection_;
         if (cachedSelection.index >= 0)
         {
-            if (!activate(
+            if (!acquireSelected(
                     cachedSelection.index,
+                    lease,
                     errorPrefix,
                     error))
                 return false;
@@ -117,7 +142,7 @@ public:
                 + "no_compatible_device";
             return false;
         }
-        if (!activate(best.index, errorPrefix, error))
+        if (!acquireSelected(best.index, lease, errorPrefix, error))
             return false;
 
         cachedSelection = best;
@@ -126,73 +151,40 @@ public:
         return true;
     }
 
-    static bool activate(
-        int deviceIndex,
-        const char* errorPrefix,
-        std::string& error)
-    {
-        // Record on every activation, not only when cudaSetDevice() runs:
-        // activeDevice_ is thread-local, so after a reset another thread that
-        // still remembers the device would otherwise recreate the primary
-        // context without it ever being tracked (and therefore never released).
-        if (std::find(activatedDevices_.begin(), activatedDevices_.end(), deviceIndex)
-            == activatedDevices_.end())
-            activatedDevices_.push_back(deviceIndex);
-        if (activeDevice_ == deviceIndex)
-            return true;
-        const cudaError_t status = cudaSetDevice(deviceIndex);
-        if (status != cudaSuccess)
-        {
-            error = failure(
-                errorPrefix,
-                "set_device_failed",
-                status);
-            return false;
-        }
-        activeDevice_ = deviceIndex;
-        return true;
-    }
-
     // The primary context created by the first runtime call costs hundreds of
     // MB of host commit for the life of the process. Processors retain the
-    // runtime while they hold CUDA resources; when the last one releases (or an
-    // admission probe decided against CUDA), the contexts are torn down so
-    // "upsampling off" also means "no CUDA in memory". The next CUDA user pays
-    // one context creation again (~100 ms, off the audio callback).
+    // runtime while they hold CUDA resources. Last-owner release requests a
+    // context reset and reports its status; the driver library can stay loaded.
+    // The next CUDA user pays context creation again, off the audio callback.
     static void retainRuntime()
     {
-        std::lock_guard<std::mutex> lock(selectionMutex_);
-        ++runtimeUsers_;
+        runtime_.retainHold();
     }
 
     static void releaseRuntime()
     {
-        std::lock_guard<std::mutex> lock(selectionMutex_);
-        if (runtimeUsers_ > 0)
-            --runtimeUsers_;
-        resetIfIdleLocked();
+        runtime_.releaseHold();
     }
 
     static void resetIfIdle()
     {
-        std::lock_guard<std::mutex> lock(selectionMutex_);
-        resetIfIdleLocked();
+        runtime_.resetIfIdle();
     }
 
 private:
-    static void resetIfIdleLocked()
+    struct ProbeHold
     {
-        if (runtimeUsers_ != 0 || activatedDevices_.empty())
-            return;
-        for (const int deviceIndex : activatedDevices_)
-        {
-            const cudaError_t setStatus = cudaSetDevice(deviceIndex);
-            const cudaError_t resetStatus = setStatus == cudaSuccess ? cudaDeviceReset() : setStatus;
-            std::cerr << "[echo-audio-host] CUDA runtime released: device=" << deviceIndex
-                      << " status=" << cudaGetErrorString(resetStatus) << std::endl;
-        }
-        activatedDevices_.clear();
-        activeDevice_ = -1;
+        ProbeHold() { retainRuntime(); }
+        ~ProbeHold() { releaseRuntime(); }
+        ProbeHold(const ProbeHold&) = delete;
+        ProbeHold& operator=(const ProbeHold&) = delete;
+    };
+    static bool acquireSelected(int deviceIndex, RuntimeLease& lease, const char* prefix, std::string& error)
+    {
+        auto selected = runtime_.acquire(deviceIndex, prefix, error);
+        if (!selected) return false;
+        lease = std::move(selected);
+        return true;
     }
 
     static std::string failure(
@@ -207,7 +199,5 @@ private:
     inline static std::mutex selectionMutex_;
     inline static CudaDeviceSelection cachedThroughputSelection_;
     inline static CudaDeviceSelection cachedDoublePrecisionSelection_;
-    inline static int runtimeUsers_ = 0;
-    inline static std::vector<int> activatedDevices_;
-    inline static thread_local int activeDevice_ = -1;
+    inline static CudaRuntimeLeaseRegistry<EchoCudaRuntimeApi> runtime_;
 };

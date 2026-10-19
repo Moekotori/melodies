@@ -41,6 +41,9 @@ public:
             extraLoop ? echo::SdmDecisionMode::Extra : echo::SdmDecisionMode::Greedy);
     }
     void reset();
+    void setDoubleProcessing(bool enabled) noexcept { doubleProcessing_ = enabled; }
+    std::vector<uint32_t> processDop(const double* interleaved, int frames);
+    std::vector<uint8_t> processNativeDsd(const double* interleaved, int frames);
     void setTargetGain(double gain);
     std::vector<uint32_t> processDop(const float* interleaved, int frames);
     std::vector<uint8_t> processNativeDsd(const float* interleaved, int frames);
@@ -49,6 +52,7 @@ public:
 
     Backend backend() const noexcept { return backend_; }
     const std::string& fallbackReason() const noexcept { return fallbackReason_; }
+    const std::string& processingError() const noexcept { return processingError_; }
     const std::string& deviceName() const noexcept { return deviceName_; }
     int modulatorOrder() const noexcept { return cpu_.modulatorOrder(); }
     echo::SdmDecisionMode decisionMode() const noexcept { return cpu_.decisionMode(); }
@@ -59,6 +63,7 @@ public:
     }
     double peakFeedbackState() const noexcept;
     uint64_t stabilityRecoveryCount() const noexcept;
+    echo::SdmClampCounts clampCounts() const noexcept;
     uint64_t processedBlocks() const noexcept { return processedBlocks_; }
     int lastInputFrames() const noexcept { return lastInputFrames_; }
     int lastOutputFrames() const noexcept { return lastOutputFrames_; }
@@ -76,16 +81,19 @@ public:
     {
         return cpu_.preModulatorTailTransportFrames();
     }
+    int preModulatorDelayBits() const noexcept { return cpu_.preModulatorDelayBits(); }
+    double profileHeadroomGain() const { return cpu_.configuration().profileHeadroomGain; }
 
 private:
     void recordProcess(int inputFrames, int outputFrames, double milliseconds);
-    void fallBackToCpu(const std::string& cudaError);
+    bool fallBackToCpu(const std::string& cudaError);
 
     echo::SdmProcessor cpu_;
     CudaSdmProcessor cuda_;
     int channels_ = 2;
     Backend backend_ = Backend::Cpu;
     std::string fallbackReason_;
+    std::string processingError_;
     std::string deviceName_;
     uint64_t processedBlocks_ = 0;
     int lastInputFrames_ = 0;
@@ -95,5 +103,6 @@ private:
     double peakProcessMilliseconds_ = 0.0;
     double warmupMilliseconds_ = 0.0;
     uint64_t runtimeFallbacks_ = 0;
+    bool doubleProcessing_ = false;
     bool preModulatorTailPending_ = false;
 };

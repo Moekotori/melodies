@@ -4,6 +4,7 @@ project(echo_sdm_quality_lab VERSION 0.1.0 LANGUAGES CXX)
 
 add_executable(echo-sdm-quality-lab
   main.cpp
+  ../sdm-analysis-lab/SdmSpectrumAnalysis.cpp
   ../../../audio-engine/NativeFormatProcessor.cpp
   ../../../audio-engine/SdmNtfDesign.cpp
   ../../../audio-engine/SdmPreModulator.cpp

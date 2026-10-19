@@ -28,6 +28,9 @@ public sealed partial class PlaybackSessionCoordinator
             if (native is INativeOutputControl { Capabilities: { } caps })
             {
                 if (caps.Flag("wasapiExclusive") || caps.Flag("coreAudioExclusive")) modes.Add(new("exclusive", caps.Flag("wasapiExclusive") ? "WASAPI 独占" : "CoreAudio 独占"));
+                else if (OperatingSystem.IsLinux() && native is INativeOutputControl linux
+                    && (await linux.EnumerateOutputDevicesAsync("exclusive", token).ConfigureAwait(false)).Count > 0)
+                    modes.Add(new("exclusive", "ALSA 独占"));
                 if (caps.Flag("asio")) modes.Add(new("asio", "ASIO 独占"));
                 if (caps.Flag("kernelStreaming")) modes.Add(new("ks", "WDM-KS"));
             }

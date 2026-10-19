@@ -1,0 +1,26 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ControlTheme x:Key="LibraryQueryFilterPresenter" TargetType="FlyoutPresenter" BasedOn="{StaticResource FilterReferencePresenter}">
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="14" BoxShadow="0 8 24 0 #14000000">
+          <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
+        </Border>
+      </ControlTemplate></Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="LibraryQuerySortPresenter" TargetType="FlyoutPresenter" BasedOn="{StaticResource LibraryPopupPresenter}">
+      <Setter Property="CornerRadius" Value="14" /><Setter Property="Padding" Value="6" />
+    </ControlTheme>
+    <ControlTheme x:Key="LibraryQueryMultiSwitch" TargetType="ToggleButton">
+      <Setter Property="Width" Value="32" /><Setter Property="Height" Value="18" /><Setter Property="MinHeight" Value="18" />
+      <Setter Property="Template"><ControlTemplate>
+        <Border Name="Track" Width="32" Height="18" CornerRadius="9" BorderThickness="1" BorderBrush="{DynamicResource EchoDivider}" Background="{DynamicResource EchoHover}">
+          <Border Name="Knob" Width="12" Height="12" CornerRadius="6" Background="{DynamicResource EchoMuted}" HorizontalAlignment="Left" Margin="2" />
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:checked /template/ Border#Track"><Setter Property="Background" Value="{DynamicResource LibraryPopupSelected}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+      <Style Selector="^:checked /template/ Border#Knob"><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="HorizontalAlignment" Value="Right" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#Track"><Setter Property="BorderThickness" Value="2" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+</Styles>

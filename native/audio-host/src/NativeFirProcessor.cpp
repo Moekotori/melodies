@@ -1,4 +1,8 @@
 #include "NativeFirProcessor.h"
+#if defined(ECHO_SRC_FIR_EXPERIMENTAL_AVX2) && ECHO_SRC_FIR_EXPERIMENTAL_AVX2 \
+    && (defined(_M_X64) || defined(__x86_64__))
+#include "../../audio-engine/EchoSrcFirAvx2.h"
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -7,6 +11,20 @@
 #include <limits>
 #include <sstream>
 #include <utility>
+#include <type_traits>
+
+const char* NativeFirProcessor::cpuKernelName() const noexcept
+{
+#if defined(ECHO_SRC_FIR_EXPERIMENTAL_AVX2) && ECHO_SRC_FIR_EXPERIMENTAL_AVX2 \
+    && (defined(_M_X64) || defined(__x86_64__))
+    if (echo::firKernel::avx2Available()) return "avx2-fp64";
+#endif
+#if defined(_M_X64) || defined(__SSE2__)
+    return "sse2-fp64";
+#else
+    return "scalar-fp64";
+#endif
+}
 
 bool NativeFirProcessor::configure(
     int channels,
@@ -93,8 +111,8 @@ bool NativeFirProcessor::configure(
         if (cuda_.configure(channels, stages, maximumInputFrames, cudaError))
         {
             const int admissionFrames =
-                std::min(std::max(1, maximumInputFrames), 512);
-            std::vector<float> admissionInput(
+                std::max(1, maximumInputFrames);
+            std::vector<double> admissionInput(
                 static_cast<size_t>(admissionFrames * channels_),
                 0.0f);
             for (int frame = 0; frame < admissionFrames; ++frame)
@@ -106,7 +124,7 @@ bool NativeFirProcessor::configure(
                         * (0.037 + static_cast<double>(channel) * 0.011);
                     admissionInput[
                         static_cast<size_t>(frame * channels_ + channel)] =
-                        static_cast<float>(0.31 * std::sin(phase));
+                        0.31 * std::sin(phase);
                 }
             }
 
@@ -115,12 +133,12 @@ bool NativeFirProcessor::configure(
             double cudaMilliseconds =
                 std::numeric_limits<double>::infinity();
             bool cudaAdmissionCompleted = true;
-            std::vector<float> cudaOutput;
-            for (int iteration = 0; iteration < 2; ++iteration)
+            std::vector<double> cudaOutput;
+            for (int iteration = 0; iteration < 4; ++iteration)
             {
                 const auto cpuStarted =
                     std::chrono::steady_clock::now();
-                (void)cpu_.process(
+                const auto cpuOutput = cpu_.processDouble(
                     admissionInput.data(), admissionFrames);
                 cpuMilliseconds = std::min(
                     cpuMilliseconds,
@@ -130,7 +148,7 @@ bool NativeFirProcessor::configure(
 
                 const auto cudaStarted =
                     std::chrono::steady_clock::now();
-                cudaAdmissionCompleted = cuda_.process(
+                cudaAdmissionCompleted = cuda_.processDouble(
                     admissionInput.data(),
                     admissionFrames,
                     cudaOutput,
@@ -140,11 +158,21 @@ bool NativeFirProcessor::configure(
                     std::chrono::duration<double, std::milli>(
                         std::chrono::steady_clock::now()
                         - cudaStarted).count());
-                if (!cudaAdmissionCompleted)
+                if (!cudaAdmissionCompleted) break;
+                if (cudaOutput != cpuOutput)
+                {
+                    cudaAdmissionCompleted = false;
+                    cudaError = "native_cuda_fir_fp64_output_mismatch";
                     break;
+                }
             }
             cpu_.reset();
-            cuda_.reset();
+            std::string resetError;
+            if (!cuda_.reset(resetError))
+            {
+                cudaAdmissionCompleted = false;
+                cudaError = std::move(resetError);
+            }
 
             if (cudaAdmissionCompleted
                 && cudaMilliseconds < cpuMilliseconds * 0.9)
@@ -189,7 +217,18 @@ bool NativeFirProcessor::configure(
 void NativeFirProcessor::reset()
 {
     cpu_.reset();
-    cuda_.reset();
+    processingError_.clear();
+    if (backend_ == Backend::Cuda)
+    {
+        std::string error;
+        if (!cuda_.reset(error))
+        {
+            backend_ = Backend::Cpu;
+            fallbackReason_ = "native_cuda_fir_reset_failed:" + error;
+            deviceName_.clear();
+            cuda_.release();
+        }
+    }
     flushPending_ = active();
     processedBlocks_ = 0;
     lastInputFrames_ = 0;
@@ -198,10 +237,61 @@ void NativeFirProcessor::reset()
     totalProcessMilliseconds_ = 0.0;
     peakProcessMilliseconds_ = 0.0;
     runtimeFallbacks_ = 0;
+    cudaProcessedBlocks_ = 0;
+}
+
+template <typename Sample>
+std::vector<double> NativeFirProcessor::processDouble(const Sample* interleaved, int frames)
+{
+    if (!processingError_.empty()) return {};
+    if (interleaved && frames > 0) flushPending_ = active();
+    const auto start = std::chrono::steady_clock::now();
+    std::vector<double> output;
+    if (backend_ == Backend::Cuda)
+    {
+        // float decoder input is promoted once; double DSP input remains double.
+        std::vector<double> promoted;
+        const double* input = nullptr;
+        if constexpr (std::is_same_v<Sample, double>) input = interleaved;
+        else if (interleaved && frames > 0)
+        {
+            promoted.assign(interleaved, interleaved + static_cast<size_t>(frames) * channels_);
+            input = promoted.data();
+        }
+        std::string error;
+        if (!cuda_.processDouble(input, frames, output, error))
+        {
+            if (!fallBackToCpu(error)) return {};
+            output = cpu_.processDouble(interleaved, frames);
+        }
+        else if (frames > 0) ++cudaProcessedBlocks_;
+    }
+    else output = cpu_.processDouble(interleaved, frames);
+    recordProcess(frames, output.size(), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count());
+    return output;
+}
+
+std::vector<double> NativeFirProcessor::flushDouble()
+{
+    if (!active() || !flushPending_ || tailOutputFrames_ == 0) { flushPending_ = false; return {}; }
+    std::vector<double> output;
+    output.reserve(static_cast<size_t>(prerollInputFrames_) * outputFactor_ * channels_);
+    std::vector<double> silence(static_cast<size_t>(maximumInputFrames_) * channels_, 0);
+    size_t remaining = static_cast<size_t>(prerollInputFrames_);
+    while (remaining > 0) {
+        const int frames = static_cast<int>(std::min(remaining, static_cast<size_t>(maximumInputFrames_)));
+        auto block = processDouble(silence.data(), frames);
+        if (!processingError_.empty()) return {};
+        output.insert(output.end(), block.begin(), block.end()); remaining -= frames;
+    }
+    flushPending_ = false;
+    output.resize(std::min(output.size(), tailOutputFrames_ * static_cast<size_t>(channels_)));
+    return output;
 }
 
 std::vector<float> NativeFirProcessor::process(const float* interleaved, int frames)
 {
+    if (!processingError_.empty()) return {};
     if (interleaved != nullptr && frames > 0)
         flushPending_ = active();
 
@@ -221,6 +311,7 @@ std::vector<float> NativeFirProcessor::process(const float* interleaved, int fra
     std::string cudaError;
     if (cuda_.process(interleaved, frames, output, cudaError))
     {
+        if (frames > 0) ++cudaProcessedBlocks_;
         const auto finished = std::chrono::steady_clock::now();
         recordProcess(
             frames,
@@ -229,21 +320,7 @@ std::vector<float> NativeFirProcessor::process(const float* interleaved, int fra
         return output;
     }
 
-    // Keep the last fully committed GPU FIR history in a double-buffered host
-    // snapshot. If a later CUDA block fails, the CPU can process that same
-    // input block from the exact previous boundary without a waveform reset.
-    backend_ = Backend::Cpu;
-    ++runtimeFallbacks_;
-    fallbackReason_ = cudaError.empty()
-        ? "native_cuda_dsp_runtime_failure"
-        : "native_cuda_dsp_runtime_failure:" + cudaError;
-    deviceName_.clear();
-    std::vector<std::vector<float>> histories;
-    if (!cuda_.copyLatestHistory(histories) || !cpu_.restoreHistory(histories))
-    {
-        cpu_.reset();
-        fallbackReason_ += ":history_restore_failed";
-    }
+    if (!fallBackToCpu(cudaError)) return {};
     output = cpu_.process(interleaved, frames);
     const auto finished = std::chrono::steady_clock::now();
     recordProcess(
@@ -280,6 +357,7 @@ std::vector<float> NativeFirProcessor::flush()
             remaining,
             static_cast<size_t>(maximumInputFrames_)));
         auto block = process(silence.data(), framesThisBlock);
+        if (!processingError_.empty()) return {};
         output.insert(output.end(), block.begin(), block.end());
         remaining -= static_cast<size_t>(framesThisBlock);
     }
@@ -315,6 +393,7 @@ bool NativeFirProcessor::restoreHistory(
                 ? "native_cuda_fir_history_restore_failed"
                 : "native_cuda_fir_history_restore_failed:" + error;
             deviceName_.clear();
+            cuda_.release();
         }
     }
     flushPending_ = active();
@@ -333,4 +412,51 @@ void NativeFirProcessor::recordProcess(
     lastProcessMilliseconds_ = milliseconds;
     totalProcessMilliseconds_ += milliseconds;
     peakProcessMilliseconds_ = std::max(peakProcessMilliseconds_, milliseconds);
+}
+
+template std::vector<double> NativeFirProcessor::processDouble<float>(const float*, int);
+template std::vector<double> NativeFirProcessor::processDouble<double>(const double*, int);
+
+bool NativeFirProcessor::copyLatestHistory(std::vector<std::vector<double>>& histories) const
+{
+    if (backend_ == Backend::Cuda) return cuda_.copyLatestHistory(histories);
+    cpu_.copyHistory(histories);
+    return true;
+}
+bool NativeFirProcessor::restoreHistory(const std::vector<std::vector<double>>& histories)
+{
+    if (!cpu_.restoreHistory(histories)) return false;
+    if (backend_ == Backend::Cuda)
+    {
+        std::string error;
+        if (!cuda_.restoreHistory(histories, error))
+        {
+            backend_ = Backend::Cpu;
+            ++runtimeFallbacks_;
+            fallbackReason_ = "native_cuda_fir_history_restore_failed:" + error;
+            deviceName_.clear();
+            cuda_.release();
+        }
+    }
+    flushPending_ = active();
+    return true;
+}
+
+bool NativeFirProcessor::fallBackToCpu(const std::string& error)
+{
+    // Host snapshots advance only after the entire GPU block and D2H finish.
+    // Discard every pending GPU result, restore that boundary, replay once.
+    std::vector<std::vector<double>> histories;
+    const bool restored = cuda_.copyLatestHistory(histories) && cpu_.restoreHistory(histories);
+    backend_ = Backend::Cpu;
+    ++runtimeFallbacks_;
+    fallbackReason_ = "native_cuda_fir_runtime_failure:" + error;
+    deviceName_.clear();
+    cuda_.release();
+    if (!restored)
+    {
+        processingError_ = fallbackReason_ + ":history_restore_failed";
+        return false;
+    }
+    return true;
 }

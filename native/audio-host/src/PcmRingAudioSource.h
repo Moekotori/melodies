@@ -15,6 +15,7 @@ struct WorkshopTransitionWindow;
 
 #include "PlaybackSession.h"
 #include "AutomixHandoffSchedule.h"
+#include "automix-alpha/AlphaRenderBlend.h"
 #include "NativePrimitives.h"
 #include "RealtimeProgramPcmSink.h"
 
@@ -135,19 +136,27 @@ public:
         echo::PlaybackRateProcessor& rateProcessorToUse,
         echo::LevelMeterProcessor& meterProcessorToUse,
         echo::DspRackOrder* rackOrderToUse = nullptr,
-        echo::WorkshopAudioEffectController* workshopAudioEffectControllerToUse = nullptr);
+        echo::WorkshopAudioEffectController* workshopAudioEffectControllerToUse = nullptr,
+        echo::MultibandCompressorProcessor* multibandProcessorToUse = nullptr,
+        echo::DeEsserProcessor* deEsserProcessorToUse = nullptr);
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
     void prepareForNativeRender(int maxFramesPerCallback, double sampleRate);
     void releaseResources();
+    void releaseDspRackLeaseForTransition();
     void installWorkshopTransitionWindow(std::shared_ptr<const WorkshopTransitionWindow> window);
     bool workshopTransitionDeadlineMissed() const { return workshopDeadlineMissed.load(std::memory_order_acquire); }
 
     bool isDspActive() const;
+    int requestedDspOutputChannels(double sampleRate = 0) const noexcept;
+    void setDeviceOutputChannels(int channels) noexcept;
+    void setPreparedEqPlayback(bool enabled) { preparedEqPlayback.store(enabled, std::memory_order_release); }
+    bool preparedEqPlaybackAccepted() const { return preparedEqPlayback.load(std::memory_order_acquire); }
     bool hasDspClippingRisk() const;
     bool isDspLimiterProtecting() const;
     bool isDspLimiterEnabled() const;
     float getDspLimiterGainReductionDb() const;
+    float getDspLimiterTruePeakDb() const;
     float getDspLimiterCeilingDb() const;
     void setUpstreamPcmProcessingActive(bool active);
     void setRealtimeProgramPcmSink(echo::listen_together::RealtimeProgramPcmSink* sink) noexcept;
@@ -157,10 +166,15 @@ public:
     uint64_t renderPlanar(echo::FloatAudioBuffer& output, int startSample, int frameCount);
     void installDualTrackMix(std::shared_ptr<DualTrackMixBuffer> mix);
 
-    bool push(const float* samples, int frameCount);
-    bool pushForGeneration(const float* samples, int frameCount, uint64_t generation);
-    int replaceBufferedAudio(const float* samples, int frameCount, bool pausedAfterReplace);
-    bool pushAutomixNext(const float* samples, int frameCount);
+    template <typename Sample>
+    bool push(const Sample* samples, int frameCount);
+    template <typename Sample>
+    bool pushForGeneration(const Sample* samples, int frameCount, uint64_t generation);
+    int replaceBufferedAudio(std::nullptr_t, int frames, bool paused) { return replaceBufferedAudio<float>(nullptr, frames, paused); }
+    template <typename Sample>
+    int replaceBufferedAudio(const Sample* samples, int frameCount, bool pausedAfterReplace);
+    template <typename Sample>
+    bool pushAutomixNext(const Sample* samples, int frameCount);
     void prepareAutomix(double sampleRate, double fadeStartSeconds, double overlapSeconds, double currentGainDb, double nextGainDb);
     bool prepareAutomixFrames(
         uint64_t fadeStartFrame,
@@ -177,7 +191,8 @@ public:
         double echoFeedback = 0.45,
         double vocalExitStartProgress = 0.55,
         double vocalEntryStartProgress = 0.70,
-        AutomixHandoffSchedule handoffSchedule = {});
+        AutomixHandoffSchedule handoffSchedule = {},
+        echo::automix_alpha::Parameters alpha = {});
     uint64_t prepareAutomixDeck(
         uint64_t fadeStartFrame,
         uint64_t overlapFrames,
@@ -193,8 +208,10 @@ public:
         double echoFeedback = 0.45,
         double vocalExitStartProgress = 0.55,
         double vocalEntryStartProgress = 0.70,
-        AutomixHandoffSchedule handoffSchedule = {});
-    bool pushAutomixDeck(uint64_t deckLease, const float* samples, int frameCount);
+        AutomixHandoffSchedule handoffSchedule = {},
+        echo::automix_alpha::Parameters alpha = {});
+    template <typename Sample>
+    bool pushAutomixDeck(uint64_t deckLease, const Sample* samples, int frameCount);
     void markAutomixDeckEnded(uint64_t deckLease);
     void failAutomixDeck(uint64_t deckLease, uint64_t fadeFrames);
     bool commitAutomixDeck(uint64_t deckLease);
@@ -273,17 +290,19 @@ private:
     std::shared_ptr<const WorkshopTransitionWindow> workshopWindowOwner;
     std::atomic<const WorkshopTransitionWindow*> workshopWindow { nullptr };
     std::atomic<bool> workshopDeadlineMissed { false };
-    uint64_t renderPlanarUnderLease(echo::FloatAudioBuffer& output, int startSample, int frameCount);
+    template <typename Sample>
+    uint64_t renderPlanarUnderLease(echo::PlanarAudioBuffer<Sample>& output, int startSample, int frameCount);
     void prepareRenderScratchBuffers(int maxFramesPerCallback);
     echo_audio_host::NativeFifo& fifoForDeck(int deckSlot);
     const echo_audio_host::NativeFifo& fifoForDeck(int deckSlot) const;
-    std::vector<float>& bufferForDeck(int deckSlot);
-    const std::vector<float>& bufferForDeck(int deckSlot) const;
+    std::vector<double>& bufferForDeck(int deckSlot);
+    const std::vector<double>& bufferForDeck(int deckSlot) const;
     std::mutex& mutexForDeck(int deckSlot) const;
     bool isDeckInputEnded(int deckSlot) const;
     bool deckHasAudio(int deckSlot) const;
-    void copyFromInput(const float* source, int startFrame, int frameCount, int deckSlot = 0);
-    static float dbToGain(double db);
+    template <typename Sample>
+    void copyFromInput(const Sample* source, int startFrame, int frameCount, int deckSlot = 0);
+    static double dbToGain(double db);
     void activateAutomixFadeIfReady(uint64_t absoluteStartFrame, int frameCount);
     void armAutomixEchoThrow(
         uint64_t fadeEndFrame,
@@ -292,65 +311,73 @@ private:
         double feedbackGain);
     void retimeAutomixEchoThrow(uint64_t fadeEndFrame);
     void stopAutomixEchoThrow();
-    float processAutomixEchoSample(float sample, int channel, uint64_t absoluteFrame);
+    double processAutomixEchoSample(double sample, int channel, uint64_t absoluteFrame);
     void finalizeAutomixCancelFade(uint64_t absoluteStartFrame);
     void configureDeclickRamp(double sampleRate);
-    void applyDeclickRamp(echo::FloatAudioBuffer& output, int startSample, int frameCount);
-    float currentAutomixEnvelope(uint64_t absoluteFrame) const;
-    float nextAutomixEnvelope(uint64_t absoluteFrame) const;
-    float currentAutomixLowEnvelope(uint64_t absoluteFrame) const;
-    float nextAutomixLowEnvelope(uint64_t absoluteFrame) const;
-    float currentAutomixHighEnvelope(uint64_t absoluteFrame) const;
-    float nextAutomixHighEnvelope(uint64_t absoluteFrame) const;
-    float currentAutomixCenterEnvelope(uint64_t absoluteFrame) const;
-    float nextAutomixCenterEnvelope(uint64_t absoluteFrame) const;
+    template <typename Sample>
+    void applyDeclickRamp(echo::PlanarAudioBuffer<Sample>& output, int startSample, int frameCount);
+    double currentAutomixEnvelope(uint64_t absoluteFrame) const;
+    double nextAutomixEnvelope(uint64_t absoluteFrame) const;
+    double currentAutomixLowEnvelope(uint64_t absoluteFrame) const;
+    double nextAutomixLowEnvelope(uint64_t absoluteFrame) const;
+    double currentAutomixHighEnvelope(uint64_t absoluteFrame) const;
+    double nextAutomixHighEnvelope(uint64_t absoluteFrame) const;
+    double currentAutomixCenterEnvelope(uint64_t absoluteFrame) const;
+    double nextAutomixCenterEnvelope(uint64_t absoluteFrame) const;
+    template <typename Sample>
     void copyToOutput(
         int startFrame,
         int frameCount,
-        echo::FloatAudioBuffer& output,
+        echo::PlanarAudioBuffer<Sample>& output,
         int outputStart,
         uint64_t absoluteOutputStartFrame,
         int sourceFrameOffset,
         float sourceFramesPerOutputFrame,
         bool transparentPassthrough,
         int deckSlot);
-    void copyToAutomixBuffer(const float* source, int startFrame, int frameCount, int deckSlot);
+    template <typename Sample>
+    void copyToAutomixBuffer(const Sample* source, int startFrame, int frameCount, int deckSlot);
+    template <typename Sample>
     void addAutomixToOutput(
         int startFrame,
         int frameCount,
-        echo::FloatAudioBuffer& output,
+        echo::PlanarAudioBuffer<Sample>& output,
         int outputStart,
         uint64_t absoluteOutputStartFrame,
         int sourceFrameOffset,
         float sourceFramesPerOutputFrame,
         int deckSlot);
+    template <typename Sample>
     void copyGaplessToOutput(
         int startFrame,
         int frameCount,
-        echo::FloatAudioBuffer& output,
+        echo::PlanarAudioBuffer<Sample>& output,
         int outputStart);
+    template <typename Sample>
     uint64_t mixAutomixNext(
-        echo::FloatAudioBuffer& output,
+        echo::PlanarAudioBuffer<Sample>& output,
         int startSample,
         int frameCount,
         uint64_t absoluteStartFrame,
         float sourceFramesPerOutputFrame);
+    template <typename Sample>
     uint64_t mixGaplessNext(
-        echo::FloatAudioBuffer& output,
+        echo::PlanarAudioBuffer<Sample>& output,
         int startSample,
         int frameCount,
         uint64_t absoluteStartFrame,
         uint64_t currentFramesRead,
         float sourceFramesPerOutputFrame);
     int requiredStartupSourceFrames() const noexcept;
+    template <typename Sample>
     void copyPlanarToInterleaved(
-        const echo::FloatAudioBuffer& source,
+        const echo::PlanarAudioBuffer<Sample>& source,
         float* output,
         int frameCount,
         int outputChannels) const;
     bool shouldHoldForStartupPrebuffer();
     bool refreshMqaPassthroughState();
-    float promotedDeckGainEnvelope(uint64_t absoluteFrame) const;
+    double promotedDeckGainEnvelope(uint64_t absoluteFrame) const;
 
     const int channels;
     std::atomic<float> gain;
@@ -358,14 +385,14 @@ private:
     const int startupPrebufferTimeoutMs;
     echo_audio_host::NativeFifo fifo;
     echo_audio_host::RenderEpoch renderEpoch;
-    std::vector<float> buffer;
+    std::vector<double> buffer;
     echo_audio_host::NativeFifo automixFifo;
-    std::vector<float> automixBuffer;
-    std::vector<float> automixCurrentLowState;
-    std::vector<float> automixNextLowState;
-    std::vector<float> automixCurrentPresenceState;
-    std::vector<float> automixNextPresenceState;
-    std::vector<float> automixEchoDelayBuffer;
+    std::vector<double> automixBuffer;
+    std::vector<double> automixCurrentLowState;
+    std::vector<double> automixNextLowState;
+    std::vector<double> automixCurrentPresenceState;
+    std::vector<double> automixNextPresenceState;
+    std::vector<double> automixEchoDelayBuffer;
     std::vector<uint64_t> automixEchoGenerationTags;
     std::vector<uint64_t> automixEchoFrameTags;
     size_t automixEchoCapacityFrames = 0;
@@ -379,9 +406,12 @@ private:
     std::atomic<bool> automixEchoRinging { false };
     std::atomic<float> automixLowPassCoefficient { 0.02f };
     std::atomic<float> automixPresenceLowPassCoefficient { 0.4f };
-    echo::FloatAudioBuffer nativeRenderBuffer;
-    echo::FloatAudioBuffer playbackRateInputBuffer;
-    echo::FloatAudioBuffer dspRenderBuffer;
+    echo::DoubleAudioBuffer nativeRenderBuffer;
+    echo::DoubleAudioBuffer playbackRateInputBuffer;
+    echo::FloatAudioBuffer legacyRateInputBuffer;
+    echo::FloatAudioBuffer programmeTapBuffer;
+    echo::DoubleAudioBuffer dspRenderBuffer;
+    std::atomic<int> deviceOutputChannels { 0 };
     std::unique_ptr<echo::ConvolutionProcessor> ownedConvolutionProcessor;
     echo::ConvolutionProcessor* convolutionProcessor = nullptr;
     std::unique_ptr<echo::DspHeadroomProcessor> ownedHeadroomProcessor;
@@ -397,6 +427,7 @@ private:
     std::unique_ptr<echo::LevelMeterProcessor> ownedMeterProcessor;
     echo::LevelMeterProcessor* meterProcessor = nullptr;
     echo::DspChain dspChain;
+    std::atomic<bool> preparedEqPlayback { false };
     echo::PcmDitherProcessor ditherProcessor;
     std::atomic<MqaPassthroughState> mqaPassthroughState_ { MqaPassthroughState::Inactive };
     std::atomic<bool> lastRenderUsedMqaPassthrough_ { false };
@@ -404,6 +435,8 @@ private:
     mutable std::mutex initialPlayGateMutex;
     mutable std::mutex automixMutex;
     AutomixNativePlan automixPlan;
+    echo::automix_alpha::AtomicParameters automixAlphaParameters;
+    echo::automix_alpha::RenderBlend automixAlphaRender;
     std::atomic<int> currentDeckSlot { 0 };
     std::atomic<uint64_t> currentDeckLease { 0 };
     std::atomic<uint64_t> pendingAutomixDeckLease { 0 };
@@ -441,7 +474,7 @@ private:
     std::atomic<int> renderSampleRate { 0 };
     std::atomic<echo::listen_together::RealtimeProgramPcmSink*> realtimeProgramPcmSink { nullptr };
     uint64_t appliedDeclickFadeGeneration = 0;
-    float declickGain = 1.0f;
+    double declickGain = 1.0f;
     int declickRampFrames = 1;
 #if defined(ECHO_AUDIO_ENGINE_TESTS) && ECHO_AUDIO_ENGINE_TESTS
     std::function<void()> readLeaseHookForTests;

@@ -37,7 +37,8 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
     public bool ShowKernelStreaming { get; set; }
     public IReadOnlyList<OutputFormatChoice> Formats { get; } = [new("pcm", "PCM（含 DSD 解码）"), new("dop24le", "DoP / SDM 输出"), new("dsd-native-raw", "Native DSD / SDM 输出")];
     public IReadOnlyList<OutputFormatChoice> AvailableFormats => Formats.Where(format => format.Key == "pcm" || CanUseDsd
-        && (format.Key == "dop24le" && SelectedMode?.Key is "exclusive" or "asio" || format.Key == "dsd-native-raw" && IsAsio)).ToArray();
+        && (format.Key == "dop24le" && SelectedMode?.Key is "exclusive" or "asio"
+            || format.Key == "dsd-native-raw" && (IsAsio || OperatingSystem.IsLinux() && SelectedMode?.Key == "exclusive"))).ToArray();
     public IReadOnlyList<int> Rates { get; } = [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000];
     public IReadOnlyList<int> DsdRates { get; } = [176400, 192000, 352800, 384000, 705600, 768000, 1411200, 1536000];
 
@@ -159,7 +160,8 @@ public sealed partial class PlayerAudioSettingsViewModel(PlaybackSessionCoordina
         try
         {
             await session.ConfigureOutputAsync(new AudioOutputConfiguration(SelectedMode.Key, SelectedDevice, OutputChannels,
-                SampleRate, BufferFrames, AsioChannelStart - 1, SelectedFormat.Key, DsdTransportRate));
+                SampleRate, BufferFrames, AsioChannelStart - 1, SelectedFormat.Key, DsdTransportRate)
+                .PreserveProcessingFrom(session.RequestedOutput));
             await session.DspAsync("eq.setEnabled", Json(new JsonArray(JsonValue.Create(equalizer))), true);
             await session.DspAsync("crossfeed.setState", Json(new JsonArray(new JsonObject { ["enabled"] = crossfeed })), true);
             await session.SetPlaybackRateAsync(rate);

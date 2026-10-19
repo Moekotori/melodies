@@ -18,7 +18,7 @@
               <TextBlock Text="{Binding TrackLine}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
-          <TextBlock Text="检测会询问控制协议。只有按下送出之后，当前曲目才会交给 HQPlayer。ECHO 不会启动它的程序。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+          <TextBlock Text="检测会询问控制协议。只有按下送出之后，当前曲目才会交给 HQPlayer。melodies 不会启动它的程序。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
           <CheckBox Content="记住为外部渲染器" IsChecked="{Binding RememberEnabled, Mode=TwoWay}" />
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Classes="connect-tool" Classes.active="{Binding IsLocal}" Content="本机桌面" Command="{Binding UseLocalCommand}" />

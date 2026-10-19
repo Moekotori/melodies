@@ -10,15 +10,15 @@
       </StackPanel>
       <StackPanel Name="FrequencyField" Grid.Column="1" Spacing="3">
         <TextBlock Text="频率 / Hz" FontSize="11" Classes="muted" />
-        <NumericUpDown Name="BandFrequency" Classes="dsp-value" Minimum="20" Maximum="20000" Increment="1" Value="{Binding FrequencyHz, Mode=TwoWay}" FormatString="0.#" ShowButtonSpinner="False" />
+        <NumericUpDown Name="BandFrequency" Classes="dsp-value" Minimum="{Binding FrequencyMinimum}" Maximum="20000" Increment="1" Value="{Binding FrequencyHz, Mode=TwoWay}" FormatString="0.#" ShowButtonSpinner="False" />
       </StackPanel>
       <StackPanel Name="GainField" Grid.Column="2" Spacing="3">
         <TextBlock Text="增益 / dB" FontSize="11" Classes="muted" />
-        <NumericUpDown Name="BandGain" Classes="dsp-value" Minimum="-24" Maximum="12" Increment="0.1" Value="{Binding GainDb, Mode=TwoWay}" IsEnabled="{Binding IsGainEditable}" FormatString="0.0" ShowButtonSpinner="False" />
+        <NumericUpDown Name="BandGain" Classes="dsp-value" Minimum="{Binding GainMinimum}" Maximum="{Binding GainMaximum}" Increment="0.1" Value="{Binding GainDb, Mode=TwoWay}" IsEnabled="{Binding IsGainEditable}" FormatString="0.0" ShowButtonSpinner="False" />
       </StackPanel>
       <StackPanel Name="QField" Grid.Column="3" Spacing="3">
         <TextBlock Text="Q 值" FontSize="11" Classes="muted" />
-        <NumericUpDown Name="BandQ" Classes="dsp-value" Minimum="0.1" Maximum="{Binding QMaximum}" Increment="0.1" Value="{Binding Q, Mode=TwoWay}" FormatString="0.###" ShowButtonSpinner="False" />
+        <NumericUpDown Name="BandQ" Classes="dsp-value" Minimum="{Binding QMinimum}" Maximum="{Binding QMaximum}" Increment="0.1" Value="{Binding Q, Mode=TwoWay}" FormatString="0.###" ShowButtonSpinner="False" />
       </StackPanel>
       <StackPanel Name="FilterField" Grid.Column="4" Spacing="3">
         <TextBlock Text="滤波类型" FontSize="11" Classes="muted" />

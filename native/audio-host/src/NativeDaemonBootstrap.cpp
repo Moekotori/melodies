@@ -1,5 +1,6 @@
 #include "NativeDaemonBootstrap.h"
 #include "NativePcmChannelPolicy.h"
+#include "NativeHostIdentity.h"
 #include "RpcOutputWriter.h"
 #include "../../audio-engine/third_party/nlohmann_json.hpp"
 #include <cerrno>
@@ -15,7 +16,8 @@ bool initializeNativeDaemonChannels(int inputFd, int outputFd, int& channels)
 {
     using Json = nlohmann::json;
     RpcOutputWriter output(outputFd, {}, 4);
-    std::cout << "{\"ready\":true,\"readyLevel\":\"bootstrap\",\"protocolVersion\":1,\"backendContractVersion\":2}"
+    std::cout << Json{{"ready", true}, {"readyLevel", "bootstrap"}, {"protocolVersion", 1},
+        {"backendContractVersion", 2}, {"hostIdentity", echo_audio_host::nativeHostIdentity()}}.dump()
               << std::endl;
     std::string line;
     line.reserve(256);
@@ -48,6 +50,15 @@ bool initializeNativeDaemonChannels(int inputFd, int outputFd, int& channels)
             continue;
         }
         const auto method = request["method"].get<std::string>();
+        if (method == "host.identity")
+        {
+            const auto params = request.find("params");
+            const bool includePath = params != request.end() && params->is_object()
+                && params->contains("includeLoadedExecutable") && (*params)["includeLoadedExecutable"] == true;
+            output.enqueue(Json{{"jsonrpc", "2.0"}, {"id", id},
+                {"result", echo_audio_host::nativeHostIdentity(includePath)}}.dump());
+            continue;
+        }
         if (method == "rpc.shutdown")
         {
             output.enqueue(Json{{"jsonrpc", "2.0"}, {"id", id}, {"result", "ok"}}.dump());

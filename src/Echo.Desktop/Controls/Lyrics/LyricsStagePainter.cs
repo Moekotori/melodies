@@ -270,8 +270,8 @@ internal sealed class LyricsStagePainter : IDisposable
         cinemaLabel?.Dispose();
         posterLabel?.Dispose();
         var face = new Typeface("Segoe UI, Microsoft YaHei, Noto Sans CJK SC", weight: (FontWeight)680);
-        cinemaLabel = new TextLayout("ECHO / CINEMA", face, 10, cinemaInk, letterSpacing: 2.2);
-        posterLabel = new TextLayout("ECHO", face, 11, posterInk, textAlignment: TextAlignment.Right, maxWidth: 80, letterSpacing: .5);
+        cinemaLabel = new TextLayout("melodies / CINEMA", face, 10, cinemaInk, letterSpacing: 2.2);
+        posterLabel = new TextLayout("melodies", face, 11, posterInk, textAlignment: TextAlignment.Right, maxWidth: 80, letterSpacing: .5);
     }
 
     private void EnsureSlices(double width, double height)

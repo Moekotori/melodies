@@ -1,4 +1,5 @@
 #include "NativeFormatProcessor.h"
+#include "EchoSrcFirKernel.h"
 #include "SdmNtfDesign.h"
 #include "SdmPreModulator.h"
 
@@ -27,10 +28,10 @@ constexpr uint8_t reverseDsdByteForDop(uint8_t byte)
     byte = static_cast<uint8_t>(((byte & 0xccu) >> 2u) | ((byte & 0x33u) << 2u));
     return static_cast<uint8_t>(((byte & 0xaau) >> 1u) | ((byte & 0x55u) << 1u));
 }
-// Stay below a 24-bit PCM LSB so musical tails and ordinary converter noise
-// never enter the idle path. A sustained window is still required below.
-constexpr double sdmIdleLockThreshold = 0.0000001;
-constexpr double sdmIdleUnlockThreshold = 0.000002;
+// Only sustained digital zero enters idle. Every nonzero sample must wake
+// the modulator, including signals below the former hysteresis threshold.
+constexpr double sdmIdleLockThreshold = 0.0;
+constexpr double sdmIdleUnlockThreshold = 0.0;
 constexpr int sdmIdleLockMilliseconds = 20;
 constexpr int sdmTransitionRampMilliseconds = 10;
 constexpr double sdmFeedbackStateLimit = 4.0;
@@ -44,10 +45,10 @@ constexpr double sdmInsaneSafetyHeadroomDb = 6.0;
 // Reference set and a relaxed set designed on the same opt=2 zeros with the
 // lower sdmNtfAdaptiveRelaxedPeakGain. The envelope only blends the two
 // feedbacks at the injection point, mix = (envelope - threshold) /
-// (fullRelaxationEnvelope - threshold) clamped to [0, 1], so the effective
-// NTF is (1 - mix) * NTF_ref + mix * NTF_relaxed. Both share the zero
-// polynomial, so every mix keeps the in-band NTF zeros exactly; only the
-// out-of-band peak and the floor between zeros move. The v2 brake instead
+// (fullRelaxationEnvelope - threshold) clamped to [0, 1]. For constant mix,
+// the NTF is (1 - mix) * NTF_ref + mix * NTF_relaxed and retains the shared
+// zero polynomial. A varying mix is time-varying processing: the static NTF
+// argument alone does not establish its dynamic residual. The v2 brake instead
 // scaled the whole injected feedback, i.e. blended toward NTF = 1, which
 // turned the DC zero into a (1 - scale) leak and cost 40-80 dB of in-band
 // noise at 0 dBFS; v5 costs about 16 dB (DSD64) / 10 dB (DSD128) there and
@@ -65,6 +66,13 @@ constexpr double sdmAdaptiveFullRelaxationEnvelope = 0.65;
 // Extra margin for order >= 6 NTFs on DSD64-class carriers where the
 // two-stage pre-modulator produces faster full-scale step edges.
 constexpr double sdmLowRateHighOrderHeadroomDb = 1.5;
+// Fixed high-order greedy loops at DSD128+ need more margin than the
+// DSD64 calibration: +1.5 dB still recovers in Reference; +2 dB keeps
+// multi-seed DC/dual-tone/noise stress clear of the feedback bound.
+// Adaptive and predictive decisions retain their existing calibration.
+constexpr double sdmFixedHighRateGreedyHeadroomDb = 2.0;
+// DSD64 Insane also crosses the recovery bound on the third noise seed.
+constexpr double sdmInsaneLowRateGreedyHeadroomDb = 1.0;
 // Windowed-sinc halfband kernels contain mathematically zero alternate taps.
 // The TypeScript tap generator reaches those zeros through floating-point
 // sin(pi*n), so retain a tiny numerical tolerance when building sparse phases.
@@ -174,6 +182,17 @@ void PcmDitherProcessor::configure(PcmDitherMode mode, int bitDepth, int channel
     const int safeBitDepth = bitDepth == 24 ? 24 : 16;
     maxInteger_ = std::ldexp(1.0, safeBitDepth - 1) - 1.0;
     lsb_ = 1.0 / maxInteger_;
+    // SDM disables PCM dither at the admitted commit boundary. An inactive
+    // quantizer never reads these histories; do not allocate them merely to
+    // switch it off. Re-enabling still uses the unchanged configure/reset path.
+    if (mode_ == PcmDitherMode::Off)
+    {
+        coefficients_.clear();
+        previousDither_.clear();
+        errorHistory_.clear();
+        reset();
+        return;
+    }
     coefficients_ = ditherCoefficients(mode_);
     previousDither_.assign(static_cast<size_t>(channels_), 0.0);
     errorHistory_.assign(static_cast<size_t>(channels_), std::vector<double>(coefficients_.size(), 0.0));
@@ -220,10 +239,16 @@ void PcmDitherProcessor::process(float* interleaved, size_t sampleCount)
     if (interleaved == nullptr || sampleCount == 0)
         return;
     for (size_t index = 0; index < sampleCount; ++index)
-    {
-        const int channel = static_cast<int>(index % static_cast<size_t>(channels_));
+        interleaved[index] = static_cast<float>(processSample(interleaved[index], static_cast<int>(index % static_cast<size_t>(channels_))));
+}
+
+double PcmDitherProcessor::processSample(double sample, int channel)
+{
+    if (!active()) return sample;
+    channel %= channels_;
+
         auto& history = errorHistory_[static_cast<size_t>(channel)];
-        double shaped = static_cast<double>(interleaved[index]);
+        double shaped = sample;
         for (size_t tap = 0; tap < coefficients_.size(); ++tap)
             shaped += history[tap] * coefficients_[tap];
         const double dithered = shaped + nextDither(channel);
@@ -234,8 +259,8 @@ void PcmDitherProcessor::process(float* interleaved, size_t sampleCount)
                 history[tap] = history[tap - 1];
             history[0] = clampValue(shaped - quantized, -lsb_ * 8.0, lsb_ * 8.0);
         }
-        interleaved[index] = static_cast<float>(clampValue(quantized, -1.0, 1.0));
-    }
+        return clampValue(quantized, -1.0, 1.0);
+
 }
 
 bool EchoSrcProcessor::configure(int channels, const std::vector<EchoSrcStageConfig>& stages, std::string& error)
@@ -259,7 +284,7 @@ bool EchoSrcProcessor::configure(int channels, const std::vector<EchoSrcStageCon
         stage.upsampleFactor = config.upsampleFactor;
         stage.historyFrames = (config.taps.size() - 1) / static_cast<size_t>(stage.upsampleFactor);
         stage.phases.resize(static_cast<size_t>(stage.upsampleFactor));
-        const float interpolationGain = static_cast<float>(stage.upsampleFactor);
+        const double interpolationGain = static_cast<double>(stage.upsampleFactor);
         for (size_t tap = 0; tap < config.taps.size(); ++tap)
         {
             const float coefficient = config.taps[tap];
@@ -301,11 +326,16 @@ uint64_t EchoSrcProcessor::estimatedMacsPerInputFrame() const noexcept
 
 std::vector<float> EchoSrcProcessor::process(const float* interleaved, int frames)
 {
-    if (frames <= 0 || interleaved == nullptr)
-        return {};
-    std::vector<float> output(interleaved, interleaved + static_cast<size_t>(frames * channels_));
-    for (auto& stage : stages_)
-        output = processStage(stage, output);
+    const auto output = processDouble(interleaved, frames);
+    return {output.begin(), output.end()};
+}
+
+template <typename Sample>
+std::vector<double> EchoSrcProcessor::processDouble(const Sample* interleaved, int frames)
+{
+    if (frames <= 0 || interleaved == nullptr) return {};
+    std::vector<double> output(interleaved, interleaved + static_cast<size_t>(frames * channels_));
+    for (auto& stage : stages_) output = processStage(stage, output);
     return output;
 }
 
@@ -315,7 +345,7 @@ void EchoSrcProcessor::copyHistory(
     histories.clear();
     histories.reserve(stages_.size());
     for (const auto& stage : stages_)
-        histories.push_back(stage.history);
+        histories.emplace_back(stage.history.begin(), stage.history.end());
 }
 
 bool EchoSrcProcessor::restoreHistory(const std::vector<std::vector<float>>& histories)
@@ -328,42 +358,47 @@ bool EchoSrcProcessor::restoreHistory(const std::vector<std::vector<float>>& his
             return false;
     }
     for (size_t index = 0; index < stages_.size(); ++index)
-        stages_[index].history = histories[index];
+        stages_[index].history.assign(histories[index].begin(), histories[index].end());
     return true;
 }
 
-std::vector<float> EchoSrcProcessor::processStage(Stage& stage, const std::vector<float>& input)
+void EchoSrcProcessor::copyHistory(
+    std::vector<std::vector<double>>& histories) const
+{
+    histories.clear();
+    histories.reserve(stages_.size());
+    for (const auto& stage : stages_)
+        histories.emplace_back(stage.history.begin(), stage.history.end());
+}
+
+bool EchoSrcProcessor::restoreHistory(const std::vector<std::vector<double>>& histories)
+{
+    if (histories.size() != stages_.size())
+        return false;
+    for (size_t index = 0; index < stages_.size(); ++index)
+    {
+        if (histories[index].size() != stages_[index].history.size())
+            return false;
+    }
+    for (size_t index = 0; index < stages_.size(); ++index)
+        stages_[index].history.assign(histories[index].begin(), histories[index].end());
+    return true;
+}
+
+std::vector<double> EchoSrcProcessor::processStage(Stage& stage, const std::vector<double>& input)
 {
     const size_t inputFrames = input.size() / static_cast<size_t>(channels_);
     const size_t outputFrames = inputFrames * static_cast<size_t>(stage.upsampleFactor);
-    std::vector<float> combined;
+    std::vector<double> combined;
     combined.reserve(stage.history.size() + input.size());
     combined.insert(combined.end(), stage.history.begin(), stage.history.end());
     combined.insert(combined.end(), input.begin(), input.end());
 
-    std::vector<float> output(outputFrames * static_cast<size_t>(channels_), 0.0f);
-    for (size_t inputFrame = 0; inputFrame < inputFrames; ++inputFrame)
-    {
-        const size_t combinedFrame = stage.historyFrames + inputFrame;
-        for (size_t phase = 0; phase < stage.phases.size(); ++phase)
-        {
-            const size_t outputFrame =
-                inputFrame * static_cast<size_t>(stage.upsampleFactor) + phase;
-            const auto& phaseTaps = stage.phases[phase];
-            for (int channel = 0; channel < channels_; ++channel)
-            {
-                double sample = 0.0;
-                for (const auto& tap : phaseTaps)
-                    sample += static_cast<double>(tap.coefficient)
-                        * static_cast<double>(combined[
-                            (combinedFrame - tap.delayFrames) * static_cast<size_t>(channels_)
-                            + static_cast<size_t>(channel)]);
-                output[
-                    outputFrame * static_cast<size_t>(channels_)
-                    + static_cast<size_t>(channel)] = static_cast<float>(sample);
-            }
-        }
-    }
+    std::vector<double> output(outputFrames * static_cast<size_t>(channels_), 0.0f);
+    for (size_t phase = 0; phase < stage.phases.size(); ++phase)
+        firKernel::processPhase(stage.phases[phase], combined.data(), stage.historyFrames,
+            inputFrames, static_cast<size_t>(channels_), static_cast<size_t>(stage.upsampleFactor),
+            phase, output.data());
     if (!stage.history.empty())
         std::copy(combined.end() - static_cast<std::ptrdiff_t>(stage.history.size()), combined.end(), stage.history.begin());
     return output;
@@ -541,6 +576,13 @@ void SdmProcessor::configure(
         profileHeadroomDb += std::max(lowRateHeadroomDb, decisionHeadroomDb);
     else
         profileHeadroomDb += lowRateHeadroomDb + decisionHeadroomDb;
+    if (!adaptiveLoopGainEnabled_ && quantizer_.mode() == SdmDecisionMode::Greedy)
+    {
+        if (feedbackNumeratorCoefficients_.size() >= 6 && transportSampleRate_ > 200'000)
+            profileHeadroomDb += sdmFixedHighRateGreedyHeadroomDb;
+        else if (profile == SdmQualityProfile::Insane)
+            profileHeadroomDb += sdmInsaneLowRateGreedyHeadroomDb;
+    }
     profileHeadroomGain_ = std::pow(10.0, -profileHeadroomDb / 20.0);
     channelStates_.assign(static_cast<size_t>(channels_), ChannelState {});
     reset();
@@ -677,6 +719,7 @@ SdmProcessorState SdmProcessor::state() const
         preModulator_.exportHistory(state.preModulatorHistory);
     state.peakFeedbackState = peakFeedbackState_;
     state.stabilityRecoveryCount = stabilityRecoveryCount_;
+    state.clampCounts = clampCounts();
     state.dopFrameIndex = dopFrameIndex_;
     return state;
 }
@@ -767,11 +810,22 @@ bool SdmProcessor::restoreState(const SdmProcessorState& state)
             ? 0.0
             : state.ecCorrelatedError[channel];
         destination.ecCorrelatedError = std::isfinite(restoredEcError) ? restoredEcError : 0.0;
+        // State stores session totals. Assign them once, then each channel
+        // continues its own counters without sharing writes on the hot path.
+        destination.clampCounts = channel == 0 ? state.clampCounts : SdmClampCounts {};
     }
     peakFeedbackState_ = std::max(0.0, state.peakFeedbackState);
     stabilityRecoveryCount_ = state.stabilityRecoveryCount;
     dopFrameIndex_ = state.dopFrameIndex;
     return true;
+}
+
+SdmClampCounts SdmProcessor::clampCounts() const noexcept
+{
+    SdmClampCounts counts;
+    for (const auto& channel : channelStates_)
+        counts = addSdmClampCounts(counts, channel.clampCounts);
+    return counts;
 }
 
 double SdmProcessor::advanceProtectedGain()
@@ -835,7 +889,7 @@ bool SdmProcessor::shouldEmitIdleSilence(int channel, double sample)
     const double magnitude = std::abs(sample);
     if (state.idleLocked == 1)
     {
-        if (magnitude < sdmIdleUnlockThreshold)
+        if (magnitude <= sdmIdleUnlockThreshold)
             return true;
         state.idleLocked = 0;
         state.idleRunFrames = 0;
@@ -861,17 +915,19 @@ bool SdmProcessor::shouldEmitIdleSilence(int channel, double sample)
 
 SdmProcessor::BytePair SdmProcessor::modulateSample(
     int channel,
-    float sample,
+    double sample,
     double& blockPeakFeedbackState,
     uint64_t& blockStabilityRecoveryCount)
 {
-    const double clampedSample = clampValue(static_cast<double>(sample), -inputLimit_, inputLimit_);
+    auto& channelState = channelStates_[static_cast<size_t>(channel)];
+    const double finiteSample = std::isfinite(sample) ? static_cast<double>(sample) : 0.0;
+    const double clampedSample = clampValue(finiteSample, -inputLimit_, inputLimit_);
+    recordSdmClamp(finiteSample, clampedSample, channelState.clampCounts.input);
     if (shouldEmitIdleSilence(channel, clampedSample))
         return {dsdSilenceByte, dsdSilenceByte};
 
     BytePair result;
     const size_t order = feedbackNumeratorCoefficients_.size();
-    auto& channelState = channelStates_[static_cast<size_t>(channel)];
     double carriers[sdmUltimatePreModulatorFactor] {};
     if (ultimatePreModulator_.active())
         ultimatePreModulator_.processSample(channel, clampedSample, carriers);
@@ -883,6 +939,7 @@ SdmProcessor::BytePair SdmProcessor::modulateSample(
     for (int carrier = 0; carrier < factor; ++carrier)
     {
         const double current = clampValue(carriers[carrier], -inputLimit_, inputLimit_);
+        recordSdmClamp(carriers[carrier], current, channelState.clampCounts.input);
         const double previous = clampValue(static_cast<double>(channelState.previousSample), -inputLimit_, inputLimit_);
         for (int bit = 0; bit < bitsPerCarrier; ++bit)
         {
@@ -912,9 +969,9 @@ SdmProcessor::BytePair SdmProcessor::modulateSample(
             // the same quantization errors. The instant-attack /
             // slow-release peak envelope on |bitSample| only blends the two
             // feedbacks at the injection point, fb + mix * (fbRelaxed - fb),
-            // so the effective NTF is (1 - mix) * NTF_ref + mix * NTF_relaxed:
-            // both share the zero polynomial, so every mix keeps the in-band
-            // nulls exactly, and neither recursion ever sees a coefficient
+            // At constant mix the NTF is (1 - mix) * NTF_ref + mix * NTF_relaxed
+            // and retains the shared zeros. A varying mix must be assessed
+            // with dynamic source-error measurements. Neither recursion sees a coefficient
             // change (blending the direct-form coefficients instead let the
             // envelope attack break the large-coefficient cancellation inside
             // the recursion and produced hundreds of recoveries). This is the
@@ -1008,7 +1065,9 @@ SdmProcessor::BytePair SdmProcessor::modulateSample(
             // and is shaped by the full NTF instead of landing flat on the
             // output, where at 0.00015 TPDF it used to sit exactly at the
             // measured in-band floor (about -103 dB DSD64, -112 dB DSD512).
-            const double loopInput = clampValue(bitSample + injectedFeedback, -stabilityLimit_, stabilityLimit_);
+            const double unboundedLoopInput = bitSample + injectedFeedback;
+            const double loopInput = clampValue(unboundedLoopInput, -stabilityLimit_, stabilityLimit_);
+            recordSdmClamp(unboundedLoopInput, loopInput, channelState.clampCounts.loopInput);
             const double decision = loopInput + nextDither(channel);
             // Greedy + EC minimizes q^2 + ecBias*q over both candidates,
             // which reduces to shifting the sign threshold by -ecBias/2.
@@ -1064,10 +1123,12 @@ SdmProcessor::BytePair SdmProcessor::modulateSample(
                     predictiveError,
                     ecBias);
             }
+            const double unboundedQuantizationError = loopInput - (one ? 1.0 : -1.0);
             const double quantizationError = clampValue(
-                loopInput - (one ? 1.0 : -1.0),
+                unboundedQuantizationError,
                 -stabilityLimit_,
                 stabilityLimit_);
+            recordSdmClamp(unboundedQuantizationError, quantizationError, channelState.clampCounts.quantizationError);
             for (size_t tap = order; tap-- > 1;)
             {
                 channelState.errorHistory[tap] = channelState.errorHistory[tap - 1];
@@ -1095,12 +1156,13 @@ SdmProcessor::BytePair SdmProcessor::modulateSample(
             }
             ++bitIndex;
         }
-        channelState.previousSample = static_cast<float>(current);
+        channelState.previousSample = current;
     }
     return result;
 }
 
-std::vector<uint32_t> SdmProcessor::processDop(const float* interleaved, int frames)
+template <typename Sample>
+std::vector<uint32_t> SdmProcessor::processDop(const Sample* interleaved, int frames)
 {
     if (interleaved == nullptr || frames <= 0)
         return {};
@@ -1118,7 +1180,7 @@ std::vector<uint32_t> SdmProcessor::processDop(const float* interleaved, int fra
             {
                 const auto bytes = modulateSample(
                     channel,
-                    static_cast<float>(
+                    static_cast<double>(
                         static_cast<double>(interleaved[frame * channels_ + channel])
                         * protectedGains[static_cast<size_t>(frame)]),
                     channelTelemetry[channel].peakFeedbackState,
@@ -1155,7 +1217,7 @@ std::vector<uint32_t> SdmProcessor::processDop(const float* interleaved, int fra
         {
             const auto bytes = modulateSample(
                 channel,
-                static_cast<float>(static_cast<double>(interleaved[frame * channels_ + channel]) * protectedGain),
+                static_cast<double>(static_cast<double>(interleaved[frame * channels_ + channel]) * protectedGain),
                 blockPeakFeedbackState,
                 blockStabilityRecoveryCount);
             // Native DSD bytes are chronological LSB-first. DoP v1.1 places
@@ -1174,7 +1236,8 @@ std::vector<uint32_t> SdmProcessor::processDop(const float* interleaved, int fra
     return output;
 }
 
-std::vector<uint8_t> SdmProcessor::processNativeDsd(const float* interleaved, int frames)
+template <typename Sample>
+std::vector<uint8_t> SdmProcessor::processNativeDsd(const Sample* interleaved, int frames)
 {
     if (interleaved == nullptr || frames <= 0)
         return {};
@@ -1191,7 +1254,7 @@ std::vector<uint8_t> SdmProcessor::processNativeDsd(const float* interleaved, in
             {
                 const auto bytes = modulateSample(
                     channel,
-                    static_cast<float>(
+                    static_cast<double>(
                         static_cast<double>(interleaved[frame * channels_ + channel])
                         * protectedGains[static_cast<size_t>(frame)]),
                     channelTelemetry[channel].peakFeedbackState,
@@ -1222,7 +1285,7 @@ std::vector<uint8_t> SdmProcessor::processNativeDsd(const float* interleaved, in
         {
             const auto bytes = modulateSample(
                 channel,
-                static_cast<float>(static_cast<double>(interleaved[frame * channels_ + channel]) * protectedGain),
+                static_cast<double>(static_cast<double>(interleaved[frame * channels_ + channel]) * protectedGain),
                 blockPeakFeedbackState,
                 blockStabilityRecoveryCount);
             const size_t base = static_cast<size_t>(frame * channels_ * 2);
@@ -1236,4 +1299,10 @@ std::vector<uint8_t> SdmProcessor::processNativeDsd(const float* interleaved, in
     return output;
 }
 
+template std::vector<double> EchoSrcProcessor::processDouble<float>(const float*, int);
+template std::vector<double> EchoSrcProcessor::processDouble<double>(const double*, int);
+template std::vector<uint32_t> SdmProcessor::processDop<float>(const float*, int);
+template std::vector<uint32_t> SdmProcessor::processDop<double>(const double*, int);
+template std::vector<uint8_t> SdmProcessor::processNativeDsd<float>(const float*, int);
+template std::vector<uint8_t> SdmProcessor::processNativeDsd<double>(const double*, int);
 } // namespace echo

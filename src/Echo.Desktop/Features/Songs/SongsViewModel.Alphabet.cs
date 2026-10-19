@@ -49,7 +49,7 @@ public sealed partial class SongsViewModel
         changingSort = true;
         try
         {
-            SortIndex = 0; Descending = false; SecondaryIndex = 0; TertiaryIndex = 0; IsMultiSortEnabled = false;
+            extraSorts = []; SortIndex = 0; Descending = false; SecondaryIndex = 0; TertiaryIndex = 0; IsMultiSortEnabled = false;
         }
         finally { changingSort = false; }
         OnPropertyChanged(nameof(SortText)); OnPropertyChanged(nameof(SortOptions));

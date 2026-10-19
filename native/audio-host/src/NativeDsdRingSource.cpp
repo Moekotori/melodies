@@ -67,6 +67,7 @@ uint32_t NativeDsdRingSource::renderInterleaved(uint8_t* output, uint32_t byteFr
         {
             if (
                 ! inputEnded.load(std::memory_order_acquire)
+                && ! stopRequested.load(std::memory_order_acquire)
                 && sessionHasAudio.load(std::memory_order_acquire))
             {
                 underrunCallbacks.fetch_add(1, std::memory_order_relaxed);
@@ -99,6 +100,18 @@ uint32_t NativeDsdRingSource::renderInterleaved(uint8_t* output, uint32_t byteFr
     return byteFramesReadTotal;
 }
 
+echo_audio_host::SdmTransportTelemetry NativeDsdRingSource::realtimeTelemetry() const noexcept
+{
+    std::lock_guard<std::mutex> lock(fifoMutex);
+    return {generation(), static_cast<uint64_t>(fifo.getNumReady()) * 8u,
+        static_cast<uint64_t>(fifo.getTotalSize()) * 8u,
+        framesPlayed.load(std::memory_order_relaxed),
+        underrunCallbacks.load(std::memory_order_relaxed), underrunFrames.load(std::memory_order_relaxed),
+        paused.load(std::memory_order_acquire), prebuffering.load(std::memory_order_acquire),
+        inputEnded.load(std::memory_order_acquire), stopRequested.load(std::memory_order_acquire),
+        sessionHasAudio.load(std::memory_order_acquire)};
+}
+
 bool NativeDsdRingSource::push(const uint8_t* samples, int byteFrameCount)
 {
     return pushForGeneration(samples, byteFrameCount, generation());
@@ -107,7 +120,8 @@ bool NativeDsdRingSource::push(const uint8_t* samples, int byteFrameCount)
 bool NativeDsdRingSource::pushForGeneration(
     const uint8_t* samples,
     int byteFrameCount,
-    uint64_t expectedGeneration)
+    uint64_t expectedGeneration,
+    std::optional<std::chrono::steady_clock::time_point> deadline)
 {
     if (samples == nullptr || byteFrameCount <= 0)
         return byteFrameCount == 0 && expectedGeneration == generation();
@@ -118,7 +132,8 @@ bool NativeDsdRingSource::pushForGeneration(
 
     while (written < byteFrameCount
         && expectedGeneration == generation()
-        && ! stopRequested.load(std::memory_order_acquire))
+        && ! stopRequested.load(std::memory_order_acquire)
+        && (!deadline || std::chrono::steady_clock::now() < *deadline))
     {
         int start1 = 0;
         int size1 = 0;
@@ -167,6 +182,9 @@ int NativeDsdRingSource::replaceBufferedAudio(const uint8_t* samples, int byteFr
     copyFromInput(samples, start1, size1);
     copyFromInput(samples + static_cast<size_t>(size1) * channels, start2, size2);
     fifo.finishedWrite(size1 + size2);
+    framesPlayed.store(0, std::memory_order_relaxed);
+    underrunCallbacks.store(0, std::memory_order_relaxed);
+    underrunFrames.store(0, std::memory_order_relaxed);
     paused.store(pausedAfterReplace, std::memory_order_release);
     return size1 + size2;
 }

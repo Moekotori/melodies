@@ -1,5 +1,5 @@
 {
-  "name": "echo-avalonia-dev",
+  "name": "melodies-dev",
   "private": true,
   "scripts": {
     "dev": "dotnet watch --project src/Echo.Desktop/Echo.Desktop.csproj --non-interactive run --configuration Debug"

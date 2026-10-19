@@ -15,6 +15,7 @@ public sealed partial class DspModule : ObservableObject
     public IReadOnlyList<DspToggleDefinition> Toggles { get; init; } = [];
     public IReadOnlyList<DspChoiceDefinition> Choices { get; init; } = [];
     public bool ConfiguresOutput => Id is "src" or "sdm";
+    public bool DraftOnly => ConfiguresOutput || Id == "rack";
     public bool EditsEqualizer => Id is "eq" or "headphone";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsActive)), NotifyPropertyChangedFor(nameof(Detail))] private string status = "未读取";
     public bool IsActive => Status == "已启用";
@@ -40,7 +41,9 @@ public sealed record DspChoice(string Key, string Label);
 
 internal static class DspModuleCatalog
 {
-    public static IReadOnlyList<DspModule> Create() => [
+    public static IReadOnlyList<DspModule> Create() => Build().OrderBy(x => Array.IndexOf(Order, x.Id)).ToArray();
+    private static readonly string[] Order = ["listening", "rack", "replayGain", "headroom", "src", "sdm", "eq", "headphone", "room", "channel", "safety", "compressor", "multiband", "deesser", "limiter", "crossfeed", "virtualStage", "stereoField", "channelMatrix"];
+    private static IReadOnlyList<DspModule> Build() => [
         new("listening", "听音方案", "把当前处理链存成方案，之后一键套回原生宿主。", "总览"),
         new("rack", "DSP Rack", "调整实际处理顺序。后面的保护阶段固定不动。", "总览", "dspRack.getState", "dspRack.setState"),
         new("replayGain", "音量均衡", "按曲目或专辑增益统一播放响度。", "电平", "replayGain.getConfig", "replayGain.setConfig",
@@ -49,16 +52,17 @@ internal static class DspModuleCatalog
             new DspParameterDefinition("headroomDb", "处理链增益", -12, 12, 0.1, "dB")),
         new("src", "升频", "整数倍升频和 PCM 抖动。应用时会重配当前输出。", "采样转换", null, "output.configure") {
             Choices = [
-                new("ratio", "升频", new DspChoice("1", "关闭"), new DspChoice("2", "2×"), new DspChoice("4", "4×")),
+                new("ratio", "升频", new DspChoice("1", "关闭"), new DspChoice("2", "2×"), new DspChoice("4", "4×"), new DspChoice("8", "8×"), new DspChoice("16", "16×")),
                 new("ditherMode", "抖动", new DspChoice("off", "关闭"), new DspChoice("tpdf", "TPDF"), new DspChoice("highpass-tpdf", "高通 TPDF"), new DspChoice("ns-5", "噪声整形 5"), new DspChoice("ns-9", "噪声整形 9"), new DspChoice("ultra-shaped", "超整形")),
                 new("ditherBits", "量化位深", new DspChoice("16", "16 bit"), new DspChoice("24", "24 bit"))] },
         new("sdm", "DSD 转换", "把 PCM 调制成 DoP。需要独占或 ASIO，应用时会重配输出。", "采样转换", null, "output.configure") {
             Choices = [
-                new("outputFormat", "输出格式", new DspChoice("pcm", "PCM"), new DspChoice("dop24le", "DoP")),
-                new("qualityProfile", "调制质量", new DspChoice("safe", "安全"), new DspChoice("hifi", "Hi-Fi"), new DspChoice("reference", "参考"), new DspChoice("insane", "极致"), new DspChoice("adaptive", "自适应")),
+                new("outputFormat", "输出格式", new DspChoice("pcm", "PCM"), new DspChoice("dop24le", "DoP"), new DspChoice("dsd-native-raw", "Native DSD")),
+                new("carrierRate", "DSD 传输率", new DspChoice("176400", "176.4 kHz"), new DspChoice("192000", "192 kHz"), new DspChoice("352800", "352.8 kHz"), new DspChoice("384000", "384 kHz"), new DspChoice("705600", "705.6 kHz"), new DspChoice("768000", "768 kHz"), new DspChoice("1411200", "1411.2 kHz"), new DspChoice("1536000", "1536 kHz")),
+                new("qualityProfile", "调制质量", new DspChoice("safe", "安全"), new DspChoice("hifi", "Hi-Fi"), new DspChoice("reference", "参考"), new DspChoice("insane", "极致"), new DspChoice("adaptive", "自适应"), new DspChoice("adaptive-light", "轻量自适应"), new DspChoice("adaptive-super", "增强自适应"), new DspChoice("reference-ec", "参考 EC")),
                 new("extraLoop", "决策环路", new DspChoice("off", "关闭"), new DspChoice("extra", "Extra"), new DspChoice("horizon", "Horizon"))] },
         new("eq", "参数 EQ", "频段、前级与预设。", "音色", "eq.getState", "eq.setState"),
-        new("headphone", "耳机校正", "导入频响曲线，按 31 段参数 EQ 套用，之后还能继续改。", "音色", "eq.getState", "eq.setState"),
+        new("headphone", "耳机校正", "导入频响曲线，应用到独立耳机校正处理链。", "音色", "headphoneCorrection.getState", "headphoneCorrection.setState"),
         new("room", "房间校正", "导入脉冲响应，调整增益后卷积进播放。", "空间与输出", "roomCorrection.getState", "roomCorrection.setEnabled",
             new DspParameterDefinition("trimDb", "脉冲增益", -24, 6, 0.1, "dB")),
         new("channel", "声道工具", "左右增益、平衡、延时和分频补偿。", "空间与输出", "channelBalance.getState", "channelBalance.setState",
@@ -80,11 +84,14 @@ internal static class DspModuleCatalog
             Toggles = [new("sidechainHighpassEnabled", "启用侧链高通"), new("autoRelease", "自动释放")],
             Choices = [new("detectorMode", "检测", new DspChoice("peak", "峰值"), new DspChoice("rms", "RMS"))] },
         new("crossfeed", "交叉馈送", "让耳机中的左右声道自然交融。", "高级", "crossfeed.getState", "crossfeed.setState",
-            new("amount", "混合强度", 0, 1, 0.01, ""), new("cutoffHz", "截止频率", 100, 2000, 1, "Hz")),
+            new("amount", "混合强度", 0, 1, 0.01, ""), new("cutoffHz", "截止频率", 100, 4000, 1, "Hz"),
+            new("feedDb", "交叉衰减", 1, 15, 0.1, "dB")) {
+            Choices = [new("model", "算法", new DspChoice("legacy", "经典"), new DspChoice("bs2b", "BS2B"))] },
         new("stereoField", "立体声场", "控制宽度、中置与侧向能量。", "高级", "stereoField.getState", "stereoField.setState",
             new("width", "声场宽度", 0, 2, 0.01, "×"), new("centerGainDb", "中置增益", -18, 18, 0.1, "dB"),
             new("sideGainDb", "侧向增益", -18, 18, 0.1, "dB")),
         new("channelMatrix", "声道矩阵", "配置左右输入到左右输出的混合系数。", "高级", "channelMatrix.getState", "channelMatrix.setState",
             new("leftToLeft", "L → L", -2, 2, 0.01, ""), new("rightToLeft", "R → L", -2, 2, 0.01, ""),
-            new("leftToRight", "L → R", -2, 2, 0.01, ""), new("rightToRight", "R → R", -2, 2, 0.01, ""))];
+            new("leftToRight", "L → R", -2, 2, 0.01, ""), new("rightToRight", "R → R", -2, 2, 0.01, "")),
+        .. NativeDspModules.Create()];
 }

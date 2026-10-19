@@ -29,7 +29,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private IReadOnlyList<TrackRow> items = [];
     [ObservableProperty] private TrackRow? selected;
     [ObservableProperty] private string search = "";
-    [ObservableProperty] private int sortIndex;
+    [ObservableProperty] private int sortIndex = (int)TrackSort.Default;
     [ObservableProperty] private int secondaryIndex;
     [ObservableProperty] private int tertiaryIndex;
     [ObservableProperty] private bool descending;
@@ -45,7 +45,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     public bool CanNext => !IsLoading && hasNext;
     public bool IsEmpty => !IsLoading && Items.Count == 0 && Error.Length == 0;
     public bool HasQuery => Search.Length > 0 || Filters.HasActive;
-    public string SortText => SortChoiceLabel(Math.Clamp(SortIndex,0,11), Descending)
+    public string SortText => SortChoiceLabel(Math.Clamp(SortIndex,0,20), Descending)
         + (Order().Count > 1 ? " +" + (Order().Count - 1) : "");
     public string CountText => text.Format("query.visibleCount", Items.Count);
     public string PageText => text.Format("query.page", offset / 200 + 1, Items.Count);
@@ -55,6 +55,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     public SongsViewModel(ITrackLibrary library, PlayerViewModel? player, LocalizationService text, LibraryViewPreferences? preference = null)
     {
         this.library = library; this.player = player; this.text = text;
+        Filters.FormatActive = count => text.Format("query.activeFilters", count);
         Filters.AttachLibrary(library as IAlbumLibrary);
         if (preference is not null)
         {
@@ -63,13 +64,22 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
             tertiaryIndex = preference.TertiaryIndex; tertiaryDescending = preference.TertiaryDescending;
             layout = preference.Layout is "split" or "dense" ? preference.Layout : "list";
             alphabet = preference.Alphabet;
+            if (preference.SortOrder is { Count: > 0 and <= 21 } saved && saved.All(item => Enum.IsDefined(item.Field)))
+            {
+                sortIndex = (int)saved[0].Field; descending = saved[0].Descending;
+                secondaryIndex = saved.Count > 1 ? (int)saved[1].Field + 1 : 0;
+                secondaryDescending = saved.Count > 1 && saved[1].Descending;
+                tertiaryIndex = saved.Count > 2 ? (int)saved[2].Field + 1 : 0;
+                tertiaryDescending = saved.Count > 2 && saved[2].Descending;
+                extraSorts = saved.Skip(3).ToArray();
+            }
             Filters.Restore(preference.Filter);
         }
-        isMultiSortEnabled = secondaryIndex > 0 || tertiaryIndex > 0;
+        isMultiSortEnabled = preference?.MultiSort == true || secondaryIndex > 0 || tertiaryIndex > 0;
         Filters.Changed += OnFilters; text.Changed += OnLanguage;
     }
     public event Action? PreferenceChanged;
-    public LibraryViewPreferences Preference => new("songs", SortIndex, Descending, SecondaryIndex, SecondaryDescending, TertiaryIndex, TertiaryDescending, Filters.Snapshot(), Layout, Alphabet);
+    public LibraryViewPreferences Preference => new("songs", SortIndex, Descending, SecondaryIndex, SecondaryDescending, TertiaryIndex, TertiaryDescending, Filters.Snapshot(), Layout, Alphabet, Order(), IsMultiSortEnabled);
     partial void OnLayoutChanged(string value)
     {
         if (value is not ("list" or "split" or "dense")) { if (Layout != "list") Layout = "list"; return; }
@@ -84,9 +94,10 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
     { OnPropertyChanged(nameof(SortChoices)); OnPropertyChanged(nameof(AdditionalSortChoices)); OnPropertyChanged(nameof(SortOptions)); Notify(); }
     private IReadOnlyList<TrackOrder> Order()
     {
-        var result = new List<TrackOrder> { new((TrackSort)Math.Clamp(SortIndex, 0, 11), Descending) };
+        var result = new List<TrackOrder> { new((TrackSort)Math.Clamp(SortIndex, 0, 20), Descending) };
         foreach (var (index, desc) in new[] { (SecondaryIndex, SecondaryDescending), (TertiaryIndex, TertiaryDescending) })
-            if (index is >= 1 and <= 12 && result.All(order => order.Field != (TrackSort)(index - 1))) result.Add(new((TrackSort)(index - 1), desc));
+            if (index is >= 1 and <= 21 && result.All(order => order.Field != (TrackSort)(index - 1))) result.Add(new((TrackSort)(index - 1), desc));
+        foreach (var item in extraSorts) if (result.All(order => order.Field != item.Field)) result.Add(item);
         return result;
     }
     partial void OnSearchChanged(string value) { OnPropertyChanged(nameof(HasQuery)); _ = LoadAsync(0, true); }
@@ -121,7 +132,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
         try
         {
             if (debounce) await Task.Delay(120, current.Token);
-            var page = await library.GetTracksAsync(new(200, Search, Order: Order(), Filter: Filters.Snapshot(), Offset: target, Revision: expected), current.Token);
+            var page = await library.GetTracksAsync(new(200, Search, Order: Order(), Filter: Filters.Snapshot(), Offset: target, Revision: expected, RandomSeed: randomSeed), current.Token);
             if (closed || version != generation) return;
             if (fromJump) Selected = null;
             Items = page.Items; offset = target; revision = page.Revision; hasNext = page.Next is not null;

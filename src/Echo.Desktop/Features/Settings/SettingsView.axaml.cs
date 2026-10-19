@@ -28,13 +28,22 @@ public partial class SettingsView : UserControl
         {
             var available = Math.Max(0, Bounds.Width - 64);
             var compact = available < 760;
-            var navigationWidth = compact ? 52 : 184;
-            var spacing = compact ? 20 : 24;
+            var navigationWidth = compact ? 52 : 216;
+            var spacing = compact ? 20 : 32;
             CategoryNavigation.IsCompact = compact;
             SettingsLayout.ColumnDefinitions[0].Width = new GridLength(navigationWidth);
             SettingsLayout.ColumnSpacing = spacing;
             var contentWidth = Math.Max(0, available - navigationWidth - spacing);
-            SettingsHeader.ColumnDefinitions[1].Width = new GridLength(Math.Min(340, Math.Max(120, contentWidth * .4)));
+            Grid.SetColumn(SettingsSearchBox, compact ? 1 : 0);
+            SettingsSearchBox.Width = compact ? Math.Min(300, contentWidth) : double.NaN;
+            SettingsSearchBox.HorizontalAlignment = compact ? Avalonia.Layout.HorizontalAlignment.Right : Avalonia.Layout.HorizontalAlignment.Stretch;
+            SettingsHeader.Margin = new Avalonia.Thickness(0, 0, 8, compact ? 64 : 0);
+            SettingsSearchBox.Margin = new Avalonia.Thickness(0, compact ? 74 : 54, 8, 0);
+            SettingsLayout.RowDefinitions[0].Height = new GridLength(compact ? 132 : 64);
+            SearchResultsPopup.Margin = new Avalonia.Thickness(0, compact ? -10 : 30, 8, 0);
+            Grid.SetColumn(SearchResultsPopup, compact ? 1 : 0);
+            Grid.SetColumnSpan(SearchResultsPopup, compact ? 1 : 2);
+            SearchResultsPopup.HorizontalAlignment = compact ? Avalonia.Layout.HorizontalAlignment.Right : Avalonia.Layout.HorizontalAlignment.Left;
             SearchResultsPopup.Width = Math.Min(480, contentWidth);
         };
     }
@@ -58,7 +67,7 @@ public partial class SettingsView : UserControl
     private void OnSettingsKeyDown(object? sender, KeyEventArgs e)
     {
         if (_model is null || e.Handled) return;
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key is Key.K or Key.F) { SearchInput.Focus(); e.Handled = true; }
+        if ((e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) && e.Key is Key.K or Key.F) { SearchInput.Focus(); e.Handled = true; }
         if (e.Key == Key.Escape)
         {
             if (_model.Query.Length > 0) _model.ClearSearchCommand.Execute(null);

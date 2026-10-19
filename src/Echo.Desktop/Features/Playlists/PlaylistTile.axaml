@@ -1,28 +1,19 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:lib="using:Echo.Contracts.Library" x:Class="Echo.Desktop.Features.Playlists.PlaylistTile" x:DataType="lib:PlaylistRow">
-  <UserControl.Styles>
-    <Style Selector="Button.entry"><Setter Property="Padding" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="HorizontalAlignment" Value="Stretch" /></Style>
-    <Style Selector="Button.entry:pointerover TextBlock.name"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
-  </UserControl.Styles>
-  <Button Name="OpenButton" Classes="entry" Click="OnOpen">
-    <Grid>
-      <Grid Name="ListLayout" ColumnDefinitions="48,*,Auto" ColumnSpacing="14" Margin="8,12" Height="48">
-        <Border Background="{DynamicResource EchoPanelMuted}" CornerRadius="4" ClipToBounds="True">
-          <Grid><TextBlock Name="ListInitial" FontSize="22" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" /><Image Name="ListCover" Stretch="UniformToFill" /></Grid>
-        </Border>
-        <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center">
-          <TextBlock Text="{Binding Name}" Classes="name heading" FontSize="14" TextTrimming="CharacterEllipsis" />
-          <TextBlock Name="ListDescription" Classes="subtle" FontSize="11.5" TextTrimming="CharacterEllipsis" />
-        </StackPanel>
-        <TextBlock Name="ListCount" Grid.Column="2" Classes="muted" FontSize="12" VerticalAlignment="Center" Margin="12,0" />
-      </Grid>
-      <StackPanel Name="CardLayout" IsVisible="False" Spacing="12" Margin="0,0,0,24">
-        <Border Name="CardFrame" Background="{DynamicResource EchoPanelMuted}" CornerRadius="5" ClipToBounds="True">
-          <Grid><TextBlock Name="CardInitial" FontSize="52" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" /><Image Name="CardCover" Stretch="UniformToFill" /></Grid>
-        </Border>
-        <TextBlock Text="{Binding Name}" Classes="name heading" FontSize="14" TextTrimming="CharacterEllipsis" />
+             xmlns:icon="using:Echo.Desktop.Controls" xmlns:lib="using:Echo.Contracts.Library" x:Class="Echo.Desktop.Features.Playlists.PlaylistTile" x:DataType="lib:PlaylistRow">
+  <Button Name="OpenButton" Classes="playlist-wall-entry" Click="OnOpen">
+    <StackPanel Spacing="12" Margin="0,0,0,28">
+      <Border Name="CardFrame" CornerRadius="2" ClipToBounds="True" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1">
+        <Grid>
+          <Border Width="84" Height="84" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <icon:GlyphIcon Kind="queue" Width="32" Height="32" Opacity="0.45" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <Image Name="CardCover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+        </Grid>
+      </Border>
+      <StackPanel Spacing="3">
+        <TextBlock Text="{Binding Name}" Classes="heading" FontSize="14" FontWeight="Normal" TextTrimming="CharacterEllipsis" />
         <TextBlock Name="CardCount" Classes="muted" FontSize="12" />
       </StackPanel>
-    </Grid>
+    </StackPanel>
   </Button>
 </UserControl>

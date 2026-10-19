@@ -93,11 +93,11 @@ internal sealed class DlnaReceiverSsdp : IDisposable
     private byte[] Notify(string address, string target, bool alive)
         => Encoding.ASCII.GetBytes("NOTIFY * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nCACHE-CONTROL: max-age=180\r\nLOCATION: "
             + Location(address) + "\r\nNT: " + target + "\r\nNTS: ssdp:" + (alive ? "alive" : "byebye")
-            + "\r\nSERVER: ECHO/1 UPnP/1.0\r\nUSN: " + Usn(target) + "\r\n\r\n");
+            + "\r\nSERVER: melodies/1 UPnP/1.0\r\nUSN: " + Usn(target) + "\r\n\r\n");
 
     private byte[] Response(string address, string target)
         => Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nCACHE-CONTROL: max-age=180\r\nEXT:\r\nLOCATION: " + Location(address)
-            + "\r\nSERVER: ECHO/1 UPnP/1.0\r\nST: " + target + "\r\nUSN: " + Usn(target) + "\r\n\r\n");
+            + "\r\nSERVER: melodies/1 UPnP/1.0\r\nST: " + target + "\r\nUSN: " + Usn(target) + "\r\n\r\n");
 
     private string Location(string address) => "http://" + address + ":" + port.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/description.xml";
     private string Usn(string target) => target.StartsWith("uuid:", StringComparison.Ordinal) ? target : "uuid:" + uuid + "::" + target;

@@ -1,10 +1,13 @@
+#include "DspMeasurementJson.h"
 #include "JsonRpcProtocol.h"
+#include "HeadphoneCorrectionProtocol.h"
 #include "DspSafetyLimiter.h"
 #include "EqTypes.h"
 #include "libav_decoder.h"
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace echo
 {
@@ -160,12 +163,18 @@ nlohmann::json buildEqState(const EqProcessor& processor)
 {
     const auto state = processor.getState();
     nlohmann::json obj;
+    obj["loudness"] = dspMeasurementJson(processor.loudnessMeasurement());
     obj["enabled"] = state.enabled;
     obj["preampDb"] = state.preampDb;
     obj["strengthPercent"] = state.strengthPercent;
     obj["tiltDb"] = state.tiltDb;
     obj["dspHeadroomDb"] = 0;
     obj["dspSafetyLimiterEnabled"] = isDspSafetyLimiterEnabled();
+    const float limiterCeilingDb = dspLimiterCeilingDb();
+    obj["dspLimiterCeilingDb"] = std::isfinite(limiterCeilingDb)
+        ? nlohmann::json(limiterCeilingDb)
+        : nlohmann::json(nullptr);
+    obj["dspLimiterReleaseMs"] = dspLimiterReleaseMs();
     obj["presetId"] = "custom";
     obj["presetName"] = state.presetName;
     obj["clippingRisk"] = processor.hasClippingRisk();
@@ -179,6 +188,12 @@ nlohmann::json buildEqState(const EqProcessor& processor)
         band["q"] = state.bandQ[static_cast<size_t>(i)];
         band["filterType"] = eqFilterTypeText(state.bandFilterTypes[static_cast<size_t>(i)]);
         band["enabled"] = state.bandEnabled[static_cast<size_t>(i)];
+        band["scope"] = eqBandScopeText(state.bandScopes[static_cast<size_t>(i)]);
+        band["dynamicMode"] = eqDynamicModeText(state.bandDynamicModes[static_cast<size_t>(i)]);
+        band["dynamicThresholdDb"] = state.bandDynamicThresholdDb[static_cast<size_t>(i)];
+        band["dynamicRatio"] = state.bandDynamicRatio[static_cast<size_t>(i)];
+        band["dynamicAttackMs"] = state.bandDynamicAttackMs[static_cast<size_t>(i)];
+        band["dynamicReleaseMs"] = state.bandDynamicReleaseMs[static_cast<size_t>(i)];
         bands.push_back(band);
     }
     obj["bands"] = bands;
@@ -190,6 +205,11 @@ nlohmann::json buildDspState(const DspHeadroomProcessor& processor)
     nlohmann::json obj;
     obj["headroomDb"] = processor.getHeadroomDb();
     obj["safetyLimiterEnabled"] = isDspSafetyLimiterEnabled();
+    const float limiterCeilingDb = dspLimiterCeilingDb();
+    obj["dspLimiterCeilingDb"] = std::isfinite(limiterCeilingDb)
+        ? nlohmann::json(limiterCeilingDb)
+        : nlohmann::json(nullptr);
+    obj["dspLimiterReleaseMs"] = dspLimiterReleaseMs();
     return obj;
 }
 
@@ -257,6 +277,8 @@ nlohmann::json buildRoomCorrectionState(const ConvolutionProcessor& processor)
     obj["irId"] = state.irId;
     obj["irName"] = state.irName;
     obj["channelMode"] = state.channelMode;
+    obj["filterBank"] = state.filterBank;
+    obj["selectedFilter"] = state.selectedFilter;
     obj["sampleRate"] = state.sampleRate;
     obj["tapCount"] = state.tapCount;
     obj["trimDb"] = state.trimDb;
@@ -364,7 +386,21 @@ nlohmann::json buildCrossfeedState(const SpatialDspProcessor& processor)
     return nlohmann::json::object({
         {"enabled", state.enabled},
         {"amount", state.amount},
+        {"model", state.bs2b ? "bs2b" : "legacy"},
+        {"feedDb", state.feedDb},
         {"cutoffHz", state.cutoffHz}
+    });
+}
+
+nlohmann::json buildVirtualStageState(const SpatialDspProcessor& processor)
+{
+    const auto state = processor.getVirtualStageState();
+    return nlohmann::json::object({
+        {"enabled", state.enabled},
+        {"strength", state.strength},
+        {"speakersBypassed", state.speakersBypassed},
+        {"azimuthDegrees", state.azimuthDegrees},
+        {"reflection", state.reflection}
     });
 }
 
@@ -398,7 +434,20 @@ CrossfeedState readCrossfeedState(const nlohmann::json& value, const CrossfeedSt
     return {
         getBool(value, "enabled", fallback.enabled),
         getNumber(value, "amount", fallback.amount),
-        getNumber(value, "cutoffHz", fallback.cutoffHz)
+        getNumber(value, "cutoffHz", fallback.cutoffHz),
+        (value.contains("model") ? getString(value, "model") == "bs2b" : fallback.bs2b),
+        getNumber(value, "feedDb", fallback.feedDb)
+    };
+}
+
+VirtualStageState readVirtualStageState(const nlohmann::json& value, const VirtualStageState& fallback)
+{
+    return {
+        getBool(value, "enabled", fallback.enabled),
+        static_cast<float>(getNumber(value, "strength", fallback.strength)),
+        getBool(value, "speakersBypassed", fallback.speakersBypassed),
+        static_cast<float>(getNumber(value, "azimuthDegrees", fallback.azimuthDegrees)),
+        static_cast<float>(getNumber(value, "reflection", fallback.reflection))
     };
 }
 
@@ -452,9 +501,105 @@ nlohmann::json buildPresetList()
     return result;
 }
 
+nlohmann::json buildDeEsserState(const DeEsserProcessor& processor)
+{
+    const auto state = processor.getState();
+    return nlohmann::json::object({
+        {"enabled", state.enabled},
+        {"frequencyHz", state.frequencyHz},
+        {"q", state.q},
+        {"thresholdDb", state.thresholdDb},
+        {"ratio", state.ratio},
+        {"attackMs", state.attackMs},
+        {"releaseMs", state.releaseMs},
+        {"mix", state.mix},
+        {"kneeDb", state.kneeDb},
+        {"rangeDb", state.rangeDb},
+        {"gainReductionDb", processor.gainReductionDb()}
+    });
+}
+
+DeEsserState readDeEsserState(const nlohmann::json& value, const DeEsserState& fallback)
+{
+    return {
+        getBool(value, "enabled", fallback.enabled),
+        getNumber(value, "frequencyHz", fallback.frequencyHz),
+        getNumber(value, "q", fallback.q),
+        getNumber(value, "thresholdDb", fallback.thresholdDb),
+        getNumber(value, "ratio", fallback.ratio),
+        getNumber(value, "attackMs", fallback.attackMs),
+        getNumber(value, "releaseMs", fallback.releaseMs),
+        getNumber(value, "mix", fallback.mix),
+        getNumber(value, "kneeDb", fallback.kneeDb),
+        getNumber(value, "rangeDb", fallback.rangeDb)
+    };
+}
+
+nlohmann::json buildMultibandState(const MultibandCompressorProcessor& processor)
+{
+    const auto state = processor.getState();
+    nlohmann::json bands = nlohmann::json::array();
+    nlohmann::json gainReductionDb = nlohmann::json::array();
+    for (int band = 0; band < multibandBandCount; ++band)
+    {
+        const auto& source = state.bands[static_cast<size_t>(band)];
+        bands.push_back(nlohmann::json::object({
+            {"enabled", source.enabled},
+            {"thresholdDb", source.thresholdDb},
+            {"ratio", source.ratio},
+            {"attackMs", source.attackMs},
+            {"releaseMs", source.releaseMs},
+            {"makeupDb", source.makeupDb},
+            {"kneeDb", source.kneeDb}
+        }));
+        gainReductionDb.push_back(processor.gainReductionDb(band));
+    }
+    return nlohmann::json::object({
+        {"enabled", state.enabled},
+        {"lowCrossoverHz", state.lowCrossoverHz},
+        {"highCrossoverHz", state.highCrossoverHz},
+        {"mix", state.mix},
+        {"stereoLink", state.stereoLink},
+        {"bands", bands},
+        {"gainReductionDb", gainReductionDb}
+    });
+}
+
+MultibandCompressorState readMultibandState(const nlohmann::json& value, const MultibandCompressorState& fallback)
+{
+    MultibandCompressorState state = fallback;
+    state.enabled = getBool(value, "enabled", fallback.enabled);
+    state.lowCrossoverHz = getNumber(value, "lowCrossoverHz", fallback.lowCrossoverHz);
+    state.highCrossoverHz = getNumber(value, "highCrossoverHz", fallback.highCrossoverHz);
+    state.mix = getNumber(value, "mix", fallback.mix);
+    state.stereoLink = getNumber(value, "stereoLink", fallback.stereoLink);
+    const auto bands = value.find("bands");
+    if (bands != value.end() && bands->is_array())
+    {
+        const auto count = std::min(multibandBandCount, static_cast<int>(bands->size()));
+        for (int band = 0; band < count; ++band)
+        {
+            const auto& item = (*bands)[static_cast<size_t>(band)];
+            if (!item.is_object())
+                continue;
+            auto& target = state.bands[static_cast<size_t>(band)];
+            target.enabled = getBool(item, "enabled", target.enabled);
+            target.thresholdDb = getNumber(item, "thresholdDb", target.thresholdDb);
+            target.ratio = getNumber(item, "ratio", target.ratio);
+            target.attackMs = getNumber(item, "attackMs", target.attackMs);
+            target.releaseMs = getNumber(item, "releaseMs", target.releaseMs);
+            target.makeupDb = getNumber(item, "makeupDb", target.makeupDb);
+            target.kneeDb = getNumber(item, "kneeDb", target.kneeDb);
+        }
+    }
+    return state;
+}
+
 nlohmann::json buildDspRackState(
     const DspRackOrder& rackOrder,
     const CompressorProcessor& compressor,
+    const MultibandCompressorProcessor& multiband,
+    const DeEsserProcessor& deEsser,
     const SpatialDspProcessor& spatialDsp)
 {
     nlohmann::json order = nlohmann::json::array();
@@ -462,14 +607,21 @@ nlohmann::json buildDspRackState(
         order.push_back(DspRackOrder::moduleIdText(module));
 
     return nlohmann::json::object({
-        {"schemaVersion", 3},
+        {"schemaVersion", 5},
+        {"filters", rackOrder.filters.state()["filters"]},
+        {"sequence", rackOrder.filters.state()["sequence"]},
+        {"procedural", rackOrder.procedural.getState()},
         {"order", order},
         {"compressor", buildCompressorState(compressor)},
+        {"multiband", buildMultibandState(multiband)},
+        {"deesser", buildDeEsserState(deEsser)},
         {"crossfeed", buildCrossfeedState(spatialDsp)},
+        {"virtualStage", buildVirtualStageState(spatialDsp)},
         {"stereoField", buildStereoFieldState(spatialDsp)},
         {"channelMatrix", buildChannelMatrixState(spatialDsp)},
         {"reorderableModules", nlohmann::json::array({
-            "equalizer", "convolution", "replayGain", "compressor",
+            "equalizer", "procedural", "convolution", "replayGain", "compressor",
+            "multiband", "deesser",
             "crossfeed", "stereoField", "channelMatrix", "channelBalance"
         })},
         {"fixedPostStages", nlohmann::json::array({
@@ -554,12 +706,24 @@ bool requestRequiresProDsp(const std::string& method, const nlohmann::json& para
     // Safety limiter is a fixed post-stage, not a Pro processor. Its RPC
     // defaults to enabled; treating that default as Pro made ordinary
     // hydrate (and therefore every local play) fail closed on -32003.
+    if (method == "dspRack.setState") {
+        const auto* object = getParamsObject(params);
+        if (object && object->contains("filters") && (*object)["filters"].is_array())
+            for (const auto& filter : (*object)["filters"]) if (!filter.is_object() || filter.value("enabled", nlohmann::json(false)) != false) return true;
+        return object && object->contains("procedural")
+            && (*object)["procedural"].is_object()
+            && (*object)["procedural"].value("enabled", nlohmann::json(false)) != false;
+    }
     if (method == "roomCorrection.setEnabled")
         return getParamsBool(params, false);
-    if (method == "compressor.setState" || method == "crossfeed.setState"
+    if (method == "compressor.setState" || method == "multiband.setState" || method == "deesser.setState"
+        || method == "crossfeed.setState"
+        || method == "virtualStage.setState"
         || method == "stereoField.setState" || method == "channelMatrix.setState"
         || method == "channelBalance.setState")
         return stateRequestEnablesProcessing(params);
+    if (method == "deesser.setListen")
+        return getParamsBool(params, false);
     if (method == "workshopAudioEffect.setState")
         return stateRequestEnablesProcessing(params);
     return false;
@@ -656,6 +820,7 @@ std::string JsonRpcProtocol::handleJsonLine(
     SpatialDspProcessor& spatialDsp,
     PlaybackRateProcessor& rate, LevelMeterProcessor& meter, DspRackOrder& rackOrder,
     WorkshopAudioEffectController& workshopAudioEffect,
+    MultibandCompressorProcessor& multiband, DeEsserProcessor& deEsser,
     EqPresetStore& /*presets*/, bool proDspAllowed)
 {
     nlohmann::json parsed;
@@ -691,8 +856,17 @@ std::string JsonRpcProtocol::handleJsonLine(
 
     // ── EQ Methods ──
 
+    // All signal-mutating commands invalidate observed programme measurements.
+    // Reads and UI-only meter configuration leave the current window intact.
+    if (method.find(".set") != std::string::npos || method.find(".reset") != std::string::npos
+        || method.find(".load") != std::string::npos || method.find(".clear") != std::string::npos)
+        meter.dspMeasurements.invalidate();
+
     if (method == "eq.getState")
+    {
+        eq.requestLoudnessMeasurement();
         return createJsonRpcResponse(id, buildEqState(eq));
+    }
 
     if (method == "eq.setEnabled")
     {
@@ -795,6 +969,25 @@ std::string JsonRpcProtocol::handleJsonLine(
                     eq.setBandFilterType(static_cast<int>(i), band.filterType);
                     eq.setBandQ(static_cast<int>(i), band.q);
                     eq.setBandEnabled(static_cast<int>(i), band.enabled);
+                    eq.setBandProcessing(
+                        static_cast<int>(i),
+                        band.scope,
+                        band.dynamicMode,
+                        band.dynamicThresholdDb,
+                        band.dynamicRatio,
+                        band.dynamicAttackMs,
+                        band.dynamicReleaseMs);
+                }
+                for (int bandIndex = static_cast<int>(preset.bands.size()); bandIndex < eqBandCount; ++bandIndex)
+                {
+                    eq.setBandProcessing(
+                        bandIndex,
+                        EqBandScope::Stereo,
+                        EqDynamicMode::Off,
+                        eqDynamicThresholdDefaultDb,
+                        eqDynamicRatioDefault,
+                        eqDynamicAttackDefaultMs,
+                        eqDynamicReleaseDefaultMs);
                 }
                 eq.setPreampDb(preset.preampDb);
                 eq.setTiltDb(preset.tiltDb);
@@ -812,8 +1005,12 @@ std::string JsonRpcProtocol::handleJsonLine(
 
     // ── DSP Methods ──
 
-    if (method == "dsp.getState")
-        return createJsonRpcResponse(id, buildDspState(headroom));
+    if (method == "dsp.getState") {
+        meter.dspMeasurements.requestLoudness();
+        auto result = buildDspState(headroom);
+        result["measurement"] = dspMeasurementJson(meter.dspMeasurements.read());
+        return createJsonRpcResponse(id, result);
+    }
 
     if (method == "dsp.setHeadroom")
     {
@@ -827,8 +1024,25 @@ std::string JsonRpcProtocol::handleJsonLine(
         return createJsonRpcResponse(id, buildDspState(headroom));
     }
 
+    if (method == "dsp.setLimiterCeiling")
+    {
+        const bool clear = params.is_null()
+            || (params.is_array() && !params.empty() && params[0].is_null());
+        if (clear)
+            DspChain::setLimiterCeilingDb(std::numeric_limits<float>::quiet_NaN());
+        else
+            DspChain::setLimiterCeilingDb(getParamsNumber(params, std::numeric_limits<float>::quiet_NaN()));
+        return createJsonRpcResponse(id, buildDspState(headroom));
+    }
+
+    if (method == "dsp.setLimiterRelease")
+    {
+        DspChain::setLimiterReleaseMs(getParamsNumber(params, dspLimiterReleaseDefaultMs));
+        return createJsonRpcResponse(id, buildDspState(headroom));
+    }
+
     if (method == "dspRack.getState")
-        return createJsonRpcResponse(id, buildDspRackState(rackOrder, compressor, spatialDsp));
+        return createJsonRpcResponse(id, buildDspRackState(rackOrder, compressor, multiband, deEsser, spatialDsp));
 
     if (method == "dspRack.setState")
     {
@@ -847,10 +1061,28 @@ std::string JsonRpcProtocol::handleJsonLine(
             order.push_back(module);
         }
 
+        // Validate the entire transaction before publishing either part.
+        if (order.size() == DspRackOrder::moduleCount - 1
+            && std::find(order.begin(), order.end(), DspRackModuleId::Procedural) == order.end())
+            order.insert(order.begin() + std::min<size_t>(1, order.size()), DspRackModuleId::Procedural);
+        auto sorted = order;
+        std::sort(sorted.begin(), sorted.end());
+        if (order.size() != DspRackOrder::moduleCount || std::adjacent_find(sorted.begin(), sorted.end()) != sorted.end())
+            return createJsonRpcError(id, -32004, "Invalid DSP rack order");
         std::string error;
-        if (!rackOrder.setOrder(order, error))
+        ProceduralDspController candidateProcedural;
+        if (paramsObj->contains("procedural") && !candidateProcedural.setState((*paramsObj)["procedural"], error))
+            return createJsonRpcError(id, -32602, error);
+        nlohmann::json baseOrder = nlohmann::json::array();
+        for (auto m : order) baseOrder.push_back(DspRackOrder::moduleIdText(m));
+        const auto* filters = paramsObj->contains("filters") ? &(*paramsObj)["filters"] : nullptr;
+        const auto* sequence = paramsObj->contains("sequence") ? &(*paramsObj)["sequence"] : nullptr;
+        if (!rackOrder.filters.setState(baseOrder, filters, sequence, error))
+            return createJsonRpcError(id, -32602, error);
+        if (paramsObj->contains("procedural")) rackOrder.procedural.setState((*paramsObj)["procedural"], error);
+        if (!rackOrder.setOrder(order, error, false))
             return createJsonRpcError(id, -32004, error);
-        return createJsonRpcResponse(id, buildDspRackState(rackOrder, compressor, spatialDsp));
+        return createJsonRpcResponse(id, buildDspRackState(rackOrder, compressor, multiband, deEsser, spatialDsp));
     }
 
     if (method == "workshopAudioEffect.getState")
@@ -902,6 +1134,36 @@ std::string JsonRpcProtocol::handleJsonLine(
         return createJsonRpcResponse(id, buildCompressorState(compressor));
     }
 
+    if (method == "multiband.getState")
+        return createJsonRpcResponse(id, buildMultibandState(multiband));
+
+    if (method == "multiband.setState")
+    {
+        const auto* paramsObj = getParamsObject(params);
+        if (paramsObj == nullptr)
+            return createJsonRpcError(id, -32602, "multiband.setState requires a state object");
+        multiband.setState(readMultibandState(*paramsObj, multiband.getState()));
+        return createJsonRpcResponse(id, buildMultibandState(multiband));
+    }
+
+    if (method == "deesser.getState")
+        return createJsonRpcResponse(id, buildDeEsserState(deEsser));
+
+    if (method == "deesser.setState")
+    {
+        const auto* paramsObj = getParamsObject(params);
+        if (paramsObj == nullptr)
+            return createJsonRpcError(id, -32602, "deesser.setState requires a state object");
+        deEsser.setState(readDeEsserState(*paramsObj, deEsser.getState()));
+        return createJsonRpcResponse(id, buildDeEsserState(deEsser));
+    }
+
+    if (method == "deesser.setListen")
+    {
+        deEsser.setListen(getParamsBool(params, false));
+        return createJsonRpcResponse(id, nlohmann::json::object({ {"listening", deEsser.isListening()} }));
+    }
+
     if (method == "crossfeed.getState")
         return createJsonRpcResponse(id, buildCrossfeedState(spatialDsp));
     if (method == "crossfeed.setState")
@@ -911,6 +1173,17 @@ std::string JsonRpcProtocol::handleJsonLine(
             return createJsonRpcError(id, -32602, "crossfeed.setState requires a state object");
         spatialDsp.setCrossfeedState(readCrossfeedState(*paramsObj, spatialDsp.getCrossfeedState()));
         return createJsonRpcResponse(id, buildCrossfeedState(spatialDsp));
+    }
+
+    if (method == "virtualStage.getState")
+        return createJsonRpcResponse(id, buildVirtualStageState(spatialDsp));
+    if (method == "virtualStage.setState")
+    {
+        const auto* paramsObj = getParamsObject(params);
+        if (paramsObj == nullptr)
+            return createJsonRpcError(id, -32602, "virtualStage.setState requires a state object");
+        spatialDsp.setVirtualStageState(readVirtualStageState(*paramsObj, spatialDsp.getVirtualStageState()));
+        return createJsonRpcResponse(id, buildVirtualStageState(spatialDsp));
     }
 
     if (method == "stereoField.getState")
@@ -1199,12 +1472,19 @@ std::string JsonRpcProtocol::handleJsonLine(
         }));
     }
 
-    if (method == "eq.setState")
+    if (method == "headphoneCorrection.getState")
+        return createJsonRpcResponse(id, buildEqState(rackOrder.headphoneCorrection));
+
+    if (method == "eq.setState" || method == "headphoneCorrection.setState")
     {
         const auto* paramsObj = getParamsObject(params);
+        const bool correction = method == "headphoneCorrection.setState";
+        EqProcessor& stateProcessor = correction ? rackOrder.headphoneCorrection : eq;
+        if (correction && (paramsObj == nullptr || !validHeadphoneCorrectionProfile(*paramsObj)))
+            return createJsonRpcError(id, -32602, "Headphone correction requires a complete supported profile; parameters are never approximated");
         if (paramsObj != nullptr)
         {
-            EqState state = eq.getState();
+            EqState state = stateProcessor.getState();
             state.enabled = getBool(*paramsObj, "enabled", state.enabled);
             state.preampDb = static_cast<float>(getNumber(*paramsObj, "preampDb", static_cast<double>(state.preampDb)));
             state.strengthPercent = getNumber(*paramsObj, "strengthPercent", 100.0f);
@@ -1222,12 +1502,18 @@ std::string JsonRpcProtocol::handleJsonLine(
                     state.bandFrequenciesHz[static_cast<size_t>(bandIndex)] = static_cast<float>(band.value("frequencyHz", 1000.0));
                     state.bandGainsDb[static_cast<size_t>(bandIndex)] = static_cast<float>(band.value("gainDb", 0.0));
                     state.bandQ[static_cast<size_t>(bandIndex)] = static_cast<float>(band.value("q", 1.0));
+                    state.bandScopes[static_cast<size_t>(bandIndex)] = parseEqBandScope(band.value("scope", std::string("stereo")));
+                    state.bandDynamicModes[static_cast<size_t>(bandIndex)] = parseEqDynamicMode(band.value("dynamicMode", std::string("off")));
+                    state.bandDynamicThresholdDb[static_cast<size_t>(bandIndex)] = static_cast<float>(band.value("dynamicThresholdDb", static_cast<double>(eqDynamicThresholdDefaultDb)));
+                    state.bandDynamicRatio[static_cast<size_t>(bandIndex)] = static_cast<float>(band.value("dynamicRatio", static_cast<double>(eqDynamicRatioDefault)));
+                    state.bandDynamicAttackMs[static_cast<size_t>(bandIndex)] = static_cast<float>(band.value("dynamicAttackMs", static_cast<double>(eqDynamicAttackDefaultMs)));
+                    state.bandDynamicReleaseMs[static_cast<size_t>(bandIndex)] = static_cast<float>(band.value("dynamicReleaseMs", static_cast<double>(eqDynamicReleaseDefaultMs)));
                     ++bandIndex;
                 }
             }
-            eq.setState(state);
+            stateProcessor.setState(state);
         }
-        return createJsonRpcResponse(id, buildEqState(eq));
+        return createJsonRpcResponse(id, buildEqState(stateProcessor));
     }
 
     if (method == "rpc.shutdown")
@@ -1303,7 +1589,8 @@ std::string JsonRpcProtocol::handleJsonLine(
         const std::string repeatMode = getString(*paramsObj, "repeatMode");
         const uint64_t revision = static_cast<uint64_t>(std::max(0, getInt(*paramsObj, "revision", 0)));
         const std::string currentItemId = getString(*paramsObj, "currentItemId");
-        if (revision == 0 || !queueSetCallback(items, repeatMode, revision, currentItemId))
+        const uint64_t cursorOperationId = static_cast<uint64_t>(std::max(0, getInt(*paramsObj, "cursorOperationId", 0)));
+        if (revision == 0 || !queueSetCallback(items, repeatMode, revision, currentItemId, cursorOperationId))
             return createJsonRpcError(id, -32000, "queue snapshot rejected");
         return createJsonRpcResponse(id, {{"queueRevision", revision}});
     }

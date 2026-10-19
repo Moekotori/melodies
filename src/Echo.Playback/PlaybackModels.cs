@@ -54,7 +54,8 @@ public sealed record QueueSnapshot(long Version, IReadOnlyList<QueueTrack> Items
 {
     public IReadOnlyList<QueuePlanStep> Plan { get; init; } = [];
 }
-public sealed record NativeQueue(long Revision, string? CurrentItemId, string RepeatMode, IReadOnlyList<QueueTrack> Items);
+public sealed record NativeQueue(long Revision, string? CurrentItemId, string RepeatMode, IReadOnlyList<QueueTrack> Items,
+    long CursorOperationId = 0);
 public sealed record PlaybackSnapshot(long Version, PlaybackStatus Status, QueueTrack? Current,
     double PositionSeconds, double DurationSeconds, double Volume, long OperationId,
     int SampleRate, int Channels, string? Error, JsonElement? Output, JsonElement? Processing)

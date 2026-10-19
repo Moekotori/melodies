@@ -9,6 +9,8 @@ public partial class DetailSortButton : UserControl
 {
     public static readonly StyledProperty<int> SelectedIndexProperty = AvaloniaProperty.Register<DetailSortButton, int>(nameof(SelectedIndex), defaultBindingMode: BindingMode.TwoWay);
     public static readonly StyledProperty<bool> DescendingProperty = AvaloniaProperty.Register<DetailSortButton, bool>(nameof(Descending), defaultBindingMode: BindingMode.TwoWay);
+    public static readonly StyledProperty<bool> IsInlineProperty = AvaloniaProperty.Register<DetailSortButton, bool>(nameof(IsInline));
+    public bool IsInline { get => GetValue(IsInlineProperty); set => SetValue(IsInlineProperty, value); }
     public int SelectedIndex { get => GetValue(SelectedIndexProperty); set => SetValue(SelectedIndexProperty, value); }
     public bool Descending { get => GetValue(DescendingProperty); set => SetValue(DescendingProperty, value); }
     private IDisposable? _labelBinding;
@@ -21,6 +23,14 @@ public partial class DetailSortButton : UserControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs args)
     {
         base.OnPropertyChanged(args);
+        if (args.Property == IsInlineProperty && InlineHost is not null)
+        {
+            var flyout = (Flyout)SortOpener.Flyout!;
+            flyout.Hide();
+            if (IsInline) { flyout.Content = null; InlineHost.Child = SortOptions; }
+            else { InlineHost.Child = null; flyout.Content = SortOptions; }
+            InlineHost.IsVisible = IsInline; SortOpener.IsVisible = !IsInline;
+        }
         if ((args.Property == SelectedIndexProperty || args.Property == DescendingProperty) && SelectedLabel is not null) UpdateState();
     }
     private void UpdateState()

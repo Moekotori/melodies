@@ -8,7 +8,7 @@
   </UserControl.Styles>
   <Border Name="TitlebarSurface" Background="{DynamicResource EchoTitlebar}" Padding="18,0,8,0" chrome:WindowDecorationProperties.ElementRole="TitleBar">
     <Grid ColumnDefinitions="Auto,*,Auto" Background="Transparent">
-      <TextBlock Text="ECHO" FontFamily="avares://Echo.Desktop/Resources/Fonts#Outfit"
+      <TextBlock Text="melodies" FontFamily="avares://Echo.Desktop/Resources/Fonts#Outfit"
                  FontSize="18" FontWeight="Bold" Foreground="{DynamicResource EchoHeading}"
                  VerticalAlignment="Center" IsHitTestVisible="False" />
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="24,0,12,0" chrome:WindowDecorationProperties.ElementRole="User">

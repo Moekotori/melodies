@@ -17,12 +17,14 @@ public:
     void setHeadroomDb(float headroomDbToUse);
     float getHeadroomDb() const;
     bool isEnabled() const;
-    void processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples);
+    template <typename Sample>
+    void processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples);
 
 private:
+    friend struct DspPreparedRuntime;
     std::atomic<float> headroomDb { 0.0f };
-    float smoothedHeadroomDb = 0.0f;
-    float headroomStepDb = 0.0f;
+    double smoothedHeadroomDb = 0.0;
+    double headroomStepDb = 0.0;
     int smoothingSamplesRemaining = 0;
     int gainSmoothingSamples = 256;
 };

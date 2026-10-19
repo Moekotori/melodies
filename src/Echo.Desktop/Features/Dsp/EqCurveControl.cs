@@ -11,7 +11,7 @@ public sealed class EqCurveControl : Control
 {
     private static readonly (double Hz, string Label, bool Major)[] Ticks =
     [
-        (20, "20", true), (31.5, "31.5", false), (50, "50", true), (80, "80", false), (100, "100", false),
+        (1, "1", true), (5, "5", true), (10, "10", false), (20, "20", true), (31.5, "31.5", false), (50, "50", true), (80, "80", false), (100, "100", false),
         (125, "125", true), (200, "200", true), (315, "315", false), (500, "500", true), (800, "800", false),
         (1000, "1k", true), (1300, "1.3k", false), (2000, "2k", true), (3200, "3.2k", false), (5000, "5k", true),
         (8000, "8k", true), (10000, "10k", false), (12500, "12.5k", false), (20000, "20k", true),
@@ -50,15 +50,20 @@ public sealed class EqCurveControl : Control
     }
     private void Changed(object? sender, PropertyChangedEventArgs args) => InvalidateVisual();
     private Rect Plot => new(48, 16, Math.Max(1, Bounds.Width - 64), Math.Max(1, Bounds.Height - 40));
-    private Point PointAt(double frequency, double db) => new(Plot.X + Math.Log10(Math.Clamp(frequency, 20, 20000) / 20) / 3 * Plot.Width,
-        Plot.Y + (12 - Math.Clamp(db, -24, 12)) / 36 * Plot.Height);
+    private double MinimumFrequency => model?.IsHeadphone == true ? 1 : 20;
+    private double MinimumGain => model?.IsHeadphone == true ? -60 : -24;
+    private double MaximumGain => model?.IsHeadphone == true ? 30 : 12;
+    private double FrequencyAt(double fraction) => MinimumFrequency * Math.Pow(20000 / MinimumFrequency, Math.Clamp(fraction, 0, 1));
+    private Point PointAt(double frequency, double db) => new(Plot.X
+        + Math.Log10(Math.Clamp(frequency, MinimumFrequency, 20000) / MinimumFrequency) / Math.Log10(20000 / MinimumFrequency) * Plot.Width,
+        Plot.Y + (MaximumGain - Math.Clamp(db, MinimumGain, MaximumGain)) / (MaximumGain - MinimumGain) * Plot.Height);
     public override void Render(DrawingContext context)
     {
         base.Render(context);
         IBrush Brush(string key) => this.TryFindResource(key, ActualThemeVariant, out var value) && value is IBrush brush ? brush : Brushes.Gray;
         var muted = Brush("EchoMuted"); var border = Brush("EchoBorder"); var accent = Brush("EchoAccent"); var field = Brush("EchoField");
         var dense = Plot.Width >= 760;
-        foreach (var db in new[] { 12, 6, 0, -6, -12, -18, -24 })
+        foreach (var db in model?.IsHeadphone == true ? new[] { 30, 15, 0, -15, -30, -45, -60 } : new[] { 12, 6, 0, -6, -12, -18, -24 })
         {
             if (!dense && db is 6 or -6 or -18) continue;
             var y = PointAt(20, db).Y;
@@ -68,7 +73,7 @@ public sealed class EqCurveControl : Control
         }
         foreach (var tick in Ticks)
         {
-            if (!tick.Major && !dense) continue;
+            if (tick.Hz < MinimumFrequency || !tick.Major && !dense) continue;
             var x = PointAt(tick.Hz, 0).X;
             using (context.PushOpacity(tick.Major ? .55 : .28)) context.DrawLine(new Pen(border, 0.6), new(x, Plot.Top), new(x, Plot.Bottom));
             if (tick.Hz >= 20000) continue;
@@ -92,11 +97,11 @@ public sealed class EqCurveControl : Control
         using (var path = geometry.Open())
         using (var fill = area.Open())
         {
-            fill.BeginFigure(PointAt(20, 0), true);
+            fill.BeginFigure(PointAt(MinimumFrequency, 0), true);
             for (var i = 0; i <= count; i++)
             {
-                var frequency = 20 * Math.Pow(1000, i / (double)count);
-                var point = PointAt(frequency, vm.PreampDb + EqResponse.Db(vm.Bands, frequency, vm.SampleRate, vm.StrengthPercent, vm.TiltDb));
+                var frequency = FrequencyAt(i / (double)count);
+                var point = PointAt(frequency, vm.PreampDb + EqResponse.Db(vm.Bands, frequency, vm.SampleRate, vm.StrengthPercent, vm.TiltDb, vm.SelectedBand?.Scope.Key ?? "stereo"));
                 if (i == 0) path.BeginFigure(point, false); else path.LineTo(point);
                 fill.LineTo(point);
             }
@@ -112,8 +117,8 @@ public sealed class EqCurveControl : Control
             {
                 for (var i = 0; i <= 128; i++)
                 {
-                    var frequency = 20 * Math.Pow(1000, i / 128d);
-                    var point = PointAt(frequency, EqResponse.Db(single, frequency, vm.SampleRate, vm.StrengthPercent, 0));
+                    var frequency = FrequencyAt(i / 128d);
+                    var point = PointAt(frequency, EqResponse.Db(single, frequency, vm.SampleRate, vm.StrengthPercent, 0, vm.SelectedBand?.Scope.Key ?? "stereo"));
                     if (i == 0) path.BeginFigure(point, false); else path.LineTo(point);
                 }
                 path.EndFigure(false);
@@ -152,8 +157,8 @@ public sealed class EqCurveControl : Control
     }
     private void DrawHover(DrawingContext context, DspViewModel vm, Point cursor, IBrush muted, IBrush field)
     {
-        var frequency = Math.Clamp(20 * Math.Pow(1000, (cursor.X - Plot.X) / Plot.Width), 20, 20000);
-        var db = vm.PreampDb + EqResponse.Db(vm.Bands, frequency, vm.SampleRate, vm.StrengthPercent, vm.TiltDb);
+        var frequency = FrequencyAt((cursor.X - Plot.X) / Plot.Width);
+        var db = vm.PreampDb + EqResponse.Db(vm.Bands, frequency, vm.SampleRate, vm.StrengthPercent, vm.TiltDb, vm.SelectedBand?.Scope.Key ?? "stereo");
         var point = PointAt(frequency, db);
         using (context.PushOpacity(.35)) context.DrawLine(new Pen(muted, 1), new(point.X, Plot.Top), new(point.X, Plot.Bottom));
         context.DrawEllipse(field, new Pen(muted, 1), point, 3.5, 3.5);
@@ -196,7 +201,7 @@ public sealed class EqCurveControl : Control
     {
         if (model is not { CanEdit: true, SelectedBand: { } band } || args.Delta.Y == 0) return;
         var factor = args.Delta.Y > 0 ? 1.12 : 1 / 1.12;
-        band.Q = Math.Round(Math.Clamp(band.Q * factor, 0.1, band.QMaximum), 3);
+        band.Q = Math.Round(Math.Clamp(band.Q * factor, band.QMinimum, band.QMaximum), 3);
         args.Handled = true;
     }
     protected override void OnKeyDown(KeyEventArgs e)
@@ -206,29 +211,29 @@ public sealed class EqCurveControl : Control
         var fine = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         switch (e.Key)
         {
-            case Key.Left: band.FrequencyHz = NudgeFrequency(band.FrequencyHz, false, fine); break;
-            case Key.Right: band.FrequencyHz = NudgeFrequency(band.FrequencyHz, true, fine); break;
-            case Key.Up when band.IsGainEditable: band.GainDb = NudgeGain(band.GainDb, true, fine); break;
-            case Key.Down when band.IsGainEditable: band.GainDb = NudgeGain(band.GainDb, false, fine); break;
+            case Key.Left: band.FrequencyHz = NudgeFrequency(band.FrequencyHz, false, fine, band.FrequencyMinimum); break;
+            case Key.Right: band.FrequencyHz = NudgeFrequency(band.FrequencyHz, true, fine, band.FrequencyMinimum); break;
+            case Key.Up when band.IsGainEditable: band.GainDb = NudgeGain(band.GainDb, true, fine, band.GainMinimum, band.GainMaximum); break;
+            case Key.Down when band.IsGainEditable: band.GainDb = NudgeGain(band.GainDb, false, fine, band.GainMinimum, band.GainMaximum); break;
             case Key.Delete or Key.Back when band.IsGainEditable: band.GainDb = 0; break;
             default: return;
         }
         e.Handled = true;
     }
-    private static double NudgeFrequency(double hz, bool up, bool fine)
+    private static double NudgeFrequency(double hz, bool up, bool fine, double minimum)
     {
         var factor = fine ? 1.0293 : 1.12246;
-        return Math.Round(Math.Clamp(up ? hz * factor : hz / factor, 20, 20000), 1);
+        return Math.Round(Math.Clamp(up ? hz * factor : hz / factor, minimum, 20000), 1);
     }
-    private static double NudgeGain(double db, bool up, bool fine)
-        => Math.Round(Math.Clamp(db + (up ? 1 : -1) * (fine ? 0.1 : 0.5), -24, 12), 1);
+    private static double NudgeGain(double db, bool up, bool fine, double minimum, double maximum)
+        => Math.Round(Math.Clamp(db + (up ? 1 : -1) * (fine ? 0.1 : 0.5), minimum, maximum), 1);
     private void Moved(object? sender, PointerEventArgs args)
     {
         var point = args.GetPosition(this);
         if (dragging && model is { CanEdit: true, SelectedBand: { } band })
         {
-            band.FrequencyHz = Math.Round(Math.Clamp(20 * Math.Pow(1000, (point.X - Plot.X) / Plot.Width), 20, 20000), 1);
-            if (band.IsGainEditable) band.GainDb = Math.Round(Math.Clamp(12 - (point.Y - Plot.Y) / Plot.Height * 36, -24, 12), 1);
+            band.FrequencyHz = Math.Round(FrequencyAt((point.X - Plot.X) / Plot.Width), 1);
+            if (band.IsGainEditable) band.GainDb = Math.Round(Math.Clamp(MaximumGain - (point.Y - Plot.Y) / Plot.Height * (MaximumGain - MinimumGain), band.GainMinimum, band.GainMaximum), 1);
             return;
         }
         var next = Plot.Contains(point) ? point : (Point?)null;

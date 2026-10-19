@@ -55,8 +55,8 @@ public partial class ThemeSettingsView : UserControl
         _busy = true;
         try
         {
-            var files = await top.StorageProvider.OpenFilePickerAsync(new() { Title = "导入 ECHO 主题", AllowMultiple = false,
-                FileTypeFilter = [new("ECHO 主题") { Patterns = ["*.json"] }] });
+            var files = await top.StorageProvider.OpenFilePickerAsync(new() { Title = "导入 melodies 主题", AllowMultiple = false,
+                FileTypeFilter = [new("melodies 主题") { Patterns = ["*.json"] }] });
             if (files.Count == 0 || _lifetime.IsCancellationRequested) return;
             await using var stream = await files[0].OpenReadAsync();
             var bytes = new byte[65537]; var count = 0;
@@ -77,8 +77,8 @@ public partial class ThemeSettingsView : UserControl
         try
         {
             var json = model.ExportJson();
-            var file = await top.StorageProvider.SaveFilePickerAsync(new() { Title = "导出 ECHO 主题", SuggestedFileName = "echo-theme.json", DefaultExtension = "json",
-                FileTypeChoices = [new("ECHO 主题") { Patterns = ["*.json"] }] });
+            var file = await top.StorageProvider.SaveFilePickerAsync(new() { Title = "导出 melodies 主题", SuggestedFileName = "melodies-theme.json", DefaultExtension = "json",
+                FileTypeChoices = [new("melodies 主题") { Patterns = ["*.json"] }] });
             if (file is null || _lifetime.IsCancellationRequested) return;
             await using var stream = await file.OpenWriteAsync(); if (stream.CanSeek) stream.SetLength(0);
             await stream.WriteAsync(Encoding.UTF8.GetBytes(json), _lifetime.Token); model.Feedback = "主题已导出";

@@ -49,7 +49,9 @@ public sealed partial class PlaylistsViewModel : ObservableObject, IDisposable
     public bool CanPrevious => !IsLoading && trackOffset > 0;
     public bool CanNext => !IsLoading && trackOffset + Tracks.Count < TotalTracks;
     public bool IsEmpty => !IsLoading && Tracks.Count == 0;
-    public bool IsBrowseEmpty => !IsBrowsing && Playlists.Count == 0;
+    public bool IsBrowseEmpty => !IsBrowsing && Playlists.Count == 0 && !string.IsNullOrWhiteSpace(PlaylistSearch);
+    public bool IsFirstBrowsePage => browseOffset == 0;
+    public bool HasBrowsePages => CanBrowsePrevious || CanBrowseNext;
     public string Title => IsHome ? Text["playlists.mine"] : IsLiked ? Text["playlists.liked"] : IsAlbums ? Text["playlists.albums"] : SelectedPlaylist?.Name ?? "";
     public string Description => IsLiked ? Text["playlists.likedHint"] : SelectedPlaylist?.Description ?? "";
     public string SourceLabel => Text[IsManual ? "playlists.local" : "playlists.favorites"];
@@ -97,7 +99,7 @@ public sealed partial class PlaylistsViewModel : ObservableObject, IDisposable
     {
         foreach (var name in new[] { nameof(IsHome), nameof(IsLiked), nameof(IsAlbums), nameof(IsManual), nameof(Title), nameof(Description),
             nameof(Summary), nameof(SourceLabel), nameof(BrowseSummary), nameof(CanAct), nameof(CanPlay), nameof(CanMove), nameof(CanUndo), nameof(CanPrevious),
-            nameof(CanNext), nameof(CanBrowsePrevious), nameof(CanBrowseNext), nameof(IsEmpty), nameof(IsBrowseEmpty), nameof(BrowsePage), nameof(TrackPage), nameof(PlayLabel), nameof(CoverPath) }) OnPropertyChanged(name);
+            nameof(CanNext), nameof(HasBrowsePages), nameof(IsFirstBrowsePage), nameof(CanBrowsePrevious), nameof(CanBrowseNext), nameof(IsEmpty), nameof(IsBrowseEmpty), nameof(BrowsePage), nameof(TrackPage), nameof(PlayLabel), nameof(CoverPath) }) OnPropertyChanged(name);
     }
     public async Task LoadBrowserAsync(int offset = 0, bool debounce = false, long? expected = null)
     {

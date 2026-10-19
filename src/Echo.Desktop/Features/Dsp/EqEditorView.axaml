@@ -60,12 +60,13 @@
         <Slider Classes="dsp-fader" Minimum="-6" Maximum="6" Value="{Binding TiltDb, Mode=TwoWay}" TickFrequency="0.1" IsSnapToTickEnabled="True" />
       </StackPanel>
     </Grid>
-    <Panel Grid.Row="4" Margin="0,6,0,0" IsVisible="{Binding IsReady}" IsEnabled="{Binding CanEdit}">
+    <StackPanel Grid.Row="4" Margin="0,6,0,0" IsVisible="{Binding IsReady}" IsEnabled="{Binding CanEdit}">
       <local:EqBandInspectorView Name="BandInspector" DataContext="{Binding SelectedBand}" />
-    </Panel>
+      <local:EqBandProcessingView DataContext="{Binding SelectedBand}" />
+    </StackPanel>
     <StackPanel Grid.Row="5" Spacing="4" Margin="0,8,0,0" IsVisible="{Binding IsReady}">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Text="频段" FontSize="12" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding CurveScopeLabel}" FontSize="12" FontWeight="SemiBold" />
         <TextBlock Grid.Column="1" Text="拖动 · 滚轮调 Q · 双击归零 · 方向键微调" FontSize="11" Classes="muted" />
       </Grid>
       <ListBox Name="EqBands" Classes="dsp-bands" ItemsSource="{Binding Bands}" SelectedItem="{Binding SelectedBand, Mode=TwoWay}" Height="68" IsEnabled="{Binding CanEdit}" AutoScrollToSelectedItem="False" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">

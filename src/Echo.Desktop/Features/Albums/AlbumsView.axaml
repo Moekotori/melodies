@@ -22,7 +22,7 @@
         <Button Name="FilterButton" Grid.Column="1" Classes="libraryTool" VerticalAlignment="Center" ToolTip.Tip="{DynamicResource query.filters}">
           <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="filter" Width="17" Height="17" /><TextBlock Text="{DynamicResource query.filters}" /><TextBlock Text="{Binding Filters.ActiveCount}" Classes="muted" IsVisible="{Binding Filters.HasActive}" /><icon:GlyphIcon Kind="chevron-down" Width="12" Height="12" Stroke="{DynamicResource EchoMuted}" /></StackPanel>
           <Button.Flyout>
-            <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterTheme="{StaticResource FilterReferencePresenter}">
+            <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterTheme="{StaticResource LibraryQueryFilterPresenter}">
               <ScrollViewer MaxHeight="438" HorizontalScrollBarVisibility="Disabled" IsScrollChainingEnabled="False"><StackPanel Spacing="8" Width="268">
                 <filters:LibraryFilterView DataContext="{Binding Filters}" />
                 <Border Height="1" Background="{DynamicResource EchoDivider}" />

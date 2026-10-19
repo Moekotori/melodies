@@ -2,15 +2,15 @@
              xmlns:settings="using:Echo.Desktop.Features.Settings" xmlns:models="using:Echo.Desktop.Features.Settings.Models"
              xmlns:icon="using:Echo.Desktop.Controls" xmlns:motion="using:Echo.Desktop.Motion"
              x:Class="Echo.Desktop.Features.Settings.SettingsView" x:DataType="settings:SettingsViewModel">
-  <Grid Margin="32,28,32,28" RowDefinitions="80,*" ColumnDefinitions="184,*" ColumnSpacing="24" Name="SettingsLayout">
+  <Grid Margin="32,28,32,28" RowDefinitions="64,*" ColumnDefinitions="216,*" ColumnSpacing="32" Name="SettingsLayout">
     <settings:SettingsNavigationView Grid.RowSpan="2" Name="CategoryNavigation" />
-    <Grid Grid.Column="1" ColumnDefinitions="*,340" ColumnSpacing="20" Margin="0,0,0,20" Name="SettingsHeader">
-      <StackPanel Spacing="4" VerticalAlignment="Center">
-        <TextBlock Text="{Binding ActiveCategory.Title}" FontSize="28" FontWeight="SemiBold" Classes="heading"
-                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ActiveCategory.Title}" />
-        <TextBlock Text="{Binding ActiveCategory.Description}" FontSize="13" Classes="muted" TextTrimming="CharacterEllipsis" />
+    <Grid Grid.Column="1" ColumnDefinitions="*" Margin="0,0,8,0" Name="SettingsHeader">
+      <StackPanel Spacing="8" VerticalAlignment="Top" Margin="0,4,0,0">
+        <TextBlock Text="{Binding ActiveCategory.Title}" FontSize="26" FontWeight="SemiBold" Classes="heading" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding ActiveCategory.Description}" FontSize="13" Classes="muted" TextWrapping="Wrap" />
       </StackPanel>
-      <Border Name="SettingsSearchBox" Grid.Column="1" Height="40" VerticalAlignment="Top" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1" CornerRadius="8" Padding="13,0">
+    </Grid>
+      <Border Name="SettingsSearchBox" Grid.RowSpan="2" Height="40" VerticalAlignment="Top" Margin="0,54,8,0" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1" CornerRadius="8" Padding="13,0">
         <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="10">
           <icon:GlyphIcon Kind="search" Width="18" Height="18" VerticalAlignment="Center" />
           <TextBox Name="SearchInput" Grid.Column="1" Classes="settings-search" Text="{Binding Query, Mode=TwoWay}" PlaceholderText="{DynamicResource ui.SettingsView.89940594eac1}" MaxLength="140" AutomationProperties.Name="{DynamicResource ui.SettingsView.2874151bd36b}" />
@@ -20,9 +20,8 @@
           </Grid>
         </Grid>
       </Border>
-    </Grid>
     <motion:MotionPresenter Grid.Row="1" Grid.Column="1" Name="SectionHost" />
-    <Border Name="SearchResultsPopup" Grid.Row="1" Grid.Column="1" IsVisible="{Binding HasSearchResults}" Margin="0,-6,0,0" Width="480" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1" CornerRadius="8" Padding="7">
+    <Border Name="SearchResultsPopup" Grid.Row="1" Grid.Column="1" IsVisible="{Binding HasSearchResults}" Margin="0,-10,8,0" Width="480" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1" CornerRadius="8" Padding="7">
       <StackPanel MaxHeight="500">
         <TextBlock Text="{DynamicResource ui.SettingsView.f80e5af47264}" Classes="muted" Margin="12" IsVisible="{Binding HasNoSearchResults}" />
         <ScrollViewer VerticalScrollBarVisibility="Auto">

@@ -39,12 +39,12 @@ public sealed partial class LibraryDatabase
             query.After?.SortKey.Length > 1024 || query.After?.Id.Length > 64 || query.After?.Offset < 0)
             throw new ArgumentException("Invalid bounded page query.");
         LibraryFilterSql.Validate(query.Filter);
-        var orderSql = TrackOrdering.Sql(query.Order);
+        var orderSql = TrackOrdering.Sql(query.Order, query.RandomSeed);
         // Cursor identity includes all membership/order constraints; length-delimited values avoid collisions.
         static string Part(string? value) => (value?.Length ?? 0) + ":" + value;
         var filter = query.Filter ?? new();
         var key = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
-            Part(query.Search) + Part(orderSql) + $"{filter.Format}/{filter.Rate}/{filter.BitDepth}/{filter.Year}/{filter.FavoriteOnly}/{filter.LosslessOnly}/{filter.Source}" + Part(filter.Genre) + Part(filter.Folder))));
+            Part(query.Search) + Part(orderSql) + $"{filter.Format}/{filter.Rate}/{filter.BitDepth}/{filter.Year}/{filter.FavoriteOnly}/{filter.LosslessOnly}/{filter.Source}/{filter.DuplicatesOnly}" + Part(filter.Genre) + Part(filter.Folder))));
         if (query.After?.QueryKey is { } expectedKey && expectedKey != key) throw new ArgumentException("Cursor belongs to a different query.");
         if (query.After is { QueryKey: null } && (query.Order is not null || LibraryFilterSql.Active(query.Filter)))
             throw new ArgumentException("Legacy cursor cannot change sorting or filtering.");

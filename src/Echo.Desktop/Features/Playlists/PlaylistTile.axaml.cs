@@ -20,14 +20,11 @@ public partial class PlaylistTile : UserControl, IDisposable
         AttachedToVisualTree += (_, _) => LoadCover();
         DetachedFromVisualTree += (_, _) => ReleaseCover();
     }
-    public PlaylistTile(PlaylistRow row, bool cards, double size, AlbumArtworkCache? cache, LocalizationService text) : this()
+    public PlaylistTile(PlaylistRow row, double size, AlbumArtworkCache? cache, LocalizationService text) : this()
     {
         this.row = row; this.cache = cache; DataContext = row;
-        ListLayout.IsVisible = !cards; CardLayout.IsVisible = cards;
-        if (cards) { Width = size; CardFrame.Height = size; }
-        ListInitial.Text = CardInitial.Text = System.Globalization.StringInfo.GetNextTextElement(row.Name);
-        ListCount.Text = CardCount.Text = text.Format("playlists.tracksCount", row.TrackCount);
-        ListDescription.Text = row.Description.Length > 0 ? row.Description : text["playlists.local"];
+        Width = CardFrame.Height = size;
+        CardCount.Text = text.Format("playlists.tracksCount", row.TrackCount);
         AutomationProperties.SetName(OpenButton, row.Name); ToolTip.SetTip(OpenButton, row.Name);
     }
     private void LoadCover()
@@ -41,12 +38,12 @@ public partial class PlaylistTile : UserControl, IDisposable
         {
             var image = await cache!.AcquireAsync(path, current.Token);
             if (current.IsCancellationRequested || !ReferenceEquals(current, request)) { image?.Dispose(); return; }
-            lease = image; ListCover.Source = CardCover.Source = image?.Image;
+            lease = image; CardCover.Source = image?.Image;
         }
         catch (OperationCanceledException) { }
         finally { if (ReferenceEquals(request, current)) request = null; current.Dispose(); }
     }
     private void OnOpen(object? sender, RoutedEventArgs args) { if (row is not null) Open?.Invoke(row); }
-    public void ReleaseCover() { request?.Cancel(); request = null; ListCover.Source = CardCover.Source = null; lease?.Dispose(); lease = null; }
+    public void ReleaseCover() { request?.Cancel(); request = null; CardCover.Source = null; lease?.Dispose(); lease = null; }
     public void Dispose() { ReleaseCover(); Open = null; }
 }

@@ -11,14 +11,14 @@ public static partial class SettingsCatalog
             Action("first-run-wizard", "新手教程", "打开新手教程") with { Help = "重新了解曲库导入和播放器的基本操作。" }),
         Section("窗口与启动",
             Toggle("close-to-tray", "关闭时隐藏到托盘"), Toggle("launch-at-login", "开机自启动"),
-            Toggle("ultra-light-mode", "ECHO Ultralight", help: "开启后，最小化或隐藏到托盘时卸载主界面和闲置图片；播放、媒体键与浮动窗口继续运行。点击任务栏或托盘恢复界面。关闭后保留主界面。", badge: "推荐开启"),
+            Toggle("ultra-light-mode", "melodies Ultralight", help: "开启后，最小化或隐藏到托盘时卸载主界面和闲置图片；播放、媒体键与浮动窗口继续运行。点击任务栏或托盘恢复界面。关闭后保留主界面。", badge: "推荐开启"),
             Toggle("remember-window-size", "记住窗口尺寸", true, "下次启动使用本次关闭时的窗口大小。"),
             Toggle("sidebar-auto-hide", "隐藏侧栏", help: "鼠标移到左边缘展开侧栏抽屉，也可按 Ctrl+B 打开。"), Toggle("settings-hide-sidebar", "进入设置时隐藏侧栏"),
             Toggle("sidebar-icon-only", "侧栏仅显示图标", help: "折叠导航文字，保留图标入口。")),
         Section("性能与资源占用",
             Toggle("low-spec-mode", "轻量模式"), Select("renderer-frame-rate", "实时视觉帧率", "默认（30 FPS）", "默认（30 FPS）", "60 FPS")),
         Section("版本与文档",
-            new("about-version", "版本号", SettingKind.Text, Value: "ECHO Avalonia · 开发版本"),
+            new("about-version", "版本号", SettingKind.Text, Value: "melodies · 开发版本"),
             Action("about-community", "文档与社区", "产品文档", "哔哩哔哩", "QQ 群", "Discord"),
             Action("about-contributors", "贡献者", "查看贡献者"), Action("about-special-thanks", "特别鸣谢", "查看特别鸣谢"))];
 

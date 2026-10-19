@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
@@ -23,7 +24,7 @@ using Echo.Playback.NativeAudio;
 
 internal static class SongsVisualCapture
 {
-    public static void Run(string output)
+    public static void Run(string output, bool focusedSortFilter = false)
     {
         Directory.CreateDirectory(output);
         var opening = LibraryDatabase.OpenAsync(Path.Combine(output, "demo.sqlite")); Wait(() => opening.IsCompleted);
@@ -58,14 +59,39 @@ internal static class SongsVisualCapture
             Check(genreChoice.IsDropDownOpen && filter.Flyout.IsOpen, "genre loading preserves nested popup");
             genreChoice.SelectedItem = genreChoice.ItemsSource!.Cast<FilterChoice>().First(choice => choice.Value == "Pop");
             genreChoice.IsDropDownOpen = false; Wait(() => !model.IsLoading); Check(model.Filters.Genre == "Pop", "genre choice query");
+            Click(genreChoice); Pump();
+            var choicePopup = genreChoice.GetVisualDescendants().OfType<Popup>().Single();
+            var genreSearch = choicePopup.Child!.GetVisualDescendants().OfType<TextBox>().Single(box => box.Name == "PART_FilterSearch");
+            Check(genreSearch.IsVisible, "search field visible");
+            genreSearch!.Text = "no genre matches"; Pump(); Check(!genreChoice.ItemsSource!.Cast<FilterChoice>().Any() && model.Filters.Genre == "Pop", "search preserves active filter");
+            genreSearch.Text = "Pop"; Pump(); Check(genreChoice.ItemsSource!.Cast<FilterChoice>().Any(choice => choice.Value == "Pop"), "genre search narrows choices");
+            genreChoice.IsDropDownOpen = false;
+            Check(genreChoice.SelectedItem is FilterChoice { Value: "Pop" }, "closing search restores selection label");
             Capture("songs-filter-light.png"); filter.Flyout.Hide();
             model.Filters.Reset(); Wait(() => !model.IsLoading);
             var sorting = view.GetVisualDescendants().OfType<SongSortControl>().Single();
             var sortButton = sorting.FindControl<Button>("SortButton")!; Click(sortButton); Pump();
-            model.IsMultiSortEnabled = true; model.SelectSort((int)TrackSort.Artist, false); model.SelectSort((int)TrackSort.Album, true);
+            model.SelectSort((int)TrackSort.Duration); model.IsMultiSortEnabled = true; model.SelectSort((int)TrackSort.Artist, false); model.SelectSort((int)TrackSort.Album, true);
             Wait(() => !model.IsLoading); Check(model.SecondaryIndex > 0 && model.TertiaryIndex > 0, "three sort priorities");
-            Capture("songs-sort-light.png"); sortButton.Flyout!.Hide();
+            model.SelectSort((int)TrackSort.Year, true); Wait(() => !model.IsLoading);
+            Check(model.Preference.SortOrder?.Count == 4, "four priorities retained");
+            using (var restored = new SongsViewModel(db, null, shell.Text, model.Preference))
+                Check(restored.IsMultiSortEnabled && restored.Preference.SortOrder!.SequenceEqual(model.Preference.SortOrder!), "multi-sort preference restore");
+            model.SelectSort((int)TrackSort.ArtistAlbum); Wait(() => !model.IsLoading);
+            Check(model.Preference.SortOrder!.All(item => item.Field is not (TrackSort.Artist or TrackSort.Album)), "composite replaces artist/album");
+            model.SelectSort((int)TrackSort.Default); model.SelectSort((int)TrackSort.Duration);
+            model.SelectSort((int)TrackSort.Duration); Wait(() => !model.IsLoading);
+            Check(model.SortIndex == (int)TrackSort.Default, "remove final priority returns to default");
+            model.SelectSort((int)TrackSort.LastPlayed); model.SelectSort((int)TrackSort.PlayCount);
+            Wait(() => !model.IsLoading); Capture("songs-sort-light.png"); sortButton.Flyout!.Hide();
             model.IsMultiSortEnabled = false; model.SelectSort((int)TrackSort.Title); Wait(() => !model.IsLoading);
+            if (focusedSortFilter)
+            {
+                shell.IsDark = true; Click(filter); Pump(); Capture("songs-filter-dark.png"); filter.Flyout!.Hide();
+                Click(sortButton); Pump(); Capture("songs-sort-dark.png"); sortButton.Flyout!.Hide();
+                Console.WriteLine("Sort/filter UI: searchable genre preserves selection, four priorities, composite replacement, final-priority removal, preference restore and light/dark rendering passed.");
+                return;
+            }
             var activeCover = view.GetVisualDescendants().OfType<SongTrackRow>().First().FindControl<Image>("Cover")!;
             var imageBeforeTheme = activeCover.Source;
             shell.IsDark = true; Pump(); Check(ReferenceEquals(activeCover.Source, imageBeforeTheme), "artwork survives theme change"); Capture("songs-dark.png"); Click(filter); Pump(); Capture("songs-filter-dark.png"); filter.Flyout.Hide();

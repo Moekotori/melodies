@@ -7,4 +7,5 @@ using Echo.Desktop.Bootstrap;
 AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions())
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
 if (args.Length > 1 && args[0] == "--filter-reference") FilterReferenceCapture.Run(Path.GetFullPath(args[1]));
+else if (args.Length > 1 && args[0] == "--sort-filter") SongsVisualCapture.Run(Path.GetFullPath(args[1]), focusedSortFilter: true);
 else SongsVisualCapture.Run(Path.GetFullPath(args.Length > 0 ? args[0] : "misc/songs-visual-refresh/previews"));

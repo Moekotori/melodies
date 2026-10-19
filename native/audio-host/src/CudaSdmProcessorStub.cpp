@@ -86,3 +86,8 @@ uint64_t CudaSdmProcessor::stabilityRecoveryCount() const noexcept
 {
     return 0;
 }
+
+echo::SdmClampCounts CudaSdmProcessor::clampCounts() const noexcept
+{
+    return {};
+}

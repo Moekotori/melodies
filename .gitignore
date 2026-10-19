@@ -2,6 +2,10 @@
 **/obj/
 artifacts/
 misc/
+native/build/
+native/runtime/osx-*/echo-audio-host
+native/runtime/linux-*/echo-audio-host
+native/runtime/*/echo-audio-host.build.json
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm

@@ -2,7 +2,7 @@
         xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
         xmlns:queue="using:Echo.Desktop.Features.Queue" xmlns:floating="using:Echo.Desktop.Features.Floating"
         x:Class="Echo.Desktop.Features.Floating.MiniPlayerWindow" x:DataType="floating:MiniPlayerWindow"
-        Title="ECHO · Mini Player" Width="304" Height="76" CanResize="False" WindowDecorations="None"
+        Title="melodies · Mini Player" Width="304" Height="76" CanResize="False" WindowDecorations="None"
         Background="Transparent" TransparencyLevelHint="Transparent" ShowInTaskbar="False" Topmost="True">
   <Window.Styles>
     <StyleInclude Source="/Features/Player/PlayerBarStyles.axaml" />

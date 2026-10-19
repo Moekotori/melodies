@@ -32,10 +32,12 @@ public sealed partial class PlaybackSessionCoordinator
 
     private async Task ReplayRetainedDspAsync()
     {
-        foreach (var entry in dspCommands)
+        foreach (var entry in dspCommands.ToArray())
         {
             var method = entry.Key[..entry.Key.IndexOf(':')];
-            var receipt = await native.CallAsync(method, entry.Value).ConfigureAwait(false);
+            var request = await AdaptDspRequestAsync(method, entry.Value).ConfigureAwait(false);
+            var receipt = await native.CallAsync(method, request).ConfigureAwait(false);
+            dspCommands[entry.Key] = request;
             if (method == "playbackRate.configure") ConfirmPlaybackRate(receipt);
         }
     }

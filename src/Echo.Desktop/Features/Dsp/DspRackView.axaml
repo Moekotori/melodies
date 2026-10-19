@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspRackView" x:DataType="local:DspViewModel">
+  <StackPanel Spacing="12">
+    <TextBlock Text="编辑保留为草稿，点击“应用处理链”后生效。固定保护阶段不能移动。" TextWrapping="Wrap" Classes="muted" />
+    <ListBox ItemsSource="{Binding RackRows}" SelectedItem="{Binding SelectedRack, Mode=TwoWay}" MaxHeight="280">
+      <ListBox.ItemTemplate><DataTemplate x:DataType="local:DspRackRow"><TextBlock Text="{Binding Label}" /></DataTemplate></ListBox.ItemTemplate>
+    </ListBox>
+    <WrapPanel>
+      <Button Content="上移" Command="{Binding MoveRackUpCommand}" IsEnabled="{Binding CanMoveRackUp}" Margin="0,0,6,6" />
+      <Button Content="下移" Command="{Binding MoveRackDownCommand}" IsEnabled="{Binding CanMoveRackDown}" Margin="0,0,6,6" />
+      <Button Content="复制滤波器" Command="{Binding DuplicateRackFilterCommand}" IsEnabled="{Binding CanRemoveRackFilter}" Margin="0,0,6,6" />
+      <Button Content="删除滤波器" Command="{Binding RemoveRackFilterCommand}" IsEnabled="{Binding CanRemoveRackFilter}" Margin="0,0,6,6" />
+    </WrapPanel>
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <ComboBox ItemsSource="{Binding RackFilterKinds}" SelectedItem="{Binding RackFilterKind, Mode=TwoWay}" MinWidth="150">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="local:DspChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Content="添加滤波器" Command="{Binding AddRackFilterCommand}" />
+    </StackPanel>
+    <ContentControl Content="{Binding RackEditor}" Margin="0,8,0,0" />
+  </StackPanel>
+</UserControl>

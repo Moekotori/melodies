@@ -12,6 +12,18 @@
 #include <thread>
 #include <vector>
 
+void testPausedPlaybackProducerCancellation();
+void testNativeSdmSeek();
+void testDaemonSrcControl();
+void testDaemonSeekRecovery();
+void testSdmIntegrity();
+void testSdmRuntimeRoute();
+void testSdmTransaction();
+void testSdmRealtimeHealth(const char* plan);
+void testCudaRuntimePipeline(const char* plan);
+void testSdmCalibration(const char* plan, bool requireCuda);
+int testSdmHybridPipeline(const char*, bool, int, int, int);
+
 namespace
 {
 void require(bool condition, const std::string& message)
@@ -1486,10 +1498,64 @@ void testMqaPassthroughBypassesPcmMutationAndFailsClosed()
 }
 } // namespace
 
-int main()
+int main(int argc, char** argv)
 {
     try
     {
+        if ((argc == 3 || (argc == 4 && std::string(argv[3]) == "--require-cuda"))
+            && std::string(argv[1]) == "--sdm-calibration")
+        {
+            testSdmCalibration(argv[2], argc == 4);
+            return 0;
+        }
+        if (argc == 3 && std::string(argv[1]) == "--cuda-runtime-lifecycle")
+        {
+            testCudaRuntimePipeline(argv[2]);
+            return 0;
+        }
+        if (argc == 3 && std::string(argv[1]) == "--sdm-health")
+        {
+            testSdmRealtimeHealth(argv[2]);
+            return 0;
+        }
+        if (argc == 2 && std::string(argv[1]) == "--sdm-transaction")
+        {
+            testSdmTransaction();
+            return 0;
+        }
+        if (argc >= 3 && std::string(argv[1]) == "--sdm-hybrid")
+        {
+            bool requireCuda = false;
+            int channels = 1, terminal = -1, transport = -1;
+            for (int index = 3; index < argc; ++index)
+            {
+                const std::string option = argv[index];
+                if (option == "--require-cuda") requireCuda = true;
+                else if (index + 1 < argc && option == "--channels") channels = std::stoi(argv[++index]);
+                else if (index + 1 < argc && option == "--terminal") terminal = std::stoi(argv[++index]);
+                else if (index + 1 < argc && option == "--transport") transport = std::stoi(argv[++index]);
+                else throw std::runtime_error("invalid_hybrid_test_option");
+            }
+            return testSdmHybridPipeline(argv[2], requireCuda, channels, terminal, transport);
+        }
+        testSdmRuntimeRoute();
+        std::cout << "[native-playback-pipeline] PASS FP64 SDM backend, tail and full-chain admission\n";
+        if (argc == 2 && std::string(argv[1]) == "--sdm-runtime")
+            return 0;
+        testPausedPlaybackProducerCancellation();
+        std::cout << "[native-playback-pipeline] PASS paused producer cancellation and replacement ownership\n";
+        if (argc == 2 && std::string(argv[1]) == "--producer-cancellation")
+            return 0;
+        testNativeSdmSeek();
+        std::cout << "[native-playback-pipeline] PASS SDM seek clocks, ownership and FIR preroll\n";
+        testDaemonSrcControl();
+        std::cout << "[native-playback-pipeline] PASS seek failure recovery and bounded native DSD stop\n";
+        testDaemonSeekRecovery();
+        std::cout << "[native-playback-pipeline] PASS empty replacement, local mix seek and replacement failure recovery\n";
+        testSdmIntegrity();
+        std::cout << "[native-playback-pipeline] PASS nonfinite SDM input, DSP drain and minimum-phase FIR support\n";
+        if (argc == 2 && std::string(argv[1]) == "--src-lifecycle")
+            return 0;
         testPcmDomainDspStageProcessesBeforeSdm();
         std::cout << "[native-playback-pipeline] PASS PCM-domain DSP stage\n";
         testWorkshopAudioEffectStatusFollowsActualPcmRoute();

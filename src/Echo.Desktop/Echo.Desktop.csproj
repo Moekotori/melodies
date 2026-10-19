@@ -1,11 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <Title>melodies</Title>
+    <Product>melodies</Product>
+    <Description>melodies desktop music player</Description>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <IsAotCompatible>true</IsAotCompatible>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <EchoNativeAudioRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</EchoNativeAudioRid>
+    <EchoNativeAudioRid Condition="'$(EchoNativeAudioRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</EchoNativeAudioRid>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Echo.Core.Client/Echo.Core.Client.csproj" />
+    <ProjectReference Include="../Echo.Core.Host/Echo.Core.Host.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Echo.Application/Echo.Application.csproj" />
     <ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" />
     <ProjectReference Include="../Echo.Infrastructure/Echo.Infrastructure.csproj" />
@@ -24,6 +31,18 @@
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <PackageReference Include="Avalonia.Markup.Xaml.Loader" PrivateAssets="All" Publish="True" />
     <PackageReference Include="HotAvalonia" PrivateAssets="All" Publish="True" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) Or $([MSBuild]::IsOSPlatform('Linux'))">
+    <Content Include="../../native/runtime/$(EchoNativeAudioRid)/echo-audio-host" Condition="Exists('../../native/runtime/$(EchoNativeAudioRid)/echo-audio-host')">
+      <Link>native/echo-audio-host</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="../../native/runtime/$(EchoNativeAudioRid)/echo-audio-host.build.json" Condition="Exists('../../native/runtime/$(EchoNativeAudioRid)/echo-audio-host.build.json')">
+      <Link>native/echo-audio-host.build.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <Content Include="../../native/runtime/osx-arm64/echo-macos-system-host" Condition="Exists('../../native/runtime/osx-arm64/echo-macos-system-host')">
@@ -46,4 +65,12 @@
       <Link>native/echo-track-analysis.exe</Link><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory><CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+  <Target Name="CopyCoreMetadataHost" AfterTargets="Build">
+    <ItemGroup><CoreMetadataFiles Include="../Echo.Core.Host/bin/$(Configuration)/$(TargetFramework)/*" Exclude="../Echo.Core.Host/bin/$(Configuration)/$(TargetFramework)/*.pdb" /></ItemGroup>
+    <Copy SourceFiles="@(CoreMetadataFiles)" DestinationFolder="$(OutDir)core" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishCoreMetadataHost" AfterTargets="Publish">
+    <ConvertToAbsolutePath Paths="$(PublishDir)core/"><Output TaskParameter="AbsolutePaths" PropertyName="CoreMetadataPublishDir" /></ConvertToAbsolutePath>
+    <MSBuild Projects="../Echo.Core.Host/Echo.Core.Host.csproj" Targets="Restore;Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(EchoNativeAudioRid);PublishDir=$(CoreMetadataPublishDir);PublishAot=$(PublishAot)" />
+  </Target>
 </Project>

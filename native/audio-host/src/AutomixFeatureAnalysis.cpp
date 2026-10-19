@@ -1,4 +1,5 @@
 #include "AutomixFeatureAnalysis.h"
+#include "automix-alpha/AlphaSpectralFeatures.h"
 
 #include "third_party/nlohmann_json.hpp"
 
@@ -278,7 +279,7 @@ Json analyzeKey(const std::vector<float>& samples, int sampleRate, Json& segment
 }
 } // namespace
 
-int runAutomixFeatureAnalysis(int sampleRate) {
+int runAutomixFeatureAnalysis(int sampleRate, bool includeAlphaFeatures) {
     if (sampleRate < 8000 || sampleRate > 48000) return 2;
 #ifdef _WIN32
     if (_setmode(_fileno(stdin), _O_BINARY) == -1) return 2;
@@ -295,6 +296,14 @@ int runAutomixFeatureAnalysis(int sampleRate) {
     Json segmentRms = Json::array();
     result["key"] = analyzeKey(samples, sampleRate, segmentRms);
     result["segmentRmsDb"] = std::move(segmentRms);
+    if (includeAlphaFeatures) {
+        const auto measurements = echo::automix_alpha::spectralFeatures(samples, sampleRate);
+        if (!measurements.empty()) {
+            Json values = Json::array();
+            for (float value : measurements) values.push_back(std::round(value * 1000000.0) / 1000000.0);
+            result["alphaSpectral"] = {{"hopSeconds", 0.02}, {"values", std::move(values)}};
+        }
+    }
     std::cout << result.dump() << '\n';
     return 0;
 }

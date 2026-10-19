@@ -70,7 +70,7 @@ internal sealed class OneDriveAuthorization(RemoteHttpTransport http) : IOneDriv
             var valid = line.Length == 3 && line[0] == "GET" && line[1].StartsWith("/?", StringComparison.Ordinal);
             var values = valid ? Query(line[1][2..]) : [];
             valid = valid && values.GetValueOrDefault("state") == state;
-            var body = valid ? "Return to ECHO to finish signing in." : "Invalid authorization response.";
+            var body = valid ? "Return to melodies to finish signing in." : "Invalid authorization response.";
             var reply = Encoding.ASCII.GetBytes($"HTTP/1.1 {(valid ? "200 OK" : "400 Bad Request")}\r\nContent-Type: text/plain\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'\r\nConnection: close\r\nContent-Length: {body.Length}\r\n\r\n{body}");
             try { await stream.WriteAsync(reply, requestDeadline.Token).ConfigureAwait(false); } catch (IOException) { }
             if (!valid) continue;

@@ -3,6 +3,9 @@ using System.Text.Json;
 using Echo.Playback;
 using Echo.Playback.NativeAudio;
 
+if (args.Contains("--framing-only")) { await NativeJsonFramingChecks.RunAsync(); return; }
+if (args.Contains("--adapter-contracts")) { NativeAdapterContractChecks.Run(); return; }
+
 var root = Path.GetFullPath(Path.Combine("misc", "playback-smoke"));
 Directory.CreateDirectory(root);
 var a = Path.Combine(root, "a.wav");
@@ -11,13 +14,16 @@ Wave(a, 2.5); Wave(b, 0.6);
 if (args.Contains("--admission-only")) { await AdmissionSmoke.RunAsync(a, root); await StateSmoke.RunAsync(a); return; }
 if (args.Contains("--state-only")) { await StateSmoke.RunAsync(a); await RuntimeSmoke.RunAsync(root, a); return; }
 if (args.Contains("--runtime-only")) { await RuntimeSmoke.RunAsync(root, a); return; }
-AutomixPlannerChecks.Run();
-await FakeAsync(a, b);
-await QueueScenarios.RunAsync(a, b);
-await RuntimeSmoke.RunAsync(root, a);
+if (!args.Contains("--native-only"))
+{
+    AutomixPlannerChecks.Run();
+    await FakeAsync(a, b);
+    await QueueScenarios.RunAsync(a, b);
+    await RuntimeSmoke.RunAsync(root, a);
+}
 if (args.Length == 0) { Console.WriteLine("PASS session ownership, stale events, queue revision, pause/seek/stop"); return; }
 var watch = Stopwatch.StartNew();
-var host = new NativeAudioHost(args[0]);
+var host = new NativeAudioHost(args[0], allowProDsp: args.Contains("--native-only"));
 await using (var player = new PlaybackSessionCoordinator(host))
 {
     var items = new[] { new QueueTrack("a", "a", a), new QueueTrack("b", "b", b) };
@@ -26,6 +32,7 @@ await using (var player = new PlaybackSessionCoordinator(host))
     player.Changed += state => { if (state.Current?.ItemId == "b" && state.Status == PlaybackStatus.Playing) advanced = true; if (state.Status == PlaybackStatus.Playing) playing = true; };
     var devices = await player.GetDevicesAsync();
     Console.WriteLine($"Native device enumeration: {devices.GetArrayLength()} entries");
+    if (args.Contains("--native-only")) await NativeEngineParityChecks.RunAsync(player, host);
     await player.SetVolumeAsync(0); // Real device render, silent fixture.
     using var rate = JsonDocument.Parse("[{\"rate\":1,\"mode\":\"speed\"}]");
     await player.DspAsync("playbackRate.configure", rate.RootElement, true);

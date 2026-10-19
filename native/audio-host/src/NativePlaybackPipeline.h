@@ -6,18 +6,24 @@
 #include "NativeSdmProcessor.h"
 #include "PcmDomainDspStage.h"
 #include "PcmRingAudioSource.h"
+#include "SdmRealtimeHealth.h"
 #include "../../audio-engine/NativeFormatProcessor.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
+namespace echo_audio_host { class SdmCalibrationGraph; }
+
 class NativePlaybackPipeline final
 {
+    friend class echo_audio_host::SdmCalibrationGraph;
 public:
     enum class OutputFormat { Pcm, Dop, NativeDsd };
     enum class ComputeBackend { Cpu, Cuda };
@@ -101,6 +107,16 @@ public:
         ComputeBackend activeBackend = ComputeBackend::Cpu;
         ComputeBackend modulatorBackend = ComputeBackend::Cpu;
         ComputeBackend oversamplingBackend = ComputeBackend::Cpu;
+        ComputeBackend terminalBackend = ComputeBackend::Cpu;
+        std::string oversamplingPrecision = "fp64";
+        std::string terminalPrecision = "fp64";
+        std::string modulatorPrecision = "fp64";
+        std::string terminalBackendReason = "native_sdm_cpu_fp64_terminal_and_modulation";
+        uint64_t oversamplingCudaProcessedBlocks = 0;
+        CudaFirProcessor::Timings oversamplingCudaTimings;
+        uint64_t inputClamps = 0;
+        uint64_t loopInputClamps = 0;
+        uint64_t quantizationErrorClamps = 0;
         uint64_t estimatedMacsPerSecond = 0;
         std::string fallbackReason;
         std::string oversamplingFallbackReason;
@@ -124,6 +140,7 @@ public:
         double realtimeAdmissionRatio = 0.0;
         bool realtimeAdmissionWithinBudget = true;
         std::string realtimeAdmissionWarning;
+        echo_audio_host::SdmRealtimeSnapshot realtime;
         bool pcmDspRouted = false;
         int pcmDspSampleRate = 0;
         int pcmDspMaximumBlockFrames = 0;
@@ -203,9 +220,31 @@ public:
         echo::PlaybackRateProcessor& playbackRate,
         echo::LevelMeterProcessor& meter,
         echo::DspRackOrder* rackOrder = nullptr,
-        echo::WorkshopAudioEffectController* workshopAudioEffectController = nullptr);
+        echo::WorkshopAudioEffectController* workshopAudioEffectController = nullptr,
+        echo::MultibandCompressorProcessor* multiband = nullptr,
+        echo::DeEsserProcessor* deEsser = nullptr);
 
-    bool configure(const ProcessingConfig& config, std::string& error);
+    class PreparedConfiguration final
+    {
+    public:
+        ~PreparedConfiguration();
+    private:
+        friend class NativePlaybackPipeline;
+        struct State;
+        explicit PreparedConfiguration(std::unique_ptr<State> state) noexcept;
+        std::unique_ptr<State> state_;
+    };
+
+    // Control thread only. Exactly one candidate holds the preparation lease.
+    // Dropping it cancels preparation; stale/foreign/reused commits fail closed.
+    std::unique_ptr<PreparedConfiguration> prepareConfiguration(const ProcessingConfig& config, std::string& error);
+    bool commitConfiguration(std::unique_ptr<PreparedConfiguration> prepared, std::string& error,
+        const std::function<void()>& beforeCommit = {});
+    // The boundary runs after admission/stale checks,
+    // with producers excluded, before any live DSP replacement. It may close
+    // the old device, but must not reenter pipeline methods.
+    bool configure(const ProcessingConfig& config, std::string& error,
+        const std::function<void()>& beforeCommit = {});
     bool configurePassthroughOutput(OutputFormat format, std::string& error);
 
     OutputFormat outputFormat() const;
@@ -219,6 +258,7 @@ public:
     void beginSession(bool startPaused = false);
     void continueSessionAfterDrain();
     void markInputEnded();
+    bool markInputEndedUntil(std::chrono::steady_clock::time_point deadline);
     void requestStop();
     bool requestStopForGeneration(uint64_t generation);
     void allowTailDrainAfterStop();
@@ -247,7 +287,8 @@ public:
         double echoFeedback = 0.45,
         double vocalExitStartProgress = 0.55,
         double vocalEntryStartProgress = 0.70,
-        AutomixHandoffSchedule handoffSchedule = {});
+        AutomixHandoffSchedule handoffSchedule = {},
+        echo::automix_alpha::Parameters alpha = {});
     uint64_t prepareAutomixDeckFrames(
         uint64_t fadeStartFrame,
         uint64_t overlapFrames,
@@ -263,7 +304,8 @@ public:
         double echoFeedback = 0.45,
         double vocalExitStartProgress = 0.55,
         double vocalEntryStartProgress = 0.70,
-        AutomixHandoffSchedule handoffSchedule = {});
+        AutomixHandoffSchedule handoffSchedule = {},
+        echo::automix_alpha::Parameters alpha = {});
     bool pushAutomixNext(const float* samples, int frames);
     bool pushAutomixDeck(uint64_t deckLease, const float* samples, int frames);
     void markAutomixNextEnded();
@@ -295,20 +337,29 @@ public:
     uint64_t getUnderrunFrames() const;
 
 private:
+    friend struct NativePlaybackPipelineTestAccess;
     struct PreparedOutput
     {
         OutputFormat format = OutputFormat::Pcm;
         uint64_t sourceGeneration = 0;
-        std::vector<float> pcm;
+        std::vector<double> pcm;
         std::vector<uint32_t> dop;
         std::vector<uint8_t> nativeDsd;
     };
 
     bool prepareOutputLocked(const float* samples, int frames, PreparedOutput& output, std::string& error);
-    bool pushPreparedOutput(const PreparedOutput& output);
+    bool pushSourceBlock(const float* samples, int frames, std::optional<uint64_t> expectedGeneration);
+    echo_audio_host::SdmTransportTelemetry sdmTransportTelemetryLocked() const noexcept;
+    void resetSdmRealtimeLocked() noexcept;
+    uint8_t sdmBackendIdentityLocked() const noexcept;
+    bool pushPreparedOutput(const PreparedOutput& output,
+        std::optional<std::chrono::steady_clock::time_point> deadline = std::nullopt);
+    bool finishInput(std::optional<std::chrono::steady_clock::time_point> deadline);
+    bool drainSdmDspTail(OutputFormat format, uint64_t sourceGeneration,
+                         std::optional<std::chrono::steady_clock::time_point> deadline);
     int replacePreparedOutput(const PreparedOutput& output, int inputFrames, bool pausedAfterReplace);
-    bool prepareSdmPcm(const float* samples, int frames, std::vector<float>& output, std::string& error);
-    std::vector<float> preparePcm(const float* samples, int frames);
+    bool prepareSdmPcm(const float* samples, int frames, std::vector<double>& output, std::string& error);
+    std::vector<double> preparePcm(const float* samples, int frames);
     void resetProcessorsLocked();
     static bool configureFirProcessor(
         NativeFirProcessor& processor,
@@ -340,6 +391,10 @@ private:
     NativeDsdRingSource& nativeDsd_;
     int channels_ = 2;
     mutable std::mutex processingMutex_;
+    struct ConfigurationOwner { std::atomic<bool> occupied { false }; };
+    std::shared_ptr<ConfigurationOwner> configurationOwner_ = std::make_shared<ConfigurationOwner>();
+    std::atomic<uint64_t> configurationRevision_ { 0 };
+    std::atomic<uint64_t> configurationOwnerRevision_ { 0 };
     OutputFormat outputFormat_ = OutputFormat::Pcm;
     std::atomic<int> decoderSampleRate_ { 0 };
     std::atomic<float> gain_ { 1.0f };
@@ -352,6 +407,9 @@ private:
     std::unique_ptr<PcmDomainDspStage> sdmDsp_;
     echo::WorkshopAudioEffectController* workshopAudioEffectController_ = nullptr;
     ProcessingStatus processingStatus_;
+    echo_audio_host::SdmRealtimeHealth realtimeHealth_;
+    uint8_t realtimeBackendIdentity_ = 0;
+    std::atomic<uint64_t> playbackControlRevision_ { 0 };
     std::condition_variable gaplessStateChanged_;
     bool gaplessEchoSrcActive_ = false;
     bool gaplessEchoSrcReady_ = false;

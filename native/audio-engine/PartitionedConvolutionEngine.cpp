@@ -1,4 +1,5 @@
 #include "PartitionedConvolutionEngine.h"
+#include "ConvolutionLimits.h"
 
 #include <algorithm>
 #include <cmath>
@@ -7,14 +8,30 @@ namespace echo
 {
 namespace
 {
-constexpr float pi = 3.14159265358979323846f;
-constexpr float silenceThreshold = 1.0e-20f;
+constexpr double pi = 3.14159265358979323846;
+constexpr double silenceThreshold = 1.0e-20;
+std::vector<std::vector<double>> doubleTaps(const std::vector<std::vector<float>>& taps)
+{
+    size_t count = 0;
+    for (const auto& channel : taps) {
+        count += channel.size();
+        if (count > convolutionMaxCoefficients) return {};
+    }
+    std::vector<std::vector<double>> result;
+    for (const auto& channel : taps) result.emplace_back(channel.begin(), channel.end());
+    return result;
+}
 }
 
 PartitionedConvolutionEngine::PartitionedConvolutionEngine(
-    const std::vector<std::vector<float>>& impulseTaps,
-    int processingChannels)
-    : processingChannels_(std::max(1, processingChannels)),
+    const std::vector<std::vector<float>>& impulseTaps, int processingChannels)
+    : PartitionedConvolutionEngine(doubleTaps(impulseTaps), processingChannels) {}
+
+PartitionedConvolutionEngine::PartitionedConvolutionEngine(
+    const std::vector<std::vector<double>>& impulseTaps,
+    int processingChannels, const std::vector<ConvolutionRoute>& routes, int outputChannels)
+    : processingChannels_(std::clamp(processingChannels, 1, 32)),
+      outputChannels_(outputChannels > 0 ? outputChannels : processingChannels_),
       impulseChannels_(static_cast<int>(impulseTaps.size())),
       tapCount_(impulseTaps.empty() ? 0 : static_cast<int>(impulseTaps.front().size())),
       frontTapCount_(std::min(partitionSize, tapCount_)),
@@ -24,34 +41,53 @@ PartitionedConvolutionEngine::PartitionedConvolutionEngine(
       roots_(fftSize),
       directHistory_(
           static_cast<size_t>(processingChannels_),
-          std::vector<float>(static_cast<size_t>(partitionSize), 0.0f)),
+          std::vector<double>(static_cast<size_t>(partitionSize), 0.0f)),
       inputPartition_(
           static_cast<size_t>(processingChannels_),
-          std::vector<float>(static_cast<size_t>(partitionSize), 0.0f)),
+          std::vector<double>(static_cast<size_t>(partitionSize), 0.0f)),
       pendingTail_(
-          static_cast<size_t>(processingChannels_),
-          std::vector<float>(static_cast<size_t>(partitionSize), 0.0f)),
+          static_cast<size_t>(outputChannels_),
+          std::vector<double>(static_cast<size_t>(partitionSize), 0.0f)),
       overlap_(
-          static_cast<size_t>(processingChannels_),
-          std::vector<float>(static_cast<size_t>(partitionSize), 0.0f)),
+          static_cast<size_t>(outputChannels_),
+          std::vector<double>(static_cast<size_t>(partitionSize), 0.0f)),
       fftScratch_(fftSize),
       accumulationScratch_(fftSize)
 {
-    if (impulseChannels_ <= 0 || impulseChannels_ > 2 || tapCount_ <= 0)
+    if (outputChannels_ < 1 || outputChannels_ > 32 || static_cast<int64_t>(tapCount_) * outputChannels_ > convolutionMaxCoefficients
+        || processingChannels < 1 || processingChannels > 32 || impulseChannels_ <= 0 || impulseChannels_ > 32 || tapCount_ <= 0
+        || tapCount_ > convolutionMaxTaps || static_cast<int64_t>(tapCount_) * processingChannels_ > convolutionMaxCoefficients
+        || static_cast<int64_t>(tapCount_) * impulseChannels_ > convolutionMaxCoefficients
+        || (routes.empty() && impulseChannels_ != 1 && impulseChannels_ != processingChannels_)
+        || (!routes.empty() && routes.size() != impulseTaps.size()))
         return;
     for (const auto& channel : impulseTaps)
         if (static_cast<int>(channel.size()) != tapCount_)
             return;
 
+    if (routes.empty()) {
+        for (int channel = 0; channel < processingChannels_; ++channel) {
+            routes_.push_back({channel, channel});
+            routeImpulseChannels_.push_back(impulseChannels_ == 1 ? 0 : channel);
+        }
+    } else {
+        for (size_t index = 0; index < routes.size(); ++index) {
+            if (routes[index].input < 0 || routes[index].input >= processingChannels_
+                || routes[index].output < 0 || routes[index].output >= outputChannels_) return;
+            routes_.push_back(routes[index]);
+            routeImpulseChannels_.push_back(static_cast<int>(index));
+        }
+    }
+
     for (int index = 0; index < fftSize; ++index)
     {
-        const float angle = -2.0f * pi * static_cast<float>(index) / static_cast<float>(fftSize);
+        const double angle = -2.0 * pi * index / fftSize;
         roots_[static_cast<size_t>(index)] = Complex(std::cos(angle), std::sin(angle));
     }
 
     frontTaps_.assign(
         static_cast<size_t>(impulseChannels_),
-        std::vector<float>(static_cast<size_t>(frontTapCount_), 0.0f));
+        std::vector<double>(static_cast<size_t>(frontTapCount_), 0.0f));
     for (int channel = 0; channel < impulseChannels_; ++channel)
         std::copy_n(
             impulseTaps[static_cast<size_t>(channel)].begin(),
@@ -103,12 +139,13 @@ void PartitionedConvolutionEngine::resetForHardReplace()
     tailFramesRemaining_.store(0, std::memory_order_release);
 }
 
+template <typename Sample>
 void PartitionedConvolutionEngine::processBlock(
-    FloatAudioBuffer& buffer,
+    PlanarAudioBuffer<Sample>& buffer,
     int startSample,
     int numSamples)
 {
-    if (! prepared_ || numSamples <= 0)
+    if (! prepared_ || numSamples <= 0 || buffer.getNumChannels() != processingChannels_ || buffer.getChannelCapacity() < outputChannels_)
         return;
 
     const int channels = std::min(buffer.getNumChannels(), processingChannels_);
@@ -118,27 +155,26 @@ void PartitionedConvolutionEngine::processBlock(
         bool hasInput = false;
         for (int channel = 0; channel < channels; ++channel)
         {
-            const float input = buffer.getSample(channel, startSample + sample);
+            const double input = buffer.getSample(channel, startSample + sample);
             hasInput = hasInput || std::abs(input) > silenceThreshold;
             directHistory_[static_cast<size_t>(channel)][static_cast<size_t>(directWriteIndex_)] = input;
             inputPartition_[static_cast<size_t>(channel)][static_cast<size_t>(partitionWriteOffset_)] = input;
         }
 
-        for (int channel = 0; channel < channels; ++channel)
+        for (int channel = 0; channel < outputChannels_; ++channel)
         {
-            const int impulseChannel = impulseChannels_ == 1 ? 0 : std::min(channel, impulseChannels_ - 1);
-            const auto& taps = frontTaps_[static_cast<size_t>(impulseChannel)];
-            const auto& history = directHistory_[static_cast<size_t>(channel)];
             double output = pendingTail_[static_cast<size_t>(channel)][static_cast<size_t>(partitionWriteOffset_)];
-            for (int tap = 0; tap < frontTapCount_; ++tap)
-            {
-                int historyIndex = directWriteIndex_ - tap;
-                if (historyIndex < 0)
-                    historyIndex += partitionSize;
-                output += static_cast<double>(taps[static_cast<size_t>(tap)])
-                    * static_cast<double>(history[static_cast<size_t>(historyIndex)]);
+            for (size_t route = 0; route < routes_.size(); ++route) {
+                if (routes_[route].output != channel) continue;
+                const auto& taps = frontTaps_[static_cast<size_t>(routeImpulseChannels_[route])];
+                const auto& history = directHistory_[static_cast<size_t>(routes_[route].input)];
+                for (int tap = 0; tap < frontTapCount_; ++tap) {
+                    int historyIndex = directWriteIndex_ - tap;
+                    if (historyIndex < 0) historyIndex += partitionSize;
+                    output += taps[static_cast<size_t>(tap)] * history[static_cast<size_t>(historyIndex)];
+                }
             }
-            buffer.setSample(channel, startSample + sample, static_cast<float>(output));
+            buffer.setSample(channel, startSample + sample, static_cast<double>(output));
         }
 
         if (hasInput)
@@ -155,6 +191,7 @@ void PartitionedConvolutionEngine::processBlock(
         }
     }
     tailFramesRemaining_.store(remaining, std::memory_order_release);
+    buffer.setActiveChannels(outputChannels_);
 }
 
 int64_t PartitionedConvolutionEngine::tailFramesRemaining() const noexcept
@@ -195,7 +232,7 @@ void PartitionedConvolutionEngine::fft(Spectrum& values, bool inverse) const noe
 
     if (inverse)
     {
-        const float scale = 1.0f / static_cast<float>(fftSize);
+        const double scale = 1.0 / fftSize;
         for (auto& value : values)
             value *= scale;
     }
@@ -220,22 +257,20 @@ void PartitionedConvolutionEngine::completeInputPartition() noexcept
         fft(fftScratch_, false);
         auto& destination = inputSpectra_[static_cast<size_t>(channel)][static_cast<size_t>(historySlot)];
         std::copy(fftScratch_.begin(), fftScratch_.end(), destination.begin());
-
+    }
+    for (int channel = 0; channel < outputChannels_; ++channel)
+    {
         std::fill(accumulationScratch_.begin(), accumulationScratch_.end(), Complex {});
-        const int impulseChannel = impulseChannels_ == 1 ? 0 : std::min(channel, impulseChannels_ - 1);
-        const int availablePartitions = static_cast<int>(std::min<uint64_t>(
-            completedPartitions_ + 1,
-            static_cast<uint64_t>(tailPartitionCount_)));
-        for (int partition = 0; partition < availablePartitions; ++partition)
-        {
-            const int inputSlot = static_cast<int>(
-                (completedPartitions_ + static_cast<uint64_t>(tailPartitionCount_) - static_cast<uint64_t>(partition))
-                % static_cast<uint64_t>(tailPartitionCount_));
-            const auto& inputSpectrum = inputSpectra_[static_cast<size_t>(channel)][static_cast<size_t>(inputSlot)];
-            const auto& impulseSpectrum = impulseSpectra_[static_cast<size_t>(impulseChannel)][static_cast<size_t>(partition)];
-            for (int bin = 0; bin < fftSize; ++bin)
-                accumulationScratch_[static_cast<size_t>(bin)] +=
-                    inputSpectrum[static_cast<size_t>(bin)] * impulseSpectrum[static_cast<size_t>(bin)];
+        const int availablePartitions = static_cast<int>(std::min<uint64_t>(completedPartitions_ + 1, tailPartitionCount_));
+        for (size_t route = 0; route < routes_.size(); ++route) {
+            if (routes_[route].output != channel) continue;
+            for (int partition = 0; partition < availablePartitions; ++partition) {
+                const int inputSlot = static_cast<int>((completedPartitions_ + tailPartitionCount_ - partition) % tailPartitionCount_);
+                const auto& inputSpectrum = inputSpectra_[static_cast<size_t>(routes_[route].input)][static_cast<size_t>(inputSlot)];
+                const auto& impulseSpectrum = impulseSpectra_[static_cast<size_t>(routeImpulseChannels_[route])][static_cast<size_t>(partition)];
+                for (int bin = 0; bin < fftSize; ++bin)
+                    accumulationScratch_[static_cast<size_t>(bin)] += inputSpectrum[static_cast<size_t>(bin)] * impulseSpectrum[static_cast<size_t>(bin)];
+            }
         }
         fft(accumulationScratch_, true);
         for (int sample = 0; sample < partitionSize; ++sample)
@@ -249,4 +284,7 @@ void PartitionedConvolutionEngine::completeInputPartition() noexcept
     }
     ++completedPartitions_;
 }
+
+template void PartitionedConvolutionEngine::processBlock<float>(PlanarAudioBuffer<float>&, int, int);
+template void PartitionedConvolutionEngine::processBlock<double>(PlanarAudioBuffer<double>&, int, int);
 } // namespace echo

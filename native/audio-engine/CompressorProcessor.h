@@ -16,6 +16,7 @@ enum class CompressorDetectorMode
 
 struct CompressorState
 {
+    bool operator==(const CompressorState&) const = default;
     bool enabled = false;
     float thresholdDb = -18.0f;
     float ratio = 4.0f;
@@ -50,7 +51,8 @@ public:
     CompressorProcessor();
     void prepare(double sampleRate, int maximumBlockSize, int channelCount);
     void reset();
-    void processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples);
+    template <typename Sample>
+    void processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples);
 
     void setState(const CompressorState& state);
     CompressorState getState() const;
@@ -61,8 +63,9 @@ public:
     float gainReductionDb() const;
 
 private:
+    friend struct DspPreparedRuntime;
     static CompressorState sanitizeState(const CompressorState& state);
-    static float computeReductionDb(float inputDb, float thresholdDb, float ratio, float kneeDb);
+    static double computeReductionDb(double inputDb, double thresholdDb, double ratio, double kneeDb);
 
     std::atomic<bool> enabled_ { false };
     std::atomic<float> thresholdDb_ { -18.0f };
@@ -86,22 +89,22 @@ private:
     double sampleRate_ = 48000.0;
     static constexpr int maximumMeterChannels = 32;
     std::atomic<int> telemetryChannelCount_ { 2 };
-    std::array<float, maximumMeterChannels> smoothedGain_ {};
-    std::array<float, maximumMeterChannels> rmsEnvelopeSquared_ {};
-    std::array<float, maximumMeterChannels> sidechainPreviousInput_ {};
-    std::array<float, maximumMeterChannels> sidechainPreviousOutput_ {};
+    std::array<double, maximumMeterChannels> smoothedGain_ {};
+    std::array<double, maximumMeterChannels> rmsEnvelopeSquared_ {};
+    std::array<double, maximumMeterChannels> sidechainPreviousInput_ {};
+    std::array<double, maximumMeterChannels> sidechainPreviousOutput_ {};
     std::array<std::atomic<float>, maximumMeterChannels> inputPeakDb_ {};
     std::array<std::atomic<float>, maximumMeterChannels> inputRmsDb_ {};
     std::array<std::atomic<float>, maximumMeterChannels> outputPeakDb_ {};
     std::array<std::atomic<float>, maximumMeterChannels> outputRmsDb_ {};
     std::array<std::atomic<float>, maximumMeterChannels> gainReductionDbByChannel_ {};
-    float smoothedThresholdDb_ = -18.0f;
-    float smoothedRatio_ = 4.0f;
-    float smoothedKneeDb_ = 6.0f;
-    float smoothedMakeupDb_ = 0.0f;
-    float smoothedMix_ = 1.0f;
-    float smoothedRangeDb_ = 72.0f;
-    float smoothedStereoLink_ = 1.0f;
-    float bypassMix_ = 0.0f;
+    double smoothedThresholdDb_ = -18.0;
+    double smoothedRatio_ = 4.0;
+    double smoothedKneeDb_ = 6.0;
+    double smoothedMakeupDb_ = 0.0;
+    double smoothedMix_ = 1.0;
+    double smoothedRangeDb_ = 72.0;
+    double smoothedStereoLink_ = 1.0;
+    double bypassMix_ = 0.0;
 };
 } // namespace echo

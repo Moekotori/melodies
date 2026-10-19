@@ -17,6 +17,9 @@ public sealed partial class DspViewModel
         ("crossfeed.getState", "crossfeed.setState"), ("stereoField.getState", "stereoField.setState"),
         ("channelMatrix.getState", "channelMatrix.setState"), ("dspRack.getState", "dspRack.setState"),
         ("roomCorrection.getState", "roomCorrection.setEnabled"),
+        ("headphoneCorrection.getState", "headphoneCorrection.setState"),
+        ("multiband.getState", "multiband.setState"), ("deesser.getState", "deesser.setState"),
+        ("virtualStage.getState", "virtualStage.setState"),
     ];
     public ObservableCollection<DspListeningProfile> Profiles { get; } = [];
     [ObservableProperty] private DspListeningProfile? selectedProfile;
@@ -85,12 +88,11 @@ public sealed partial class DspViewModel
                 else if (read == "dsp.getState")
                 {
                     await session.DspAsync("dsp.setHeadroom", Json(new JsonArray(state["headroomDb"]!.DeepClone())), retainForRecovery: true, token: lifetime.Token);
-                    if (state["safetyLimiterEnabled"] is JsonNode safety)
-                        await session.DspAsync("dsp.setSafetyLimiter", Json(new JsonArray(safety.DeepClone())), retainForRecovery: true, token: lifetime.Token);
+                    await PushLimiterAsync(state, retain: true, lifetime.Token);
                 }
                 else if (read == "dspRack.getState")
-                    await session.DspAsync(write, Json(new JsonArray(new JsonObject { ["order"] = state["order"]!.DeepClone() })), retainForRecovery: true, token: lifetime.Token);
-                else await session.DspAsync(write, Json(new JsonArray(state)), retainForRecovery: true, token: lifetime.Token);
+                    await session.DspAsync(write, Json(new JsonArray(state.DeepClone())), retainForRecovery: true, token: lifetime.Token);
+                else await session.DspAsync(write, Json(new JsonArray(state.DeepClone())), retainForRecovery: true, token: lifetime.Token);
             }
             await RefreshAsync();
             if (!disposed) Message = "方案已套用。";

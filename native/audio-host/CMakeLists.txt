@@ -122,11 +122,24 @@ endif()
 set(ECHO_AUDIO_ENGINE_SOURCES
   ../audio-engine/ChannelBalanceProcessor.cpp
   ../audio-engine/CompressorProcessor.cpp
+  ../audio-engine/DeEsserProcessor.cpp
+  ../audio-engine/MultibandCompressorProcessor.cpp
   ../audio-engine/SpatialDspProcessor.cpp
+  ../audio-engine/VirtualStageProcessor.cpp
   ../audio-engine/ConvolutionProcessor.cpp
+  ../audio-engine/ConvolutionConfiguration.cpp
+  ../audio-engine/ImpulseResponseResampler.cpp
   ../audio-engine/DspChain.cpp
+  ../audio-engine/DspChainConfiguration.cpp
+  ../audio-engine/DspPreparedGeometry.cpp
+  ../audio-engine/DspPreparedSpatial.cpp
+  ../audio-engine/DspPreparedGraphs.cpp
+  ../audio-engine/DspPreparedHandoff.cpp
   ../audio-engine/DspHeadroomProcessor.cpp
   ../audio-engine/DspRackOrder.cpp
+  ../audio-engine/DspFilterRack.cpp
+  ../audio-engine/ProceduralDspController.cpp
+  ../audio-engine/ProceduralDspProcessor.cpp
   ../audio-engine/EqMessageProtocol.cpp
   ../audio-engine/EqPresetStore.cpp
   ../audio-engine/EqProcessor.cpp
@@ -144,11 +157,14 @@ set(ECHO_AUDIO_ENGINE_SOURCES
 
 set(ECHO_AUDIO_HOST_COMMON_SOURCES
   ${ECHO_AUDIO_ENGINE_SOURCES}
+  src/BlindEqRenderer.cpp
+  src/DeviceVolume.cpp
   src/ListenTogetherRpc.cpp
   src/ListenTogetherAudioTransport.cpp
   src/ListenTogetherOpusCodec.cpp
   src/ListenTogetherRealtimeAudio.cpp
   src/AudioDaemon.cpp
+  src/AudioDaemonSeekRecovery.cpp
   src/AutomixTempoProcessor.cpp
   src/CachePcmProducer.cpp
   src/DopRingSource.cpp
@@ -157,6 +173,16 @@ set(ECHO_AUDIO_HOST_COMMON_SOURCES
   src/NativeDsdRingSource.cpp
   src/NativeFirProcessor.cpp
   src/NativePlaybackPipeline.cpp
+  src/NativePlaybackRealtime.cpp
+  src/NativeHostIdentity.cpp
+  src/SdmRealtimeHealth.cpp
+  src/SdmRealtimeHealthJson.cpp
+  src/SdmCalibration.cpp
+  src/SdmCalibrationGraph.cpp
+  src/SdmCalibrationJob.cpp
+  src/NativeProcessingTransaction.cpp
+  src/NativePlaybackSeek.cpp
+  src/NativePlaybackSdmTail.cpp
   src/NativeSdmProcessor.cpp
   src/PcmDomainDspStage.cpp
   src/PcmRingAudioSource.cpp
@@ -173,7 +199,10 @@ if(APPLE)
     src/MacCoreAudioDopOutput.cpp)
 endif()
 
+include(cmake/NativeBuildIdentity.cmake)
+
 function(configure_echo_audio_target target)
+  configure_echo_native_identity(${target})
   target_compile_features(${target} PRIVATE cxx_std_20)
   target_include_directories(${target} PRIVATE src ../audio-engine)
   target_compile_definitions(${target} PRIVATE ECHO_ENABLE_ASIO=$<BOOL:${ECHO_ENABLE_ASIO}>)
@@ -262,7 +291,14 @@ endfunction()
 
 add_executable(echo-audio-host)
 target_sources(echo-audio-host PRIVATE ${ECHO_AUDIO_HOST_COMMON_SOURCES} src/main.cpp)
+target_sources(echo-audio-host PRIVATE src/Eac3HdmiHost.cpp)
+if(WIN32)
+  target_sources(echo-audio-host PRIVATE src/Eac3BurstReader.cpp src/WasapiEac3Output.cpp)
+endif()
 configure_echo_audio_target(echo-audio-host)
+add_executable(echo-eac3-burst-tests EXCLUDE_FROM_ALL
+  tests/eac3_burst_tests.cpp src/Eac3BurstReader.cpp)
+configure_echo_audio_target(echo-eac3-burst-tests)
 if(UNIX AND NOT APPLE)
   target_sources(echo-audio-host PRIVATE src/LinuxAlsaNativeDsdOutput.cpp src/LinuxPipeWireOutput.cpp src/LinuxAlsaDevicePolicy.cpp)
 endif()
@@ -276,6 +312,18 @@ if(MSVC)
   set_property(TARGET echo-automix-features PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
+
+add_executable(echo-automix-alpha-tests EXCLUDE_FROM_ALL tests/automix_alpha_tests.cpp)
+target_compile_features(echo-automix-alpha-tests PRIVATE cxx_std_20)
+target_include_directories(echo-automix-alpha-tests PRIVATE src ../audio-engine)
+if(WIN32)
+  target_compile_definitions(echo-automix-alpha-tests PRIVATE NOMINMAX)
+endif()
+
+add_executable(echo-automix-alpha-update-tests EXCLUDE_FROM_ALL tests/automix_alpha_update_tests.cpp)
+target_compile_features(echo-automix-alpha-update-tests PRIVATE cxx_std_20)
+target_include_directories(echo-automix-alpha-update-tests PRIVATE src)
+add_test(NAME echo-automix-alpha-update-tests COMMAND echo-automix-alpha-update-tests)
 
 add_executable(echo-connect-src-renderer)
 target_sources(echo-connect-src-renderer PRIVATE
@@ -298,6 +346,44 @@ add_executable(echo-eq-editing-tests EXCLUDE_FROM_ALL
 target_compile_features(echo-eq-editing-tests PRIVATE cxx_std_20)
 target_include_directories(echo-eq-editing-tests PRIVATE ../audio-engine)
 
+add_executable(echo-procedural-dsp-tests EXCLUDE_FROM_ALL
+  tests/procedural_dsp_tests.cpp
+  ../audio-engine/ProceduralDspController.cpp ../audio-engine/ProceduralDspProcessor.cpp)
+target_compile_features(echo-procedural-dsp-tests PRIVATE cxx_std_20)
+target_include_directories(echo-procedural-dsp-tests PRIVATE ../audio-engine)
+add_test(NAME echo-procedural-dsp-tests COMMAND echo-procedural-dsp-tests)
+
+add_executable(echo-virtual-stage-tests EXCLUDE_FROM_ALL
+  tests/virtual_stage_tests.cpp ../audio-engine/VirtualStageProcessor.cpp)
+target_compile_features(echo-virtual-stage-tests PRIVATE cxx_std_20)
+target_include_directories(echo-virtual-stage-tests PRIVATE ../audio-engine)
+add_test(NAME echo-virtual-stage-tests COMMAND echo-virtual-stage-tests)
+
+add_executable(echo-crossfeed-transition-tests EXCLUDE_FROM_ALL
+  tests/crossfeed_transition_tests.cpp ../audio-engine/SpatialDspProcessor.cpp
+  ../audio-engine/VirtualStageProcessor.cpp)
+target_compile_features(echo-crossfeed-transition-tests PRIVATE cxx_std_20)
+target_include_directories(echo-crossfeed-transition-tests PRIVATE ../audio-engine)
+add_test(NAME echo-crossfeed-transition-tests COMMAND echo-crossfeed-transition-tests)
+
+add_executable(echo-multiband-activation-tests EXCLUDE_FROM_ALL
+  tests/multiband_activation_tests.cpp ../audio-engine/MultibandCompressorProcessor.cpp)
+target_compile_features(echo-multiband-activation-tests PRIVATE cxx_std_20)
+target_include_directories(echo-multiband-activation-tests PRIVATE ../audio-engine)
+add_test(NAME echo-multiband-activation-tests COMMAND echo-multiband-activation-tests)
+
+add_executable(echo-eq-precision-tests EXCLUDE_FROM_ALL
+  tests/eq_precision_tests.cpp ../audio-engine/EqProcessor.cpp)
+target_compile_features(echo-eq-precision-tests PRIVATE cxx_std_20)
+target_include_directories(echo-eq-precision-tests PRIVATE ../audio-engine)
+add_test(NAME echo-eq-precision-tests COMMAND echo-eq-precision-tests)
+
+add_executable(echo-headphone-correction-tests EXCLUDE_FROM_ALL
+  tests/headphone_correction_tests.cpp ../audio-engine/EqProcessor.cpp)
+target_compile_features(echo-headphone-correction-tests PRIVATE cxx_std_20)
+target_include_directories(echo-headphone-correction-tests PRIVATE ../audio-engine)
+add_test(NAME echo-headphone-correction-tests COMMAND echo-headphone-correction-tests)
+
 if(UNIX AND NOT APPLE)
   add_executable(echo-linux-output-tests EXCLUDE_FROM_ALL tests/linux_output_tests.cpp)
   target_compile_features(echo-linux-output-tests PRIVATE cxx_std_17)
@@ -306,9 +392,31 @@ if(UNIX AND NOT APPLE)
   add_test(NAME echo-linux-output-tests COMMAND echo-linux-output-tests)
 endif()
 
+add_executable(echo-sdm-guardrail-tests EXCLUDE_FROM_ALL
+  tests/sdm_guardrail_tests.cpp
+  ../audio-engine/NativeFormatProcessor.cpp
+  ../audio-engine/SdmNtfDesign.cpp
+  ../audio-engine/SdmPreModulator.cpp)
+target_compile_features(echo-sdm-guardrail-tests PRIVATE cxx_std_20)
+target_include_directories(echo-sdm-guardrail-tests PRIVATE src ../audio-engine)
+target_link_libraries(echo-sdm-guardrail-tests PRIVATE echo-cuda-dsp)
+if(UNIX)
+  target_link_libraries(echo-sdm-guardrail-tests PRIVATE pthread)
+endif()
+if(MSVC)
+  set_property(TARGET echo-sdm-guardrail-tests PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+add_test(NAME echo-sdm-guardrail-tests COMMAND echo-sdm-guardrail-tests)
+
 add_executable(echo-audio-engine-tests EXCLUDE_FROM_ALL)
+add_dependencies(echo-audio-engine-tests echo-virtual-stage-tests)
+add_dependencies(echo-audio-engine-tests echo-multiband-activation-tests)
+add_dependencies(echo-audio-engine-tests echo-procedural-dsp-tests)
+add_dependencies(echo-audio-engine-tests echo-eq-precision-tests)
 target_sources(echo-audio-engine-tests PRIVATE ${ECHO_AUDIO_HOST_COMMON_SOURCES}
-  tests/audio_engine_tests.cpp tests/listening_volume_tests.cpp tests/asio_queue_channel_tests.cpp tests/daemon_seek_end_tests.cpp)
+  tests/audio_engine_tests.cpp tests/listening_volume_tests.cpp tests/asio_queue_channel_tests.cpp tests/daemon_seek_end_tests.cpp
+  tests/daemon_queue_identity_tests.cpp)
 target_compile_definitions(echo-audio-engine-tests PRIVATE ECHO_AUDIO_ENGINE_TESTS=1)
 configure_echo_audio_target(echo-audio-engine-tests)
 if(UNIX AND NOT APPLE)
@@ -342,7 +450,22 @@ configure_echo_audio_target(echo-dsd-ring-source-characterization-tests)
 add_executable(echo-native-playback-pipeline-tests EXCLUDE_FROM_ALL)
 target_sources(echo-native-playback-pipeline-tests PRIVATE
   ${ECHO_AUDIO_HOST_COMMON_SOURCES}
-  tests/native_playback_pipeline_tests.cpp)
+  tests/native_playback_pipeline_tests.cpp
+  tests/native_playback_cancellation_tests.cpp
+  tests/native_sdm_seek_tests.cpp
+  tests/daemon_src_control_tests.cpp
+  tests/daemon_seek_recovery_tests.cpp
+  tests/sdm_hybrid_pipeline_tests.cpp
+  tools/sdm-realtime-lab/RoutePlan.cpp
+  tests/sdm_runtime_route_tests.cpp
+  tests/sdm_transaction_tests.cpp
+  tests/sdm_dsp_snapshot_tests.cpp
+  tests/sdm_prepared_transaction_tests.cpp
+  tests/sdm_runtime_handoff_tests.cpp
+  tests/sdm_realtime_health_tests.cpp
+  tests/sdm_calibration_tests.cpp
+  tests/cuda_runtime_pipeline_tests.cpp
+  tests/sdm_integrity_tests.cpp)
 configure_echo_audio_target(echo-native-playback-pipeline-tests)
 if(ECHO_ENABLE_ASAN_UBSAN OR ECHO_ENABLE_TSAN)
   # Instrumentation distorts measured realtime admission and callback deadlines.
@@ -427,8 +550,14 @@ add_dependencies(echo-audio-engine-tests echo-native-playback-pipeline-tests)
 add_dependencies(echo-audio-engine-tests echo-windows-cdda-reader-tests)
 
 enable_testing()
+add_executable(echo-dsp-measurement-tests EXCLUDE_FROM_ALL
+  ../audio-engine/EqProcessor.cpp tests/dsp_measurement_tests.cpp)
+target_compile_features(echo-dsp-measurement-tests PRIVATE cxx_std_20)
+target_include_directories(echo-dsp-measurement-tests PRIVATE ../audio-engine)
+add_test(NAME echo-dsp-measurement-tests COMMAND echo-dsp-measurement-tests)
 add_executable(echo-native-pcm-channel-tests EXCLUDE_FROM_ALL
-  src/NativeDaemonBootstrap.cpp src/RpcOutputWriter.cpp tests/native_pcm_channel_tests.cpp tests/native_pcm_decode_tests.cpp)
+  src/NativeDaemonBootstrap.cpp src/NativeHostIdentity.cpp src/RpcOutputWriter.cpp tests/native_pcm_channel_tests.cpp tests/native_pcm_decode_tests.cpp)
+configure_echo_native_identity(echo-native-pcm-channel-tests)
 target_compile_features(echo-native-pcm-channel-tests PRIVATE cxx_std_20)
 target_include_directories(echo-native-pcm-channel-tests PRIVATE src ../audio-engine)
 if(WIN32 OR (APPLE AND ECHO_FFMPEG_ROOT))
@@ -483,62 +612,64 @@ endif()
 add_test(NAME echo-libav-seek-tests COMMAND echo-libav-seek-tests
   "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
 add_dependencies(echo-audio-engine-tests echo-libav-seek-tests)
-
-add_executable(echo-track-analysis-tests EXCLUDE_FROM_ALL
-  ../audio-engine/TrackAnalysis.cpp tests/track_analysis_tests.cpp)
-target_compile_features(echo-track-analysis-tests PRIVATE cxx_std_20)
-target_include_directories(echo-track-analysis-tests PRIVATE ../audio-engine)
-if(MSVC)
-  set_property(TARGET echo-track-analysis-tests PROPERTY
-    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-add_dependencies(echo-audio-engine-tests echo-track-analysis-tests)
-add_test(NAME echo-track-analysis-tests COMMAND echo-track-analysis-tests)
-
-add_executable(echo-track-analysis
-  tools/track-analysis/main.cpp
-  ../audio-engine/TrackAnalysis.cpp)
-target_compile_features(echo-track-analysis PRIVATE cxx_std_20)
-target_include_directories(echo-track-analysis PRIVATE ../audio-engine)
-if(WIN32 OR (APPLE AND ECHO_FFMPEG_ROOT))
-  target_include_directories(echo-track-analysis PRIVATE "${ECHO_FFMPEG_ROOT}/include")
-  target_link_directories(echo-track-analysis PRIVATE "${ECHO_FFMPEG_ROOT}/lib")
-  target_link_libraries(echo-track-analysis PRIVATE avformat avcodec swresample avutil)
-elseif(APPLE)
-  target_link_libraries(echo-track-analysis PRIVATE PkgConfig::ECHO_MACOS_FFMPEG)
-else()
-  target_link_libraries(echo-track-analysis PRIVATE avformat avcodec swresample avutil)
-endif()
-if(MSVC)
-  target_compile_definitions(echo-track-analysis PRIVATE NOMINMAX)
-  set_property(TARGET echo-track-analysis PROPERTY
-    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-if(APPLE AND ECHO_FFMPEG_ROOT)
-  set_target_properties(echo-track-analysis PROPERTIES
-    BUILD_WITH_INSTALL_RPATH TRUE
-    INSTALL_RPATH "@loader_path/../tools-macos/lib;@loader_path/tools/lib")
-elseif(APPLE)
-  set_target_properties(echo-track-analysis PROPERTIES
-    BUILD_WITH_INSTALL_RPATH TRUE
-    INSTALL_RPATH "@loader_path")
-endif()
-if(WIN32)
-  foreach(runtime_name avformat avcodec swresample avutil)
-    file(GLOB analysis_runtime_dlls "${ECHO_FFMPEG_ROOT}/bin/${runtime_name}-*.dll")
-    foreach(runtime_dll IN LISTS analysis_runtime_dlls)
-      add_custom_command(TARGET echo-track-analysis POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${runtime_dll}"
-          "$<TARGET_FILE_DIR:echo-track-analysis>")
-    endforeach()
-  endforeach()
-endif()
 if(APPLE AND ECHO_FFMPEG_ROOT)
   set_tests_properties(echo-libav-seek-tests PROPERTIES
     ENVIRONMENT "DYLD_LIBRARY_PATH=${ECHO_FFMPEG_ROOT}/lib")
 endif()
 
 add_test(NAME echo-audio-engine-tests COMMAND echo-audio-engine-tests)
+
+# Focused bank/decoder regression target; does not depend on the full host suite.
+add_executable(echo-cuda-runtime-lease-tests EXCLUDE_FROM_ALL tests/cuda_runtime_lease_tests.cpp)
+target_include_directories(echo-cuda-runtime-lease-tests PRIVATE src)
+target_compile_features(echo-cuda-runtime-lease-tests PRIVATE cxx_std_20)
+if(UNIX)
+  target_link_libraries(echo-cuda-runtime-lease-tests PRIVATE Threads::Threads)
+endif()
+if(MSVC)
+  set_property(TARGET echo-cuda-runtime-lease-tests PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+add_test(NAME echo-cuda-runtime-lease-tests COMMAND echo-cuda-runtime-lease-tests)
+set_tests_properties(echo-cuda-runtime-lease-tests PROPERTIES TIMEOUT 30)
+add_dependencies(echo-audio-engine-tests echo-cuda-runtime-lease-tests)
+
+add_executable(echo-dsp-double-precision-tests EXCLUDE_FROM_ALL
+  ${ECHO_AUDIO_ENGINE_SOURCES} src/PcmRingAudioSource.cpp
+  tests/dsp_double_precision_tests.cpp tests/pcm_fifo_sample_tests.cpp)
+configure_echo_audio_target(echo-dsp-double-precision-tests)
+add_test(NAME echo-dsp-double-precision-tests COMMAND echo-dsp-double-precision-tests)
+
+add_executable(echo-convolution-filter-bank-tests EXCLUDE_FROM_ALL
+  ../audio-engine/ConvolutionProcessor.cpp
+  ../audio-engine/ConvolutionConfiguration.cpp
+  ../audio-engine/ImpulseResponseResampler.cpp
+  ../audio-engine/PartitionedConvolutionEngine.cpp
+  tests/convolution_filter_bank_tests.cpp)
+target_compile_features(echo-convolution-filter-bank-tests PRIVATE cxx_std_20)
+target_include_directories(echo-convolution-filter-bank-tests PRIVATE ../audio-engine)
+if(MSVC)
+  set_property(TARGET echo-convolution-filter-bank-tests PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+if(WIN32)
+  target_compile_definitions(echo-convolution-filter-bank-tests PRIVATE NOMINMAX)
+endif()
+if(WIN32 OR (APPLE AND ECHO_FFMPEG_ROOT))
+  target_include_directories(echo-convolution-filter-bank-tests PRIVATE "${ECHO_FFMPEG_ROOT}/include")
+  target_link_directories(echo-convolution-filter-bank-tests PRIVATE "${ECHO_FFMPEG_ROOT}/lib")
+  target_link_libraries(echo-convolution-filter-bank-tests PRIVATE avformat avcodec swresample avutil)
+  if(WIN32)
+    file(GLOB ECHO_CONVOLUTION_TEST_DLLS "${ECHO_FFMPEG_ROOT}/bin/*.dll")
+    foreach(runtime_dll IN LISTS ECHO_CONVOLUTION_TEST_DLLS)
+      add_custom_command(TARGET echo-convolution-filter-bank-tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${runtime_dll}" "$<TARGET_FILE_DIR:echo-convolution-filter-bank-tests>")
+    endforeach()
+  endif()
+elseif(APPLE)
+  target_link_libraries(echo-convolution-filter-bank-tests PRIVATE PkgConfig::ECHO_MACOS_FFMPEG)
+else()
+  target_link_libraries(echo-convolution-filter-bank-tests PRIVATE avformat avcodec swresample avutil)
+endif()
 add_test(NAME echo-jsonrpc-protocol-characterization-tests COMMAND echo-jsonrpc-protocol-characterization-tests)
 add_test(NAME echo-dsd-ring-source-characterization-tests COMMAND echo-dsd-ring-source-characterization-tests)
 add_test(NAME echo-native-playback-pipeline-tests COMMAND echo-native-playback-pipeline-tests)
@@ -560,3 +691,11 @@ foreach(kind realtime_audio audio_transport opus_codec)
     set_tests_properties(echo-listening-${kind}-tests PROPERTIES ENVIRONMENT "DYLD_LIBRARY_PATH=${ECHO_FFMPEG_ROOT}/lib")
   endif()
 endforeach()
+
+add_executable(echo-dsp-filter-rack-tests EXCLUDE_FROM_ALL
+  ${ECHO_AUDIO_HOST_COMMON_SOURCES} tests/dsp_filter_rack_tests.cpp)
+configure_echo_audio_target(echo-dsp-filter-rack-tests)
+add_test(NAME echo-dsp-filter-rack-tests COMMAND echo-dsp-filter-rack-tests)
+
+# C#-specific analysis target (not part of the upstream snapshot).
+include(cmake/EchoTrackAnalysis.cmake)

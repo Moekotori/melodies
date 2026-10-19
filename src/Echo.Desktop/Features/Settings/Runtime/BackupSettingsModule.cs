@@ -26,15 +26,15 @@ public sealed class BackupSettingsModule : IAsyncDisposable
         {
             if (action == "导出设置")
             {
-                var output = await window.StorageProvider.SaveFilePickerAsync(new() { Title = "导出 ECHO 设置", SuggestedFileName = "echo-settings.json", DefaultExtension = "json" });
+                var output = await window.StorageProvider.SaveFilePickerAsync(new() { Title = "导出 melodies 设置", SuggestedFileName = "melodies-settings.json", DefaultExtension = "json" });
                 if (output?.TryGetLocalPath() is not { } path) throw new OperationCanceledException("已取消。");
                 await SettingsTransfer.WriteAsync(path, capture(), token);
                 shell.Settings.Feedback = "设置已导出。账号密钥不包含在此文件中。";
             }
             else
             {
-                var input = await window.StorageProvider.OpenFilePickerAsync(new() { Title = "导入 ECHO 设置", AllowMultiple = false,
-                    FileTypeFilter = [new FilePickerFileType("ECHO 设置") { Patterns = ["*.json"] }] });
+                var input = await window.StorageProvider.OpenFilePickerAsync(new() { Title = "导入 melodies 设置", AllowMultiple = false,
+                    FileTypeFilter = [new FilePickerFileType("melodies 设置") { Patterns = ["*.json"] }] });
                 if (input.FirstOrDefault()?.TryGetLocalPath() is not { } path) throw new OperationCanceledException("已取消。");
                 var imported = await SettingsTransfer.ReadAsync(path, token);
                 await dialogs.ConfirmAsync("导入设置", "将替换当前界面、语言、主题和功能偏好。导入前会备份当前设置；音乐和曲库不会被删除。");
@@ -59,13 +59,13 @@ public sealed class BackupSettingsModule : IAsyncDisposable
                 }
                 if (action is "导入备份" or "恢复入口")
                 {
-                    var input = await window.StorageProvider.OpenFilePickerAsync(new() { Title = "验证 ECHO 备份", AllowMultiple = false,
-                        FileTypeFilter = [new FilePickerFileType("ECHO 备份") { Patterns = ["*.zip"] }] });
+                    var input = await window.StorageProvider.OpenFilePickerAsync(new() { Title = "验证 melodies 备份", AllowMultiple = false,
+                        FileTypeFilter = [new FilePickerFileType("melodies 备份") { Patterns = ["*.zip"] }] });
                     if (input.FirstOrDefault()?.TryGetLocalPath() is not { } path) throw new OperationCanceledException("已取消。");
                     var manifest = await _backup.ValidateAsync(path, token);
-                    await dialogs.ConfirmAsync("恢复 ECHO 备份", $"已验证 {manifest.Files.Length} 个文件。确认后将关闭 ECHO、恢复应用数据并重新启动。当前数据会保留为回滚副本，音乐文件不会被修改。");
+                    await dialogs.ConfirmAsync("恢复 melodies 备份", $"已验证 {manifest.Files.Length} 个文件。确认后将关闭 melodies、恢复应用数据并重新启动。当前数据会保留为回滚副本，音乐文件不会被修改。");
                     var request = await BackupRestore.StageAsync(path, directory, token);
-                    var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath ?? throw new IOException("无法定位 ECHO 可执行文件。"))
+                    var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath ?? throw new IOException("无法定位 melodies 可执行文件。"))
                     { UseShellExecute = false, CreateNoWindow = true };
                     start.ArgumentList.Add("--complete-restore"); start.ArgumentList.Add(request);
                     _ = System.Diagnostics.Process.Start(start) ?? throw new IOException("恢复进程未能启动。");
@@ -78,7 +78,7 @@ public sealed class BackupSettingsModule : IAsyncDisposable
                     destination = Path.Combine(configured, "echo-backup-" + DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss") + ".zip");
                 else
                 {
-                    var output = await window.StorageProvider.SaveFilePickerAsync(new() { Title = "创建 ECHO 数据备份", SuggestedFileName = "echo-backup.zip", DefaultExtension = "zip" });
+                    var output = await window.StorageProvider.SaveFilePickerAsync(new() { Title = "创建 melodies 数据备份", SuggestedFileName = "melodies-backup.zip", DefaultExtension = "zip" });
                     destination = output?.TryGetLocalPath() ?? throw new OperationCanceledException("已取消。");
                 }
                 await _backup.CreateAsync(destination, token); shell.Settings.Feedback = "一致性备份已完成。";

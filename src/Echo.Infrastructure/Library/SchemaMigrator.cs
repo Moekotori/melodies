@@ -14,7 +14,7 @@ internal static class SchemaMigrator
         var version = (long)probe.ExecuteScalar()!;
         probe.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'";
         var objects = (long)probe.ExecuteScalar()!;
-        if ((id != ApplicationId && (id != 0 || objects != 0)) || version > 21)
+        if ((id != ApplicationId && (id != 0 || objects != 0)) || version > 22)
             throw new InvalidOperationException("This is not a supported ECHO Avalonia database. Legacy databases require an explicit importer.");
         if (version is > 0 and < 4) ArtistSchema.Backup(connection);
         if (version == 0)
@@ -87,6 +87,7 @@ internal static class SchemaMigrator
             if (version > 0) AlbumMetadataSchema.Backup(connection, 21);
             AlbumGroupingSchema.Migrate(connection);
         }
+        if (version < 22) TrackBrowseSchema.Migrate(connection);
         probe.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;";
         probe.ExecuteNonQuery();
         probe.CommandText = "UPDATE scan_jobs SET state='Interrupted', error_code='process_interrupted', finished_at=unixepoch() WHERE state='Running'; DELETE FROM scan_seen; UPDATE listening_events SET ended=updated WHERE ended IS NULL;";

@@ -17,12 +17,12 @@ constexpr float firNumericalZeroThreshold = 1.0e-12f;
 constexpr int firBlockSize = 256;
 
 __global__ __launch_bounds__(firBlockSize) void processPolyphaseFirKernel(
-    const float* __restrict__ input,
-    const float* __restrict__ history,
-    const float* __restrict__ coefficients,
+    const double* __restrict__ input,
+    const double* __restrict__ history,
+    const double* __restrict__ coefficients,
     const int* __restrict__ delays,
     const int* __restrict__ phaseOffsets,
-    float* __restrict__ output,
+    double* __restrict__ output,
     int inputFrames,
     int channels,
     int upsampleFactor,
@@ -39,15 +39,15 @@ __global__ __launch_bounds__(firBlockSize) void processPolyphaseFirKernel(
     const int inputFrame = outputFrame / upsampleFactor;
     const int phase = outputFrame % upsampleFactor;
     const int combinedFrame = historyFrames + inputFrame;
-    float sum = 0.0f;
+    double sum = 0.0f;
 
     for (int tap = phaseOffsets[phase]; tap < phaseOffsets[phase + 1]; ++tap)
     {
         const int sourceFrame = combinedFrame - delays[tap];
-        const float source = sourceFrame < historyFrames
+        const double source = sourceFrame < historyFrames
             ? history[sourceFrame * channels + channel]
             : input[(sourceFrame - historyFrames) * channels + channel];
-        sum = fmaf(coefficients[tap], source, sum);
+        sum = __dadd_rn(sum, __dmul_rn(coefficients[tap], source));
     }
 
     output[sampleIndex] = sum;
@@ -76,12 +76,12 @@ public:
         int upsampleFactor = 1;
         int historyFrames = 0;
         int tapEntryCount = 0;
-        float* coefficients = nullptr;
+        double* coefficients = nullptr;
         int* delays = nullptr;
         int* phaseOffsets = nullptr;
-        float* history = nullptr;
-        float* nextHistory = nullptr;
-        float* hostHistory[2] { nullptr, nullptr };
+        double* history = nullptr;
+        double* nextHistory = nullptr;
+        double* hostHistory[2] { nullptr, nullptr };
     };
 
     ~Impl()
@@ -106,8 +106,9 @@ public:
         // runtime entirely when nothing was ever selected or allocated.
         if (touchedRuntime())
         {
-            if (deviceIndex >= 0)
-                cudaSetDevice(deviceIndex);
+            std::string cleanupError;
+            if (!runtimeLease.activate("native_cuda_", cleanupError))
+                std::cerr << "[echo-audio-host] CUDA FIR cleanup: " << cleanupError << std::endl;
             if (stream != nullptr)
                 cudaStreamSynchronize(stream);
             for (auto& stage : stages)
@@ -126,8 +127,9 @@ public:
             cudaFreeHost(hostOutput);
             if (stream != nullptr)
                 cudaStreamDestroy(stream);
-            CudaDeviceSelector::releaseRuntime();
+            for (auto event : events) if (event) cudaEventDestroy(event);
         }
+        runtimeLease.reset();
         stages.clear();
         bufferA = nullptr;
         bufferB = nullptr;
@@ -142,6 +144,9 @@ public:
         committedHistoryIndex = 0;
         warmupMilliseconds = 0.0;
         configured = false;
+        failBeforeCommit = false;
+        timings = {};
+        for (auto& event : events) event = nullptr;
     }
 
     bool selectDevice(std::string& error)
@@ -150,9 +155,9 @@ public:
         if (!CudaDeviceSelector::select(
                 "native_cuda_",
                 selection,
+                runtimeLease,
                 error))
             return false;
-        CudaDeviceSelector::retainRuntime();
         deviceIndex = selection.index;
         selectedDeviceName = std::move(selection.name);
         return true;
@@ -168,11 +173,11 @@ public:
             return false;
         }
 
-        float* nextBufferA = nullptr;
-        float* nextBufferB = nullptr;
-        float* nextHostInput = nullptr;
-        float* nextHostOutput = nullptr;
-        const size_t bytes = requiredSamples * sizeof(float);
+        double* nextBufferA = nullptr;
+        double* nextBufferB = nullptr;
+        double* nextHostInput = nullptr;
+        double* nextHostOutput = nullptr;
+        const size_t bytes = requiredSamples * sizeof(double);
         if (!checked(cudaMalloc(&nextBufferA, bytes), "allocate_buffer_a_failed", error)
             || !checked(cudaMalloc(&nextBufferB, bytes), "allocate_buffer_b_failed", error)
             || !checked(cudaMallocHost(&nextHostInput, bytes), "allocate_pinned_input_failed", error)
@@ -200,17 +205,21 @@ public:
     int channels = 0;
     int maximumOutputFactor = 1;
     int deviceIndex = -1;
+    CudaDeviceSelector::RuntimeLease runtimeLease;
     cudaStream_t stream = nullptr;
     std::vector<DeviceStage> stages;
-    float* bufferA = nullptr;
-    float* bufferB = nullptr;
-    float* hostInput = nullptr;
-    float* hostOutput = nullptr;
+    double* bufferA = nullptr;
+    double* bufferB = nullptr;
+    double* hostInput = nullptr;
+    double* hostOutput = nullptr;
     size_t bufferCapacitySamples = 0;
     std::string selectedDeviceName;
     int committedHistoryIndex = 0;
     double warmupMilliseconds = 0.0;
     bool configured = false;
+    bool failBeforeCommit = false;
+    cudaEvent_t events[4] {};
+    CudaFirProcessor::Timings timings;
 };
 
 CudaFirProcessor::CudaFirProcessor() : impl_(std::make_unique<Impl>()) {}
@@ -221,8 +230,6 @@ CudaFirProcessor& CudaFirProcessor::operator=(CudaFirProcessor&&) noexcept = def
 void CudaFirProcessor::release()
 {
     impl_->release();
-    // Also drops a context left behind by a device probe that never retained.
-    CudaDeviceSelector::resetIfIdle();
 }
 
 bool CudaFirProcessor::configure(
@@ -250,6 +257,12 @@ bool CudaFirProcessor::configure(
     }
 
     impl_->channels = channels;
+    for (auto& event : impl_->events)
+        if (!checked(cudaEventCreate(&event), "fir_event_create_failed", error))
+        {
+            impl_->release();
+            return false;
+        }
     impl_->maximumOutputFactor = 1;
     impl_->stages.reserve(stages.size());
 
@@ -282,10 +295,10 @@ bool CudaFirProcessor::configure(
         stage.historyFrames =
             static_cast<int>((config.taps.size() - 1) / static_cast<size_t>(config.upsampleFactor));
 
-        std::vector<float> coefficients;
+        std::vector<double> coefficients;
         std::vector<int> delays;
         std::vector<int> phaseOffsets(static_cast<size_t>(config.upsampleFactor + 1), 0);
-        const float interpolationGain = static_cast<float>(config.upsampleFactor);
+        const double interpolationGain = static_cast<double>(config.upsampleFactor);
         for (int phase = 0; phase < config.upsampleFactor; ++phase)
         {
             phaseOffsets[static_cast<size_t>(phase)] = static_cast<int>(coefficients.size());
@@ -293,7 +306,7 @@ bool CudaFirProcessor::configure(
                  tap < config.taps.size();
                  tap += static_cast<size_t>(config.upsampleFactor))
             {
-                const float coefficient = config.taps[tap];
+                const double coefficient = config.taps[tap];
                 if (std::abs(coefficient) <= firNumericalZeroThreshold)
                     continue;
                 coefficients.push_back(coefficient * interpolationGain);
@@ -304,12 +317,14 @@ bool CudaFirProcessor::configure(
         phaseOffsets.back() = static_cast<int>(coefficients.size());
         stage.tapEntryCount = static_cast<int>(coefficients.size());
 
-        const size_t coefficientBytes = std::max<size_t>(1, coefficients.size()) * sizeof(float);
+        const size_t coefficientBytes = std::max<size_t>(1, coefficients.size()) * sizeof(double);
         const size_t delayBytes = std::max<size_t>(1, delays.size()) * sizeof(int);
         const size_t offsetBytes = phaseOffsets.size() * sizeof(int);
         const size_t historySamples =
             static_cast<size_t>(stage.historyFrames) * static_cast<size_t>(channels);
-        const size_t historyBytes = std::max<size_t>(1, historySamples) * sizeof(float);
+        const size_t historyBytes = std::max<size_t>(1, historySamples) * sizeof(double);
+        impl_->timings.deviceBytes += coefficientBytes + delayBytes + offsetBytes + historyBytes * 2;
+        impl_->timings.pinnedBytes += historySamples > 0 ? historyBytes * 2 : 0;
 
         if (!checked(cudaMalloc(&stage.coefficients, coefficientBytes),
                      "allocate_coefficients_failed", error)
@@ -344,7 +359,7 @@ bool CudaFirProcessor::configure(
         }
         if ((!coefficients.empty()
              && !checked(cudaMemcpy(stage.coefficients, coefficients.data(),
-                                    coefficients.size() * sizeof(float), cudaMemcpyHostToDevice),
+                                    coefficients.size() * sizeof(double), cudaMemcpyHostToDevice),
                          "copy_coefficients_failed", error))
             || (!delays.empty()
                 && !checked(cudaMemcpy(stage.delays, delays.data(),
@@ -380,15 +395,17 @@ bool CudaFirProcessor::configure(
         impl_->release();
         return false;
     }
+    impl_->timings.deviceBytes += maximumSamples * sizeof(double) * 2;
+    impl_->timings.pinnedBytes += maximumSamples * sizeof(double) * 2;
 
     impl_->configured = true;
     const int warmupFrames = std::min(maximumInputFrames, 64);
-    std::vector<float> warmupInput(
+    std::vector<double> warmupInput(
         static_cast<size_t>(warmupFrames) * static_cast<size_t>(channels),
         0.0f);
-    std::vector<float> warmupOutput;
+    std::vector<double> warmupOutput;
     const auto warmupStarted = std::chrono::steady_clock::now();
-    if (!process(warmupInput.data(), warmupFrames, warmupOutput, error))
+    if (!processDouble(warmupInput.data(), warmupFrames, warmupOutput, error))
     {
         error = error.empty()
             ? "native_cuda_fir_warmup_failed"
@@ -399,7 +416,11 @@ bool CudaFirProcessor::configure(
     const auto warmupFinished = std::chrono::steady_clock::now();
     const double warmupMilliseconds =
         std::chrono::duration<double, std::milli>(warmupFinished - warmupStarted).count();
-    reset();
+    if (!reset(error))
+    {
+        impl_->release();
+        return false;
+    }
     impl_->warmupMilliseconds = warmupMilliseconds;
     error.clear();
     return true;
@@ -407,9 +428,18 @@ bool CudaFirProcessor::configure(
 
 void CudaFirProcessor::reset()
 {
+    std::string error;
+    (void)reset(error);
+}
+
+bool CudaFirProcessor::reset(std::string& error)
+{
     if (!impl_->configured || impl_->deviceIndex < 0)
-        return;
-    cudaSetDevice(impl_->deviceIndex);
+    {
+        error = "native_cuda_fir_not_configured";
+        return false;
+    }
+    if (!impl_->runtimeLease.activate("native_cuda_", error)) return false;
     for (auto& stage : impl_->stages)
     {
         const size_t historySamples =
@@ -417,23 +447,31 @@ void CudaFirProcessor::reset()
             * static_cast<size_t>(impl_->channels);
         const size_t historyBytes =
             std::max<size_t>(1, historySamples)
-            * sizeof(float);
-        cudaMemsetAsync(stage.history, 0, historyBytes, impl_->stream);
-        cudaMemsetAsync(stage.nextHistory, 0, historyBytes, impl_->stream);
+            * sizeof(double);
+        if (!checked(cudaMemsetAsync(stage.history, 0, historyBytes, impl_->stream), "reset_history_failed", error)
+            || !checked(cudaMemsetAsync(stage.nextHistory, 0, historyBytes, impl_->stream), "reset_next_history_failed", error))
+            return false;
+    }
+    if (!checked(cudaStreamSynchronize(impl_->stream), "reset_stream_sync_failed", error)) return false;
+    for (auto& stage : impl_->stages)
+    {
+        const size_t historySamples = static_cast<size_t>(stage.historyFrames) * static_cast<size_t>(impl_->channels);
+        const size_t historyBytes = historySamples * sizeof(double);
         if (historySamples > 0)
         {
             std::memset(stage.hostHistory[0], 0, historyBytes);
             std::memset(stage.hostHistory[1], 0, historyBytes);
         }
     }
-    cudaStreamSynchronize(impl_->stream);
     impl_->committedHistoryIndex = 0;
+    error.clear();
+    return true;
 }
 
-bool CudaFirProcessor::process(
-    const float* interleaved,
+bool CudaFirProcessor::processDouble(
+    const double* interleaved,
     int frames,
-    std::vector<float>& output,
+    std::vector<double>& output,
     std::string& error)
 {
     output.clear();
@@ -452,8 +490,7 @@ bool CudaFirProcessor::process(
         error = "native_cuda_invalid_fir_input";
         return false;
     }
-    if (!CudaDeviceSelector::activate(
-            impl_->deviceIndex,
+    if (!impl_->runtimeLease.activate(
             "native_cuda_",
             error))
         return false;
@@ -462,21 +499,27 @@ bool CudaFirProcessor::process(
         static_cast<size_t>(frames) * static_cast<size_t>(impl_->channels);
     const size_t outputSamples =
         inputSamples * static_cast<size_t>(impl_->maximumOutputFactor);
-    if (!impl_->ensureCapacity(outputSamples, error))
+    // Capacity belongs to configuration, never to a processing block.
+    if (outputSamples > impl_->bufferCapacitySamples)
+    {
+        error = "native_cuda_fir_block_too_large";
         return false;
+    }
 
-    std::memcpy(impl_->hostInput, interleaved, inputSamples * sizeof(float));
+    std::memcpy(impl_->hostInput, interleaved, inputSamples * sizeof(double));
+    if (!checked(cudaEventRecord(impl_->events[0], impl_->stream), "fir_event_start_failed", error)) return false;
     if (!checked(cudaMemcpyAsync(
                      impl_->bufferA,
                      impl_->hostInput,
-                     inputSamples * sizeof(float),
+                     inputSamples * sizeof(double),
                      cudaMemcpyHostToDevice,
                      impl_->stream),
                  "copy_input_failed", error))
         return false;
 
-    float* input = impl_->bufferA;
-    float* nextOutput = impl_->bufferB;
+    if (!checked(cudaEventRecord(impl_->events[1], impl_->stream), "fir_event_h2d_failed", error)) return false;
+    double* input = impl_->bufferA;
+    double* nextOutput = impl_->bufferB;
     int inputFrames = frames;
     const int pendingHistoryIndex = 1 - impl_->committedHistoryIndex;
     for (auto& stage : impl_->stages)
@@ -502,10 +545,10 @@ bool CudaFirProcessor::process(
         if (historySamples > 0)
         {
             const size_t frameBytes =
-                static_cast<size_t>(impl_->channels) * sizeof(float);
+                static_cast<size_t>(impl_->channels) * sizeof(double);
             if (inputFrames >= stage.historyFrames)
             {
-                const float* historyInput =
+                const double* historyInput =
                     input
                     + static_cast<size_t>(
                         inputFrames - stage.historyFrames)
@@ -561,6 +604,7 @@ bool CudaFirProcessor::process(
         inputFrames = outputFrames;
     }
 
+    if (!checked(cudaEventRecord(impl_->events[2], impl_->stream), "fir_event_kernel_failed", error)) return false;
     for (const auto& stage : impl_->stages)
     {
         const size_t historySamples =
@@ -570,7 +614,7 @@ bool CudaFirProcessor::process(
             && !checked(cudaMemcpyAsync(
                             stage.hostHistory[pendingHistoryIndex],
                             stage.history,
-                            historySamples * sizeof(float),
+                            historySamples * sizeof(double),
                             cudaMemcpyDeviceToHost,
                             impl_->stream),
                         "copy_history_snapshot_failed", error))
@@ -580,21 +624,41 @@ bool CudaFirProcessor::process(
     if (!checked(cudaMemcpyAsync(
                      impl_->hostOutput,
                      input,
-                     outputSamples * sizeof(float),
+                     outputSamples * sizeof(double),
                      cudaMemcpyDeviceToHost,
                      impl_->stream),
                  "copy_output_failed", error)
-        || !checked(cudaStreamSynchronize(impl_->stream), "stream_sync_failed", error))
+        || !checked(cudaEventRecord(impl_->events[3], impl_->stream), "fir_event_d2h_failed", error))
         return false;
+    const auto synchronizeStarted = std::chrono::steady_clock::now();
+    if (!checked(cudaStreamSynchronize(impl_->stream), "stream_sync_failed", error)) return false;
+    impl_->timings.synchronizeMs = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - synchronizeStarted).count();
+    float elapsed[3] {};
+    for (int index = 0; index < 3; ++index)
+        if (!checked(cudaEventElapsedTime(&elapsed[index], impl_->events[index], impl_->events[index + 1]),
+                     "fir_event_elapsed_failed", error)) return false;
+    impl_->timings.h2dMs = elapsed[0];
+    impl_->timings.firMs = elapsed[1];
+    impl_->timings.d2hMs = elapsed[2];
 
-    impl_->committedHistoryIndex = pendingHistoryIndex;
+    if (impl_->failBeforeCommit)
+    {
+        impl_->failBeforeCommit = false;
+        error = "native_cuda_fir_injected_before_commit";
+        return false;
+    }
+    const auto commitStarted = std::chrono::steady_clock::now();
     output.assign(impl_->hostOutput, impl_->hostOutput + outputSamples);
+    impl_->committedHistoryIndex = pendingHistoryIndex;
+    impl_->timings.commitMs = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - commitStarted).count();
     error.clear();
     return true;
 }
 
 bool CudaFirProcessor::copyLatestHistory(
-    std::vector<std::vector<float>>& histories) const
+    std::vector<std::vector<double>>& histories) const
 {
     histories.clear();
     if (!impl_->configured)
@@ -610,7 +674,7 @@ bool CudaFirProcessor::copyLatestHistory(
             histories.emplace_back();
             continue;
         }
-        const float* snapshot = stage.hostHistory[impl_->committedHistoryIndex];
+        const double* snapshot = stage.hostHistory[impl_->committedHistoryIndex];
         if (snapshot == nullptr)
         {
             histories.clear();
@@ -622,7 +686,7 @@ bool CudaFirProcessor::copyLatestHistory(
 }
 
 bool CudaFirProcessor::restoreHistory(
-    const std::vector<std::vector<float>>& histories,
+    const std::vector<std::vector<double>>& histories,
     std::string& error)
 {
     if (!impl_->configured || histories.size() != impl_->stages.size())
@@ -630,12 +694,17 @@ bool CudaFirProcessor::restoreHistory(
         error = "native_cuda_fir_history_shape_mismatch";
         return false;
     }
-    if (!CudaDeviceSelector::activate(
-            impl_->deviceIndex,
+    if (!impl_->runtimeLease.activate(
             "native_cuda_",
             error))
         return false;
 
+    for (size_t index = 0; index < impl_->stages.size(); ++index)
+        if (histories[index].size() != static_cast<size_t>(impl_->stages[index].historyFrames) * impl_->channels)
+        {
+            error = "native_cuda_fir_history_shape_mismatch";
+            return false;
+        }
     for (size_t index = 0; index < impl_->stages.size(); ++index)
     {
         auto& stage = impl_->stages[index];
@@ -650,15 +719,7 @@ bool CudaFirProcessor::restoreHistory(
         if (historySamples == 0)
             continue;
 
-        const size_t historyBytes = historySamples * sizeof(float);
-        std::memcpy(
-            stage.hostHistory[0],
-            histories[index].data(),
-            historyBytes);
-        std::memcpy(
-            stage.hostHistory[1],
-            histories[index].data(),
-            historyBytes);
+        const size_t historyBytes = historySamples * sizeof(double);
         if (!checked(cudaMemcpyAsync(
                          stage.history,
                          histories[index].data(),
@@ -682,6 +743,10 @@ bool CudaFirProcessor::restoreHistory(
             "restore_history_sync_failed",
             error))
         return false;
+    for (size_t index = 0; index < impl_->stages.size(); ++index)
+        if (!histories[index].empty())
+            for (auto* snapshot : impl_->stages[index].hostHistory)
+                std::memcpy(snapshot, histories[index].data(), histories[index].size() * sizeof(double));
     impl_->committedHistoryIndex = 0;
     error.clear();
     return true;
@@ -707,6 +772,9 @@ bool CudaFirProcessor::builtWithCuda() noexcept
     return true;
 }
 
+void CudaFirProcessor::failNextBlockForTesting() { impl_->failBeforeCommit = true; }
+CudaFirProcessor::Timings CudaFirProcessor::lastTimings() const noexcept { return impl_->timings; }
+
 CudaFirProcessor::RuntimeHold::RuntimeHold()
 {
     CudaDeviceSelector::retainRuntime();
@@ -715,4 +783,32 @@ CudaFirProcessor::RuntimeHold::RuntimeHold()
 CudaFirProcessor::RuntimeHold::~RuntimeHold()
 {
     CudaDeviceSelector::releaseRuntime();
+}
+
+// Compatibility surface: float callers are promoted before the FP64 engine.
+// The production double route never passes through these conversions.
+bool CudaFirProcessor::process(const float* input, int frames,
+    std::vector<float>& output, std::string& error)
+{
+    std::vector<double> promoted;
+    if (input && frames > 0)
+        promoted.assign(input, input + static_cast<size_t>(frames) * impl_->channels);
+    std::vector<double> result;
+    const bool success = processDouble(promoted.empty() ? nullptr : promoted.data(), frames, result, error);
+    output.assign(result.begin(), result.end());
+    return success;
+}
+bool CudaFirProcessor::copyLatestHistory(std::vector<std::vector<float>>& histories) const
+{
+    std::vector<std::vector<double>> source;
+    histories.clear();
+    if (!copyLatestHistory(source)) return false;
+    for (const auto& history : source) histories.emplace_back(history.begin(), history.end());
+    return true;
+}
+bool CudaFirProcessor::restoreHistory(const std::vector<std::vector<float>>& histories, std::string& error)
+{
+    std::vector<std::vector<double>> promoted;
+    for (const auto& history : histories) promoted.emplace_back(history.begin(), history.end());
+    return restoreHistory(promoted, error);
 }

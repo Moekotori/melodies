@@ -214,7 +214,7 @@ public sealed partial class MacOsSystemTransport : IMediaTransport, IMediaFileAc
     private static void WritePayload(Utf8JsonWriter writer, MediaTransportState state)
     {
         writer.WriteStartObject("payload");
-        writer.WriteString("title", string.IsNullOrWhiteSpace(state.Title) ? "ECHO" : state.Title);
+        writer.WriteString("title", string.IsNullOrWhiteSpace(state.Title) ? "melodies" : state.Title);
         WriteOptional(writer, "artist", state.Artist);
         WriteOptional(writer, "album", state.Album);
         WriteOptional(writer, "outputName", state.OutputName);

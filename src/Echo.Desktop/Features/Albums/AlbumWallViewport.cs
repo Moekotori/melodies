@@ -10,7 +10,7 @@ namespace Echo.Desktop.Features.Albums;
 public sealed class AlbumWallViewport : UserControl, IDisposable
 {
     private readonly ScrollViewer _scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-    private readonly Canvas _canvas = new();
+    private readonly Canvas _canvas = new() { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
     private readonly Dictionary<int, AlbumCard> _cards = [];
     private readonly AlbumsViewModel _model;
     private readonly AlbumArtworkCache _artwork;

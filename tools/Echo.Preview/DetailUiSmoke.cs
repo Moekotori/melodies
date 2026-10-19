@@ -32,7 +32,8 @@ internal static class DetailUiSmoke
         var native = new DetailNative(); var session = new PlaybackSessionCoordinator(native);
         var player = new PlayerViewModel(new PlaybackZone(PlaybackZone.LocalId, "本机", session));
         var artwork = new AlbumArtworkCache(new LocalAlbumArtwork());
-        var shell = new ShellViewModel(); shell.AttachPlayback(player); player.Queue.Artwork = artwork;
+        var onlineFixture = new AlbumOnlineFixture();
+        var shell = new ShellViewModel { AlbumInformation = onlineFixture }; shell.AttachPlayback(player); player.Queue.Artwork = artwork;
         shell.AttachLibrary(database, artwork, details: new LocalDetailResources());
         shell.Motion.SelectedChoice = shell.Motion.Choices.First(choice => choice.Mode == MotionMode.Off);
         var window = new MainWindow { DataContext = shell, Width = 1440, Height = 1000 };
@@ -47,6 +48,16 @@ internal static class DetailUiSmoke
             var model = (AlbumDetailViewModel)detail.DataContext!;
             Until(() => model.Tracks.Count > 0 && !model.IsLoading);
             Check(model.Tracks.Count == 200 && wall.Viewport.RealizedCards == 0, $"bounded album page: {model.Tracks.Count} tracks, {wall.Viewport.RealizedCards} wall cards, {model.Album.Artist}");
+            Check(detail.GetVisualDescendants().OfType<AlbumTrackRow>().Count() < 40, "album tracks remain virtualized under page scrolling");
+            var pageScroll = detail.FindControl<ScrollViewer>("PageScroll")!;
+            var scrollRight = pageScroll.TranslatePoint(new Point(pageScroll.Bounds.Width, 0), window)!.Value.X;
+            Check(Math.Abs(scrollRight - window.ClientSize.Width) < 2, "album scrollbar reaches the window edge");
+            Check(wall.Margin == default, "album detail owns its content inset");
+            var title = detail.FindControl<TextBlock>("AlbumTitle")!;
+            Check(title.LineHeight >= title.FontSize * 1.2, "album title reserves full glyph height");
+            pageScroll.Offset = new(0, 6000); Settle();
+            Check(pageScroll.Offset.Y > 5000 && detail.GetVisualDescendants().OfType<AlbumTrackRow>().Count() < 40, "whole-page scrolling keeps album rows bounded");
+            pageScroll.Offset = default; Settle();
             var rows = model.Tracks;
             model.Descending = true; model.SortIndex = 2;
             Until(() => !model.IsLoading && !ReferenceEquals(rows, model.Tracks));
@@ -67,39 +78,73 @@ internal static class DetailUiSmoke
             Until(() => model.Tracks[0].Favorite);
             Check(session.Snapshot.OperationId == operation, "row favorite must not also play the parent row");
             Wait(model.AddTrackAsync(model.Tracks[1].Row, true)); Check(session.Queue.Any(track => track.QueuedNext), "next-up action");
+            var outsideRead = database.GetAlbumTracksAsync(new(model.Album.Id, 200, Sort: DetailTrackSort.Duration, Descending: true)); Wait(outsideRead);
+            var outsideTrack = outsideRead.Result.Items[0];
+            Wait(database.SetTrackFavoriteAsync(outsideTrack.Id, true, CancellationToken.None));
+            var likedId = model.Tracks[0].Row.Id;
+            Tab(detail, 5); Until(() => !model.IsLoading && model.Tracks.Count == 2);
+            Check(model.Tracks.Any(track => track.Row.Id == likedId) && model.Tracks.Any(track => track.Row.Id == outsideTrack.Id) && model.Tracks.All(track => track.Favorite), "liked tab includes favorites beyond the loaded page");
+            Check(model.TrackPanelCountText.StartsWith("2") && model.TrackPanelDuration != model.DurationLabel, "liked count and duration use the filtered album total");
+            Check(!detail.FindControl<StackPanel>("OnlinePanels")!.IsVisible, "online panels stay hidden in the liked tab");
+            Capture("album-liked-light.png");
+            while (model.Tracks.Count > 0)
+            {
+                var removed = model.Tracks[0].Row.Id;
+                Wait(model.Tracks[0].ToggleFavoriteCommand.ExecuteAsync(null));
+                Until(() => !model.IsLoading && model.Tracks.All(track => track.Row.Id != removed));
+            }
+            Check(model.IsEmpty, "unliking the last track updates the empty state");
+            Tab(detail, 0); Until(() => !model.IsLoading && model.Tracks.Count == 200);
             Tab(detail, 1); Until(() => detail.FindControl<WrapPanel>("Attachments")!.Children.Count >= 3);
-            Capture("album-attachments-light.png"); Tab(detail, 4);
-            Until(() => detail.FindControl<TextBlock>("Description")!.Text == "星际旅程的本地专辑介绍。");
-            Tab(detail, 3); Until(() => detail.FindControl<StackPanel>("Versions")!.Children.Count == 1);
-            Tab(detail, 0); Capture("album-detail-light.png"); shell.IsDark = true; Capture("album-detail-dark.png");
+            Check(detail.FindControl<WrapPanel>("Attachments")!.Children.Count >= 4, "gallery discovers bounded Scans subfolders");
+            var attachment = detail.FindControl<WrapPanel>("Attachments")!.Children.OfType<Button>().First();
+            Click(attachment); Until(() => detail.FindControl<Grid>("CoverPreview")!.IsVisible);
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Settle();
+            Check(!detail.FindControl<Grid>("CoverPreview")!.IsVisible, "attachment preview closes without navigating away");
+            Check(!detail.FindControl<StackPanel>("OnlinePanels")!.IsVisible, "online panels stay hidden in the gallery tab");
+            Capture("album-attachments-light.png");
+            Check(onlineFixture.Calls == 0, "online providers are deferred until their tab opens");
+            Tab(detail, 2);
+            var online = (AlbumOnlineViewModel)detail.FindControl<AlbumOnlineView>("OnlinePanel")!.DataContext!;
+            Until(() => !online.IsLoading && online.HasRelease);
+            Check(online.HasCredits && online.HasLinks, "sources show release facts, credits and links");
+            pageScroll.Offset = new(0, 360); Settle(); Capture("album-sources-light.png"); pageScroll.Offset = default; Settle();
+            Tab(detail, 3); Until(() => online.HasVersions && !online.IsLoading && !detail.FindControl<TextBlock>("VersionsStatus")!.Text!.StartsWith("正在"));
+            pageScroll.Offset = new(0, 360); Settle(); Capture("album-versions-light.png"); pageScroll.Offset = default; Settle();
+            Tab(detail, 4); Until(() => online.HasArticles && !online.IsLoading && detail.FindControl<SelectableTextBlock>("Description")!.Text == "星际旅程的本地专辑介绍。");
+            pageScroll.Offset = new(0, 480); Settle(); Capture("album-information-light.png"); pageScroll.Offset = default; Settle();
+            Check(onlineFixture.Calls == 1, "online tabs share one bounded result");
+            Until(() => detail.FindControl<SelectableTextBlock>("Description")!.Text == "星际旅程的本地专辑介绍。");
+            Tab(detail, 3); Until(() => detail.FindControl<StackPanel>("Versions")!.Children.Count == 0);
+            Tab(detail, 0); Until(() => !model.IsLoading && model.Tracks.Count == 200); Capture("album-detail-light.png"); shell.IsDark = true; Capture("album-detail-dark.png");
             shell.IsDark = false; Settle();
+            var moreButton = detail.FindControl<Button>("MoreButton")!;
+            moreButton.Flyout!.ShowAt(moreButton); Settle();
             CaptureControl((Control)detail.FindControl<Button>("AlbumFavoriteButton")!.Parent!, "album-actions-light.png");
             CaptureControl(detail.FindControl<DetailSortButton>("TrackSort")!, "album-sort-control-light.png");
             shell.IsDark = true; Settle();
             var sortControl = detail.FindControl<DetailSortButton>("TrackSort")!;
-            var sortOpener = sortControl.FindControl<Button>("SortOpener")!;
-            sortOpener.Flyout!.ShowAt(sortOpener); Settle();
-            var sortMenu = (StackPanel)((Flyout)sortOpener.Flyout).Content!;
-            using (var menuImage = new RenderTargetBitmap(new PixelSize(172, 220), new Vector(96, 96)))
-            { menuImage.Render(sortMenu); menuImage.Save(Path.Combine(output, "sort-menu-dark.png"), PngBitmapEncoderOptions.Default); }
+            Check(sortControl.IsInline, "album more menu exposes sorting directly");
+            var sortMenu = sortControl.FindControl<StackPanel>("SortOptions")!;
             Click(sortMenu.GetVisualDescendants().OfType<Button>().First(button => button.Tag?.ToString() == "1"));
             Until(() => model.SortIndex == 1 && !model.IsLoading);
-            sortOpener.Flyout.ShowAt(sortOpener); Settle();
             Click(sortMenu.GetVisualDescendants().OfType<Button>().First(button => button.Tag?.ToString() == "False"));
             Until(() => !model.Descending && !model.IsLoading);
-            Check(sortControl.SelectedIndex == 1 && !sortControl.Descending, "compact sort menu binds both field and direction");
+            Check(sortControl.SelectedIndex == 1 && !sortControl.Descending, "inline sort binds field and direction");
+            moreButton.Flyout.Hide();
             Capture("album-detail-sort-dark.png");
             Until(() => detail.FindControl<Button>("CoverButton")!.IsEnabled);
             Click(detail.FindControl<Button>("CoverButton")!); Capture("album-cover-preview.png");
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Settle();
             Check(!detail.FindControl<Grid>("CoverPreview")!.IsVisible && wall.GetVisualDescendants().OfType<AlbumDetailView>().Any(), "Escape closes cover preview before navigating back");
             window.Width = 800; Settle();
-            Check(detail.FindControl<Border>("Facts")!.IsVisible && Grid.GetRow(detail.FindControl<Border>("Facts")!) == 1, "narrow layout preserves rating and facts");
+            Check(detail.FindControl<Border>("Facts")!.IsVisible && Grid.GetRow(detail.FindControl<Border>("Facts")!) == 2, "narrow layout preserves rating and facts");
             Capture("album-detail-narrow-dark.png");
             shell.IsDark = false; Capture("album-detail-narrow-light.png");
             window.Width = 1440; Settle();
             Click(detail.FindControl<Button>("ArtistLink")!);
             Until(() => wall.GetVisualDescendants().OfType<ArtistDetailView>().Any());
+            Check(wall.Margin == new Thickness(42, 24, 42, 0), "leaving album detail restores the browse inset");
             var artist = wall.GetVisualDescendants().OfType<ArtistDetailView>().Single();
             var artistModel = (ArtistDetailViewModel)artist.DataContext!;
             Until(() => artistModel.Tracks.Count == 200 && !artistModel.IsLoading);
@@ -152,7 +197,7 @@ internal static class DetailUiSmoke
             else bitmap.Render(control);
             bitmap.Save(Path.Combine(output, name), PngBitmapEncoderOptions.Default);
         }
-        void Until(Func<bool> ready) { while (!ready()) { if (clock.Elapsed.TotalSeconds > 25) throw new TimeoutException("detail smoke"); Settle(); Thread.Sleep(2); } Settle(); }
+        void Until(Func<bool> ready) { var waiting = Stopwatch.StartNew(); while (!ready()) { if (waiting.Elapsed.TotalSeconds > 10) throw new TimeoutException("detail smoke"); Settle(); Thread.Sleep(2); } Settle(); }
         void Wait(Task task) { Until(() => task.IsCompleted); task.GetAwaiter().GetResult(); }
         void Seed(LibraryDatabase db, string root)
         {
@@ -166,6 +211,8 @@ internal static class DetailUiSmoke
             }
             File.WriteAllText(Path.Combine(media, "album.txt"), "星际旅程的本地专辑介绍。");
             File.WriteAllText(Path.Combine(media, "booklet.txt"), "专辑内页");
+            Directory.CreateDirectory(Path.Combine(media, "Scans"));
+            File.Copy(Path.Combine(media, "cover.png"), Path.Combine(media, "Scans", "booklet-01.png"), true);
             var begin = db.BeginScanAsync(media, false, CancellationToken.None); Wait(begin); var job = begin.Result;
             for (var offset = 0; offset < 451; offset += 200)
             {

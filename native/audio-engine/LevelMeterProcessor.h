@@ -1,6 +1,7 @@
 #pragma once
 
 #include "buffer.h"
+#include "DspMeasurement.h"
 
 #include <array>
 #include <atomic>
@@ -19,6 +20,7 @@ constexpr float levelMeterMinDb = -60.0f;
 constexpr size_t levelMeterMaxChannels = 32;
 constexpr size_t levelMeterVisualSpectrumBucketCount = 128;
 constexpr size_t levelMeterSpectrumWindowSampleCount = 2048;
+constexpr size_t levelMeterVisualWaveformSampleCount = levelMeterSpectrumWindowSampleCount;
 
 struct LevelMeterSnapshot
 {
@@ -26,7 +28,10 @@ struct LevelMeterSnapshot
     std::vector<float> rmsDb;
     std::vector<float> visualSpectrum;
     bool visualSpectrumReady = false;
+    std::vector<float> visualWaveform;
+    double visualWaveformSampleRate = 0.0;
     double timestampMs = 0.0;
+    DspMeasurement dsp;
 };
 
 class LevelMeterProcessor
@@ -44,7 +49,8 @@ public:
 
     void prepare(double sampleRate, int maximumBlockSize, int channelCount);
     void reset();
-    void processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples) noexcept;
+    template <typename Sample>
+    void processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples) noexcept;
 
     void setIntervalMs(int ms);
     void setVisualSpectrumEnabled(bool enabled);
@@ -52,6 +58,7 @@ public:
     int getIntervalMs() const;
     bool isVisualSpectrumEnabled() const;
     bool isEnabled() const;
+    DspMeasurementStore dspMeasurements;
 
 #if defined(ECHO_AUDIO_ENGINE_TESTS) && ECHO_AUDIO_ENGINE_TESTS
     uint64_t getDroppedSnapshotCountForTests() const noexcept
@@ -73,6 +80,8 @@ public:
 #endif
 
 private:
+    friend struct DspPreparedRuntime;
+    friend class DspPreparedHandoff;
     static constexpr size_t mailboxSlotCount = 3;
     static constexpr uint64_t realtimeEntryOpenBit = uint64_t { 1 } << 63;
     static constexpr uint64_t realtimeEntryCountMask = realtimeEntryOpenBit - 1;
@@ -109,7 +118,8 @@ private:
 
     static float sanitizeDb(float db);
     static float sanitize(float value);
-    void processBlockRealtime(echo::FloatAudioBuffer& buffer, int startSample, int numSamples) noexcept;
+    template <typename Sample>
+    void processBlockRealtime(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples) noexcept;
     bool tryEnterRealtime() noexcept;
     void leaveRealtime() noexcept;
     void closeRealtimeEntry() noexcept;

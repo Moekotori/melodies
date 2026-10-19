@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SdmExtraLoop.h"
+#include "SdmClampCounts.h"
 #include "SdmPreModulator.h"
 
 #include <array>
@@ -26,6 +27,7 @@ public:
     void reset();
     bool active() const noexcept { return mode_ != PcmDitherMode::Off; }
     void process(float* interleaved, size_t sampleCount);
+    double processSample(double sample, int channel);
     void process(std::vector<float>& interleaved);
 
 private:
@@ -54,23 +56,27 @@ public:
     bool active() const noexcept { return !stages_.empty(); }
     uint64_t estimatedMacsPerInputFrame() const noexcept;
     std::vector<float> process(const float* interleaved, int frames);
+    template <typename Sample>
+    std::vector<double> processDouble(const Sample* interleaved, int frames);
     void copyHistory(std::vector<std::vector<float>>& histories) const;
+    void copyHistory(std::vector<std::vector<double>>& histories) const;
     bool restoreHistory(const std::vector<std::vector<float>>& histories);
+    bool restoreHistory(const std::vector<std::vector<double>>& histories);
 
 private:
     struct PhaseTap {
         size_t delayFrames = 0;
-        float coefficient = 0.0f;
+        double coefficient = 0.0f;
     };
 
     struct Stage {
         int upsampleFactor = 1;
         size_t historyFrames = 0;
         std::vector<std::vector<PhaseTap>> phases;
-        std::vector<float> history;
+        std::vector<double> history;
     };
 
-    std::vector<float> processStage(Stage& stage, const std::vector<float>& input);
+    std::vector<double> processStage(Stage& stage, const std::vector<double>& input);
 
     int channels_ = 2;
     std::vector<Stage> stages_;
@@ -113,8 +119,8 @@ struct SdmProcessorConfig {
     double stabilityLimit = 3.25;
     double ntfPeakGain = 1.5;
     double profileHeadroomGain = 0.7079457843841379;
-    double idleLockThreshold = 0.0000001;
-    double idleUnlockThreshold = 0.000002;
+    double idleLockThreshold = 0.0;
+    double idleUnlockThreshold = 0.0;
     double feedbackStateLimit = 4.0;
     int preModulatorUpsampleFactor = 1;
     int preModulatorDelayBits = 0;
@@ -147,7 +153,7 @@ struct SdmProcessorState {
     std::vector<uint32_t> ditherState;
     std::vector<uint32_t> idleRunFrames;
     std::vector<uint8_t> idleLocked;
-    std::vector<float> previousSamples;
+    std::vector<double> previousSamples;
     std::vector<double> adaptiveEnvelope;
     // Adaptive v5 relaxed-set feedback history (channels x order); empty for
     // every profile without the envelope brake.
@@ -156,6 +162,7 @@ struct SdmProcessorState {
     std::vector<double> preModulatorHistory;
     double peakFeedbackState = 0.0;
     uint64_t stabilityRecoveryCount = 0;
+    SdmClampCounts clampCounts;
     uint64_t dopFrameIndex = 0;
 };
 
@@ -207,7 +214,11 @@ public:
     }
     int preModulatorTailTransportFrames() const noexcept
     {
-        return (preModulatorDelayBits() * 2 + sdmBitsPerTransportSample - 1)
+        // Minimum-phase peak delay does not describe FIR support. The
+        // polyphase bank needs its complete input history after EOF/seek.
+        if (ultimatePreModulator_.active())
+            return ultimatePreModulator_.tailTransportFrames();
+        return (preModulator_.delayBits() * 2 + sdmBitsPerTransportSample - 1)
             / sdmBitsPerTransportSample;
     }
     bool adaptiveLoopGainEnabled() const noexcept { return adaptiveLoopGainEnabled_; }
@@ -222,11 +233,14 @@ public:
     double adaptiveRelaxedNtfPeakGain() const noexcept { return adaptiveRelaxedNtfPeakGain_; }
     double peakFeedbackState() const noexcept { return peakFeedbackState_; }
     uint64_t stabilityRecoveryCount() const noexcept { return stabilityRecoveryCount_; }
+    SdmClampCounts clampCounts() const noexcept;
     SdmProcessorConfig configuration() const;
     SdmProcessorState state() const;
     bool restoreState(const SdmProcessorState& state);
-    std::vector<uint32_t> processDop(const float* interleaved, int frames);
-    std::vector<uint8_t> processNativeDsd(const float* interleaved, int frames);
+    template <typename Sample>
+    std::vector<uint32_t> processDop(const Sample* interleaved, int frames);
+    template <typename Sample>
+    std::vector<uint8_t> processNativeDsd(const Sample* interleaved, int frames);
 
 private:
     class StereoWorker;
@@ -237,7 +251,7 @@ private:
         uint32_t ditherState = 0;
         uint32_t idleRunFrames = 0;
         uint8_t idleLocked = 0;
-        float previousSample = 0.0f;
+        double previousSample = 0.0f;
         double adaptiveEnvelope = 0.0;
         // Adaptive v5: feedback history of the relaxed pole set. It runs as
         // a second time-invariant error-feedback recursion on the same
@@ -245,10 +259,11 @@ private:
         // at the injection point.
         std::array<double, 8> relaxedFeedbackHistory {};
         double ecCorrelatedError = 0.0;
+        SdmClampCounts clampCounts;
     };
     BytePair modulateSample(
         int channel,
-        float sample,
+        double sample,
         double& blockPeakFeedbackState,
         uint64_t& blockStabilityRecoveryCount);
     double advanceProtectedGain();
