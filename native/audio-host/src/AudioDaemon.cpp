@@ -1,4 +1,6 @@
 #include "AudioDaemon.h"
+#include "../../audio-engine/DspMeasurementJson.h"
+#include "automix-alpha/AlphaProtocol.h"
 #include "WorkshopTransitionWindow.h"
 #include "NativePcmChannelPolicy.h"
 #include "AutomixTempoProcessor.h"
@@ -238,7 +240,7 @@ bool parseInputSource(
     rangeStartSeconds = 0.0;
     rangeEndSeconds.reset();
     if (source.contains("range")) {
-        if (http || !source["range"].is_object()) {
+        if (!source["range"].is_object()) {
             error = "invalid source range";
             return false;
         }
@@ -442,8 +444,8 @@ void AudioDaemon::initialize()
 
     echo::JsonRpcProtocol::setQueueSetCallback(
         [this](const nlohmann::json& items, const std::string& repeatMode, uint64_t revision,
-               const std::string& currentItemId) -> bool {
-            return onQueueSet(items, repeatMode, revision, currentItemId);
+               const std::string& currentItemId, uint64_t cursorOperationId) -> bool {
+            return onQueueSet(items, repeatMode, revision, currentItemId, cursorOperationId);
         });
 
     echo::JsonRpcProtocol::setQueueClearCallback(
@@ -838,6 +840,8 @@ bool AudioDaemon::onPause(bool pause, uint64_t expectedOperationId)
 
     const uint64_t generation = source_.generation();
     const uint64_t operationId = operationId_.load(std::memory_order_acquire);
+    if (operationId == failedSeekOperationId_)
+        return false;
     if (source_.armInitialPlayGate
         && (!source_.initialPlayGateArmed || !source_.initialPlayGateArmed(generation)))
         source_.armInitialPlayGate(operationId);
@@ -957,6 +961,12 @@ bool AudioDaemon::onSeek(double positionSeconds, nlohmann::json& result, uint64_
     if (expectedOperationId != 0
         && operationId_.load(std::memory_order_acquire) != expectedOperationId)
         return false;
+    return seekLocked(positionSeconds, result);
+}
+
+bool AudioDaemon::seekLocked(double positionSeconds, nlohmann::json& result,
+                             bool allowRecovery, bool preserveOperationId)
+{
     if (!mixSourceB_.empty())
     {
         const auto a = currentFilePath_;
@@ -967,29 +977,47 @@ bool AudioDaemon::onSeek(double positionSeconds, nlohmann::json& result, uint64_
         source_.replaceBufferedAudio(nullptr, 0, paused_);
         return openDualTrackMixLocked(a, b, sampleRate_, positionSeconds, mixBalance_, operation, result);
     }
-    stopInitialPlayGateWaiter();
-    pendingQueueAdvance_.reset();
-    const uint64_t operationId = operationId_.fetch_add(1, std::memory_order_acq_rel) + 1;
-    result["operationId"] = operationId;
-    stopProducersLocked();
-    positionFrameOffset_.store(0, std::memory_order_release);
     const double playbackTempoRatio = playbackTempoRatio_.load(std::memory_order_acquire);
-    positionFrameScale_.store(playbackTempoRatio, std::memory_order_release);
-    positionUsesDeviceClock_.store(
-        std::abs(playbackTempoRatio - 1.0) > WsolaTempoProcessor::unityRatioEpsilon,
-        std::memory_order_release);
-    positionTempoRampFrames_.store(0, std::memory_order_release);
 
     if (currentFilePath_.empty()) return false;
     std::string seekFile = currentFilePath_;
     const double logicalPositionSeconds = normalizeStartSeconds(positionSeconds, currentSourceRangeDurationSeconds_);
     result["positionSeconds"] = logicalPositionSeconds;
-    listeningStartSeconds_.store(logicalPositionSeconds, std::memory_order_release);
     const double physicalPositionSeconds = currentSourceRangeStartSeconds_ + logicalPositionSeconds;
     const double physicalRangeEndSeconds = currentSourceRangeStartSeconds_ + currentSourceRangeDurationSeconds_;
     const int requestedPrerollFrames = source_.seekPrerollFrames
         ? std::max(0, source_.seekPrerollFrames())
         : 0;
+    // Prepare the replacement before invalidating the live operation. A
+    // decoder open/read failure must leave the caller's operation id valid.
+    const uint64_t previousOperationId = operationId_.load(std::memory_order_acquire);
+    uint64_t operationId = previousOperationId;
+    double previousMediaPosition = listeningStartSeconds_.load(std::memory_order_acquire);
+    const auto commitSeek = [&] {
+        if (source_.playbackClockFrames)
+        {
+            const auto [sourceFrames, outputFrames] = source_.playbackClockFrames();
+            previousMediaPosition = listeningMediaPosition(sourceFrames, outputFrames, sampleRate_);
+        }
+        if (preserveOperationId)
+            previousMediaPosition = logicalPositionSeconds;
+        stopInitialPlayGateWaiter();
+        pendingQueueAdvance_.reset();
+        if (!preserveOperationId)
+            operationId = operationId_.fetch_add(1, std::memory_order_acq_rel) + 1;
+        result["operationId"] = operationId;
+        stopProducersLocked();
+    };
+    const auto commitSeekClock = [&] {
+        positionFrameOffset_.store(0, std::memory_order_release);
+        positionFrameScale_.store(playbackTempoRatio, std::memory_order_release);
+        positionUsesDeviceClock_.store(
+            std::abs(playbackTempoRatio - 1.0) > WsolaTempoProcessor::unityRatioEpsilon,
+            std::memory_order_release);
+        positionTempoRampFrames_.store(0, std::memory_order_release);
+        listeningStartSeconds_.store(logicalPositionSeconds, std::memory_order_release);
+        failedSeekOperationId_ = UINT64_MAX;
+    };
     const auto replaceSeekBuffer = [this](
         const float* samples,
         int frames,
@@ -1055,12 +1083,16 @@ bool AudioDaemon::onSeek(double positionSeconds, nlohmann::json& result, uint64_
 
     if (!cachedPrimeSamples.empty() && cachedChannels > 0) {
         const int primeFrames = static_cast<int>(cachedPrimeSamples.size()) / cachedChannels;
+        commitSeek();
         const int replacedFrames = replaceSeekBuffer(
             cachedPrimeSamples.data(),
             primeFrames,
             cachedChannels,
             cachedPrerollFrames);
-        if (replacedFrames <= 0) return false;
+        if (replacedFrames <= 0) {
+            return recoverFailedSeek(previousMediaPosition, previousOperationId, allowRecovery, result);
+        }
+        commitSeekClock();
         const uint64_t gen = source_.generation();
         cacheProducer_.start({std::move(cachedSamples), cachedChannels, cachedContinuationSample},
                              operationId, gen);
@@ -1126,12 +1158,17 @@ bool AudioDaemon::onSeek(double positionSeconds, nlohmann::json& result, uint64_
                 (physicalPositionSeconds - seekDecodeStartSeconds)
                 * static_cast<double>(primeSampleRate))))
         : 0;
+    if (primeFrames <= actualPrerollFrames) return false;
+    commitSeek();
     const int replacedFrames = replaceSeekBuffer(
         primeSamples.data(),
         primeFrames,
         primeChannels,
         actualPrerollFrames);
-    if (replacedFrames <= 0) return false;
+    if (replacedFrames <= 0) {
+        return recoverFailedSeek(previousMediaPosition, previousOperationId, allowRecovery, result);
+    }
+    commitSeekClock();
     activeStream_ = seekStream;
     const int continuationSampleRate = primeSampleRate > 0 ? primeSampleRate : sampleRate_;
     const double continuationSeconds = physicalPositionSeconds
@@ -1227,17 +1264,23 @@ bool AudioDaemon::onStop(nlohmann::json& result, uint64_t expectedOperationId)
     positionFrameScale_.store(1.0, std::memory_order_release);
     positionUsesDeviceClock_.store(false, std::memory_order_release);
     positionTempoRampFrames_.store(0, std::memory_order_release);
-    if (shouldDrain && source_.allowTailDrainAfterStop)
-        source_.allowTailDrainAfterStop();
-    source_.markInputEnded();
-
-    bool drained = !shouldDrain;
     const auto drainStartedAt = std::chrono::steady_clock::now();
     const auto drainDeadline = drainStartedAt + std::chrono::milliseconds(750);
-    while (shouldDrain && !source_.isDrained() && std::chrono::steady_clock::now() < drainDeadline)
+    if (shouldDrain && source_.allowTailDrainAfterStop)
+        source_.allowTailDrainAfterStop();
+    bool tailCommitted = true;
+    if (shouldDrain && source_.markInputEndedUntil)
+        tailCommitted = source_.markInputEndedUntil(drainDeadline);
+    else
+        source_.markInputEnded();
+
+    bool drained = !shouldDrain;
+    while (shouldDrain && tailCommitted && !source_.isDrained() && std::chrono::steady_clock::now() < drainDeadline)
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     if (shouldDrain)
-        drained = source_.isDrained();
+        drained = tailCommitted && source_.isDrained();
+    if (!drained)
+        source_.requestStop();
     result["drained"] = drained;
     result["drainWaitMs"] = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - drainStartedAt).count();
@@ -1687,6 +1730,11 @@ bool AudioDaemon::onAutomixPrepare(const nlohmann::json& request, nlohmann::json
             return false;
         }
     }
+    echo::automix_alpha::Parameters alpha;
+    if (!echo::automix_alpha::parseParameters(plan, alpha)) {
+        result["error"] = "invalid automix Alpha DSP parameters";
+        return false;
+    }
     const uint64_t deckLease = source_.prepareAutomixDeckFrames
         ? source_.prepareAutomixDeckFrames(
             fadeStartFrame,
@@ -1703,7 +1751,7 @@ bool AudioDaemon::onAutomixPrepare(const nlohmann::json& request, nlohmann::json
             plan.value("echoFeedback", 0.45),
             plan.value("vocalExitStartProgress", 0.55),
             plan.value("vocalEntryStartProgress", 0.70),
-            handoffSchedule)
+            handoffSchedule, alpha)
         : 0;
     if (deckLease == 0) {
         result["error"] = "automix pipeline unavailable";
@@ -1886,6 +1934,7 @@ bool AudioDaemon::onAutomixPrepare(const nlohmann::json& request, nlohmann::json
     result = {
         {"acknowledged", true},
         {"state", "armed"},
+        {"alphaDspAcknowledged", alpha.enabled},
         {"planId", planId},
         {"operationId", currentOperationId},
         {"reason", nullptr},
@@ -2076,6 +2125,11 @@ void AudioDaemon::queueLevelMeter(const echo::LevelMeterSnapshot& snapshot) noex
         pendingLevelMeterSpectrum_[bucket].store(snapshot.visualSpectrum[bucket], std::memory_order_relaxed);
     pendingLevelMeterChannels_.store(channels, std::memory_order_relaxed);
     pendingLevelMeterSpectrumBuckets_.store(spectrumBuckets, std::memory_order_relaxed);
+    const size_t waveformSamples = std::min(snapshot.visualWaveform.size(), pendingLevelMeterWaveform_.size());
+    for (size_t sample = 0; sample < waveformSamples; ++sample)
+        pendingLevelMeterWaveform_[sample].store(snapshot.visualWaveform[sample], std::memory_order_relaxed);
+    pendingLevelMeterWaveformSamples_.store(waveformSamples, std::memory_order_relaxed);
+    pendingLevelMeterWaveformSampleRate_.store(snapshot.visualWaveformSampleRate, std::memory_order_relaxed);
     pendingLevelMeterTimestampMs_.store(snapshot.timestampMs, std::memory_order_relaxed);
     pendingLevelMeterOperationId_.store(operationId_.load(std::memory_order_relaxed), std::memory_order_relaxed);
     pendingLevelMeterSequence_.store(writeSequence + 1, std::memory_order_seq_cst);
@@ -2104,6 +2158,12 @@ void AudioDaemon::flushLevelMeter()
     for (size_t bucket = 0; bucket < spectrumBuckets; ++bucket)
         visualSpectrum[bucket] = pendingLevelMeterSpectrum_[bucket].load(std::memory_order_relaxed);
     const double timestampMs = pendingLevelMeterTimestampMs_.load(std::memory_order_relaxed);
+    const size_t waveformSamples = std::min(
+        pendingLevelMeterWaveformSamples_.load(std::memory_order_relaxed), pendingLevelMeterWaveform_.size());
+    std::vector<float> visualWaveform(waveformSamples);
+    for (size_t sample = 0; sample < waveformSamples; ++sample)
+        visualWaveform[sample] = pendingLevelMeterWaveform_[sample].load(std::memory_order_relaxed);
+    const double waveformSampleRate = pendingLevelMeterWaveformSampleRate_.load(std::memory_order_relaxed);
     const uint64_t operationId = pendingLevelMeterOperationId_.load(std::memory_order_relaxed);
     const uint64_t sequenceAfter = pendingLevelMeterSequence_.load(std::memory_order_seq_cst);
     if (channels == 0 || sequenceAfter != sequenceBefore || (sequenceAfter & 1u) != 0)
@@ -2118,8 +2178,15 @@ void AudioDaemon::flushLevelMeter()
     };
     if (! visualSpectrum.empty())
         params["visualSpectrum"] = visualSpectrum;
+    if (! visualWaveform.empty())
+    {
+        params["visualWaveform"] = visualWaveform;
+        params["visualWaveformSampleRate"] = waveformSampleRate;
+    }
     if (source_.compressorTelemetry)
         params["compressor"] = source_.compressorTelemetry();
+    if (source_.levelMeterMeasurement)
+        params["dspMeasurement"] = echo::dspMeasurementJson(source_.levelMeterMeasurement());
     const std::string notification = echo::JsonRpcProtocol::createJsonRpcNotification(
         "audio.levelMeter", params) + "\n";
     rpcOutputWriter_->enqueue(notification, RpcOutputWriter::MessageClass::LevelMeter);
@@ -2563,7 +2630,8 @@ bool AudioDaemon::onQueueSet(
     const nlohmann::json& items,
     const std::string& repeatMode,
     uint64_t revision,
-    const std::string& currentItemId)
+    const std::string& currentItemId,
+    uint64_t cursorOperationId)
 {
     std::vector<QueueItem> nextQueue;
 
@@ -2657,6 +2725,7 @@ bool AudioDaemon::onQueueSet(
         // operation ownership. Whichever acquires this lock first becomes the
         // only externally visible truth.
         std::lock_guard<std::mutex> operationLock(operationMutex_);
+        bool preservePendingAdvance = false;
         {
             std::lock_guard<std::mutex> lock(queueMutex_);
             if (revision < queueRevision_) {
@@ -2665,6 +2734,55 @@ bool AudioDaemon::onQueueSet(
             if (revision == queueRevision_) {
                 return true;
             }
+            // The host may have advanced after this snapshot left the renderer.
+            // Queue edits must preserve the audible occurrence, including when
+            // the same source appears multiple times. A stopped operation may
+            // still accept the next explicit playback request's queue intent.
+            const bool ownsPlayback = !currentFilePath_.empty()
+                && autoAdvanceSuppressedOperationId_.load(std::memory_order_acquire)
+                    != operationId_.load(std::memory_order_acquire);
+            const auto matchesSource = [&](const QueueItem& item) {
+                const bool ranged = item.sourceRangeStartSeconds > 0.0 || item.sourceRangeEndSeconds.has_value();
+                return item.sourceFilePath == currentFilePath_
+                    && ranged == currentSourceRangeActive_
+                    && (!ranged || (
+                        std::abs(item.sourceRangeStartSeconds - currentSourceRangeStartSeconds_) < 0.000001
+                        && std::abs(item.sourceRangeEndSeconds.value_or(
+                            currentSourceRangeStartSeconds_ + currentSourceRangeDurationSeconds_)
+                            - currentSourceRangeStartSeconds_ - currentSourceRangeDurationSeconds_) < 0.000001));
+            };
+            std::string confirmedItemId;
+            if (ownsPlayback && currentQueueIndex_ >= 0
+                && currentQueueIndex_ < static_cast<int>(queue_.size())
+                && matchesSource(queue_[currentQueueIndex_])) {
+                confirmedItemId = queue_[currentQueueIndex_].itemId;
+            }
+            const auto confirmed = std::find_if(nextQueue.begin(), nextQueue.end(), [&](const QueueItem& item) {
+                return !confirmedItemId.empty() && item.itemId == confirmedItemId && matchesSource(item);
+            });
+            if (!audibleAutomixCommitted && pendingQueueAdvance_ && confirmed != nextQueue.end()
+                && pendingQueueAdvance_->targetOperationId == operationId_.load(std::memory_order_acquire)
+                && confirmed->itemId == pendingQueueAdvance_->payload.value("nextItemId", "")) {
+                const auto& previous = queue_[currentQueueIndex_];
+                // A cursor/metadata edit must not stop the next operation that
+                // is already open. Preserve only that exact source occurrence;
+                // changing its decode intent still cancels the pending commit.
+                preservePendingAdvance = confirmed->trackId == previous.trackId
+                    && confirmed->filePath == previous.filePath
+                    && confirmed->targetSampleRate == previous.targetSampleRate
+                    && confirmed->startSeconds == previous.startSeconds
+                    && confirmed->sourceRangeStartSeconds == previous.sourceRangeStartSeconds
+                    && confirmed->sourceRangeEndSeconds == previous.sourceRangeEndSeconds
+                    && confirmed->inputOptions.network == previous.inputOptions.network
+                    && confirmed->inputOptions.headers == previous.inputOptions.headers;
+            }
+            // An acknowledged manual open can select another occurrence of
+            // the same file. Only its current operation may bind that cursor;
+            // a snapshot from before an autonomous advance remains stale.
+            const bool bindsCurrentOperation = cursorOperationId != 0
+                && cursorOperationId == operationId_.load(std::memory_order_acquire);
+            const std::string effectiveCurrentItemId = bindsCurrentOperation ? currentItemId
+                : confirmed != nextQueue.end() ? confirmedItemId : currentItemId;
             queue_ = std::move(nextQueue);
             currentQueueIndex_ = -1;
             repeatMode_ = repeatMode == "one" || repeatMode == "all" ? repeatMode : "off";
@@ -2672,14 +2790,27 @@ bool AudioDaemon::onQueueSet(
 
             for (size_t i = 0; i < queue_.size(); i++) {
                 if ((audibleAutomixCommitted && queue_[i].itemId == committedToItemId)
-                    || (!audibleAutomixCommitted && !currentItemId.empty() && queue_[i].itemId == currentItemId)
-                    || (currentItemId.empty() && !currentFilePath_.empty() && queue_[i].filePath == currentFilePath_)) {
+                    || (!audibleAutomixCommitted && !effectiveCurrentItemId.empty()
+                        && queue_[i].itemId == effectiveCurrentItemId && (!ownsPlayback || matchesSource(queue_[i])))
+                    || (effectiveCurrentItemId.empty() && !currentFilePath_.empty() && matchesSource(queue_[i]))) {
                         currentQueueIndex_ = static_cast<int>(i);
                         break;
                 }
             }
+            if (preservePendingAdvance) {
+                const auto& target = queue_[currentQueueIndex_];
+                auto& payload = pendingQueueAdvance_->payload;
+                payload["queueRevision"] = queueRevision_;
+                payload["queueIndex"] = currentQueueIndex_;
+                payload["nextMetadata"] = {
+                    {"title", target.title}, {"artist", target.artist},
+                    {"album", target.album}, {"albumArtist", target.albumArtist},
+                    {"coverUrl", target.coverUrl},
+                };
+            }
         }
-        cancelledPendingFromOperationId = cancelPendingQueueAdvanceLocked();
+        if (!preservePendingAdvance)
+            cancelledPendingFromOperationId = cancelPendingQueueAdvanceLocked();
     }
     if (cancelledPendingFromOperationId != 0)
     {
@@ -2955,6 +3086,14 @@ bool AudioDaemon::tryAutoAdvance(uint64_t completedOperationId)
         nextResult["queueIndex"] = nextIdx;
         nextResult["nextItemId"] = next.itemId;
         nextResult["nextTrackId"] = next.trackId;
+        if (next.inputOptions.network) {
+            nextResult["sourceUri"] = next.sourceFilePath;
+            if (next.sourceRangeStartSeconds > 0.0 || next.sourceRangeEndSeconds.has_value()) {
+                nextResult["sourceRange"] = {{"startSeconds", next.sourceRangeStartSeconds},
+                    {"endSeconds", next.sourceRangeEndSeconds.has_value()
+                        ? nlohmann::json(*next.sourceRangeEndSeconds) : nlohmann::json(nullptr)}};
+            }
+        }
         nextResult["nextMetadata"] = {
             {"title", next.title},
             {"artist", next.artist},
@@ -3080,6 +3219,10 @@ void AudioDaemon::emitEndedWithAdvance(const nlohmann::json& nextTrackInfo)
         endedMsg["nextChannels"] = nextTrackInfo["channels"];
     if (nextTrackInfo.contains("durationSeconds"))
         endedMsg["nextDurationSeconds"] = nextTrackInfo["durationSeconds"];
+    if (nextTrackInfo.contains("sourceUri"))
+        endedMsg["nextSourceUri"] = nextTrackInfo["sourceUri"];
+    if (nextTrackInfo.contains("sourceRange"))
+        endedMsg["nextSourceRange"] = nextTrackInfo["sourceRange"];
     if (nextTrackInfo.contains("startSeconds"))
         endedMsg["nextStartSeconds"] = nextTrackInfo["startSeconds"];
     if (nextTrackInfo.contains("codec"))

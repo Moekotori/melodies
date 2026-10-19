@@ -19,7 +19,7 @@ public sealed partial class ConnectMobileViewModel : ObservableObject
         this.report = report;
         Card = new ConnectServiceCard
         {
-            Kicker = "ECHO Link", Title = "手机遥控", GuideTitle = "配对这台 ECHO",
+            Kicker = "melodies Link", Title = "手机遥控", GuideTitle = "配对这台 melodies",
             PrimaryCommand = ToggleCommand,
             Steps =
             [

@@ -8,7 +8,7 @@ public static class SettingsTransfer
     public static async Task<DesktopPreferences> ReadAsync(string path, CancellationToken token)
     {
         await using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous);
-        if (input.Length > 524288) throw new InvalidDataException("设置文件超过 512 KiB。请选择 ECHO 导出的设置 JSON。");
+        if (input.Length > 524288) throw new InvalidDataException("设置文件超过 512 KiB。请选择 melodies 导出的设置 JSON。");
         var settings = await JsonSerializer.DeserializeAsync(input, DesktopPreferencesJsonContext.Default.DesktopPreferences, token).ConfigureAwait(false);
         if (settings is null || settings.Version != 1) throw new InvalidDataException("设置版本不受支持。");
         return settings;

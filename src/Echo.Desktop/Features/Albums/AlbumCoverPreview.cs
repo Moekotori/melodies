@@ -10,6 +10,7 @@ public partial class AlbumDetailView
     private void OnPreviewCover(object? sender, RoutedEventArgs args)
     {
         if (_closed || _lease?.Image is null) return;
+        ClosePreview(); PreviewTitle.Text = _model.Album.Title;
         _coverReturnFocus = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
         // The existing bounded cover lease is shared; opening the overlay allocates no second bitmap.
         PreviewImage.Source = _lease.Image; CoverPreview.IsVisible = true;
@@ -28,6 +29,7 @@ public partial class AlbumDetailView
     {
         if (!CoverPreview.IsVisible) return;
         CoverPreview.IsVisible = false; PreviewImage.Source = null;
+        _previewLease?.Dispose(); _previewLease = null;
         if (!_closed) _coverReturnFocus?.Focus();
         _coverReturnFocus = null;
     }

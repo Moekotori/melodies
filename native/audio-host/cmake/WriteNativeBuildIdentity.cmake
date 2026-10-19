@@ -1,0 +1,58 @@
+cmake_minimum_required(VERSION 3.24)
+if(NOT MODE MATCHES "^(GENERATE|VERIFY)$" OR NOT IS_DIRECTORY "${ROOT}" OR NOT IS_DIRECTORY "${OUTPUT_DIR}")
+  message(FATAL_ERROR "Invalid native identity invocation")
+endif()
+cmake_path(ABSOLUTE_PATH ROOT NORMALIZE)
+# Production source and vendored headers only; build trees, tests and lab
+# reports never enter the production identity. Paths are repository-relative.
+file(GLOB_RECURSE inputs RELATIVE "${ROOT}"
+  "${ROOT}/native/audio-host/src/*.cpp" "${ROOT}/native/audio-host/src/*.cu"
+  "${ROOT}/native/audio-host/src/*.h" "${ROOT}/native/audio-host/src/*.hpp"
+  "${ROOT}/native/audio-host/third_party/*.cpp" "${ROOT}/native/audio-host/third_party/*.h"
+  "${ROOT}/native/audio-engine/*.cpp" "${ROOT}/native/audio-engine/*.h" "${ROOT}/native/audio-engine/*.hpp"
+  "${ROOT}/native/audio-host/cmake/*.cmake")
+list(APPEND inputs "native/audio-host/CMakeLists.txt")
+list(SORT inputs)
+set(manifest "echo-native-production-source/1\n")
+foreach(input IN LISTS inputs)
+  file(SHA256 "${ROOT}/${input}" digest)
+  string(APPEND manifest "${input}=${digest}\n")
+endforeach()
+string(SHA256 source_digest "${manifest}")
+file(STRINGS "${OUTPUT_DIR}/configuration-languages.txt" languages)
+set(configuration_manifest "echo-native-configuration/1\n")
+foreach(language IN LISTS languages)
+  file(SHA256 "${OUTPUT_DIR}/configuration-${language}.txt" digest)
+  string(APPEND configuration_manifest "${language}=${digest}\n")
+endforeach()
+string(SHA256 configuration_digest "${configuration_manifest}")
+file(READ "${OUTPUT_DIR}/configuration-CXX.txt" configuration)
+if(NOT configuration MATCHES "\ncudaCompiled=([01])\n")
+  message(FATAL_ERROR "Native CUDA compile identity is missing")
+endif()
+set(cuda_compiled "${CMAKE_MATCH_1}")
+string(SHA256 build_id "echo-native-build/1\n${source_digest}\n${configuration_digest}\n")
+set(header "#pragma once\n#define ECHO_NATIVE_BUILD_ID \"${build_id}\"\n#define ECHO_NATIVE_SOURCE_DIGEST \"${source_digest}\"\n#define ECHO_NATIVE_CONFIGURATION_DIGEST \"${configuration_digest}\"\n#define ECHO_NATIVE_CUDA_DSP_COMPILED ${cuda_compiled}\n")
+if(MODE STREQUAL "VERIFY")
+  file(READ "${OUTPUT_DIR}/snapshot-digests.txt" expected)
+  if(NOT expected STREQUAL "${source_digest}\n${configuration_digest}\n")
+    message(FATAL_ERROR "Native source/configuration changed during compilation; discard this build and rebuild from stable inputs")
+  endif()
+  if(DEFINED BINARY)
+    file(SHA256 "${BINARY}" binary_digest)
+    file(WRITE "${OUTPUT_DIR}/receipt-${IMAGE_ROLE}.json"
+      "{\"schemaVersion\":1,\"imageRole\":\"${IMAGE_ROLE}\",\"buildId\":\"${build_id}\",\"sourceDigest\":\"${source_digest}\",\"configurationDigest\":\"${configuration_digest}\",\"artifactSha256\":\"${binary_digest}\"}\n")
+  endif()
+  return()
+endif()
+execute_process(COMMAND "${CMAKE_COMMAND}" -E env GIT_MASTER=1 git -C "${ROOT}" rev-parse HEAD
+  RESULT_VARIABLE revision_result OUTPUT_VARIABLE revision ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT revision_result EQUAL 0 OR NOT revision MATCHES "^[0-9a-f]+$")
+  set(revision "")
+endif()
+string(APPEND header "#define ECHO_NATIVE_SOURCE_REVISION \"${revision}\"\n")
+file(WRITE "${OUTPUT_DIR}/identity-header.tmp" "${header}")
+execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+  "${OUTPUT_DIR}/identity-header.tmp" "${OUTPUT_DIR}/NativeBuildIdentity.generated.h" COMMAND_ERROR_IS_FATAL ANY)
+file(WRITE "${OUTPUT_DIR}/snapshot-digests.txt" "${source_digest}\n${configuration_digest}\n")
+file(WRITE "${OUTPUT_DIR}/source-manifest.txt" "${manifest}")

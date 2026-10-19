@@ -7,17 +7,17 @@ namespace echo
 {
 namespace
 {
-constexpr float maxLinearGain = 16.0f;
+constexpr double maxLinearGain = 16.0;
 } // namespace
 
-float ReplayGainProcessor::dbToLinear(float db)
+double ReplayGainProcessor::dbToLinear(double db)
 {
-    return static_cast<float>(std::pow(10.0, db / 20.0));
+    return static_cast<double>(std::pow(10.0, db / 20.0));
 }
 
-float ReplayGainProcessor::sanitize(float value)
+double ReplayGainProcessor::sanitize(double value)
 {
-    return std::isfinite(value) ? value : 0.0f;
+    return std::isfinite(value) ? value : 0.0;
 }
 
 ReplayGainProcessor::ReplayGainProcessor()
@@ -30,7 +30,7 @@ void ReplayGainProcessor::prepare(double sampleRateIn, int maximumBlockSize, int
     (void) maximumBlockSize;
     (void) channelCount;
 
-    sampleRate = sampleRateIn > 0.0 ? static_cast<float>(sampleRateIn) : 44100.0f;
+    sampleRate = sampleRateIn > 0.0 ? static_cast<double>(sampleRateIn) : 44100.0;
     rampSamples = static_cast<int>(sampleRate * 0.01);
     if (rampSamples < 1)
         rampSamples = 1;
@@ -47,7 +47,8 @@ void ReplayGainProcessor::reset()
     clippingRisk.store(false, std::memory_order_release);
 }
 
-void ReplayGainProcessor::processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples)
+template <typename Sample>
+void ReplayGainProcessor::processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples)
 {
     if (numSamples <= 0)
         return;
@@ -56,9 +57,9 @@ void ReplayGainProcessor::processBlock(echo::FloatAudioBuffer& buffer, int start
     if (ch <= 0)
         return;
 
-    const float target = effectiveTargetDb();
+    const double target = effectiveTargetDb();
 
-    const float targetLinear = dbToLinear(target);
+    const double targetLinear = dbToLinear(target);
     if (targetLinear != rampTargetLinearGain)
     {
         rampStartLinearGain = currentLinearGain;
@@ -72,7 +73,7 @@ void ReplayGainProcessor::processBlock(echo::FloatAudioBuffer& buffer, int start
     {
         if (rampPosition < rampSamples)
         {
-            const float t = static_cast<float>(++rampPosition) / static_cast<float>(rampSamples);
+            const double t = static_cast<double>(++rampPosition) / static_cast<double>(rampSamples);
             currentLinearGain = rampStartLinearGain + (rampTargetLinearGain - rampStartLinearGain) * t;
         }
         else
@@ -80,7 +81,7 @@ void ReplayGainProcessor::processBlock(echo::FloatAudioBuffer& buffer, int start
             currentLinearGain = rampTargetLinearGain;
         }
 
-        const float gain = currentLinearGain;
+        const double gain = currentLinearGain;
 
         for (int channel = 0; channel < ch; ++channel)
         {
@@ -90,17 +91,18 @@ void ReplayGainProcessor::processBlock(echo::FloatAudioBuffer& buffer, int start
 
             samples[sample] = sanitize(samples[sample] * gain);
 
-            if (std::abs(samples[sample]) > 0.98f)
+            if (std::abs(samples[sample]) > 0.98)
                 risk = true;
         }
     }
 
-    appliedGainDb.store(20.0f * std::log10(std::max(1.0e-6f, currentLinearGain)), std::memory_order_release);
+    appliedGainDb.store(20.0 * std::log10(std::max<double>(1.0e-6, currentLinearGain)), std::memory_order_release);
     clippingRisk.store(risk, std::memory_order_release);
 }
 
 void ReplayGainProcessor::setConfig(const ReplayGainConfig& config)
 {
+    std::lock_guard lock(configurationMutex);
     currentConfig = config;
 
     float gainDb = 0.0f;
@@ -112,7 +114,7 @@ void ReplayGainProcessor::setConfig(const ReplayGainConfig& config)
 
     if (config.mode != replayGainModeOff)
         gainDb += config.preampDb;
-    gainDb = std::isfinite(gainDb) ? std::clamp(gainDb, -120.0f, 20.0f * std::log10(maxLinearGain)) : 0.0f;
+    gainDb = std::isfinite(gainDb) ? std::clamp<double>(gainDb, -120.0f, 20.0f * std::log10(maxLinearGain)) : 0.0f;
 
     if (config.mode != replayGainModeOff && config.preventClipping && std::isfinite(config.peak) && config.peak > 0.0f)
     {
@@ -122,7 +124,7 @@ void ReplayGainProcessor::setConfig(const ReplayGainConfig& config)
         {
             const float maxGain = peakCeiling / config.peak;
             const float maxGainDb = 20.0f * std::log10(maxGain);
-            gainDb = std::min(gainDb, maxGainDb);
+            gainDb = std::min<double>(gainDb, maxGainDb);
         }
     }
 
@@ -131,6 +133,7 @@ void ReplayGainProcessor::setConfig(const ReplayGainConfig& config)
 
 ReplayGainConfig ReplayGainProcessor::getConfig() const
 {
+    std::lock_guard lock(configurationMutex);
     ReplayGainConfig config = currentConfig;
     config.mode = currentConfig.mode;
     return config;
@@ -142,7 +145,31 @@ bool ReplayGainProcessor::isActive() const
         || std::abs(appliedGainDb.load(std::memory_order_acquire)) > 0.0001f;
 }
 
-float ReplayGainProcessor::effectiveTargetDb() const
+ReplayGainProcessor::ConfigurationSnapshot ReplayGainProcessor::configurationSnapshot() const
+{
+    std::lock_guard lock(configurationMutex);
+    ConfigurationSnapshot result;
+    result.config = currentConfig;
+    for (size_t index = 0; index < sequenceGains.size(); ++index)
+        result.sequenceGains[index] = sequenceGains[index].load(std::memory_order_acquire);
+    result.sequenceCount = sequenceCount.load(std::memory_order_acquire);
+    result.sequenceIndex = sequenceIndex.load(std::memory_order_acquire);
+    result.trackPreparationRequired = requiresTrackPreparation();
+    return result;
+}
+
+void ReplayGainProcessor::applyConfiguration(const ConfigurationSnapshot& snapshot)
+{
+    setConfig(snapshot.config);
+    std::lock_guard lock(configurationMutex);
+    for (size_t index = 0; index < sequenceGains.size(); ++index)
+        sequenceGains[index].store(snapshot.sequenceGains[index]);
+    sequenceCount.store(snapshot.sequenceCount);
+    sequenceIndex.store(snapshot.sequenceIndex);
+    trackPreparationRequired.store(snapshot.trackPreparationRequired);
+}
+
+double ReplayGainProcessor::effectiveTargetDb() const
 {
     const int index = sequenceIndex.load(std::memory_order_acquire);
     return index >= 0 && index < sequenceCount.load(std::memory_order_acquire)
@@ -162,14 +189,18 @@ bool ReplayGainProcessor::hasClippingRisk() const
 
 void ReplayGainProcessor::setSequenceGains(const std::vector<float>& gains)
 {
-    const size_t count = std::min(gains.size(), sequenceGains.size());
+    std::lock_guard lock(configurationMutex);
+    const size_t count = std::min<double>(gains.size(), sequenceGains.size());
     for (size_t i = 0; i < count; ++i)
-        sequenceGains[i].store(std::isfinite(gains[i]) ? std::clamp(gains[i], -120.0f, 20.0f * std::log10(maxLinearGain)) : 0.0f, std::memory_order_release);
+        sequenceGains[i].store(std::isfinite(gains[i]) ? std::clamp<double>(gains[i], -120.0f, 20.0f * std::log10(maxLinearGain)) : 0.0f, std::memory_order_release);
     sequenceCount.store(static_cast<int>(count), std::memory_order_release);
 }
 
 void ReplayGainProcessor::selectSequenceIndex(int index)
 {
-    sequenceIndex.store(std::clamp(index, 0, 31), std::memory_order_release);
+    sequenceIndex.store(std::clamp<double>(index, 0, 31), std::memory_order_release);
 }
+
+template void ReplayGainProcessor::processBlock<float>(echo::PlanarAudioBuffer<float>&, int, int);
+template void ReplayGainProcessor::processBlock<double>(echo::PlanarAudioBuffer<double>&, int, int);
 } // namespace echo

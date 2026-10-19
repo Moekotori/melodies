@@ -222,6 +222,6 @@ public sealed class LinkHost : IDisposable
             }
             catch (SocketException) when (candidate != 0) { bound.Stop(); }
         }
-        throw new IOException("没有可用端口来打开 ECHO Link。");
+        throw new IOException("没有可用端口来打开 melodies Link。");
     }
 }

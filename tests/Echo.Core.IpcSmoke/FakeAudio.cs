@@ -5,7 +5,7 @@ internal static class FakeAudio
     // A real separate executable speaking the existing native control protocol. No device or audio-quality claims.
     public static async Task RunAsync()
     {
-        Console.WriteLine("{\"ready\":true,\"protocolVersion\":1,\"backendContractVersion\":2,\"capabilities\":{\"hostOwnedLocalPlaybackV1\":true}}");
+        Console.WriteLine("{\"ready\":true,\"protocolVersion\":1,\"backendContractVersion\":2,\"capabilities\":{\"hostOwnedLocalPlaybackV1\":true,\"runtimeDeviceConfigureV1\":true,\"nativeDspV1\":true},\"hostIdentity\":{\"schemaVersion\":1,\"imageRole\":\"echo-audio-host\",\"buildId\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"sourceDigest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"protocolVersion\":1,\"backendContractVersion\":2}}");
         var operation = 0;
         while (await Console.In.ReadLineAsync() is { } line)
         {

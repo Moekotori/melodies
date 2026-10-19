@@ -7,30 +7,30 @@ namespace echo
 {
 namespace
 {
-float clampHeadroomDb(float value)
+double clampHeadroomDb(double value)
 {
-    return std::max(dspHeadroomMinDb, std::min(dspHeadroomMaxDb, value));
+    return std::max<double>(dspHeadroomMinDb, std::min<double>(dspHeadroomMaxDb, value));
 }
 
-float dbToGain(float db)
+double dbToGain(double db)
 {
-    return std::pow(10.0f, db / 20.0f);
+    return std::pow(10.0, db / 20.0);
 }
 
-float moveTowards(float current, float target, float step)
+double moveTowards(double current, double target, double step)
 {
-    if (step == 0.0f)
+    if (step == 0.0)
         return target;
 
-    const float next = current + step;
-    return step > 0.0f ? std::min(next, target) : std::max(next, target);
+    const double next = current + step;
+    return step > 0.0 ? std::min<double>(next, target) : std::max<double>(next, target);
 }
 } // namespace
 
 void DspHeadroomProcessor::prepare(double sampleRate, int maximumBlockSize, int)
 {
     const int smoothingMs = 5;
-    gainSmoothingSamples = std::max(maximumBlockSize, static_cast<int>((sampleRate * smoothingMs) / 1000.0));
+    gainSmoothingSamples = std::max<double>(maximumBlockSize, static_cast<int>((sampleRate * smoothingMs) / 1000.0));
     smoothedHeadroomDb = getHeadroomDb();
     smoothingSamplesRemaining = 0;
     headroomStepDb = 0.0f;
@@ -61,16 +61,17 @@ bool DspHeadroomProcessor::isEnabled() const
     return std::abs(getHeadroomDb()) > 0.001f;
 }
 
-void DspHeadroomProcessor::processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples)
+template <typename Sample>
+void DspHeadroomProcessor::processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples)
 {
-    const float targetHeadroomDb = getHeadroomDb();
-    if (numSamples <= 0 || (std::abs(targetHeadroomDb) <= 0.001f && std::abs(smoothedHeadroomDb) <= 0.001f))
+    const double targetHeadroomDb = getHeadroomDb();
+    if (numSamples <= 0 || (std::abs(targetHeadroomDb) <= 0.001 && std::abs(smoothedHeadroomDb) <= 0.001))
         return;
 
-    if (std::abs(targetHeadroomDb - smoothedHeadroomDb) > 0.001f && smoothingSamplesRemaining <= 0)
+    if (std::abs(targetHeadroomDb - smoothedHeadroomDb) > 0.001 && smoothingSamplesRemaining <= 0)
     {
-        smoothingSamplesRemaining = std::max(1, gainSmoothingSamples);
-        headroomStepDb = (targetHeadroomDb - smoothedHeadroomDb) / static_cast<float>(smoothingSamplesRemaining);
+        smoothingSamplesRemaining = std::max<double>(1, gainSmoothingSamples);
+        headroomStepDb = (targetHeadroomDb - smoothedHeadroomDb) / static_cast<double>(smoothingSamplesRemaining);
     }
 
     const int channelCount = buffer.getNumChannels();
@@ -86,7 +87,7 @@ void DspHeadroomProcessor::processBlock(echo::FloatAudioBuffer& buffer, int star
             smoothedHeadroomDb = targetHeadroomDb;
         }
 
-        const float gain = dbToGain(smoothedHeadroomDb);
+        const double gain = dbToGain(smoothedHeadroomDb);
         for (int channel = 0; channel < channelCount; ++channel)
         {
             auto* samples = buffer.getWritePointer(channel, startSample);
@@ -95,4 +96,7 @@ void DspHeadroomProcessor::processBlock(echo::FloatAudioBuffer& buffer, int star
         }
     }
 }
+
+template void DspHeadroomProcessor::processBlock<float>(echo::PlanarAudioBuffer<float>&, int, int);
+template void DspHeadroomProcessor::processBlock<double>(echo::PlanarAudioBuffer<double>&, int, int);
 } // namespace echo

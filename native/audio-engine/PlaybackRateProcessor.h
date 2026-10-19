@@ -24,6 +24,7 @@ class PlaybackRateProcessor
 public:
     struct Configuration
     {
+        bool operator==(const Configuration&) const = default;
         float rate = 1.0f;
         SpeedMode mode = SpeedMode::Nightcore;
     };
@@ -32,7 +33,8 @@ public:
 
     void prepare(double sampleRate, int maximumBlockSize, int channelCount);
     void reset();
-    void processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples);
+    template <typename Sample>
+    void processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples);
 
     bool configure(float rate, SpeedMode mode, std::string* error = nullptr);
     bool setRate(float rate, std::string* error = nullptr);
@@ -43,25 +45,29 @@ public:
     bool isActive() const;
 
     int sourceFramesRequired(int outputFrames, const Configuration& configuration) const noexcept;
+    template <typename Sample>
     int processResampledBlock(
-        const echo::FloatAudioBuffer& source,
+        const echo::PlanarAudioBuffer<Sample>& source,
         int sourceFrames,
-        echo::FloatAudioBuffer& output,
+        echo::PlanarAudioBuffer<Sample>& output,
         int outputStart,
         int outputFrames,
         const Configuration& configuration) noexcept;
+    template <typename Sample>
     void primeSourceHistory(
-        const echo::FloatAudioBuffer& source,
+        const echo::PlanarAudioBuffer<Sample>& source,
         int sourceStart,
         int sourceFrames) noexcept;
 
 private:
-    static float sanitize(float value);
+    friend struct DspPreparedRuntime;
+    static double sanitize(double value);
     static uint64_t packConfiguration(float rate, SpeedMode mode) noexcept;
     static Configuration unpackConfiguration(uint64_t packed) noexcept;
-    float historySample(int channel, int sourceIndex) const noexcept;
+    double historySample(int channel, int sourceIndex) const noexcept;
+    template <typename Sample>
     void retainHistory(
-        const echo::FloatAudioBuffer& source,
+        const echo::PlanarAudioBuffer<Sample>& source,
         int sourceStart,
         int sourceFrames) noexcept;
 
@@ -71,6 +77,6 @@ private:
     double sourcePhase = 0.0;
     int channelCount = 0;
     int historyFrames = 0;
-    std::vector<std::vector<float>> history;
+    std::vector<std::vector<double>> history;
 };
 } // namespace echo

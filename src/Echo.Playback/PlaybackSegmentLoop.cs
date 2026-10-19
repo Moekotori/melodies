@@ -67,8 +67,9 @@ public sealed partial class PlaybackSessionCoordinator
         var result = await native.CallAsync("audio.seek", OperationParams(new JsonObject { ["positionSeconds"] = position })).ConfigureAwait(false);
         var operation = result.Long("operationId");
         if (operation <= 0) throw new IOException("Native 未确认定位请求。");
-        positionBase = position;
-        Publish(snapshot with { OperationId = operation, PositionSeconds = position });
+        positionBase = result.Number("positionSeconds", position);
+        ArmOutputConfirmation(operation);
+        Publish(snapshot with { OperationId = operation, PositionSeconds = positionBase });
     }
 
     private async Task ApplySegmentBoundaryAsync()

@@ -23,7 +23,7 @@ public sealed partial class PlayerTrackDetails : ObservableObject, IDisposable
     private CancellationTokenSource? request;
     private bool disposed;
     public string? CurrentItemId => current?.ItemId;
-    [ObservableProperty] private string title = "ECHO";
+    [ObservableProperty] private string title = "melodies";
     [ObservableProperty] private string artist = "就绪";
     [ObservableProperty] private string album = "";
     [ObservableProperty] private string format = "";
@@ -54,7 +54,7 @@ public sealed partial class PlayerTrackDetails : ObservableObject, IDisposable
         request?.Cancel(); request?.Dispose(); request = null;
         current = track; row = null; CanFavorite = false; IsFavorite = false; Message = "";
         OnPropertyChanged(nameof(CurrentItemId));
-        Title = track?.Metadata?.GetValueOrDefault("title") ?? (track is null ? "ECHO" : Path.GetFileNameWithoutExtension(track.FilePath));
+        Title = track?.Metadata?.GetValueOrDefault("title") ?? (track is null ? "melodies" : Path.GetFileNameWithoutExtension(track.FilePath));
         Artist = track?.Metadata?.GetValueOrDefault("artist") is { Length: > 0 } artist ? artist : track is null ? Text.Translate("就绪") : Text.Translate("未知艺术家");
         Album = track?.Metadata?.GetValueOrDefault("album") ?? "";
         Format = track?.Metadata?.GetValueOrDefault("codec")?.ToUpperInvariant() ?? "";

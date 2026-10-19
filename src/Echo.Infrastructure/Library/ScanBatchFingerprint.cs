@@ -43,7 +43,9 @@ internal static class ScanBatchFingerprint
                 BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(16), metadata.TrackNumber ?? -1);
                 BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(20), metadata.DiscNumber ?? -1);
                 BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(24), metadata.Year ?? -1);
-                hash.AppendData(buffer.AsSpan(0, 28));
+                BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(28), metadata.Bitrate ?? -1);
+                BinaryPrimitives.WriteDoubleLittleEndian(buffer.AsSpan(32), metadata.Bpm ?? -1);
+                hash.AppendData(buffer.AsSpan(0, 40));
             }
             return Convert.ToHexString(hash.GetHashAndReset());
         }

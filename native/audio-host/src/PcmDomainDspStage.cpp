@@ -1,7 +1,59 @@
 #include "PcmDomainDspStage.h"
+#include "PcmDomainDspProcessors.h"
+#include "../../audio-engine/DspChainConfiguration.h"
+#include "../../audio-engine/DspPreparedRuntime.h"
+#include <type_traits>
 
 #include <algorithm>
 #include <cstddef>
+
+PcmDomainDspStage::~PcmDomainDspStage() = default;
+
+PcmDomainDspStage::PcmDomainDspStage(std::unique_ptr<PcmDomainDspProcessors> processors)
+    : ownedProcessors_(std::move(processors)), convolution_(ownedProcessors_->convolution),
+      dspChain_(ownedProcessors_->eq, ownedProcessors_->convolution, ownedProcessors_->balance,
+          ownedProcessors_->headroom, ownedProcessors_->replayGain, ownedProcessors_->compressor,
+          ownedProcessors_->spatial, ownedProcessors_->rate, ownedProcessors_->meter,
+          &ownedProcessors_->rack, &ownedProcessors_->workshop,
+          &ownedProcessors_->multiband, &ownedProcessors_->deEsser)
+{
+}
+
+std::shared_ptr<const PcmDomainDspStage::ConfigurationSnapshot> PcmDomainDspStage::configurationSnapshot() const
+{
+    return dspChain_.configurationSnapshot();
+}
+
+bool PcmDomainDspStage::configurationMatches(const ConfigurationSnapshot& snapshot) const
+{
+    return dspChain_.configurationMatches(snapshot);
+}
+
+bool PcmDomainDspStage::beginPreparedHandoff(PcmDomainDspStage& prepared,
+    const ConfigurationSnapshot& expected, echo::DspPreparedHandoff& handoff, std::string& error)
+{
+    return handoff.acquire(dspChain_, prepared.dspChain_, expected, error);
+}
+
+void PcmDomainDspStage::activatePrepared(PcmDomainDspStage& prepared, echo::DspPreparedHandoff& handoff) noexcept
+{
+    handoff.activate();
+    static_assert(std::is_nothrow_swappable_v<echo::DoubleAudioBuffer>);
+    using std::swap;
+    swap(buffer_, prepared.buffer_);
+    swap(channels_, prepared.channels_);
+    swap(sampleRate_, prepared.sampleRate_);
+    swap(maximumBlockFrames_, prepared.maximumBlockFrames_);
+    swap(prepared_, prepared.prepared_);
+}
+
+std::unique_ptr<PcmDomainDspStage> PcmDomainDspStage::createAdmissionCandidate(
+    const ConfigurationSnapshot& snapshot, std::string& error)
+{
+    auto candidate = std::unique_ptr<PcmDomainDspStage>(new PcmDomainDspStage(std::make_unique<PcmDomainDspProcessors>()));
+    if (!candidate->dspChain_.applyConfiguration(snapshot, error)) return nullptr;
+    return candidate;
+}
 
 PcmDomainDspStage::PcmDomainDspStage(
     echo::EqProcessor& eq,
@@ -14,18 +66,22 @@ PcmDomainDspStage::PcmDomainDspStage(
     echo::PlaybackRateProcessor& playbackRate,
     echo::LevelMeterProcessor& meter,
     echo::DspRackOrder* rackOrder,
-    echo::WorkshopAudioEffectController* workshopAudioEffectController)
-    : dspChain_(eq, convolution, channelBalance, headroom, replayGain, compressor, spatialDsp, playbackRate, meter,
-          rackOrder, workshopAudioEffectController)
+    echo::WorkshopAudioEffectController* workshopAudioEffectController,
+    echo::MultibandCompressorProcessor* multiband,
+    echo::DeEsserProcessor* deEsser)
+    : convolution_(convolution), dspChain_(eq, convolution, channelBalance, headroom, replayGain, compressor, spatialDsp, playbackRate, meter,
+          rackOrder, workshopAudioEffectController, multiband, deEsser)
 {
 }
 
 void PcmDomainDspStage::prepare(double sampleRate, int maximumBlockFrames, int channels)
 {
     channels_ = std::max(1, channels);
+    convolution_.setDeviceOutputChannels(channels_);
     sampleRate_ = std::max(1, static_cast<int>(sampleRate));
     maximumBlockFrames_ = std::max(1, maximumBlockFrames);
-    buffer_.setSize(channels_, maximumBlockFrames_);
+    buffer_.setSize(std::max(8, channels_), maximumBlockFrames_);
+    buffer_.setActiveChannels(channels_);
     dspChain_.prepare(static_cast<double>(sampleRate_), maximumBlockFrames_, channels_);
     prepared_ = true;
 }
@@ -36,7 +92,8 @@ void PcmDomainDspStage::reset()
         dspChain_.reset();
 }
 
-bool PcmDomainDspStage::process(std::vector<float>& interleaved, std::string& error)
+template <typename Sample>
+bool PcmDomainDspStage::process(std::vector<Sample>& interleaved, std::string& error)
 {
     if (interleaved.empty())
     {
@@ -57,10 +114,12 @@ bool PcmDomainDspStage::process(std::vector<float>& interleaved, std::string& er
     const int frames = static_cast<int>(interleaved.size() / static_cast<std::size_t>(channels_));
     for (int offset = 0; offset < frames;)
     {
+        buffer_.setActiveChannels(channels_);
+        buffer_.clear();
         const int framesThisBlock = std::min(maximumBlockFrames_, frames - offset);
         for (int channel = 0; channel < channels_; ++channel)
         {
-            float* destination = buffer_.getWritePointer(channel);
+            double* destination = buffer_.getWritePointer(channel);
             for (int frame = 0; frame < framesThisBlock; ++frame)
             {
                 destination[frame] = interleaved[
@@ -73,7 +132,7 @@ bool PcmDomainDspStage::process(std::vector<float>& interleaved, std::string& er
 
         for (int channel = 0; channel < channels_; ++channel)
         {
-            const float* source = buffer_.getReadPointer(channel);
+            const double* source = buffer_.getReadPointer(channel);
             for (int frame = 0; frame < framesThisBlock; ++frame)
             {
                 interleaved[
@@ -87,3 +146,6 @@ bool PcmDomainDspStage::process(std::vector<float>& interleaved, std::string& er
     error.clear();
     return true;
 }
+
+template bool PcmDomainDspStage::process<float>(std::vector<float>&, std::string&);
+template bool PcmDomainDspStage::process<double>(std::vector<double>&, std::string&);

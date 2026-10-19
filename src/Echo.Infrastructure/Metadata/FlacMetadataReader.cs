@@ -21,6 +21,7 @@ internal static class FlacMetadataReader
         long samples = 0;
         var title = ""; var artist = ""; var album = ""; var albumArtist = ""; var genre = "";
         int? track = null, disc = null, year = null;
+        double? bpm = null;
         var blocks = 0;
         long metadataBytes = 0;
         while (true)
@@ -72,6 +73,8 @@ internal static class FlacMetadataReader
                     else if (key.Equals("ALBUM", StringComparison.OrdinalIgnoreCase)) album = Decode(value);
                     else if (key.Equals("ALBUMARTIST", StringComparison.OrdinalIgnoreCase)) albumArtist = Merge(albumArtist, Decode(value));
                     else if (key.Equals("GENRE", StringComparison.OrdinalIgnoreCase)) genre = Merge(genre, Decode(value));
+                    else if ((key.Equals("BPM", StringComparison.OrdinalIgnoreCase) || key.Equals("TEMPO", StringComparison.OrdinalIgnoreCase))
+                        && double.TryParse(Decode(value), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var tempo)) bpm = tempo;
                     else if (key.Equals("TRACKNUMBER", StringComparison.OrdinalIgnoreCase)) track = Number(value);
                     else if (key.Equals("DISCNUMBER", StringComparison.OrdinalIgnoreCase)) disc = Number(value);
                     else if (key.Equals("DATE", StringComparison.OrdinalIgnoreCase) || key.Equals("YEAR", StringComparison.OrdinalIgnoreCase))
@@ -84,7 +87,8 @@ internal static class FlacMetadataReader
         }
         if (sampleRate <= 0 || samples <= 0) throw new MetadataReadException("invalid_flac_properties");
         return MetadataRules.Normalize(file, new(title, artist, album, albumArtist, (double)samples / sampleRate,
-            "FLAC", sampleRate, bits, track, disc, year, genre));
+            "FLAC", sampleRate, bits, track, disc, year, genre,
+            (int)Math.Clamp(Math.Round((stream.Length - stream.Position) * 8.0 * sampleRate / samples), 0, int.MaxValue), bpm));
     }
 
     private static int ReadLength(byte[] data, ref int offset)

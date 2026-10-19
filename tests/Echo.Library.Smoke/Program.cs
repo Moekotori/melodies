@@ -1,6 +1,11 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+if (args[0] == "sort-filter")
+{
+    using var sortFilterBudget = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+    await SortFilterProbe.RunAsync(Path.GetFullPath(args[1]), sortFilterBudget.Token); return;
+}
 if (args[0] == "large-library-final")
 {
     using var finalBudget = new CancellationTokenSource(TimeSpan.FromSeconds(8));

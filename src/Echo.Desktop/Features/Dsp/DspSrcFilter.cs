@@ -4,7 +4,8 @@ internal static class DspSrcFilter
 {
     public static double[] Lowpass(int factor)
     {
-        var taps = factor == 4 ? 127 : 63;
+        if (factor is not (2 or 4 or 8 or 16)) throw new ArgumentOutOfRangeException(nameof(factor));
+        var taps = factor * 32 - 1;
         var center = (taps - 1) / 2.0;
         var cutoff = 0.5 / factor;
         var window = new double[taps];

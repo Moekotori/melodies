@@ -59,7 +59,7 @@
       </Button>
       <Button Name="FilterButton" Grid.Column="2" Classes="songTool" Classes.active="{Binding Filters.HasActive}" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource query.filters}">
         <StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="filter" Width="16" Height="16" /><TextBlock Text="{DynamicResource query.filters}" VerticalAlignment="Center" /><TextBlock Text="{Binding Filters.ActiveCount}" FontSize="10" VerticalAlignment="Center" IsVisible="{Binding Filters.HasActive}" /><icon:GlyphIcon Kind="chevron-down" Width="10" Height="10" Stroke="{DynamicResource EchoMuted}" /></StackPanel>
-        <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterTheme="{StaticResource FilterReferencePresenter}"><filters:LibraryFilterView DataContext="{Binding Filters}" /></Flyout></Button.Flyout>
+        <Button.Flyout><Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterTheme="{StaticResource LibraryQueryFilterPresenter}"><filters:LibraryFilterView DataContext="{Binding Filters}" /></Flyout></Button.Flyout>
       </Button>
       <local:SongSortControl Grid.Column="3" VerticalAlignment="Center" />
     </Grid>

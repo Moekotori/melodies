@@ -31,6 +31,11 @@ int main()
         require(full > flat * 1.9f, "strength did not scale response");
         require(eq.getState().bandGainsDb[17] == 6, "strength destroyed original parameters");
         eq.setStrengthPercent(100); eq.reset(); require(std::abs(render(eq, 1000) - full) < 0.001f, "strength restore differs");
+        eq.setBandFrequencyHz(17, 14000); eq.setBandQ(17, 6); eq.setBandGainDb(17, 6); eq.reset();
+        const float focused = render(eq, 14000);
+        const float skirt = render(eq, 2000);
+        require(focused > skirt * 1.8f, "trapezoidal bell did not hold a high narrow boost");
+        eq.setBandFrequencyHz(17, 1000); eq.setBandQ(17, 1); eq.setBandGainDb(17, 6); eq.reset();
         eq.setEnabled(false); eq.reset();
         require(eq.setAudition(true, 1000, 2), "audition rejected");
         const float center = render(eq, 1000), outside = render(eq, 100);

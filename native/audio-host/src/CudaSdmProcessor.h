@@ -45,6 +45,7 @@ public:
     double warmupMilliseconds() const noexcept;
     double peakFeedbackState() const noexcept;
     uint64_t stabilityRecoveryCount() const noexcept;
+    echo::SdmClampCounts clampCounts() const noexcept;
 
 private:
     class Impl;

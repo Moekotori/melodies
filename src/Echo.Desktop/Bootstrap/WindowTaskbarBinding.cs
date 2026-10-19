@@ -31,7 +31,7 @@ public sealed class WindowTaskbarBinding : IDisposable
 
     public WindowTaskbarBinding(MainWindow window, ShellViewModel shell, SettingsFeatureRuntime settings, SettingsDialogs dialogs)
     {
-        _window = window; _shell = shell; _dialogs = dialogs; _originalTitle = window.Title ?? "ECHO";
+        _window = window; _shell = shell; _dialogs = dialogs; _originalTitle = window.Title ?? "melodies";
         _subscription = shell.Player!.Zone.Subscribe(PlaybackStateChanges.Playback | PlaybackStateChanges.Queue | PlaybackStateChanges.Clock);
         _state = _subscription.Initial;
         settings.RegisterChange("taskbar-mini-player", (_, _) => Task.CompletedTask);
@@ -94,7 +94,7 @@ public sealed class WindowTaskbarBinding : IDisposable
         var track = state.Current;
         var details = _shell.Player!.Details;
         var matchingDetails = track is not null && details.CurrentItemId == track.ItemId;
-        var title = track?.Metadata?.GetValueOrDefault("title") ?? (track is null ? "ECHO" : Path.GetFileNameWithoutExtension(track.FilePath));
+        var title = track?.Metadata?.GetValueOrDefault("title") ?? (track is null ? "melodies" : Path.GetFileNameWithoutExtension(track.FilePath));
         var artist = track?.Metadata?.GetValueOrDefault("artist") ?? "";
         if (matchingDetails && details.CanFavorite) { title = details.Title; artist = details.Artist; }
         var displayTitle = string.Join(" - ", new[] { title, artist }.Where(x => x.Length > 0));

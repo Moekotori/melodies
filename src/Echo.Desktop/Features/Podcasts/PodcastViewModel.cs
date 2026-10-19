@@ -165,7 +165,9 @@ public sealed partial class PodcastViewModel : ObservableObject, IDisposable
     private void ApplyShowFilter()
     {
         var query = ShowQuery.Trim();
-        IEnumerable<PodcastShowRow> visible = string.IsNullOrEmpty(query) ? all : all.Where(row => $"{row.Title} {row.Author}".Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        IEnumerable<PodcastShowRow> visible = string.IsNullOrEmpty(query)
+            ? all
+            : all.Where(row => $"{row.Title} {row.Author}".Contains(query, StringComparison.OrdinalIgnoreCase));
         Shows.Clear();
         foreach (var row in visible) Shows.Add(row);
         MarkSelected();

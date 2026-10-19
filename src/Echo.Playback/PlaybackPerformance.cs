@@ -37,7 +37,11 @@ public sealed partial class PlaybackSessionCoordinator
             value.TryGetProperty("inputEnded", out var ended) && ended.ValueKind is JsonValueKind.True or JsonValueKind.False ? ended.GetBoolean() : null,
             hostUnderruns, hostUnderrunFrames,
             Stage(processing, "echoSrc", "SRC", now) ?? previous.Src,
-            Stage(processing, "sdm", "SDM", now) ?? previous.Sdm);
+            Stage(processing, "sdm", "SDM", now) ?? previous.Sdm)
+        {
+            NativeResources = NativeProcessingTelemetry.Resources(processing) ?? previous.NativeResources,
+            SdmRealtime = NativeProcessingTelemetry.Sdm(processing) ?? previous.SdmRealtime
+        };
     }
 
     private static long? Counter(JsonElement value, string name)

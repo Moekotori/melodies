@@ -54,7 +54,7 @@ public sealed class PlaybackSettingsModule : IDisposable
         runtime.RegisterAction("audio-status", (_, _) => dialogs.ShowAsync("当前输出状态", shell.Player!.SignalPath + "\n\n" + shell.Player.PerformanceText));
         runtime.RegisterAction("audio-recover", async (action, token) =>
         {
-            if (action != "重启播放") throw new NotSupportedException("请在 Windows 系统工具中重启音频服务；ECHO 的重试只重建自身音频宿主。");
+            if (action != "重启播放") throw new NotSupportedException("请在 Windows 系统工具中重启音频服务；melodies 的重试只重建自身音频宿主。");
             await playback.LocalZone.Session.RecoverAsync(token);
         });
         shell.FeaturePreferences.Changed += PreferencesChanged;

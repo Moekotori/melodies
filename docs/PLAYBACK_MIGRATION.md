@@ -1,5 +1,7 @@
 # 播放链路迁移
 
+2026-10-19 原生引擎更新、当前源码基线与验证边界见 [AUDIO_ENGINE_PARITY.md](AUDIO_ENGINE_PARITY.md)。下文保留首版迁移记录。
+
 日期：2026-10-02。当前迁移仅修改新工作区，保留旧 ECHO。
 
 专业输出后续接入：ASIO、WASAPI 独占、WDM-KS、多声道初始化、驱动失败隔离和 DSD 能力探测见 [PROFESSIONAL_OUTPUT.md](PROFESSIONAL_OUTPUT.md)。当前设置已扩展，下面的首版说明保留其验证时间边界。

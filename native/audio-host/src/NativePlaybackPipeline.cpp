@@ -1,4 +1,5 @@
 #include "NativePlaybackPipeline.h"
+#include "NativeProcessingLimits.h"
 
 #include <algorithm>
 #include <chrono>
@@ -10,12 +11,7 @@
 
 namespace
 {
-// DSD512 needs five x2 FIR stages from a 44.1/48 kHz PCM source to its
-// 1.4112/1.536 MHz byte-carrier rate. Keep individual stages constrained to
-// the established 1/2/4/8 factors, but accept the composed 32x SDM FIR path.
-constexpr int maximumNativeEchoSrcUpsampleFactor = 16;
-constexpr int maximumNativeSdmUpsampleFactor = 32;
-constexpr int producerDecodeChunkFrames = 4096;
+constexpr int producerDecodeChunkFrames = echo_audio_host::sdmRealtimeAdmissionSourceFrames;
 
 const char* mqaPassthroughStateReason(PcmRingAudioSource::MqaPassthroughState state) noexcept
 {
@@ -76,6 +72,10 @@ void applyFirPerformanceStatus(Status& status, const NativeFirProcessor& process
 template <typename Status>
 void applySdmPerformanceStatus(Status& status, const NativeSdmProcessor& processor)
 {
+    const auto clamps = processor.clampCounts();
+    status.inputClamps = clamps.input;
+    status.loopInputClamps = clamps.loopInput;
+    status.quantizationErrorClamps = clamps.quantizationError;
     status.processedBlocks = processor.processedBlocks();
     status.lastInputFrames = processor.lastInputFrames();
     status.lastOutputFrames = processor.lastOutputFrames();
@@ -100,121 +100,6 @@ void applySdmOversamplingPerformanceStatus(
     status.oversamplingRuntimeFallbacks = processor.runtimeFallbacks();
 }
 
-bool requiresSdmRealtimeAdmission(
-    int targetSampleRate,
-    int oversamplingFactor)
-{
-    const bool dsd128Target =
-        targetSampleRate == 352'800 || targetSampleRate == 384'000;
-    const bool dsd512Target =
-        targetSampleRate == 1'411'200 || targetSampleRate == 1'536'000;
-    const bool dsd256Target =
-        targetSampleRate == 705'600 || targetSampleRate == 768'000;
-    const bool dsd512Path = dsd512Target || oversamplingFactor >= 32;
-    const bool dsd256Path = dsd256Target || oversamplingFactor >= 16;
-    const bool dsd128Path = dsd128Target || oversamplingFactor >= 8;
-    return dsd512Path || dsd256Path || dsd128Path;
-}
-
-bool admitHighRateSdmRealtime(
-    NativeFirProcessor& oversampler,
-    NativeSdmProcessor& modulator,
-    int channels,
-    int sourceSampleRate,
-    int targetSampleRate,
-    int oversamplingFactor,
-    double& realtimeRatio,
-    std::string& warning,
-    std::string& error)
-{
-    realtimeRatio = 0.0;
-    warning.clear();
-    if (!requiresSdmRealtimeAdmission(
-            targetSampleRate,
-            oversamplingFactor))
-        return true;
-
-    // Measure the same source block size used by the playback producer. A
-    // smaller probe can miss the stereo-parallel SDM path and reject a route
-    // that meets realtime once playback starts processing full blocks.
-    constexpr int admissionFrames = producerDecodeChunkFrames;
-    static_assert(
-        admissionFrames >= echo::sdmStereoParallelMinimumFrames,
-        "SDM realtime admission must exercise the stereo-parallel path");
-    constexpr double maximumRealtimeRatio = 0.8;
-    std::vector<float> input(
-        static_cast<size_t>(admissionFrames * std::max(1, channels)),
-        0.0f);
-    for (int frame = 0; frame < admissionFrames; ++frame)
-    {
-        for (int channel = 0; channel < std::max(1, channels); ++channel)
-        {
-            const double phase =
-                static_cast<double>(frame)
-                * (0.031 + static_cast<double>(channel) * 0.013);
-            input[static_cast<size_t>(frame * std::max(1, channels) + channel)] =
-                static_cast<float>(0.29 * std::sin(phase));
-        }
-    }
-
-    double measuredMilliseconds = std::numeric_limits<double>::infinity();
-    for (int iteration = 0; iteration < 2; ++iteration)
-    {
-        oversampler.reset();
-        modulator.reset();
-        const auto started = std::chrono::steady_clock::now();
-        std::vector<float> carrierPcm;
-        const float* modulatorInput = input.data();
-        int modulatorFrames = admissionFrames;
-        if (oversampler.active())
-        {
-            carrierPcm = oversampler.process(input.data(), admissionFrames);
-            if (carrierPcm.empty())
-            {
-                error = "native_sdm_realtime_admission_processing_failed";
-                return false;
-            }
-            modulatorInput = carrierPcm.data();
-            modulatorFrames = static_cast<int>(
-                carrierPcm.size() / static_cast<size_t>(std::max(1, channels)));
-        }
-        (void)modulator.processDop(modulatorInput, modulatorFrames);
-        measuredMilliseconds = std::min(
-            measuredMilliseconds,
-            std::chrono::duration<double, std::milli>(
-                std::chrono::steady_clock::now() - started).count());
-    }
-    oversampler.reset();
-    modulator.reset();
-
-    const double deadlineMilliseconds =
-        static_cast<double>(admissionFrames)
-        * 1'000.0
-        / static_cast<double>(std::max(
-            1,
-            sourceSampleRate > 0 ? sourceSampleRate : targetSampleRate));
-    const double budgetMilliseconds =
-        deadlineMilliseconds * maximumRealtimeRatio;
-    realtimeRatio = measuredMilliseconds / deadlineMilliseconds;
-    if (measuredMilliseconds < budgetMilliseconds)
-        return true;
-
-    std::ostringstream reason;
-    reason << std::fixed << std::setprecision(3)
-           << "native_sdm_realtime_budget_exceeded:fir_backend="
-           << (oversampler.backend() == NativeFirProcessor::Backend::Cuda
-                   ? "cuda"
-                   : "cpu")
-           << ",modulator_backend="
-           << (modulator.backend() == NativeSdmProcessor::Backend::Cuda
-                   ? "cuda"
-                   : "cpu")
-           << ",budget=" << budgetMilliseconds
-           << "ms,measured=" << measuredMilliseconds
-           << "ms,ratio=" << realtimeRatio;
-    error = "native_sdm_realtime_admission_failed:" + reason.str();
-    return false;
-}
 } // namespace
 
 NativePlaybackPipeline::NativePlaybackPipeline(
@@ -224,6 +109,11 @@ NativePlaybackPipeline::NativePlaybackPipeline(
     int channels)
     : pcm_(pcm), dop_(dop), nativeDsd_(nativeDsd), channels_(std::max(1, channels))
 {
+    echoSrc_.setDoubleProcessing(true);
+    automixEchoSrc_.setDoubleProcessing(true);
+    automixEchoSrcAlternate_.setDoubleProcessing(true);
+    sdmOversampler_.setDoubleProcessing(true);
+    sdm_.setDoubleProcessing(true);
     std::string error;
     sdm_.configure(
         channels_,
@@ -249,13 +139,15 @@ NativePlaybackPipeline::NativePlaybackPipeline(
     echo::PlaybackRateProcessor& playbackRate,
     echo::LevelMeterProcessor& meter,
     echo::DspRackOrder* rackOrder,
-    echo::WorkshopAudioEffectController* workshopAudioEffectController)
+    echo::WorkshopAudioEffectController* workshopAudioEffectController,
+    echo::MultibandCompressorProcessor* multiband,
+    echo::DeEsserProcessor* deEsser)
     : NativePlaybackPipeline(pcm, dop, nativeDsd, channels)
 {
     workshopAudioEffectController_ = workshopAudioEffectController;
     sdmDsp_ = std::make_unique<PcmDomainDspStage>(
         eq, convolution, channelBalance, headroom, replayGain, compressor, spatialDsp, playbackRate, meter,
-        rackOrder, workshopAudioEffectController);
+        rackOrder, workshopAudioEffectController, multiband, deEsser);
 }
 
 bool NativePlaybackPipeline::configureFirProcessor(
@@ -267,6 +159,9 @@ bool NativePlaybackPipeline::configureFirProcessor(
     int maximumUpsampleFactor,
     std::string& error)
 {
+    // Every playback consumer uses processDouble(). Reconfiguration builds
+    // fresh processors, so retain FP64 processing across reconfiguration too.
+    processor.setDoubleProcessing(true);
     if (config.stages.empty())
         return processor.configure(channels, {}, false, maximumInputFrames, error);
 
@@ -399,6 +294,8 @@ NativePlaybackPipeline::SdmStatus NativePlaybackPipeline::makeSdmStatus(
     {
         status.fallbackReason = modulator.fallbackReason();
         status.oversamplingFallbackReason = oversampler.fallbackReason();
+        status.oversamplingCudaProcessedBlocks = oversampler.cudaProcessedBlocks();
+        status.oversamplingCudaTimings = oversampler.cudaTimings();
         status.deviceName = modulator.backend() == NativeSdmProcessor::Backend::Cuda
             ? modulator.deviceName()
             : oversampler.deviceName();
@@ -408,248 +305,9 @@ NativePlaybackPipeline::SdmStatus NativePlaybackPipeline::makeSdmStatus(
     return status;
 }
 
-bool NativePlaybackPipeline::configure(const ProcessingConfig& config, std::string& error)
-{
-    const bool echoSrcActive = !config.echoSrc.stages.empty();
-    const bool sdmOversamplingActive = !config.sdm.oversampling.stages.empty();
-    const bool sdmActive = config.outputFormat != OutputFormat::Pcm;
-
-    if (!sdmActive && sdmOversamplingActive)
-    {
-        error = "native_sdm_oversampling_requires_sdm_output";
-        return false;
-    }
-    if (sdmActive && echoSrcActive)
-    {
-        error = "native_sdm_cannot_combine_echo_src";
-        return false;
-    }
-    if (sdmActive && config.sdm.targetSampleRate <= 0)
-    {
-        error = "native_sdm_invalid_target_sample_rate";
-        return false;
-    }
-    const bool ultimatePreModulatorRequested =
-        config.sdm.preModulatorProfile == echo::SdmPreModulatorProfile::UltimateReference
-        || config.sdm.preModulatorProfile == echo::SdmPreModulatorProfile::UltimateTransient;
-    if (sdmActive && ultimatePreModulatorRequested && !config.sdm.ultimateEnabled)
-    {
-        error = "native_sdm_ultimate_feature_flag_required";
-        return false;
-    }
-    if (sdmActive)
-    {
-        const bool family44 = config.sdm.sampleRateFamily == "44.1k";
-        const bool family48 = config.sdm.sampleRateFamily == "48k";
-        const bool targetMatches44 = config.sdm.targetSampleRate == 176'400
-            || config.sdm.targetSampleRate == 352'800
-            || config.sdm.targetSampleRate == 705'600
-            || config.sdm.targetSampleRate == 1'411'200;
-        const bool targetMatches48 = config.sdm.targetSampleRate == 192'000
-            || config.sdm.targetSampleRate == 384'000
-            || config.sdm.targetSampleRate == 768'000
-            || config.sdm.targetSampleRate == 1'536'000;
-        if ((!family44 && !family48) || (family44 && !targetMatches44) || (family48 && !targetMatches48))
-        {
-            error = "native_sdm_sample_rate_family_mismatch";
-            return false;
-        }
-    }
-    if (sdmActive && ultimatePreModulatorRequested
-        && config.sdm.requestedBackend == ComputeBackend::Cuda)
-    {
-        error = "native_sdm_ultimate_cuda_not_implemented";
-        return false;
-    }
-    if (sdmOversamplingActive
-        && (config.sdm.sourceSampleRate <= 0 || config.sdm.oversampling.sourceSampleRate <= 0
-            || config.sdm.oversampling.targetSampleRate <= 0
-            || config.sdm.sourceSampleRate != config.sdm.oversampling.sourceSampleRate
-            || config.sdm.targetSampleRate != config.sdm.oversampling.targetSampleRate))
-    {
-        error = "native_sdm_oversampling_sample_rate_mismatch";
-        return false;
-    }
-
-    NativeFirProcessor nextEchoSrc;
-    if (!configureFirProcessor(
-            nextEchoSrc,
-            channels_,
-            config.echoSrc,
-            "native_echo_src",
-            producerDecodeChunkFrames,
-            maximumNativeEchoSrcUpsampleFactor,
-            error))
-        return false;
-    NativeFirProcessor nextAutomixEchoSrc;
-    if (!configureFirProcessor(
-            nextAutomixEchoSrc,
-            channels_,
-            config.echoSrc,
-            "native_automix_echo_src",
-            producerDecodeChunkFrames,
-            maximumNativeEchoSrcUpsampleFactor,
-            error))
-        return false;
-    NativeFirProcessor nextAutomixEchoSrcAlternate;
-    if (!configureFirProcessor(
-            nextAutomixEchoSrcAlternate,
-            channels_,
-            config.echoSrc,
-            "native_automix_echo_src_alternate",
-            producerDecodeChunkFrames,
-            maximumNativeEchoSrcUpsampleFactor,
-            error))
-        return false;
-
-    NativeFirProcessor nextSdmOversampler;
-    auto sdmOversamplingConfig = config.sdm.oversampling;
-    // SDM owns one compute-backend choice. The nested FIR config is an
-    // implementation detail and must not silently reset that choice to CPU.
-    sdmOversamplingConfig.requestedBackend = config.sdm.requestedBackend;
-    if (!configureFirProcessor(
-            nextSdmOversampler,
-            channels_,
-            sdmOversamplingConfig,
-            "native_sdm_oversampling",
-            producerDecodeChunkFrames,
-            maximumNativeSdmUpsampleFactor,
-            error))
-        return false;
-
-    int sdmOversamplingFactor = 1;
-    int sdmModulatorMaximumFrames = producerDecodeChunkFrames;
-    if (sdmOversamplingActive)
-    {
-        sdmOversamplingFactor = calculateFirOutputFactor(
-            config.sdm.oversampling.stages,
-            maximumNativeSdmUpsampleFactor,
-            error);
-        if (sdmOversamplingFactor <= 0)
-        {
-            error = "native_sdm_oversampling_" + error;
-            return false;
-        }
-        sdmModulatorMaximumFrames =
-            producerDecodeChunkFrames * sdmOversamplingFactor;
-    }
-
-    NativeSdmProcessor nextSdm;
-    const auto sdmDecisionMode = config.sdm.decisionMode != echo::SdmDecisionMode::Greedy
-        ? config.sdm.decisionMode
-        : config.sdm.extraLoop
-            ? echo::SdmDecisionMode::Extra
-            : echo::SdmDecisionMode::Greedy;
-    if (!nextSdm.configure(
-            channels_,
-            config.sdm.qualityProfile,
-            std::max(1, config.sdm.targetSampleRate),
-            sdmActive
-                && config.sdm.requestedBackend == ComputeBackend::Cuda,
-            sdmModulatorMaximumFrames,
-            error,
-            sdmDecisionMode,
-            config.sdm.heavyPreMod,
-            sdmActive
-                ? config.sdm.preModulatorProfile
-                : echo::SdmPreModulatorProfile::Standard))
-    {
-        error = "native_sdm_modulator_" + error;
-        return false;
-    }
-    double sdmRealtimeAdmissionRatio = 0.0;
-    std::string sdmRealtimeAdmissionWarning;
-    if (!admitHighRateSdmRealtime(
-            nextSdmOversampler,
-            nextSdm,
-            channels_,
-            config.sdm.sourceSampleRate,
-            config.sdm.targetSampleRate,
-            sdmOversamplingFactor,
-            sdmRealtimeAdmissionRatio,
-            sdmRealtimeAdmissionWarning,
-            error))
-        return false;
-    const uint64_t echoSrcEstimatedMacsPerSecond =
-        nextEchoSrc.estimatedMacsPerInputFrame()
-        * static_cast<uint64_t>(std::max(0, config.echoSrc.sourceSampleRate));
-    const uint64_t sdmEstimatedMacsPerSecond =
-        nextSdmOversampler.estimatedMacsPerInputFrame()
-        * static_cast<uint64_t>(std::max(0, config.sdm.sourceSampleRate));
-
-    std::lock_guard<std::mutex> lock(processingMutex_);
-    // A successful reconfiguration invalidates any prepared block that was
-    // produced against the old FIR/SDM route. requestStop() is non-blocking;
-    // the generation-aware ring push rejects that stale block after we release
-    // this DSP-state lock.
-    pcm_.requestStop();
-    dop_.requestStop();
-    nativeDsd_.requestStop();
-    if (sdmActive && sdmDsp_ != nullptr)
-    {
-        const int pcmDspSampleRate = config.sdm.sourceSampleRate > 0
-            ? config.sdm.sourceSampleRate
-            : config.sdm.targetSampleRate;
-        sdmDsp_->prepare(pcmDspSampleRate, producerDecodeChunkFrames, channels_);
-    }
-
-    echoSrc_ = std::move(nextEchoSrc);
-    automixEchoSrc_ = std::move(nextAutomixEchoSrc);
-    automixEchoSrcAlternate_ = std::move(nextAutomixEchoSrcAlternate);
-    sdmOversampler_ = std::move(nextSdmOversampler);
-    sdm_ = std::move(nextSdm);
-    outputFormat_ = config.outputFormat;
-    pcm_.setMqaPassthroughActive(false);
-    pcm_.setUpstreamPcmProcessingActive(
-        outputFormat_ == OutputFormat::Pcm && echoSrcActive);
-    pcm_.configureDither(outputFormat_ == OutputFormat::Pcm ? config.ditherMode : echo::PcmDitherMode::Off,
-                         config.ditherBitDepth);
-
-    const int decoderRate = outputFormat_ == OutputFormat::Pcm && echoSrcActive
-        ? config.echoSrc.sourceSampleRate
-        : sdmActive && sdmOversamplingActive
-            ? config.sdm.sourceSampleRate
-            : 0;
-    decoderSampleRate_.store(decoderRate, std::memory_order_release);
-
-    ProcessingStatus nextStatus;
-    nextStatus.outputFormat = outputFormat_;
-    nextStatus.ditherMode = config.ditherMode;
-    nextStatus.ditherBitDepth = config.ditherBitDepth;
-    nextStatus.ditherActive = outputFormat_ == OutputFormat::Pcm && config.ditherMode != echo::PcmDitherMode::Off;
-    nextStatus.echoSrc = makeFirStatus(
-        config.echoSrc,
-        echoSrc_,
-        echoSrcActive,
-        echoSrcEstimatedMacsPerSecond);
-    nextStatus.sdm = makeSdmStatus(
-        config.sdm,
-        sdmOversampler_,
-        sdm_,
-        sdmActive,
-        sdmActive && sdmDsp_ != nullptr,
-        sdmEstimatedMacsPerSecond);
-    nextStatus.sdm.realtimeAdmissionRatio = sdmRealtimeAdmissionRatio;
-    nextStatus.sdm.realtimeAdmissionWithinBudget = sdmRealtimeAdmissionWarning.empty();
-    nextStatus.sdm.realtimeAdmissionWarning = std::move(sdmRealtimeAdmissionWarning);
-    nextStatus.mqaPassthrough.requested = config.mqaPassthrough.requested;
-    nextStatus.mqaPassthrough.sourceSampleRate = config.mqaPassthrough.sourceSampleRate;
-    nextStatus.mqaPassthrough.sourceBitDepth = config.mqaPassthrough.sourceBitDepth;
-    nextStatus.mqaPassthrough.reason = config.mqaPassthrough.requested ? "awaiting_source_probe" : "not_requested";
-    if (sdmActive && sdmDsp_ != nullptr)
-    {
-        nextStatus.sdm.pcmDspSampleRate = sdmDsp_->sampleRate();
-        nextStatus.sdm.pcmDspMaximumBlockFrames = sdmDsp_->maximumBlockFrames();
-    }
-    processingStatus_ = std::move(nextStatus);
-
-    resetProcessorsLocked();
-    error.clear();
-    return true;
-}
-
 bool NativePlaybackPipeline::configurePassthroughOutput(OutputFormat format, std::string& error)
 {
+    configurationRevision_.fetch_add(1, std::memory_order_acq_rel);
     if (format == OutputFormat::Pcm)
     {
         error = "native_passthrough_requires_dsd_output";
@@ -723,6 +381,8 @@ NativePlaybackPipeline::ProcessingStatus NativePlaybackPipeline::processingStatu
         status.sdm.fallbackReason = sdm_.fallbackReason();
         status.sdm.oversamplingFallbackReason =
             sdmOversampler_.fallbackReason();
+        status.sdm.oversamplingCudaProcessedBlocks = sdmOversampler_.cudaProcessedBlocks();
+        status.sdm.oversamplingCudaTimings = sdmOversampler_.cudaTimings();
         status.sdm.deviceName =
             sdm_.backend() == NativeSdmProcessor::Backend::Cuda
             ? sdm_.deviceName()
@@ -734,6 +394,13 @@ NativePlaybackPipeline::ProcessingStatus NativePlaybackPipeline::processingStatu
         status.sdm.ntfPeakGain = sdm_.ntfPeakGain();
         status.sdm.peakFeedbackState = sdm_.peakFeedbackState();
         status.sdm.stabilityRecoveries = sdm_.stabilityRecoveryCount();
+        status.sdm.realtime = realtimeHealth_.snapshot(sdmTransportTelemetryLocked());
+        if (realtimeBackendIdentity_ != sdmBackendIdentityLocked())
+        {
+            status.sdm.realtime.executionMatchesObservation = false;
+            if (status.sdm.realtime.health != echo_audio_host::SdmHealthState::Failed)
+                status.sdm.realtime.health = echo_audio_host::SdmHealthState::Provisional;
+        }
     }
     if (workshopAudioEffectController_ != nullptr)
     {
@@ -792,6 +459,7 @@ int NativePlaybackPipeline::decoderSampleRate(int outputSampleRate) const noexce
 
 void NativePlaybackPipeline::resetProcessorsLocked()
 {
+    resetSdmRealtimeLocked();
     gaplessEchoSrcActive_ = false;
     gaplessEchoSrcReady_ = false;
     gaplessEchoSrcCancelled_ = true;
@@ -819,6 +487,7 @@ void NativePlaybackPipeline::beginSession(bool startPaused)
     nativeDsd_.beginSession();
     dop_.setPaused(startPaused);
     nativeDsd_.setPaused(startPaused);
+    resetSdmRealtimeLocked();
 }
 
 void NativePlaybackPipeline::continueSessionAfterDrain()
@@ -828,21 +497,41 @@ void NativePlaybackPipeline::continueSessionAfterDrain()
     pcm_.continueSessionAfterDrain();
     dop_.beginSession();
     nativeDsd_.beginSession();
+    resetSdmRealtimeLocked();
 }
 
 void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
 {
+    (void)finishInput(std::nullopt, expectedGeneration);
+}
+
+bool NativePlaybackPipeline::markInputEndedUntil(std::chrono::steady_clock::time_point deadline)
+{
+    return finishInput(deadline);
+}
+
+bool NativePlaybackPipeline::finishInput(std::optional<std::chrono::steady_clock::time_point> deadline, uint64_t expectedGeneration)
+{
     PreparedOutput tail;
     bool hasPreparedTail = false;
-    std::vector<float> gaplessPrime;
+    std::vector<double> gaplessPrime;
     OutputFormat endedFormat = OutputFormat::Pcm;
     uint64_t endedGeneration = 0;
+    uint64_t finishingGeneration = 0;
     bool gaplessStateChanged = false;
     {
         std::lock_guard<std::mutex> lock(processingMutex_);
         if (expectedGeneration && expectedGeneration != pcm_.session_.generation())
-            return;
+            return false;
         endedFormat = outputFormat_;
+        finishingGeneration = generation();
+    }
+    if (!drainSdmDspTail(endedFormat, finishingGeneration, deadline))
+        return false;
+    {
+        std::lock_guard<std::mutex> lock(processingMutex_);
+        if (outputFormat_ != endedFormat || generation() != finishingGeneration)
+            return false;
         switch (endedFormat)
         {
             case OutputFormat::Pcm:
@@ -853,7 +542,7 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
                         && !gaplessEchoSrcCancelled_
                         && gaplessEchoSrcGeneration_ == endedGeneration)
                     {
-                        std::vector<std::vector<float>> histories;
+                        std::vector<std::vector<double>> histories;
                         automixEchoSrc_.reset();
                         gaplessEchoSrcReady_ =
                             echoSrc_.copyLatestHistory(histories)
@@ -863,11 +552,11 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
                             gaplessEchoSrcCancelled_ = true;
                             tail.format = OutputFormat::Pcm;
                             tail.sourceGeneration = endedGeneration;
-                            tail.pcm = echoSrc_.flush();
+                            tail.pcm = echoSrc_.flushDouble();
                         }
                         else if (!gaplessPendingInput_.empty())
                         {
-                            gaplessPrime = automixEchoSrc_.process(
+                            gaplessPrime = automixEchoSrc_.processDouble(
                                 gaplessPendingInput_.data(),
                                 static_cast<int>(
                                     gaplessPendingInput_.size()
@@ -880,7 +569,7 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
                     {
                         tail.format = OutputFormat::Pcm;
                         tail.sourceGeneration = endedGeneration;
-                        tail.pcm = echoSrc_.flush();
+                        tail.pcm = echoSrc_.flushDouble();
                     }
                 }
                 break;
@@ -890,7 +579,8 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
                 tail.sourceGeneration = endedGeneration;
                 if (sdmOversampler_.active())
                 {
-                    auto pcmTail = sdmOversampler_.flush();
+                    auto pcmTail = sdmOversampler_.flushDouble();
+                    if (!sdmOversampler_.processingError().empty()) return false;
                     if (!pcmTail.empty())
                     {
                         tail.dop = sdm_.processDop(
@@ -905,6 +595,7 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
                         preModulatorTail.begin(),
                         preModulatorTail.end());
                 }
+                if (!sdm_.processingError().empty()) return false;
                 hasPreparedTail = !tail.dop.empty();
                 break;
             case OutputFormat::NativeDsd:
@@ -913,7 +604,8 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
                 tail.sourceGeneration = endedGeneration;
                 if (sdmOversampler_.active())
                 {
-                    auto pcmTail = sdmOversampler_.flush();
+                    auto pcmTail = sdmOversampler_.flushDouble();
+                    if (!sdmOversampler_.processingError().empty()) return false;
                     if (!pcmTail.empty())
                     {
                         tail.nativeDsd = sdm_.processNativeDsd(
@@ -928,6 +620,7 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
                         preModulatorTail.begin(),
                         preModulatorTail.end());
                 }
+                if (!sdm_.processingError().empty()) return false;
                 hasPreparedTail = !tail.nativeDsd.empty();
                 break;
         }
@@ -935,8 +628,8 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
 
     // A ring push may wait for a paused device to drain, so never hold the
     // stateful processing lock while committing the FIR tail.
-    if ((!tail.pcm.empty() || hasPreparedTail) && !pushPreparedOutput(tail))
-        return;
+    if ((!tail.pcm.empty() || hasPreparedTail) && !pushPreparedOutput(tail, deadline))
+        return false;
     if (!gaplessPrime.empty()
         && (endedGeneration != pcm_.session_.generation()
             || !pcm_.pushAutomixNext(
@@ -944,13 +637,13 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
                 static_cast<int>(
                     gaplessPrime.size()
                     / static_cast<size_t>(channels_)))))
-        return;
+        return false;
     if (gaplessStateChanged)
         gaplessStateChanged_.notify_all();
 
     std::lock_guard<std::mutex> lock(processingMutex_);
     if (outputFormat_ != endedFormat)
-        return;
+        return false;
     const uint64_t currentGeneration =
         endedFormat == OutputFormat::Pcm
         ? pcm_.session_.generation()
@@ -958,17 +651,19 @@ void NativePlaybackPipeline::markInputEnded(uint64_t expectedGeneration)
             ? dop_.generation()
             : nativeDsd_.generation();
     if (currentGeneration != endedGeneration)
-        return;
+        return false;
 
     // Keep the legacy all-source markers in sync, while the generation check
     // prevents a stale producer from ending a replacement/seek session.
     pcm_.markInputEnded();
     dop_.markInputEnded();
     nativeDsd_.markInputEnded();
+    return true;
 }
 
 void NativePlaybackPipeline::requestStop()
 {
+    configurationRevision_.fetch_add(1, std::memory_order_acq_rel);
     pcm_.requestStop();
     dop_.requestStop();
     nativeDsd_.requestStop();
@@ -976,9 +671,17 @@ void NativePlaybackPipeline::requestStop()
 
 bool NativePlaybackPipeline::requestStopForGeneration(uint64_t generation)
 {
-    // Resident daemon file producers feed PCM only. DoP/native DSD are derived
-    // downstream and reject stale source generations independently.
-    return pcm_.requestStopForGeneration(generation);
+    // The decoder feeds PCM, but its push can be waiting on the derived DSD
+    // transport while output is paused. Cancel that wait before joining the
+    // producer, and serialize with session replacement so an old teardown
+    // cannot stop the replacement transport.
+    std::lock_guard<std::mutex> lock(processingMutex_);
+    if (!pcm_.requestStopForGeneration(generation))
+        return false;
+    configurationRevision_.fetch_add(1, std::memory_order_acq_rel);
+    dop_.requestStop();
+    nativeDsd_.requestStop();
+    return true;
 }
 
 void NativePlaybackPipeline::allowTailDrainAfterStop()
@@ -990,6 +693,7 @@ void NativePlaybackPipeline::allowTailDrainAfterStop()
 
 void NativePlaybackPipeline::setPaused(bool paused)
 {
+    playbackControlRevision_.fetch_add(1, std::memory_order_acq_rel);
     pcm_.setPaused(paused);
     dop_.setPaused(paused);
     nativeDsd_.setPaused(paused);
@@ -1025,7 +729,7 @@ bool NativePlaybackPipeline::pushGaplessNext(const float* samples, int frames)
     if (samples == nullptr || frames <= 0)
         return frames == 0;
 
-    std::vector<float> prepared;
+    std::vector<double> prepared;
     uint64_t sourceGeneration = 0;
     {
         std::unique_lock<std::mutex> lock(processingMutex_);
@@ -1062,14 +766,14 @@ bool NativePlaybackPipeline::pushGaplessNext(const float* samples, int frames)
 
         if (!gaplessPendingInput_.empty())
         {
-            prepared = automixEchoSrc_.process(
+            prepared = automixEchoSrc_.processDouble(
                 gaplessPendingInput_.data(),
                 static_cast<int>(
                     gaplessPendingInput_.size()
                     / static_cast<size_t>(channels_)));
             gaplessPendingInput_.clear();
         }
-        auto block = automixEchoSrc_.process(samples, frames);
+        auto block = automixEchoSrc_.processDouble(samples, frames);
         prepared.insert(prepared.end(), block.begin(), block.end());
     }
     return sourceGeneration == pcm_.session_.generation()
@@ -1081,7 +785,7 @@ bool NativePlaybackPipeline::pushGaplessNext(const float* samples, int frames)
 
 void NativePlaybackPipeline::markGaplessNextEnded()
 {
-    std::vector<float> prepared;
+    std::vector<double> prepared;
     uint64_t sourceGeneration = 0;
     {
         std::unique_lock<std::mutex> lock(processingMutex_);
@@ -1110,14 +814,14 @@ void NativePlaybackPipeline::markGaplessNextEnded()
 
         if (!gaplessPendingInput_.empty())
         {
-            prepared = automixEchoSrc_.process(
+            prepared = automixEchoSrc_.processDouble(
                 gaplessPendingInput_.data(),
                 static_cast<int>(
                     gaplessPendingInput_.size()
                     / static_cast<size_t>(channels_)));
             gaplessPendingInput_.clear();
         }
-        auto tail = automixEchoSrc_.flush();
+        auto tail = automixEchoSrc_.flushDouble();
         prepared.insert(prepared.end(), tail.begin(), tail.end());
     }
     if (!prepared.empty()
@@ -1165,7 +869,8 @@ bool NativePlaybackPipeline::prepareAutomixFrames(
     double echoFeedback,
     double vocalExitStartProgress,
     double vocalEntryStartProgress,
-    AutomixHandoffSchedule handoffSchedule)
+    AutomixHandoffSchedule handoffSchedule,
+    echo::automix_alpha::Parameters alpha)
 {
     return prepareAutomixDeckFrames(
         fadeStartFrame,
@@ -1182,7 +887,7 @@ bool NativePlaybackPipeline::prepareAutomixFrames(
         echoFeedback,
         vocalExitStartProgress,
         vocalEntryStartProgress,
-        handoffSchedule) != 0;
+        handoffSchedule, alpha) != 0;
 }
 
 uint64_t NativePlaybackPipeline::prepareAutomixDeckFrames(
@@ -1200,7 +905,8 @@ uint64_t NativePlaybackPipeline::prepareAutomixDeckFrames(
     double echoFeedback,
     double vocalExitStartProgress,
     double vocalEntryStartProgress,
-    AutomixHandoffSchedule handoffSchedule)
+    AutomixHandoffSchedule handoffSchedule,
+    echo::automix_alpha::Parameters alpha)
 {
     std::lock_guard<std::mutex> lock(processingMutex_);
     if (outputFormat_ != OutputFormat::Pcm
@@ -1221,7 +927,7 @@ uint64_t NativePlaybackPipeline::prepareAutomixDeckFrames(
         echoFeedback,
         vocalExitStartProgress,
         vocalEntryStartProgress,
-        handoffSchedule);
+        handoffSchedule, alpha);
     if (deckLease == 0)
         return 0;
     auto& deckProcessor = (deckLease & 1u) != 0
@@ -1247,7 +953,7 @@ bool NativePlaybackPipeline::pushAutomixDeck(uint64_t deckLease, const float* sa
     if (deckLease == 0)
         return false;
 
-    std::vector<float> prepared;
+    std::vector<double> prepared;
     {
         std::lock_guard<std::mutex> lock(processingMutex_);
         if (outputFormat_ != OutputFormat::Pcm)
@@ -1255,7 +961,7 @@ bool NativePlaybackPipeline::pushAutomixDeck(uint64_t deckLease, const float* sa
         auto& deckProcessor = (deckLease & 1u) != 0
             ? automixEchoSrc_
             : automixEchoSrcAlternate_;
-        prepared = deckProcessor.process(samples, frames);
+        prepared = deckProcessor.processDouble(samples, frames);
     }
     if (prepared.empty())
         return true;
@@ -1274,7 +980,7 @@ void NativePlaybackPipeline::markAutomixDeckEnded(uint64_t deckLease)
 {
     if (deckLease == 0)
         return;
-    std::vector<float> tail;
+    std::vector<double> tail;
     uint64_t sourceGeneration = 0;
     {
         std::lock_guard<std::mutex> lock(processingMutex_);
@@ -1285,7 +991,7 @@ void NativePlaybackPipeline::markAutomixDeckEnded(uint64_t deckLease)
             auto& deckProcessor = (deckLease & 1u) != 0
                 ? automixEchoSrc_
                 : automixEchoSrcAlternate_;
-            tail = deckProcessor.flush();
+            tail = deckProcessor.flushDouble();
         }
     }
     if (!tail.empty()
@@ -1355,30 +1061,35 @@ bool NativePlaybackPipeline::isAutomixActive() const
     return outputFormat_ == OutputFormat::Pcm && pcm_.isAutomixActive();
 }
 
-std::vector<float> NativePlaybackPipeline::preparePcm(const float* samples, int frames)
+std::vector<double> NativePlaybackPipeline::preparePcm(const float* samples, int frames)
 {
-    return echoSrc_.process(samples, frames);
+    return echoSrc_.processDouble(samples, frames);
 }
 
 bool NativePlaybackPipeline::prepareSdmPcm(
     const float* samples,
     int frames,
-    std::vector<float>& output,
+    std::vector<double>& output,
     std::string& error)
 {
     output.assign(samples, samples + static_cast<size_t>(frames * channels_));
+    for (auto& sample : output)
+        if (!std::isfinite(sample)) sample = 0.0f;
     // The shared DSP graph is PCM-domain work. Run it at the decoder/source
     // rate before the potentially 32x SDM FIR expansion; processing it at the
     // carrier transport rate wastes realtime budget and changes time-based DSP
     // semantics such as convolution and compressor envelopes.
     if (sdmDsp_ != nullptr && !sdmDsp_->process(output, error))
         return false;
+    for (auto& sample : output)
+        if (!std::isfinite(sample)) sample = 0.0f;
     if (sdmOversampler_.active())
     {
-        output = sdmOversampler_.process(output.data(), frames);
+        output = sdmOversampler_.processDouble(output.data(), frames);
         if (output.empty())
         {
-            error = "native_sdm_oversampling_failed";
+            error = sdmOversampler_.processingError().empty()
+                ? "native_sdm_oversampling_failed" : sdmOversampler_.processingError();
             return false;
         }
     }
@@ -1411,22 +1122,22 @@ bool NativePlaybackPipeline::prepareOutputLocked(
         return true;
     }
 
-    std::vector<float> pcm;
+    std::vector<double> pcm;
     if (!prepareSdmPcm(samples, frames, pcm, error))
         return false;
     const int outputFrames = static_cast<int>(pcm.size() / static_cast<size_t>(channels_));
     if (output.format == OutputFormat::Dop)
     {
         output.dop = sdm_.processDop(pcm.data(), outputFrames);
-        error.clear();
-        return true;
     }
-    output.nativeDsd = sdm_.processNativeDsd(pcm.data(), outputFrames);
-    error.clear();
-    return true;
+    else
+        output.nativeDsd = sdm_.processNativeDsd(pcm.data(), outputFrames);
+    error = sdm_.processingError();
+    return error.empty();
 }
 
-bool NativePlaybackPipeline::pushPreparedOutput(const PreparedOutput& output)
+bool NativePlaybackPipeline::pushPreparedOutput(const PreparedOutput& output,
+    std::optional<std::chrono::steady_clock::time_point> deadline)
 {
     switch (output.format)
     {
@@ -1435,124 +1146,22 @@ bool NativePlaybackPipeline::pushPreparedOutput(const PreparedOutput& output)
                 output.pcm.data(), static_cast<int>(output.pcm.size() / static_cast<size_t>(channels_)), output.sourceGeneration);
         case OutputFormat::Dop:
             return dop_.pushForGeneration(
-                output.dop.data(), static_cast<int>(output.dop.size() / static_cast<size_t>(channels_)), output.sourceGeneration);
+                output.dop.data(), static_cast<int>(output.dop.size() / static_cast<size_t>(channels_)), output.sourceGeneration, deadline);
         case OutputFormat::NativeDsd:
             return nativeDsd_.pushForGeneration(
-                output.nativeDsd.data(), static_cast<int>(output.nativeDsd.size() / static_cast<size_t>(channels_)), output.sourceGeneration);
+                output.nativeDsd.data(), static_cast<int>(output.nativeDsd.size() / static_cast<size_t>(channels_)), output.sourceGeneration, deadline);
     }
     return false;
 }
 
 bool NativePlaybackPipeline::push(const float* samples, int frames)
 {
-    if (samples == nullptr || frames <= 0)
-        return frames == 0;
-
-    PreparedOutput output;
-    std::string error;
-    {
-        // Keep stateful FIR/SDM/PCM-DSP work serialized, but never hold this
-        // mutex across a ring push: push may wait for a paused device to drain.
-        std::lock_guard<std::mutex> lock(processingMutex_);
-        if (!prepareOutputLocked(samples, frames, output, error))
-            return false;
-    }
-    return pushPreparedOutput(output);
+    return pushSourceBlock(samples, frames, std::nullopt);
 }
 
 bool NativePlaybackPipeline::pushForGeneration(const float* samples, int frames, uint64_t generation)
 {
-    if (samples == nullptr || frames <= 0)
-        return frames == 0 && generation == this->generation();
-
-    PreparedOutput output;
-    std::string error;
-    {
-        std::lock_guard<std::mutex> lock(processingMutex_);
-        if (generation != this->generation()
-            || !prepareOutputLocked(samples, frames, output, error))
-            return false;
-    }
-
-    return generation == this->generation() && pushPreparedOutput(output);
-}
-
-int NativePlaybackPipeline::replacePreparedOutput(
-    const PreparedOutput& output,
-    int inputFrames,
-    bool pausedAfterReplace)
-{
-    switch (output.format)
-    {
-        case OutputFormat::Pcm:
-            return pcm_.replaceBufferedAudio(
-                output.pcm.data(), static_cast<int>(output.pcm.size() / static_cast<size_t>(channels_)), pausedAfterReplace) > 0
-                ? inputFrames : 0;
-        case OutputFormat::Dop:
-            return dop_.replaceBufferedAudio(
-                output.dop.data(), static_cast<int>(output.dop.size() / static_cast<size_t>(channels_)), pausedAfterReplace) > 0
-                ? inputFrames : 0;
-        case OutputFormat::NativeDsd:
-            return nativeDsd_.replaceBufferedAudio(
-                output.nativeDsd.data(), static_cast<int>(output.nativeDsd.size() / static_cast<size_t>(channels_)), pausedAfterReplace) > 0
-                ? inputFrames : 0;
-    }
-    return 0;
-}
-
-int NativePlaybackPipeline::replaceBufferedAudio(const float* samples, int frames, bool pausedAfterReplace)
-{
-    return replaceBufferedAudioWithPreroll(
-        samples,
-        frames,
-        0,
-        pausedAfterReplace);
-}
-
-int NativePlaybackPipeline::replaceBufferedAudioWithPreroll(
-    const float* samples,
-    int frames,
-    int prerollFrames,
-    bool pausedAfterReplace)
-{
-    PreparedOutput output;
-    std::string error;
-    int discardedInputFrames = 0;
-    {
-        std::lock_guard<std::mutex> lock(processingMutex_);
-        resetProcessorsLocked();
-        if (!prepareOutputLocked(samples, frames, output, error))
-            return 0;
-        if (output.format == OutputFormat::Pcm
-            && echoSrc_.active()
-            && prerollFrames > 0)
-        {
-            discardedInputFrames = std::min(prerollFrames, frames);
-            const size_t discardedOutputSamples =
-                static_cast<size_t>(discardedInputFrames)
-                * static_cast<size_t>(echoSrc_.outputFactor())
-                * static_cast<size_t>(channels_);
-            if (discardedOutputSamples >= output.pcm.size())
-                return 0;
-            output.pcm.erase(
-                output.pcm.begin(),
-                output.pcm.begin()
-                    + static_cast<std::ptrdiff_t>(
-                        discardedOutputSamples));
-        }
-    }
-    return replacePreparedOutput(
-        output,
-        frames - discardedInputFrames,
-        pausedAfterReplace);
-}
-
-int NativePlaybackPipeline::seekPrerollFrames() const
-{
-    std::lock_guard<std::mutex> lock(processingMutex_);
-    return outputFormat_ == OutputFormat::Pcm && echoSrc_.active()
-        ? echoSrc_.prerollInputFrames()
-        : 0;
+    return pushSourceBlock(samples, frames, generation);
 }
 
 bool NativePlaybackPipeline::isDrained() const

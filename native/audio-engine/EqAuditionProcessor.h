@@ -63,16 +63,17 @@ public:
         const double omega = 6.283185307179586 * std::min<double>(frequency, sampleRate * 0.45) / sampleRate;
         const double alpha = std::sin(omega) / (2.0 * q);
         const double a0 = 1.0 + alpha;
-        coefficients = { static_cast<float>(alpha / a0), 0.0f, static_cast<float>(-alpha / a0),
-            static_cast<float>(-2.0 * std::cos(omega) / a0), static_cast<float>((1.0 - alpha) / a0) };
+        coefficients = { alpha / a0, 0.0f, -alpha / a0,
+            -2.0 * std::cos(omega) / a0, (1.0 - alpha) / a0 };
     }
-    float process(int channel, float dry, float normal) noexcept
+    double process(int channel, double dry, double normal) noexcept
     {
         if (mix == 0.0f) { filters[static_cast<size_t>(channel)].reset(); return normal; }
-        const float monitor = filters[static_cast<size_t>(channel)].process(dry, coefficients);
+        const double monitor = filters[static_cast<size_t>(channel)].processDouble(dry, coefficients);
         return normal + (monitor - normal) * mix;
     }
 private:
+    friend struct DspPreparedRuntime;
     std::atomic<bool> fading { false };
     std::atomic<int64_t> deadline { 0 };
     std::atomic<float> targetFrequency { 1000.0f }, targetQ { 1.0f };

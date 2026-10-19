@@ -845,6 +845,17 @@ static HRESULT initialize_exclusive_client(
     if (hr == E_PENDING) {
         return hr;
     }
+    if (requestedBufferFrames == 0 && FAILED(hr)) {
+        client->Release();
+        return hr;
+    }
+    if (requestedBufferFrames == 0 && defaultPeriod <= 0) {
+        client->Release();
+        return E_INVALIDARG;
+    }
+    if (SUCCEEDED(hr) && requestedBufferFrames == 0 && defaultPeriod > 0) {
+        bufferDuration = defaultPeriod;
+    }
     if (SUCCEEDED(hr) && minPeriod > bufferDuration) {
         bufferDuration = minPeriod;
     }

@@ -40,7 +40,7 @@ public static class ConnectAddress
     public static string Machine()
     {
         var cleaned = new string(Environment.MachineName.Where(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_').Take(32).ToArray());
-        return cleaned.Length == 0 ? "ECHO" : cleaned;
+        return cleaned.Length == 0 ? "melodies" : cleaned;
     }
 
     public static bool IsLoopback(string host)

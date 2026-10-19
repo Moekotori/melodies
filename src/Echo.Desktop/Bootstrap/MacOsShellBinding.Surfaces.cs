@@ -35,7 +35,7 @@ internal sealed partial class MacOsShellBinding
             return;
         }
         if (args.PropertyName is not (nameof(PlayerViewModel.PlayIcon) or nameof(PlayerViewModel.HasTrack) or nameof(PlayerViewModel.Title))) return;
-        if (_tray is not null) _tray.ToolTipText = _player is { HasTrack: true } current ? current.Title : "ECHO";
+        if (_tray is not null) _tray.ToolTipText = _player is { HasTrack: true } current ? current.Title : "melodies";
         RefreshDock();
     }
 

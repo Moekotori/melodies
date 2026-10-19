@@ -8,7 +8,7 @@ internal static class OutputFakeAudio
     {
         if (args.Contains("-list")) { Console.WriteLine("0\tOutput smoke device\t48000\t1\t0\t0\t0\tsmoke-device"); return; }
         File.WriteAllText(Environment.GetEnvironmentVariable("ECHO_OUTPUT_SMOKE_PID")!, Environment.ProcessId.ToString());
-        Console.WriteLine("{\"ready\":true,\"protocolVersion\":1,\"backendContractVersion\":2,\"capabilities\":{\"hostOwnedLocalPlaybackV1\":true}}");
+        Console.WriteLine("{\"ready\":true,\"protocolVersion\":1,\"backendContractVersion\":2,\"capabilities\":{\"hostOwnedLocalPlaybackV1\":true,\"runtimeDeviceConfigureV1\":true,\"nativeDspV1\":true},\"hostIdentity\":{\"schemaVersion\":1,\"imageRole\":\"echo-audio-host\",\"buildId\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"sourceDigest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"protocolVersion\":1,\"backendContractVersion\":2}}");
         long operation = 0; var verified = false;
         while (await Console.In.ReadLineAsync() is { } line)
         {

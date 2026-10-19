@@ -135,7 +135,8 @@ void LevelMeterProcessor::clearRealtimeState(uint64_t generation) noexcept
     realtimeGeneration = generation;
 }
 
-void LevelMeterProcessor::processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples) noexcept
+template <typename Sample>
+void LevelMeterProcessor::processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples) noexcept
 {
     if (! tryEnterRealtime())
         return;
@@ -177,8 +178,9 @@ void LevelMeterProcessor::openRealtimeEntry() noexcept
     realtimeEntryState.store(realtimeEntryOpenBit, std::memory_order_release);
 }
 
+template <typename Sample>
 void LevelMeterProcessor::processBlockRealtime(
-    echo::FloatAudioBuffer& buffer,
+    echo::PlanarAudioBuffer<Sample>& buffer,
     int startSample,
     int numSamples) noexcept
 {
@@ -209,7 +211,7 @@ void LevelMeterProcessor::processBlockRealtime(
 
     for (int channel = 0; channel < channels; ++channel)
     {
-        const float* src = buffer.getReadPointer(channel, startSample);
+        const auto* src = buffer.getReadPointer(channel, startSample);
         if (src == nullptr)
             continue;
 
@@ -241,7 +243,7 @@ void LevelMeterProcessor::processBlockRealtime(
             int mixedChannels = 0;
             for (int channel = 0; channel < channels; ++channel)
             {
-                const float* src = buffer.getReadPointer(channel, startSample);
+                const auto* src = buffer.getReadPointer(channel, startSample);
                 if (src == nullptr)
                     continue;
                 mixedSample += sanitize(src[sample]);
@@ -452,6 +454,7 @@ void LevelMeterProcessor::processReport(MailboxSlot& slot)
     workerSnapshot.peakDb.resize(static_cast<size_t>(channels));
     workerSnapshot.rmsDb.resize(static_cast<size_t>(channels));
     workerSnapshot.timestampMs = slot.frame.timestampMs;
+    workerSnapshot.dsp = dspMeasurements.read();
     for (int channel = 0; channel < channels; ++channel)
     {
         const size_t channelIndex = static_cast<size_t>(channel);
@@ -475,6 +478,17 @@ void LevelMeterProcessor::processReport(MailboxSlot& slot)
         && visualSpectrumEnabled.load(std::memory_order_acquire))
     {
         workerSnapshot.visualSpectrumReady = computeVisualSpectrum(slot.frame, slot.frame.generation);
+    }
+
+    // Reuse the chronological mono analysis window on the worker. No extra
+    // sampling, allocation or copies are added to the realtime callback.
+    workerSnapshot.visualWaveform.clear();
+    workerSnapshot.visualWaveformSampleRate = 0.0;
+    if (workerSnapshot.visualSpectrumReady)
+    {
+        const auto start = slot.frame.spectrumSamples.end() - levelMeterVisualWaveformSampleCount;
+        workerSnapshot.visualWaveform.assign(start, slot.frame.spectrumSamples.end());
+        workerSnapshot.visualWaveformSampleRate = spectrumSampleRate;
     }
 
     if (slot.frame.generation != telemetryGeneration.load(std::memory_order_acquire) || ! callback)
@@ -565,4 +579,9 @@ bool LevelMeterProcessor::isEnabled() const
 {
     return intervalMs.load(std::memory_order_acquire) > 0;
 }
+
+template void LevelMeterProcessor::processBlockRealtime<float>(echo::PlanarAudioBuffer<float>&, int, int) noexcept;
+template void LevelMeterProcessor::processBlockRealtime<double>(echo::PlanarAudioBuffer<double>&, int, int) noexcept;
+template void LevelMeterProcessor::processBlock<float>(echo::PlanarAudioBuffer<float>&, int, int) noexcept;
+template void LevelMeterProcessor::processBlock<double>(echo::PlanarAudioBuffer<double>&, int, int) noexcept;
 } // namespace echo

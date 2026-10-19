@@ -29,6 +29,7 @@ public static class DesktopComposition
         playback ??= core?.Playback ?? throw new ArgumentException("Pass a Core connection, or explicit preview playback and library capabilities.");
         if (core is null && albumLibrary is null) throw new ArgumentException("A preview requires an explicit library capability.");
         var shell = new ShellViewModel();
+        shell.AlbumInformation = core?.IsRemote == true ? null : new Echo.Core.Client.AlbumInformationClient();
         shell.AttachRadio(core?.Radio ?? new Echo.Application.Radio.RadioCatalog());
         var userLanguages = new Echo.Desktop.Features.Settings.UserLanguagesViewModel(shell.Text,
             new UserLanguageStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ECHO Avalonia", "languages")));

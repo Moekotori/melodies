@@ -101,11 +101,16 @@ public sealed partial class LibraryDatabase
             command.CommandText = "SELECT revision FROM library_state WHERE id=1";
             var revision = (long)command.ExecuteScalar()!;
             if (query.Revision is { } expected && expected != revision) throw new LibraryChangedException();
+            const string membership = " FROM tracks WHERE album_key=(SELECT group_key FROM album_identity WHERE stable_id=$album OR group_key=$album LIMIT 1) AND missing=0";
+            command.Parameters.AddWithValue("$album", query.AlbumId);
+            command.CommandText = "SELECT COUNT(*),coalesce(SUM(duration),0)" + membership + (query.FavoriteOnly ? " AND favorite=1" : "");
+            int total; double duration;
+            using (var summary = command.ExecuteReader())
+            { summary.Read(); total = summary.GetInt32(0); duration = summary.GetDouble(1); }
             command.CommandText = """
                 SELECT id,path,title,artist,coalesce((SELECT display_title FROM album_identity WHERE group_key=tracks.album_key),album),duration,codec,sample_rate,bit_depth,sort_key,track_no,disc_no,favorite,source_json
                 FROM tracks WHERE album_key=(SELECT group_key FROM album_identity WHERE stable_id=$album OR group_key=$album LIMIT 1) AND missing=0
-                """ + DetailOrder(query.Sort, query.Descending, "") + " LIMIT $limit OFFSET $offset";
-            command.Parameters.AddWithValue("$album", query.AlbumId);
+                """ + (query.FavoriteOnly ? " AND favorite=1" : "") + DetailOrder(query.Sort, query.Descending, "") + " LIMIT $limit OFFSET $offset";
             command.Parameters.AddWithValue("$limit", query.Limit);
             command.Parameters.AddWithValue("$offset", query.Offset);
             var items = new List<TrackRow>(query.Limit);
@@ -116,7 +121,7 @@ public sealed partial class LibraryDatabase
                     items.Add(TrackRowMapping.Read(reader));
                 }
             transaction.Commit();
-            return new TrackPage(items, null, revision);
+            return new TrackPage(items, null, revision, total, duration);
         }, true, cancellation);
     }
 

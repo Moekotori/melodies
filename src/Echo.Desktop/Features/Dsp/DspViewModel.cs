@@ -57,7 +57,8 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     public bool CanRevert => CanEdit && IsDirty;
     public bool CanUndo => CanEdit && undo.Count > 0;
     public string EnableLabel => SelectedModule.Id == "safety" ? "安全限幅" : "启用模块";
-    public string DraftLabel => IsOutput
+    public string ApplyLabel => IsRack ? "应用处理链" : "应用调整";
+    public string DraftLabel => IsRack ? (IsDirty ? "处理链尚未应用" : "与已确认的处理链一致") : IsOutput
         ? (IsDirty ? "应用后才会重配输出，播放会短暂中断" : "与当前输出配置一致")
         : IsDirty ? "试听中 · 应用后记入撤销" : "与已确认的状态一致";
     public string PendingDescription => "这个模块还没有接到原生处理链。";
@@ -74,17 +75,17 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     }
     partial void OnSelectedModuleChanged(DspModule value)
     {
-        foreach (var name in new[] { nameof(IsEq), nameof(IsHeadphone), nameof(IsReplayGain), nameof(IsRack), nameof(IsRoom), nameof(IsChannel), nameof(IsListening), nameof(IsSrc), nameof(IsSdm), nameof(IsOutput), nameof(ShowGeneric), nameof(IsPending), nameof(HasEnable), nameof(EnableLabel), nameof(PendingDescription), nameof(DraftLabel), nameof(CanMoveRackUp), nameof(CanMoveRackDown) }) OnPropertyChanged(name);
-        undo.Clear(); _ = RefreshAsync();
+        foreach (var name in new[] { nameof(IsEq), nameof(IsHeadphone), nameof(IsReplayGain), nameof(IsRack), nameof(IsRoom), nameof(IsChannel), nameof(IsListening), nameof(IsSrc), nameof(IsSdm), nameof(IsOutput), nameof(ShowGeneric), nameof(IsPending), nameof(HasEnable), nameof(EnableLabel), nameof(PendingDescription), nameof(DraftLabel), nameof(ApplyLabel), nameof(CanMoveRackUp), nameof(CanMoveRackDown) }) OnPropertyChanged(name);
+        undo.Clear(); ClearComparison(); _ = RefreshAsync();
     }
     private void Changed(object? sender, PropertyChangedEventArgs args)
     {
         if (!projecting && args.PropertyName is nameof(Enabled) or nameof(PreampDb) or nameof(StrengthPercent) or nameof(TiltDb) or nameof(ReplayMode) or nameof(PreventClipping))
         { IsDirty = true; if (!IsOutput) NoteEdit(); }
         if (args.PropertyName is nameof(IsReady) or nameof(IsBusy) or nameof(IsDirty) or nameof(SelectedBand))
-        { OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(CanApply)); OnPropertyChanged(nameof(CanRevert)); OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanResetBand)); OnPropertyChanged(nameof(CanDeletePreset)); OnPropertyChanged(nameof(CanMoveRackUp)); OnPropertyChanged(nameof(CanMoveRackDown)); OnPropertyChanged(nameof(DraftLabel)); }
+        { OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(CanApply)); OnPropertyChanged(nameof(CanRevert)); OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanResetBand)); OnPropertyChanged(nameof(CanDeletePreset)); OnPropertyChanged(nameof(CanMoveRackUp)); OnPropertyChanged(nameof(CanMoveRackDown)); OnPropertyChanged(nameof(CanRemoveRackFilter)); OnPropertyChanged(nameof(DraftLabel)); }
     }
-    private void DraftChanged(object? sender, PropertyChangedEventArgs args) { if (!projecting) { IsDirty = true; if (!IsOutput) NoteEdit(); } }
+    private void DraftChanged(object? sender, PropertyChangedEventArgs args) { OnPropertyChanged(nameof(CurveScopeLabel)); if (!projecting) { IsDirty = true; if (!IsOutput) NoteEdit(); } }
 
     [RelayCommand] private async Task RefreshAsync()
     {
@@ -113,10 +114,11 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     {
         if (!CanApply || session is null || confirmed is null) return;
         auditionEpoch++;
-        var module = SelectedModule; var before = (JsonObject)confirmed.DeepClone(); var draft = CaptureDraft();
+        var module = SelectedModule; var before = (JsonObject)confirmed.DeepClone();
         var version = generation; IsBusy = true; Message = "正在应用…";
         try
         {
+            var draft = CaptureDraft();
             if (module.ConfiguresOutput) { await ApplyOutputAsync(draft); if (disposed || version != generation) return; confirmed = draft; if (undo.Count >= 16) undo.Clear(); undo.Push(before); Project(confirmed); Message = "输出配置已提交"; return; }
             var result = await PushAsync(module, draft, retain: true, lifetime.Token);
             if (disposed || version != generation) return;
@@ -131,13 +133,13 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         finally { if (!disposed && version == generation) { IsBusy = false; OnPropertyChanged(nameof(CanUndo)); } }
     }
 
-    [RelayCommand] private void Revert() { if (confirmed is not null && CanEdit) { Project(confirmed); if (!IsOutput) HearConfirmed(); } }
+    [RelayCommand] private void Revert() { if (confirmed is not null && CanEdit) { Project(confirmed); if (!SelectedModule.DraftOnly) HearConfirmed(); } }
     [RelayCommand] private void Undo()
     { if (CanUndo) { var previous = undo.Pop(); Project(previous, updateConfirmed: false); IsDirty = true; OnPropertyChanged(nameof(CanUndo)); NoteEdit(); } }
     [RelayCommand] private void Flatten()
     {
         if (!CanEdit || !IsEq) return;
-        foreach (var band in Bands) { band.GainDb = 0; band.Q = 1.414; band.Filter = EqFilters.All[0]; band.Enabled = true; }
+        foreach (var band in Bands) { band.GainDb = 0; band.Q = 1.414; band.Filter = EqFilters.All[0]; band.Enabled = true; band.Scope = band.Scopes[0]; band.DynamicMode = band.DynamicModes[0]; }
         PreampDb = 0; TiltDb = 0; StrengthPercent = 100; IsDirty = true;
     }
     [RelayCommand] private void AutoPreamp()
@@ -149,8 +151,9 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         projecting = true;
         try
         {
-            ClearEditors(); Enabled = Bool(state, SelectedModule.Id == "safety" ? "safetyLimiterEnabled" : "enabled");
-            PreampDb = Math.Round(Number(state, "preampDb"), 1); StrengthPercent = Math.Round(Number(state, "strengthPercent", 100)); TiltDb = Math.Round(Number(state, "tiltDb"), 1);
+            ClearEditors(); Enabled = Bool(state, SelectedModule.Id is "safety" or "limiter" ? "safetyLimiterEnabled" : "enabled");
+            PreampDb = IsHeadphone ? Number(state, "preampDb") : Math.Round(Number(state, "preampDb"), 1);
+            StrengthPercent = Math.Round(Number(state, "strengthPercent", 100)); TiltDb = Math.Round(Number(state, "tiltDb"), 1);
             PresetName = state["presetName"]?.ToString() ?? "自定义";
             PreventClipping = Bool(state, "preventClipping"); ReplayMode = ReplayModes.FirstOrDefault(x => x.Key == state["mode"]?.ToString()) ?? ReplayModes[0];
             if (SelectedModule.EditsEqualizer && state["bands"] is JsonArray bands)
@@ -159,7 +162,9 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
                 for (var i = 0; i < bands.Count; i++)
                 {
                     if (bands[i] is not JsonObject b) throw new IOException("无效均衡器频段。");
-                    var band = new EqBandViewModel(i, Math.Round(Number(b, "frequencyHz", 1000), 3), Math.Round(Number(b, "gainDb"), 3), Math.Round(Number(b, "q", 1.414), 3), b["filterType"]?.ToString() ?? "peaking", b["enabled"] is null || Bool(b, "enabled"));
+                    double ReadBand(string key, double fallback = 0) => IsHeadphone ? Number(b, key, fallback) : Math.Round(Number(b, key, fallback), 3);
+                    var band = new EqBandViewModel(i, ReadBand("frequencyHz", 1000), ReadBand("gainDb"), ReadBand("q", 1.414), b["filterType"]?.ToString() ?? "peaking", b["enabled"] is null || Bool(b, "enabled"), IsHeadphone);
+                    band.ReadProcessing(b);
                     band.PropertyChanged += DraftChanged; Bands.Add(band);
                 }
                 SelectedBand = Bands.FirstOrDefault(x => x.Index == selectedIndex)
@@ -184,16 +189,17 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     private JsonObject CaptureDraft()
     {
         var state = (JsonObject)confirmed!.DeepClone();
-        if (HasEnable) state[SelectedModule.Id == "safety" ? "safetyLimiterEnabled" : "enabled"] = Enabled;
-        foreach (var parameter in Parameters) state[parameter.Definition.Key] = parameter.Value;
+        if (HasEnable) state[SelectedModule.Id is "safety" or "limiter" ? "safetyLimiterEnabled" : "enabled"] = Enabled;
+        foreach (var parameter in Parameters)
+            if (IsChannel && parameter.Definition.Key.Contains('.')) state[parameter.Definition.Key] = parameter.Value;
+            else DspParameterPath.Write(state, parameter.Definition.Key, parameter.Value);
         if (IsReplayGain) { state["mode"] = int.Parse(ReplayMode.Key); state["preventClipping"] = PreventClipping; }
         CaptureOptions(state);
         if (SelectedModule.EditsEqualizer)
         {
             state["preampDb"] = PreampDb; state["strengthPercent"] = StrengthPercent; state["tiltDb"] = TiltDb;
             state["presetId"] = "custom"; state["presetName"] = "自定义";
-            state["bands"] = new JsonArray(Bands.Select(b => (JsonNode)new JsonObject {
-                ["frequencyHz"] = b.FrequencyHz, ["gainDb"] = b.GainDb, ["q"] = b.Q, ["filterType"] = b.Filter.Key, ["enabled"] = b.Enabled }).ToArray());
+            state["bands"] = new JsonArray(Bands.Select(b => (JsonNode)b.ToState()).ToArray());
         }
         return state;
     }
@@ -210,9 +216,9 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         if (disposed) return;
-        if (IsDirty && !IsBusy && !SelectedModule.ConfiguresOutput && confirmed is not null && session is not null && SelectedModule.WriteMethod is not null)
+        if (IsDirty && !IsBusy && !SelectedModule.DraftOnly && confirmed is not null && session is not null && SelectedModule.WriteMethod is not null)
         { var module = SelectedModule; var state = CaptureDraft(); _ = CommitModuleAsync(module, state); }
         disposed = true; generation++; auditionEpoch++; lifetime.Cancel();
-        PropertyChanged -= Changed; ClearEditors(); undo.Clear(); confirmed = null; lifetime.Dispose();
+        PropertyChanged -= Changed; ClearEditors(); undo.Clear(); ClearComparison(); confirmed = null; lifetime.Dispose();
     }
 }

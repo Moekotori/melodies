@@ -108,7 +108,7 @@ public sealed class LocalBroadcastService(Func<BroadcastSnapshot> snapshot, int 
     private const string Overlay = """
         <!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
         <style>body{margin:0;background:transparent;color:white;font:24px system-ui}main{padding:20px 24px;max-width:640px}h1{font-size:28px;margin:0 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}p{margin:0;opacity:.7;font-size:18px}progress{margin-top:14px;width:100%;height:3px;accent-color:#b8a2ff}</style>
-        <main><h1 id="title">ECHO</h1><p id="artist">Waiting for playback</p><progress id="progress" max="1" value="0"></progress></main>
+        <main><h1 id="title">melodies</h1><p id="artist">Waiting for playback</p><progress id="progress" max="1" value="0"></progress></main>
         <script>async function update(){try{const s=await(await fetch('/state',{cache:'no-store'})).json();document.querySelector('#title').textContent=s.title||'ECHO';document.querySelector('#artist').textContent=[s.artist,s.album].filter(Boolean).join(' · ');const p=document.querySelector('#progress');p.max=Math.max(1,s.durationSeconds);p.value=s.positionSeconds;}catch{document.querySelector('#artist').textContent='Output unavailable';}finally{setTimeout(update,1000)}}update()</script></html>
         """;
 }

@@ -61,7 +61,10 @@ await using (ownership)
         _ = await runtime.Library.GetTracksAsync(new(Limit: 1), shutdown.Token);
         BridgeStartup.RestoreIfEnabled(endpoint);
         var idleSeconds = int.TryParse(options.GetValueOrDefault("idle-seconds"), out var configured) ? Math.Clamp(configured, 2, 600) : 60;
-        await CoreServiceHost.RunAsync(runtime, endpoint, TimeSpan.FromSeconds(idleSeconds), shutdown.Token, remoteAddress, remoteAccess);
+        using var metadata = endpoint.Identity == CoreEndpoint.Default.Identity
+            ? new CoreMetadataEndpoint(Path.Combine(directory, "core")) : null;
+        await CoreServiceHost.RunAsync(runtime, endpoint, TimeSpan.FromSeconds(idleSeconds), shutdown.Token, remoteAddress, remoteAccess,
+            metadata is null ? null : metadata.RunAsync, () => metadata?.HasActivity == true);
         return 0;
     }
     catch (OperationCanceledException) when (shutdown.IsCancellationRequested) { return 0; }

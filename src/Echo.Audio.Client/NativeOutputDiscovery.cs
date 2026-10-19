@@ -34,7 +34,7 @@ internal static class NativeOutputDiscovery
         return document.RootElement.Clone();
     }
 
-    private static async Task<string> RunAsync(string executable, string[] arguments, CancellationToken token)
+    internal static async Task<string> RunAsync(string executable, string[] arguments, CancellationToken token)
     {
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
         limit.CancelAfter(TimeSpan.FromSeconds(8));
@@ -44,9 +44,13 @@ internal static class NativeOutputDiscovery
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
         using var process = Process.Start(start) ?? throw new IOException("无法枚举原生输出设备");
         var output = new StringBuilder();
-        var stdout = BoundedJsonLines.ReadAsync(process.StandardOutput, line =>
-        { if (output.Length + line.Length > 1024 * 1024) throw new IOException("输出枚举响应过大"); output.AppendLine(line); }, limit.Token);
-        var stderr = BoundedJsonLines.ReadAsync(process.StandardError, _ => { }, limit.Token);
+        var stdout = NativeJsonLines.ReadAsync(process.StandardOutput.BaseStream, bytes =>
+        {
+            var line = Encoding.UTF8.GetString(bytes.Span);
+            if (output.Length + line.Length > 1024 * 1024) throw new IOException("输出枚举响应过大");
+            output.AppendLine(line);
+        }, limit.Token);
+        var stderr = NativeJsonLines.DrainAsync(process.StandardError.BaseStream, limit.Token);
         try
         {
             await Task.WhenAll(process.WaitForExitAsync(limit.Token), stdout, stderr).ConfigureAwait(false);

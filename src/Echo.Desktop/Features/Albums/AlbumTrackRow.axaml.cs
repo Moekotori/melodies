@@ -11,15 +11,25 @@ public partial class AlbumTrackRow : UserControl
     public AlbumTrackRow()
     {
         InitializeComponent();
-        SizeChanged += (_, _) =>
-        {
-            var narrow = Bounds.Width < 720;
-            Signal.IsVisible = !narrow;
-            Columns.ColumnDefinitions[0].Width = new(narrow ? 28 : 46);
-            Columns.ColumnDefinitions[2].Width = new(narrow ? 0 : 230);
-            Columns.ColumnDefinitions[3].Width = new(narrow ? 48 : 68);
-            Columns.ColumnSpacing = narrow ? 8 : 18;
-        };
+        SizeChanged += (_, _) => UpdateColumns();
+    }
+    protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs args)
+    {
+        base.OnAttachedToVisualTree(args);
+        PlayButton.Classes.Set("album-page", Classes.Contains("album-page"));
+        FavoriteButton.Classes.Set("album-page", Classes.Contains("album-page"));
+        UpdateColumns();
+    }
+    private void UpdateColumns()
+    {
+        var albumPage = Classes.Contains("album-page");
+        var width = TopLevel.GetTopLevel(this)?.ClientSize.Width ?? Bounds.Width;
+        var narrow = albumPage ? width <= 980 || Bounds.Width < 720 : Bounds.Width < 720;
+        Signal.IsVisible = !narrow;
+        Columns.ColumnDefinitions[0].Width = new(narrow ? albumPage ? 38 : 28 : albumPage && DataContext is AlbumTrackItem item && item.Number.Contains('-') ? 58 : 46);
+        Columns.ColumnDefinitions[2].Width = new(narrow ? 0 : 230);
+        Columns.ColumnDefinitions[3].Width = new(narrow ? albumPage ? 56 : 48 : 68);
+        Columns.ColumnSpacing = narrow ? albumPage ? 12 : 8 : 18;
     }
     private void OnPlay(object? sender, RoutedEventArgs args) => PlayRequested?.Invoke(this, EventArgs.Empty);
     private void OnFavorite(object? sender, RoutedEventArgs args)

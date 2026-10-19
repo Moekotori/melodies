@@ -48,7 +48,7 @@ internal sealed partial class MacOsShellBinding : IDisposable
             NativeDock.SetMenu(application, _dock);
             _icons = TrayIcon.GetIcons(application) ?? new TrayIcons();
             if (TrayIcon.GetIcons(application) is null) TrayIcon.SetIcons(application, _icons);
-            _tray = new TrayIcon { ToolTipText = "ECHO", IsVisible = true, Menu = _status };
+            _tray = new TrayIcon { ToolTipText = "melodies", IsVisible = true, Menu = _status };
             _icons.Add(_tray);
         }
         NativeMenu.SetMenu(window, _app);
@@ -96,16 +96,16 @@ internal sealed partial class MacOsShellBinding : IDisposable
             var playing = _shell.Player?.PlayIcon == "pause";
             Fill(_app, menu =>
             {
-                menu.Items.Add(Sub("ECHO",
+                menu.Items.Add(Sub("melodies",
                     Item(L("设置…", "Settings…"), () => _ = _window.ExecuteShortcutAsync("openSettings"), new KeyGesture(Key.OemComma, KeyModifiers.Meta)),
                     Sep(),
-                    Item(L("隐藏 ECHO", "Hide ECHO"), () => _lifetime?.TryEnterBackground()),
-                    Item(L("退出 ECHO", "Quit ECHO"), _window.RequestExit, new KeyGesture(Key.Q, KeyModifiers.Meta))));
+                    Item(L("隐藏 melodies", "Hide melodies"), () => _lifetime?.TryEnterBackground()),
+                    Item(L("退出 melodies", "Quit melodies"), _window.RequestExit, new KeyGesture(Key.Q, KeyModifiers.Meta))));
                 menu.Items.Add(Sub(L("文件", "File"),
                     Item(L("导入文件…", "Import Files…"), () => _ = ImportAsync(false), new KeyGesture(Key.O, KeyModifiers.Meta)),
                     Item(L("导入文件夹…", "Import Folder…"), () => _ = ImportAsync(true), new KeyGesture(Key.O, KeyModifiers.Meta | KeyModifiers.Shift)),
                     Sep(),
-                    Item(L("显示 ECHO", "Show ECHO"), _window.RestoreMainWindow),
+                    Item(L("显示 melodies", "Show melodies"), _window.RestoreMainWindow),
                     Sep(),
                     Item(L("关闭窗口", "Close Window"), HideWindow, new KeyGesture(Key.W, KeyModifiers.Meta))));
                 menu.Items.Add(Sub(L("播放", "Playback"),
@@ -119,7 +119,7 @@ internal sealed partial class MacOsShellBinding : IDisposable
                     Item(L("缩放", "Zoom"), ToggleZoom),
                     Item(L("进入全屏", "Enter Full Screen"), ToggleFullScreen)));
             });
-            var title = _shell.Player is { HasTrack: true } player ? player.Title : "ECHO";
+            var title = _shell.Player is { HasTrack: true } player ? player.Title : "melodies";
             var artist = _shell.Player is { HasTrack: true } current ? current.ArtistAlbum : L("未在播放", "Not playing");
             Fill(_dock, menu => PlaybackItems(menu, L, playing, title, artist, includeSearch: false));
             Fill(_status, menu => PlaybackItems(menu, L, playing, title, artist, includeSearch: true));
@@ -143,7 +143,7 @@ internal sealed partial class MacOsShellBinding : IDisposable
         menu.Items.Add(Item(label("下一首", "Next"), () => _ = _window.ExecuteShortcutAsync("nextTrack")));
         menu.Items.Add(Item(label("停止", "Stop"), () => _ = _window.ExecuteShortcutAsync("stop")));
         menu.Items.Add(Sep());
-        menu.Items.Add(Item(label("显示 ECHO", "Show ECHO"), _window.RestoreMainWindow));
+        menu.Items.Add(Item(label("显示 melodies", "Show melodies"), _window.RestoreMainWindow));
         menu.Items.Add(Item(label("迷你播放器", "Mini player"), () => _ = _window.ExecuteShortcutAsync("toggleMiniPlayer")));
         if (includeSearch)
         {

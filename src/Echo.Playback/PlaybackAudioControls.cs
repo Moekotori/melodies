@@ -42,15 +42,22 @@ public sealed partial class PlaybackSessionCoordinator
         || method.StartsWith("stereoField.", StringComparison.Ordinal) || method.StartsWith("channelMatrix.", StringComparison.Ordinal)
         || method.StartsWith("dspRack.", StringComparison.Ordinal) || method.StartsWith("replayGain.", StringComparison.Ordinal)
         || method.StartsWith("dsp.", StringComparison.Ordinal) || method.StartsWith("profile.", StringComparison.Ordinal)
-        || method.StartsWith("preset.", StringComparison.Ordinal) || method == "playbackRate.configure";
+        || method.StartsWith("preset.", StringComparison.Ordinal) || method == "playbackRate.configure"
+        || method is "multiband.getState" or "multiband.setState"
+            or "deesser.getState" or "deesser.setState" or "deesser.setListen"
+            or "virtualStage.getState" or "virtualStage.setState"
+            or "headphoneCorrection.getState" or "headphoneCorrection.setState"
+            or "workshopAudioEffect.getState" or "workshopAudioEffect.setState";
 
     public async Task<JsonElement> DspAsync(string method, JsonElement parameters, bool retainForRecovery = false, CancellationToken token = default)
     {
         if (!IsDspMethod(method)) throw new ArgumentException("不是支持的 DSP 控制方法");
+        DspBandValidation.Validate(method, parameters);
         JsonElement result = default;
         await Command(async () =>
         {
             await EnsureStartedAsync().ConfigureAwait(false);
+            parameters = await AdaptDspRequestAsync(method, parameters).ConfigureAwait(false);
             result = await native.CallAsync(method, parameters).ConfigureAwait(false);
             if (method == "playbackRate.configure")
             {

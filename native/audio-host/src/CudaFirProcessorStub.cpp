@@ -24,6 +24,11 @@ bool CudaFirProcessor::configure(
 void CudaFirProcessor::release() {}
 
 void CudaFirProcessor::reset() {}
+bool CudaFirProcessor::reset(std::string& error)
+{
+    error = "native_cuda_dsp_not_built";
+    return false;
+}
 
 bool CudaFirProcessor::process(
     const float*,
@@ -40,6 +45,23 @@ bool CudaFirProcessor::copyLatestHistory(
     std::vector<std::vector<float>>& histories) const
 {
     histories.clear();
+    return false;
+}
+
+bool CudaFirProcessor::processDouble(const double*, int, std::vector<double>& output, std::string& error)
+{
+    output.clear();
+    error = "native_cuda_dsp_not_built";
+    return false;
+}
+bool CudaFirProcessor::copyLatestHistory(std::vector<std::vector<double>>& histories) const
+{
+    histories.clear();
+    return false;
+}
+bool CudaFirProcessor::restoreHistory(const std::vector<std::vector<double>>&, std::string& error)
+{
+    error = "native_cuda_dsp_not_built";
     return false;
 }
 
@@ -70,6 +92,8 @@ bool CudaFirProcessor::builtWithCuda() noexcept
 {
     return false;
 }
+void CudaFirProcessor::failNextBlockForTesting() {}
+CudaFirProcessor::Timings CudaFirProcessor::lastTimings() const noexcept { return {}; }
 
 CudaFirProcessor::RuntimeHold::RuntimeHold() = default;
 CudaFirProcessor::RuntimeHold::~RuntimeHold() = default;

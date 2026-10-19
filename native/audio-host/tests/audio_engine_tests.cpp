@@ -45,6 +45,7 @@
 #include "../src/NativeDsdRingSource.h"
 #include "../src/AudioDaemon.h"
 #include "daemon_seek_end_tests.h"
+#include "daemon_queue_identity_tests.h"
 #include "../src/AutomixTempoProcessor.h"
 #include "../../audio-engine/JsonRpcProtocol.h"
 
@@ -772,11 +773,12 @@ void testConvolutionPreservesSourceRateAcrossDeviceRates()
         int targetRate;
         int sourceFrames;
         int expectedTaps;
+        int expectedDelay;
     };
     const std::array<RateCase, 3> cases {
-        RateCase { 44100, 48000, 441, 480 },
-        RateCase { 44100, 96000, 441, 960 },
-        RateCase { 96000, 48000, 960, 480 },
+        RateCase { 44100, 48000, 441, 800, 160 },
+        RateCase { 44100, 96000, 441, 1600, 320 },
+        RateCase { 96000, 48000, 960, 544, 32 },
     };
     for (const auto& rateCase : cases)
     {
@@ -794,7 +796,9 @@ void testConvolutionPreservesSourceRateAcrossDeviceRates()
         require(std::abs(state.sampleRate - rateCase.targetRate) < 0.5,
             "prepared IR must report the actual output device rate");
         require(state.tapCount == rateCase.expectedTaps,
-            "IR resampling must derive tap count from the real source sample rate");
+            "IR resampling must retain the complete padded filter response");
+        require(state.latencySamples == rateCase.expectedDelay,
+            "IR resampling must report the additional delay from response padding");
     }
 }
 
@@ -1653,6 +1657,56 @@ void testCompressorSidechainHighpassAndClicklessBypass()
         "settled bypass clears stale output level telemetry");
 }
 
+void testVirtualStageKeepsCenterAndBypassesSpeakers()
+{
+    echo::SpatialDspProcessor processor;
+    processor.prepare(48'000.0, 256, 2);
+
+    echo::CrossfeedState crossfeed;
+    crossfeed.enabled = true;
+    processor.setCrossfeedState(crossfeed);
+
+    echo::VirtualStageState stage;
+    stage.enabled = true;
+    stage.strength = 1.0f;
+    stage.reflection = 0.0f; // Direct center stays centered; room ambience is tested separately.
+    processor.setVirtualStageState(stage);
+    require(!processor.isCrossfeedEnabled(), "virtual stage must disable crossfeed");
+    require(processor.isVirtualStageProcessing(), "virtual stage processes on a headphone route");
+
+    echo::FloatAudioBuffer center(2, 64);
+    for (int sample = 0; sample < 64; ++sample)
+    {
+        center.setSample(0, sample, 0.4f);
+        center.setSample(1, sample, 0.4f);
+    }
+    processor.processVirtualStageBlock(center, 0, 64);
+    require(std::abs(center.getSample(0, 32) - center.getSample(1, 32)) < 1.0e-6f
+            && std::isfinite(center.getSample(0, 32)),
+        "correlated center stays centered through the virtual speaker paths");
+
+    echo::FloatAudioBuffer side(2, 256);
+    for (int sample = 0; sample < 256; ++sample)
+    {
+        side.setSample(0, sample, 0.5f);
+        side.setSample(1, sample, -0.5f);
+    }
+    processor.processVirtualStageBlock(side, 0, 256);
+    require(std::abs(side.getSample(0, 200) - 0.5f) > 0.01f,
+        "sustained side content picks up the contralateral cue after the ITD");
+
+    stage.speakersBypassed = true;
+    processor.setVirtualStageState(stage);
+    require(!processor.isVirtualStageProcessing(), "speaker output bypasses the virtual stage");
+    echo::FloatAudioBuffer speakers(2, 32);
+    speakers.setSample(0, 8, 0.25f);
+    speakers.setSample(1, 8, -0.1f);
+    processor.processVirtualStageBlock(speakers, 0, 32);
+    require(std::abs(speakers.getSample(0, 8) - 0.25f) < 1.0e-6f
+            && std::abs(speakers.getSample(1, 8) + 0.1f) < 1.0e-6f,
+        "speaker bypass leaves the buffer unchanged");
+}
+
 void testSpatialDspStagesProcessIndependently()
 {
     echo::SpatialDspProcessor processor;
@@ -1700,6 +1754,101 @@ void testSpatialDspStagesProcessIndependently()
         "channel matrix must apply the configured two-by-two routing coefficients");
 }
 
+float bufferPeakFrom(const echo::FloatAudioBuffer& buffer, int startSample)
+{
+    float peak = 0.0f;
+    for (int sample = startSample; sample < buffer.getNumSamples(); ++sample)
+        peak = std::max(peak, std::abs(buffer.getSample(0, sample)));
+    return peak;
+}
+
+void fillStereoSine(echo::FloatAudioBuffer& buffer, float frequencyHz, float amplitude, bool invertRight)
+{
+    constexpr float pi = 3.14159265358979323846f;
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+    {
+        const float value = amplitude * std::sin(2.0f * pi * frequencyHz * static_cast<float>(sample) / 48000.0f);
+        buffer.setSample(0, sample, value);
+        buffer.setSample(1, sample, invertRight ? -value : value);
+    }
+}
+
+void testDspChainLimiterCatchesInterSamplePeaks()
+{
+    echo::DspChain::setSafetyLimiterEnabled(true);
+    DspChainFixture fixture;
+    auto& dspChain = fixture.dspChain;
+    dspChain.prepare(48000.0, 256, 2);
+    fixture.eqProcessor.setEnabled(true);
+
+    auto buffer = makeFloatBuffer(2, 256);
+    constexpr float amplitude = 1.25f;
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+    {
+        const float value = amplitude * std::sin(0.78539816339f + static_cast<float>(sample) * 1.57079632679f);
+        buffer.setSample(0, sample, value);
+        buffer.setSample(1, sample, value);
+    }
+
+    dspChain.processBlock(buffer, 0, buffer.getNumSamples());
+    require(dspChain.isSafetyLimiterProtecting(), "an inter-sample peak above the ceiling must engage the limiter");
+    require(dspChain.safetyLimiterTruePeakDb() > 0.5f, "true-peak meter must report the reconstructed peak");
+    require(bufferPeakFrom(buffer, 64) < 1.0f, "settled true-peak limiter output must stay under full scale");
+}
+
+void testEqMidScopeCutsCenterAndLeavesSide()
+{
+    echo::EqProcessor eq;
+    echo::EqState state;
+    state.enabled = true;
+    constexpr int band = 17;
+    state.bandFrequenciesHz[band] = 1000.0f;
+    state.bandGainsDb[band] = -24.0f;
+    state.bandQ[band] = 4.0f;
+    state.bandScopes[band] = echo::EqBandScope::Mid;
+    eq.setState(state);
+    eq.prepare(48000.0, 512, 2);
+
+    auto mid = makeFloatBuffer(2, 4096);
+    fillStereoSine(mid, 1000.0f, 0.5f, false);
+    eq.processBlock(mid, 0, mid.getNumSamples());
+    require(bufferPeakFrom(mid, 2048) < 0.2f, "mid-scoped cut must reduce a centered tone");
+
+    eq.reset();
+    auto side = makeFloatBuffer(2, 4096);
+    fillStereoSine(side, 1000.0f, 0.5f, true);
+    eq.processBlock(side, 0, side.getNumSamples());
+    require(bufferPeakFrom(side, 2048) > 0.35f, "mid-scoped cut must leave a pure side tone alone");
+}
+
+void testEqDynamicBandReducesLoudToneOnly()
+{
+    echo::EqProcessor eq;
+    echo::EqState state;
+    state.enabled = true;
+    constexpr int band = 17;
+    state.bandFrequenciesHz[band] = 1000.0f;
+    state.bandQ[band] = 2.0f;
+    state.bandDynamicModes[band] = echo::EqDynamicMode::Down;
+    state.bandDynamicThresholdDb[band] = -30.0f;
+    state.bandDynamicRatio[band] = 10.0f;
+    state.bandDynamicAttackMs[band] = 1.0f;
+    state.bandDynamicReleaseMs[band] = 40.0f;
+    eq.setState(state);
+    eq.prepare(48000.0, 512, 2);
+
+    auto loud = makeFloatBuffer(2, 8192);
+    fillStereoSine(loud, 1000.0f, 0.5f, false);
+    eq.processBlock(loud, 0, loud.getNumSamples());
+    require(bufferPeakFrom(loud, 4096) < 0.25f, "downward dynamic EQ must cut a loud tone in the band");
+
+    eq.reset();
+    auto quiet = makeFloatBuffer(2, 8192);
+    fillStereoSine(quiet, 1000.0f, 0.02f, false);
+    eq.processBlock(quiet, 0, quiet.getNumSamples());
+    require(bufferPeakFrom(quiet, 4096) > 0.012f, "downward dynamic EQ must leave a tone under the threshold");
+}
+
 void testDspChainLimiterProtectsActiveOutput()
 {
     echo::DspChain::setSafetyLimiterEnabled(true);
@@ -1740,13 +1889,18 @@ void testDspChainLimiterIgnoresNearFullScaleOutput()
     eqProcessor.setEnabled(true);
 
     auto buffer = makeFloatBuffer(2, 128);
+    // A step into the 4x interpolator rings above the sample peak. Rise first
+    // so the held 0.99 tone is the case that must stay under the ceiling.
     for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
     {
         auto* samples = buffer.getWritePointer(channel);
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-            samples[sample] = sample % 2 == 0 ? 0.99f : -0.99f;
+            samples[sample] = sample < 32 ? 0.99f * static_cast<float>(sample + 1) / 32.0f : 0.99f;
     }
+    dspChain.processBlock(buffer, 0, buffer.getNumSamples());
 
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+        std::fill_n(buffer.getWritePointer(channel), buffer.getNumSamples(), 0.99f);
     dspChain.processBlock(buffer, 0, buffer.getNumSamples());
     require(! dspChain.isSafetyLimiterProtecting(), "DSP safety limiter must not engage below full scale");
     require(std::abs(buffer.getSample(0, 0) - 0.99f) <= nearTolerance, "near full-scale output must pass unchanged");
@@ -1823,6 +1977,7 @@ void testDspHeadroomPositiveGainRaisesLevel()
 void testDspChainProtectsUpstreamPcmProcessing()
 {
     echo::DspChain::setSafetyLimiterEnabled(true);
+    echo::DspChain::setLimiterCeilingDb(std::numeric_limits<float>::quiet_NaN());
     DspChainFixture fixture;
     auto& dspChain = fixture.dspChain;
     dspChain.prepare(192000.0, 128, 2);
@@ -1860,6 +2015,142 @@ void testDspChainProtectsUpstreamPcmProcessing()
         "true-peak limiter must release smoothly instead of stepping back to unity");
     require(std::abs(quiet.getSample(0, 0) - quiet.getSample(1, 0)) <= strictTolerance,
         "true-peak limiter gain envelope must remain stereo linked");
+}
+
+void testManualLimiterCeilingHoldsTruePeak()
+{
+    echo::DspChain::setSafetyLimiterEnabled(true);
+    echo::DspChain::setLimiterCeilingDb(-6.0f);
+    DspChainFixture fixture;
+    auto& dspChain = fixture.dspChain;
+    dspChain.prepare(192000.0, 256, 2);
+    dspChain.setUpstreamPcmProcessingActive(true);
+
+    auto buffer = makeFloatBuffer(2, 256);
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        auto* samples = buffer.getWritePointer(channel);
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+            samples[sample] = sample % 2 == 0 ? 1.0f : -1.0f;
+    }
+
+    dspChain.processBlock(buffer, 0, buffer.getNumSamples());
+    require(std::abs(dspChain.safetyLimiterCeilingDb() + 6.0f) <= nearTolerance,
+        "manual limiter ceiling replaces the automatic -1 dBTP ceiling");
+    const float ceiling = std::pow(10.0f, -6.0f / 20.0f);
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        const auto* samples = buffer.getReadPointer(channel);
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+            require(std::abs(samples[sample]) <= ceiling + 0.02f,
+                "manual limiter ceiling holds the true-peak output");
+    }
+
+    echo::DspChain::setLimiterCeilingDb(std::numeric_limits<float>::quiet_NaN());
+    require(std::abs(dspChain.safetyLimiterCeilingDb() + 1.0f) <= nearTolerance,
+        "clearing the manual ceiling restores the automatic upstream ceiling");
+    echo::DspChain::setLimiterCeilingDb(std::numeric_limits<float>::quiet_NaN());
+}
+
+float professionalDynamicsRms(const echo::FloatAudioBuffer& buffer, int channel, int start, int count)
+{
+    double energy = 0.0;
+    const auto* samples = buffer.getReadPointer(channel);
+    for (int sample = 0; sample < count; ++sample)
+    {
+        const float value = samples[start + sample];
+        energy += static_cast<double>(value) * static_cast<double>(value);
+    }
+    return static_cast<float>(std::sqrt(energy / static_cast<double>(count)));
+}
+
+void fillSine(echo::FloatAudioBuffer& buffer, float frequencyHz, float amplitude)
+{
+    constexpr float pi = 3.14159265358979323846f;
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        auto* samples = buffer.getWritePointer(channel);
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        {
+            const float phase = 2.0f * pi * frequencyHz * static_cast<float>(sample) / 48000.0f;
+            samples[sample] = amplitude * std::sin(phase);
+        }
+    }
+}
+
+void testDeEsserAttenuatesSibilanceBandOnly()
+{
+    echo::DeEsserState state;
+    state.enabled = true;
+    state.frequencyHz = 6500.0f;
+    state.q = 4.0f;
+    state.thresholdDb = -30.0f;
+    state.ratio = 8.0f;
+    state.attackMs = 0.1f;
+    state.releaseMs = 20.0f;
+    state.mix = 1.0f;
+
+    echo::DeEsserProcessor sibilance;
+    sibilance.prepare(48000.0, 8192, 2);
+    sibilance.setState(state);
+    auto sibilant = makeFloatBuffer(2, 8192);
+    fillSine(sibilant, 6500.0f, 0.5f);
+    sibilance.processBlock(sibilant, 0, sibilant.getNumSamples());
+    const float sibilantRms = professionalDynamicsRms(sibilant, 0, 7000, 1000);
+    require(sibilantRms < 0.2f, "de-esser attenuates a tone inside the detection band");
+    require(sibilance.gainReductionDb() > 1.0f, "de-esser reports gain reduction for the sibilant tone");
+
+    echo::DeEsserProcessor body;
+    body.prepare(48000.0, 8192, 2);
+    body.setState(state);
+    auto low = makeFloatBuffer(2, 8192);
+    fillSine(low, 200.0f, 0.5f);
+    body.processBlock(low, 0, low.getNumSamples());
+    const float lowRms = professionalDynamicsRms(low, 0, 7000, 1000);
+    require(lowRms > 0.3f, "de-esser leaves a tone below the detection band intact");
+}
+
+void testMultibandCompressorReducesOnlyTheSelectedBand()
+{
+    echo::MultibandCompressorState lows;
+    lows.enabled = true;
+    lows.lowCrossoverHz = 150.0f;
+    lows.highCrossoverHz = 2500.0f;
+    lows.mix = 1.0f;
+    lows.stereoLink = 1.0f;
+    lows.bands[0].enabled = true;
+    lows.bands[0].thresholdDb = -24.0f;
+    lows.bands[0].ratio = 10.0f;
+    lows.bands[0].attackMs = 0.1f;
+    lows.bands[0].releaseMs = 30.0f;
+    lows.bands[1].enabled = false;
+    lows.bands[2].enabled = false;
+
+    echo::MultibandCompressorProcessor lowProcessor;
+    lowProcessor.prepare(48000.0, 16384, 2);
+    lowProcessor.setState(lows);
+    auto low = makeFloatBuffer(2, 16384);
+    fillSine(low, 80.0f, 0.8f);
+    lowProcessor.processBlock(low, 0, low.getNumSamples());
+    require(professionalDynamicsRms(low, 0, 15000, 1000) < 0.35f,
+        "the low multiband compressor reduces a bass tone");
+    require(lowProcessor.gainReductionDb(0) > 1.0f, "the low band reports gain reduction");
+
+    echo::MultibandCompressorState highs = lows;
+    highs.bands[0].enabled = false;
+    highs.bands[2].enabled = true;
+    highs.bands[2].thresholdDb = -24.0f;
+    highs.bands[2].ratio = 10.0f;
+    highs.bands[2].attackMs = 0.1f;
+    highs.bands[2].releaseMs = 30.0f;
+    echo::MultibandCompressorProcessor highOnLowTone;
+    highOnLowTone.prepare(48000.0, 16384, 2);
+    highOnLowTone.setState(highs);
+    auto untouched = makeFloatBuffer(2, 16384);
+    fillSine(untouched, 80.0f, 0.8f);
+    highOnLowTone.processBlock(untouched, 0, untouched.getNumSamples());
+    require(professionalDynamicsRms(untouched, 0, 15000, 1000) > 0.45f,
+        "compressing only the high band leaves a bass tone intact");
 }
 
 void testDisabledEqIsDry()
@@ -2077,7 +2368,7 @@ void testHostBufferFallbackAttempts()
 
     const auto asio = parseOptions({ "echo-audio-host", "-asio" });
     require(asio.asio, "ASIO backend flag must parse instead of silently selecting shared output");
-    requireVectorEquals(buildBufferSizeAttempts(asio), { 256, 512, 1024, 2048, 4096, 8192 }, "ASIO buffer fallback chain");
+    requireVectorEquals(buildBufferSizeAttempts(asio), { 0 }, "ASIO must delegate buffer selection to its driver");
 
     const auto balanced = parseOptions({ "echo-audio-host", "-exclusive", "-buffer", "2048" });
     require(balanced.exclusive, "exclusive backend flag must parse");
@@ -4349,7 +4640,6 @@ void testRuntimeDeviceConfigurationIsAuthoritative()
         {"deviceIndex", 3},
         {"sampleRate", 96000},
         {"channels", 2},
-        {"bufferSize", 0},
         {"latencyProfile", "stable"},
         {"sharedBackend", "windows"},
     };
@@ -5962,6 +6252,14 @@ void testWorkshopVocalCutSuppressesCenterAndPreservesBassAndSide()
     require(lowMidRatio < 0.12, "Workshop vocal cut uses a steep low-mid transition for stronger male-vocal reduction");
     require(bassRatio > 0.9, "Workshop vocal cut preserves centered low bass below the configured crossover");
     require(sideRatio > 0.95, "Workshop vocal cut preserves side-panned accompaniment");
+    // The laboratory preset must suppress low male-vocal harmonics without
+    // turning its narrower bass protection into a broad bass cut.
+    require(renderRatio(150.0, false, 120.0f) < 0.18,
+        "strong vocal cut suppresses centered low-vocal content at 150 Hz");
+    require(renderRatio(180.0, false, 120.0f) < 0.05,
+        "strong vocal cut suppresses centered low-vocal content at 180 Hz");
+    require(renderRatio(80.0, false, 120.0f) > 0.98,
+        "strong vocal cut preserves deep centered bass with its flatter passband");
     require(gentlerStrengthRatio > 0.45 && gentlerStrengthRatio < 0.55,
         "Workshop vocal cut strength remains a predictable residual-center control");
     require(wideBassRatio > narrowBassRatio * 5.0,
@@ -8531,6 +8829,7 @@ void testDaemonInputPipeIsNonBlocking()
 #include "automix_handoff_schedule_tests.h"
 #include "workshop_chiptune_dynamics_tests.h"
 #include "replay_gain_smoothing_tests.h"
+#include "device_buffer_policy_tests.h"
 
 int main(int argc, char** argv)
 {
@@ -8581,13 +8880,20 @@ int main(int argc, char** argv)
         { "compressor reduces hot signals and preserves bypass", testCompressorReducesHotSignalsAndPreservesBypass },
         { "compressor advanced detector link and range controls", testCompressorAdvancedDetectorLinkAndRangeControls },
         { "compressor sidechain high-pass and clickless bypass", testCompressorSidechainHighpassAndClicklessBypass },
+        { "virtual stage keeps center and bypasses speakers", testVirtualStageKeepsCenterAndBypassesSpeakers },
         { "spatial DSP stages process independently", testSpatialDspStagesProcessIndependently },
+        { "DSP chain limiter catches inter-sample peaks", testDspChainLimiterCatchesInterSamplePeaks },
+        { "EQ mid scope cuts center and leaves side", testEqMidScopeCutsCenterAndLeavesSide },
+        { "EQ dynamic band reduces loud tone only", testEqDynamicBandReducesLoudToneOnly },
         { "DSP chain limiter protects active output", testDspChainLimiterProtectsActiveOutput },
         { "DSP chain limiter ignores near full-scale output", testDspChainLimiterIgnoresNearFullScaleOutput },
         { "DSP chain limiter can be bypassed", testDspChainLimiterCanBeBypassed },
         { "DSP headroom activates protection chain", testDspHeadroomActivatesProtectionChain },
         { "DSP headroom positive gain raises level", testDspHeadroomPositiveGainRaisesLevel },
         { "DSP chain protects upstream PCM processing", testDspChainProtectsUpstreamPcmProcessing },
+        { "manual limiter ceiling holds true peak", testManualLimiterCeilingHoldsTruePeak },
+        { "de-esser attenuates sibilance band only", testDeEsserAttenuatesSibilanceBandOnly },
+        { "multiband compressor reduces only the selected band", testMultibandCompressorReducesOnlyTheSelectedBand },
         { "host buffer fallback attempts", testHostBufferFallbackAttempts },
         { "runtime buffer cache keeps per-rate knowledge", testRuntimeBufferCacheScopeKeepsPerRateKnowledge },
         { "known-good buffer preserves configured fallback", testKnownGoodBufferFallsBackToConfiguredChain },
@@ -8623,6 +8929,7 @@ int main(int argc, char** argv)
         { "native processing configuration fails closed", testNativeProcessingConfigurationFailsClosed },
         { "host shared backend options", testHostSharedBackendOptions },
         { "runtime device configuration is authoritative", testRuntimeDeviceConfigurationIsAuthoritative },
+        { "device-managed buffer policy", testDeviceManagedBufferPolicy },
         { "host backend names", testHostBackendNames },
         { "native output notification queue", testNativeOutputNotificationQueuePreservesHostEvents },
     { "specialized outputs skip miniaudio shared output", testSpecializedOutputsSkipMiniaudioSharedOutput },
@@ -8716,6 +9023,8 @@ int main(int argc, char** argv)
         { "daemon position throttles processing telemetry", testDaemonPositionThrottlesProcessingTelemetry },
         { "explicit stop waits for rendered drain", testExplicitStopWaitsForRenderedDrain },
         { "natural end advances daemon queue", testNaturalEndStillAdvancesDaemonQueue },
+        { "daemon queue identity survives stale sync", testDaemonQueueIdentitySurvivesStaleSync },
+        { "daemon pending advance survives queue sync", testDaemonPendingAdvanceSurvivesQueueSync },
         { "ASIO queue channel reopen", testAsioQueueChannelReopen },
         { "ASIO queue channel stable advance", testAsioQueueChannelStableAdvance },
         { "ASIO queue channel stop race", testAsioQueueChannelStopRace },

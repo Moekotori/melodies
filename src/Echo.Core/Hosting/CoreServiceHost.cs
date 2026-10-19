@@ -9,7 +9,8 @@ namespace Echo.Core.Hosting;
 public static class CoreServiceHost
 {
     public static async Task RunAsync(CoreRuntime runtime, CoreEndpoint endpoint, TimeSpan idleTimeout, CancellationToken token,
-        IPEndPoint? remoteAddress = null, RemoteCoreAccess? remoteAccess = null)
+        IPEndPoint? remoteAddress = null, RemoteCoreAccess? remoteAccess = null,
+        Func<CancellationToken, Task>? companionListener = null, Func<bool>? companionActive = null)
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token);
         await using var dispatch = new CoreDispatch(runtime);
@@ -25,7 +26,7 @@ public static class CoreServiceHost
             {
                 while (await timer.WaitForNextTickAsync(lifetime.Token).ConfigureAwait(false))
                 {
-                    if ((remoteAddress is not null && remoteAccess?.HasPairedControls == true) || server.ClientCount > 0 || dispatch.HasActiveTasks || runtime.Library.HasActiveWatchers || runtime.Broadcast.IsRunning || runtime.HasScheduledBackup ||
+                    if ((remoteAddress is not null && remoteAccess?.HasPairedControls == true) || server.ClientCount > 0 || companionActive?.Invoke() == true || dispatch.HasActiveTasks || runtime.Library.HasActiveWatchers || runtime.Broadcast.IsRunning || runtime.HasScheduledBackup ||
                         runtime.Playback.LocalZone.Session.Snapshot.Status is PlaybackStatus.Playing or PlaybackStatus.Loading)
                         lastActive = Stopwatch.GetTimestamp();
                     else if (Stopwatch.GetElapsedTime(lastActive) >= idleTimeout) { lifetime.Cancel(); break; }
@@ -36,14 +37,14 @@ public static class CoreServiceHost
         var local = server.RunAsync(lifetime.Token);
         var remote = remoteAddress is null ? null : server.RunRemoteAsync(remoteAddress,
             remoteAccess ?? throw new ArgumentException("Missing remote authentication."), lifetime.Token);
+        var listeners = new List<Task> { local };
+        if (remote is not null) listeners.Add(remote);
+        if (companionListener is not null) listeners.Add(companionListener(lifetime.Token));
         try
         {
-            if (remote is null) await local.ConfigureAwait(false);
-            else
-            {
-                await Task.WhenAny(local, remote).ConfigureAwait(false);
-                lifetime.Cancel(); await Task.WhenAll(local, remote).ConfigureAwait(false);
-            }
+            await Task.WhenAny(listeners).ConfigureAwait(false);
+            lifetime.Cancel();
+            await Task.WhenAll(listeners).ConfigureAwait(false);
         }
         finally
         {

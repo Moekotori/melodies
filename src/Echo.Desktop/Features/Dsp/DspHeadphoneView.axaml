@@ -7,6 +7,12 @@
     <Border Grid.Row="1" Margin="0,12,0,0" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,1" ClipToBounds="True">
       <local:EqCurveControl IsVisible="{Binding IsReady}" />
     </Border>
-    <TextBlock Grid.Row="2" Margin="0,8,0,0" Text="拖动节点就能改校正。滚轮调 Q，双击归零。" FontSize="12" Classes="muted" />
+    <StackPanel Grid.Row="2" Margin="0,8,0,0" Spacing="8" IsEnabled="{Binding CanEdit}">
+      <Grid ColumnDefinitions="*,150" ColumnSpacing="12">
+        <TextBlock Text="耳机校正前级 (dB)" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Column="1" Minimum="-60" Maximum="24" Increment="0.1" Value="{Binding PreampDb, Mode=TwoWay}" FormatString="0.########" />
+      </Grid>
+      <local:EqBandInspectorView DataContext="{Binding SelectedBand}" />
+    </StackPanel>
   </Grid>
 </UserControl>

@@ -13,7 +13,7 @@ public static class WindowsDesktopFeatures
         token.ThrowIfCancellationRequested();
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("此平台未提供登录启动适配。");
         var path = Path.GetFullPath(executable);
-        if (!File.Exists(path) || Path.GetExtension(path) != ".exe") throw new IOException("请使用已发布的 ECHO 可执行文件设置登录启动。");
+        if (!File.Exists(path) || Path.GetExtension(path) != ".exe") throw new IOException("请使用已发布的 melodies 可执行文件设置登录启动。");
         using var key = Registry.CurrentUser.CreateSubKey(StartupPath, true);
         if (enabled) key.SetValue(StartupName, $"\"{path}\" --autostart", RegistryValueKind.String);
         else key.DeleteValue(StartupName, false);

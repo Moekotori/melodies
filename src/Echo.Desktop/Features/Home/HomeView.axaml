@@ -12,7 +12,7 @@
         <StackPanel Name="HeroCopy" Grid.Column="1" Spacing="12" VerticalAlignment="Top">
           <TextBlock LineHeight="18" Text="{Binding HeroLabel}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="SemiBold" />
           <StackPanel Spacing="6">
-            <TextBlock Name="HeroTitle" Text="{Binding FocusTitle}" Classes="heading" FontSize="38" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FocusTitle}" />
+            <TextBlock Name="HeroTitle" Text="{Binding FocusTitle}" Classes="heading" FontSize="38" LineHeight="44" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FocusTitle}" />
             <WrapPanel>
               <Button Classes="content-link" MinHeight="19" Padding="0" Command="{Binding OpenArtistCommand}" CommandParameter="{Binding FocusArtist}" IsVisible="{Binding HasFocus}"><TextBlock Text="{Binding FocusArtist}" Classes="muted" FontSize="14" /></Button>
               <TextBlock Text=" · " Classes="muted" VerticalAlignment="Center" IsVisible="{Binding HasFocus}" />
@@ -58,7 +58,7 @@
         <StackPanel Spacing="16">
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Text="{DynamicResource ui.HomeView.1795a8edfa43}" Classes="heading" FontSize="18" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="15" Height="15" /><TextBlock Text="{DynamicResource ui.HomeView.aee887434131}" Classes="muted" FontSize="13" /></StackPanel></Button>
+            <Button Grid.Column="1" Classes="quiet" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="15" Height="15" /><TextBlock Text="{DynamicResource ui.HomeView.aee887434131}" Classes="muted" FontSize="13" /></StackPanel></Button>
           </Grid>
           <ContentControl Name="RecommendationsHost" HorizontalContentAlignment="Stretch" />
         </StackPanel>

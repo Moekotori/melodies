@@ -44,6 +44,8 @@ struct ProtocolFixture
     echo::DspHeadroomProcessor headroom;
     echo::ReplayGainProcessor replayGain;
     echo::CompressorProcessor compressor;
+    echo::MultibandCompressorProcessor multiband;
+    echo::DeEsserProcessor deEsser;
     echo::SpatialDspProcessor spatialDsp;
     echo::PlaybackRateProcessor playbackRate;
     echo::LevelMeterProcessor levelMeter;
@@ -60,6 +62,8 @@ struct ProtocolFixture
         headroom.prepare(48000.0, 512, 2);
         replayGain.prepare(48000.0, 512, 2);
         compressor.prepare(48000.0, 512, 2);
+        multiband.prepare(48000.0, 512, 2);
+        deEsser.prepare(48000.0, 512, 2);
         spatialDsp.prepare(48000.0, 512, 2);
         playbackRate.prepare(48000.0, 512, 2);
         levelMeter.prepare(48000.0, 512, 2);
@@ -94,6 +98,8 @@ struct ProtocolFixture
             levelMeter,
             dspRackOrder,
             workshopAudioEffect,
+            multiband,
+            deEsser,
             presets,
             proDspAllowed);
     }
@@ -300,19 +306,22 @@ void testQueueSnapshotObjectContract()
     std::string receivedRepeatMode;
     std::string receivedCurrentItemId;
     uint64_t receivedRevision = 0;
+    uint64_t receivedCursorOperationId = 0;
     echo::JsonRpcProtocol::setQueueSetCallback(
         [&](const nlohmann::json& items, const std::string& repeatMode, uint64_t revision,
-            const std::string& currentItemId) {
+            const std::string& currentItemId, uint64_t cursorOperationId) {
             receivedItems = items;
             receivedRepeatMode = repeatMode;
             receivedRevision = revision;
             receivedCurrentItemId = currentItemId;
+            receivedCursorOperationId = cursorOperationId;
             return true;
         });
 
     const nlohmann::json snapshot = {
         {"revision", 7},
         {"currentItemId", "queue-1"},
+        {"cursorOperationId", 13},
         {"repeatMode", "all"},
         {"items", nlohmann::json::array({{
             {"itemId", "queue-1"},
@@ -328,6 +337,7 @@ void testQueueSnapshotObjectContract()
     require(receivedRevision == 7, "queue.set forwards revision");
     require(receivedRepeatMode == "all", "queue.set forwards repeat mode");
     require(receivedCurrentItemId == "queue-1", "queue.set forwards current item identity");
+    require(receivedCursorOperationId == 13, "queue.set binds the cursor to its acknowledged operation");
     require(receivedItems.size() == 1 && receivedItems[0].value("trackId", "") == "track-1",
         "queue.set forwards atomic queue items");
 }
@@ -432,7 +442,7 @@ void testProDspEntitlementGate()
     require(baseReplayGain.contains("result") && baseReplayGain["result"].value("mode", 0) == 1,
         "base host enables ReplayGain without Pro");
 
-    for (const auto* method : { "crossfeed.setState", "stereoField.setState", "channelMatrix.setState", "channelBalance.setState", "workshopAudioEffect.setState" })
+    for (const auto* method : { "crossfeed.setState", "virtualStage.setState", "stereoField.setState", "channelMatrix.setState", "channelBalance.setState", "workshopAudioEffect.setState" })
     {
         const auto denied = fixture.call(method, nlohmann::json::array({ nlohmann::json::object({ {"enabled", true} }) }), false);
         require(denied.contains("error") && denied["error"].value("code", 0) == -32003,
@@ -468,16 +478,17 @@ void testDspAndPlaybackControlMethodShapes()
     require(dsp["safetyLimiterEnabled"].is_boolean(), "dsp.setSafetyLimiter returns limiter flag");
 
     auto rack = resultFor(fixture, "dspRack.getState");
-    require(rack.value("schemaVersion", 0) == 3, "dspRack.getState returns schema version");
+    require(rack.value("schemaVersion", 0) == 4, "dspRack.getState returns schema version");
     require(rack["order"] == nlohmann::json::array({
-        "equalizer", "convolution", "replayGain", "compressor",
+        "equalizer", "procedural", "convolution", "replayGain", "compressor",
+        "multiband", "deesser",
         "crossfeed", "stereoField", "channelMatrix", "channelBalance" }),
         "dspRack.getState returns the default order");
     require(rack["fixedPostStages"] == nlohmann::json::array({ "headroom", "truePeakLimiter", "playbackRate", "levelMeter" }),
         "dspRack.getState identifies fixed output safety stages");
 
     const auto reordered = nlohmann::json::array({
-        "replayGain", "crossfeed", "compressor", "equalizer",
+        "replayGain", "crossfeed", "compressor", "multiband", "deesser", "equalizer", "procedural",
         "channelMatrix", "channelBalance", "stereoField", "convolution" });
     rack = resultFor(fixture, "dspRack.setState", nlohmann::json::array({ nlohmann::json::object({ {"order", reordered} }) }));
     require(rack["order"] == reordered, "dspRack.setState applies a complete unique order");
@@ -497,6 +508,14 @@ void testDspAndPlaybackControlMethodShapes()
     require(crossfeed.value("enabled", false), "crossfeed.setState enables processing");
     require(crossfeed.value("amount", 0.0f) == 1.0f, "crossfeed amount is clamped");
     require(crossfeed.value("cutoffHz", 0.0f) == 100.0f, "crossfeed cutoff is clamped");
+
+    auto virtualStage = resultFor(fixture, "virtualStage.setState", nlohmann::json::array({ nlohmann::json::object({
+        {"enabled", true}, {"strength", 4.0}
+    }) }));
+    require(virtualStage.value("enabled", false), "virtualStage.setState enables processing");
+    require(virtualStage.value("strength", 0.0f) == 1.0f, "virtual stage strength is clamped");
+    require(!resultFor(fixture, "crossfeed.getState").value("enabled", true),
+        "enabling the virtual stage disables crossfeed");
 
     auto stereoField = resultFor(fixture, "stereoField.setState", nlohmann::json::array({ nlohmann::json::object({
         {"enabled", true}, {"width", 3.0}, {"centerGainDb", 30.0}, {"sideGainDb", -30.0}

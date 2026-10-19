@@ -8,14 +8,15 @@
 
 namespace echo {
 
-/// Lightweight header-only planar float audio buffer.
-/// Data is stored as vector<vector<float>> — one inner vector per channel,
+/// Planar buffer with an allocation-free active channel view.
+/// Data is stored as vector<vector<Sample>> — one inner vector per channel,
 /// all channels have the same length (numSamples_).
-class FloatAudioBuffer {
+template <typename Sample>
+class PlanarAudioBuffer {
 public:
-    FloatAudioBuffer() = default;
+    PlanarAudioBuffer() = default;
 
-    FloatAudioBuffer(int numChannels, int numSamples) {
+    PlanarAudioBuffer(int numChannels, int numSamples) {
         setSize(numChannels, numSamples);
     }
 
@@ -30,50 +31,57 @@ public:
             ch.assign(static_cast<std::size_t>(numSamples), 0.0f);
         }
         numSamples_ = numSamples;
+        activeChannels_ = numChannels;
     }
 
     // ── metadata ────────────────────────────────────────────────────────
 
-    int getNumChannels() const noexcept { return static_cast<int>(channels_.size()); }
+    int getNumChannels() const noexcept { return activeChannels_; }
+    int getChannelCapacity() const noexcept { return static_cast<int>(channels_.size()); }
+    // Changes only the view. Storage is reserved during prepare, never in the callback.
+    bool setActiveChannels(int channels) noexcept {
+        if (channels < 0 || channels > getChannelCapacity()) return false;
+        activeChannels_ = channels; return true;
+    }
 
     int getNumSamples() const noexcept { return numSamples_; }
 
     // ── raw pointer access ──────────────────────────────────────────────
 
     /// Returns a writeable pointer to channel[0].
-    float* getWritePointer(int channel) {
+    Sample* getWritePointer(int channel) {
         return channels_[static_cast<std::size_t>(channel)].data();
     }
 
     /// Returns a read-only pointer to channel[0].
-    const float* getReadPointer(int channel) const {
+    const Sample* getReadPointer(int channel) const {
         return channels_[static_cast<std::size_t>(channel)].data();
     }
 
     /// Returns a writeable pointer to channel[startSample].
-    float* getWritePointer(int channel, int startSample) {
+    Sample* getWritePointer(int channel, int startSample) {
         return channels_[static_cast<std::size_t>(channel)].data() + startSample;
     }
 
     /// Returns a read-only pointer to channel[startSample].
-    const float* getReadPointer(int channel, int startSample) const {
+    const Sample* getReadPointer(int channel, int startSample) const {
         return channels_[static_cast<std::size_t>(channel)].data() + startSample;
     }
 
     // ── sample get/set ──────────────────────────────────────────────────
 
-    float getSample(int channel, int sampleIndex) const {
+    Sample getSample(int channel, int sampleIndex) const {
         return channels_[static_cast<std::size_t>(channel)][static_cast<std::size_t>(sampleIndex)];
     }
 
-    void setSample(int channel, int sampleIndex, float value) {
+    void setSample(int channel, int sampleIndex, Sample value) {
         channels_[static_cast<std::size_t>(channel)][static_cast<std::size_t>(sampleIndex)] = value;
     }
 
     // ── gain ────────────────────────────────────────────────────────────
 
     /// Multiply every sample in every channel by `gain`.
-    void applyGain(float gain) {
+    void applyGain(Sample gain) {
         for (auto& ch : channels_) {
             for (auto& s : ch) {
                 s *= gain;
@@ -82,7 +90,7 @@ public:
     }
 
     /// Multiply `numSamples` starting at `startSample` on the given channel by `gain`.
-    void applyGain(int channel, int startSample, int numSamples, float gain) {
+    void applyGain(int channel, int startSample, int numSamples, Sample gain) {
         auto& ch = channels_[static_cast<std::size_t>(channel)];
         auto* begin = ch.data() + startSample;
         auto* end = begin + numSamples;
@@ -117,7 +125,7 @@ public:
 
     /// Copy `numSamples` from source channel to destination channel.
     void copyFrom(int destChannel, int destStartSample,
-                  const FloatAudioBuffer& source,
+                  const PlanarAudioBuffer& source,
                   int sourceChannel, int sourceStartSample, int numSamples) {
         auto& dst = channels_[static_cast<std::size_t>(destChannel)];
         const auto& src = source.channels_[static_cast<std::size_t>(sourceChannel)];
@@ -126,8 +134,12 @@ public:
     }
 
 private:
-    std::vector<std::vector<float>> channels_;
+    std::vector<std::vector<Sample>> channels_;
     int numSamples_ = 0;
+    int activeChannels_ = 0;
 };
+
+using FloatAudioBuffer = PlanarAudioBuffer<float>;
+using DoubleAudioBuffer = PlanarAudioBuffer<double>;
 
 } // namespace echo

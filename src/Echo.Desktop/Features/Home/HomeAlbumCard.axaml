@@ -1,4 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="Echo.Desktop.Features.Home.HomeAlbumCard">
+  <UserControl.Styles>
+    <Style Selector="Button.quiet:pointerover"><Setter Property="Background" Value="Transparent" /></Style>
+    <Style Selector="Button.quiet:pointerover TextBlock#Title, Button.quiet:focus-visible TextBlock#Title"><Setter Property="TextDecorations" Value="Underline" /></Style>
+  </UserControl.Styles>
   <Button Name="OpenButton" Classes="quiet" Padding="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top" Click="OnOpen" CornerRadius="0">
     <Grid Name="CardLayout" RowDefinitions="Auto,Auto" ColumnDefinitions="*">
       <Grid Name="ArtworkFrame" Height="150" ClipToBounds="True" Background="{DynamicResource EchoPanelMuted}">

@@ -2,7 +2,7 @@
              xmlns:settings="using:Echo.Desktop.Features.Settings" xmlns:models="using:Echo.Desktop.Features.Settings.Models"
              xmlns:controls="using:Echo.Desktop.Features.Settings.Controls" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Settings.Controls.SettingsSectionView" x:DataType="settings:SettingsViewModel">
-  <StackPanel Spacing="0" Margin="0,12,0,28">
+  <StackPanel Spacing="0" Margin="0,0,8,28">
     <Border Name="CategoryHeading" Height="43" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource SettingsDivider}" Padding="2,0,0,6" Margin="0,0,0,21">
       <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Top">
         <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource SettingsSelected}" BorderBrush="{DynamicResource SettingsBorder}" BorderThickness="1"><icon:GlyphIcon Kind="{Binding ActiveCategory.Icon}" Width="18" Height="18" Stroke="{DynamicResource EchoAccentText}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
@@ -11,23 +11,22 @@
     </Border>
     <Border IsVisible="{Binding HasTabs}" BorderBrush="{DynamicResource SettingsDivider}" BorderThickness="0,0,0,1" Padding="2,0,0,0" Margin="0,0,0,18">
       <ItemsControl ItemsSource="{Binding Tabs}">
-        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="22" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingsTabItem">
-          <Button Classes="settings-tab" Classes.active="{Binding IsActive}" Content="{Binding Label}"
+          <Button Classes="settings-tab" Classes.active="{Binding IsActive}" Content="{Binding Label}" Margin="0,0,24,0"
                   Command="{Binding $parent[controls:SettingsSectionView].((settings:SettingsViewModel)DataContext).SelectTabCommand}"
                   CommandParameter="{Binding Id}" />
         </DataTemplate></ItemsControl.ItemTemplate>
       </ItemsControl>
     </Border>
     <ContentControl Name="ThemeContent" Margin="0,0,0,22" IsVisible="{Binding ShowThemeWorkspace}" />
-    <ContentControl Name="UserLanguagesContent" Margin="0,0,0,22" IsVisible="{Binding ShowUserLanguages}" />
     <ItemsControl ItemsSource="{Binding Sections}">
-      <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="12" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+      <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="24" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
       <ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingsSectionViewModel">
-        <Border Background="Transparent" BorderBrush="{DynamicResource SettingsDivider}" BorderThickness="0,0,0,1" ClipToBounds="True">
+        <Border Background="Transparent" BorderBrush="{DynamicResource SettingsDivider}" BorderThickness="0" ClipToBounds="True">
           <StackPanel>
-            <Border IsVisible="{Binding HasTitle}" Background="Transparent" Padding="20,16,20,12" MinHeight="48"><TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" /></Border>
-            <Grid IsVisible="{Binding HasShortcuts}" ColumnDefinitions="*,138,138" ColumnSpacing="20" Margin="20,12">
+            <Border IsVisible="{Binding HasTitle}" Background="Transparent" Padding="0,12,0,12" MinHeight="44"><TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" /></Border>
+            <Grid IsVisible="{Binding HasShortcuts}" ColumnDefinitions="*,138,138" ColumnSpacing="20" Margin="0,12">
               <TextBlock Text="{DynamicResource ui.SettingsSectionView.25f5ce57a190}" Classes="muted" FontSize="12" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.SettingsSectionView.aa802f7f6711}" Classes="muted" FontSize="12" /><TextBlock Grid.Column="2" Text="{DynamicResource ui.SettingsSectionView.0299dc01919c}" Classes="muted" FontSize="12" />
             </Grid>
             <ItemsControl ItemsSource="{Binding Rows}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingRowViewModel"><controls:SettingRowView /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
@@ -35,6 +34,7 @@
         </Border>
       </DataTemplate></ItemsControl.ItemTemplate>
     </ItemsControl>
+    <ContentControl Name="UserLanguagesContent" Margin="0,24,0,0" IsVisible="{Binding ShowUserLanguages}" />
     <ContentControl Name="ExtraContent" Margin="0,22,0,0" IsVisible="{Binding ShowExtraContent}" />
     <TextBlock Text="{Binding Feedback}" IsVisible="{Binding Feedback, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Classes="muted" FontSize="13" Margin="0,16" TextWrapping="Wrap" />
   </StackPanel>

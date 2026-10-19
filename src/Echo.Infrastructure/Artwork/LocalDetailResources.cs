@@ -9,18 +9,44 @@ public sealed class LocalDetailResources : IDetailResources
     public Task<AttachmentPage> ReadAttachmentsAsync(string samplePath, CancellationToken cancellation) => Task.Run(() =>
     {
         var directory = Path.GetDirectoryName(samplePath);
-        if (directory is null || !Directory.Exists(directory)) return new AttachmentPage([], false);
+        if (directory is null || !Directory.Exists(directory)) throw new DirectoryNotFoundException("Album folder is unavailable.");
         var items = new List<AlbumAttachment>(); var examined = 0; var truncated = false;
-        foreach (var file in Directory.EnumerateFiles(directory))
+        var folders = new Queue<(string Path, int Depth)>(); folders.Enqueue((directory, 0));
+        var visited = 0;
+        while (folders.TryDequeue(out var folder) && items.Count < 32)
         {
             cancellation.ThrowIfCancellationRequested();
-            if (++examined > 512 || items.Count == 32) { truncated = true; break; }
-            var extension = Path.GetExtension(file).ToLowerInvariant();
-            var image = extension is ".jpg" or ".jpeg" or ".png" or ".webp";
-            if (!image && extension is not (".pdf" or ".txt" or ".cue" or ".log")) continue;
-            items.Add(new(Path.GetFileName(file), file, image));
+            if (++visited > 24) { truncated = true; break; }
+            try
+            {
+                if (folder.Depth < 2)
+                {
+                    foreach (var child in Directory.EnumerateDirectories(folder.Path).Take(32))
+                    {
+                        cancellation.ThrowIfCancellationRequested();
+                        if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) != 0) continue;
+                        var name = Path.GetFileName(child).ToLowerInvariant();
+                        if (folder.Depth > 0 || name is "scans" or "scan" or "booklet" or "artwork" or "artworks" or "covers" or "images" or "内页" or "封面")
+                        { if (folders.Count < 24) folders.Enqueue((child, folder.Depth + 1)); else truncated = true; }
+                    }
+                }
+                var inFolder = 0;
+                foreach (var file in Directory.EnumerateFiles(folder.Path))
+                {
+                    cancellation.ThrowIfCancellationRequested();
+                    if (++inFolder > 512 || ++examined > 2048 || items.Count == 32) { truncated = true; break; }
+                    if ((File.GetAttributes(file) & FileAttributes.ReparsePoint) != 0) continue;
+                    var extension = Path.GetExtension(file).ToLowerInvariant();
+                    var image = extension is ".jpg" or ".jpeg" or ".png" or ".webp";
+                    if (!image && extension is not (".pdf" or ".txt" or ".cue" or ".log")) continue;
+                    items.Add(new(Path.GetRelativePath(directory, file), file, image));
+                }
+            }
+            catch (Exception error) when (folder.Depth > 0 && error is IOException or UnauthorizedAccessException) { truncated = true; }
+            if (examined > 2048) break;
         }
-        return new AttachmentPage(items.OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToArray(), truncated);
+        truncated |= folders.Count > 0;
+        return new AttachmentPage(items.OrderBy(item => !item.IsImage).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToArray(), truncated);
     }, cancellation);
 
     public Task<string?> ReadDescriptionAsync(string samplePath, CancellationToken cancellation) => Task.Run(async () =>

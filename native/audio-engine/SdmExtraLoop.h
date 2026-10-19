@@ -156,12 +156,17 @@ constexpr SdmEcTuning sdmEcAdaptiveTuning {
 #ifndef ECHO_SDM_EC_SUPER_MAX_BIAS
 #define ECHO_SDM_EC_SUPER_MAX_BIAS 0.375
 #endif
+// A/B candidate only until the focused sound and stability gates establish
+// whether freezing EC across loud passages improves the Super tier.
+#ifndef ECHO_SDM_EC_SUPER_ENVELOPE_GATED
+#define ECHO_SDM_EC_SUPER_ENVELOPE_GATED 0
+#endif
 constexpr SdmEcTuning sdmEcSuperTuning {
     ECHO_SDM_EC_SUPER_ALPHA,
     ECHO_SDM_EC_SUPER_BIAS_WEIGHT,
     ECHO_SDM_EC_SUPER_ACTIVATION_LIMIT,
     ECHO_SDM_EC_SUPER_MAX_BIAS,
-    false,
+    ECHO_SDM_EC_SUPER_ENVELOPE_GATED != 0,
 };
 
 // Reference tier: retuned for the plain Reference loop (no envelope brake,

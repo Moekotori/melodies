@@ -1,0 +1,67 @@
+cmake_minimum_required(VERSION 3.24)
+project(echo_sdm_realtime_lab LANGUAGES CXX)
+find_package(Threads REQUIRED)
+option(ECHO_SDM_REALTIME_CUDA "Build real CUDA backend checks" OFF)
+option(ECHO_SDM_LAB_AVX2 "Opt-in precision-preserving AVX2 FIR candidate (lab only)" OFF)
+
+add_executable(echo-sdm-realtime-lab
+  main.cpp RoutePlan.cpp SdmRealtimeLab.cpp SdmShadowMeasurement.cpp SdmBackendChecks.cpp)
+add_executable(echo-sdm-admission-tests EXCLUDE_FROM_ALL ../../tests/sdm_realtime_admission_tests.cpp)
+add_executable(echo-sdm-state-tests EXCLUDE_FROM_ALL ../../tests/sdm_state_handoff_tests.cpp)
+add_executable(echo-sdm-reference-capture EXCLUDE_FROM_ALL SdmReferenceCapture.cpp RoutePlan.cpp)
+add_executable(echo-fir-kernel-tests EXCLUDE_FROM_ALL ../../tests/fir_kernel_tests.cpp RoutePlan.cpp)
+add_executable(echo-sdm-fir-precision-tests EXCLUDE_FROM_ALL ../../tests/sdm_fir_precision_tests.cpp RoutePlan.cpp)
+add_library(echo-fir-scalar-reference OBJECT EXCLUDE_FROM_ALL
+  ../../tests/FirScalarReference.cpp
+  ../../../audio-engine/NativeFormatProcessor.cpp
+  ../../../audio-engine/SdmNtfDesign.cpp ../../../audio-engine/SdmPreModulator.cpp)
+target_compile_features(echo-fir-scalar-reference PRIVATE cxx_std_20)
+target_include_directories(echo-fir-scalar-reference PRIVATE ../../../audio-engine)
+target_compile_definitions(echo-fir-scalar-reference PRIVATE echo=echo_fir_scalar ECHO_SRC_FIR_FORCE_SCALAR=1)
+if(MSVC)
+  set_property(TARGET echo-fir-scalar-reference PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  target_compile_options(echo-fir-scalar-reference PRIVATE /W4 /utf-8)
+else()
+  target_compile_options(echo-fir-scalar-reference PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+target_sources(echo-fir-kernel-tests PRIVATE $<TARGET_OBJECTS:echo-fir-scalar-reference>)
+target_sources(echo-sdm-fir-precision-tests PRIVATE $<TARGET_OBJECTS:echo-fir-scalar-reference>)
+target_include_directories(echo-fir-kernel-tests PRIVATE .)
+target_include_directories(echo-sdm-fir-precision-tests PRIVATE .)
+if(ECHO_SDM_REALTIME_CUDA)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+endif()
+add_library(echo-sdm-lab-engine STATIC
+    ../../../audio-engine/NativeFormatProcessor.cpp
+    ../../../audio-engine/SdmNtfDesign.cpp
+    ../../../audio-engine/SdmPreModulator.cpp
+    ../../src/NativeFirProcessor.cpp ../../src/NativeSdmProcessor.cpp)
+target_compile_definitions(echo-sdm-lab-engine PRIVATE
+  ECHO_SRC_FIR_EXPERIMENTAL_AVX2=$<BOOL:${ECHO_SDM_LAB_AVX2}>)
+foreach(target echo-sdm-lab-engine echo-sdm-realtime-lab echo-sdm-admission-tests echo-sdm-state-tests echo-sdm-reference-capture echo-fir-kernel-tests echo-sdm-fir-precision-tests)
+  target_compile_features(${target} PRIVATE cxx_std_20)
+  target_include_directories(${target} PRIVATE ../../../audio-engine ../../src)
+  target_link_libraries(${target} PRIVATE Threads::Threads)
+  if(ECHO_SDM_REALTIME_CUDA)
+    target_compile_definitions(${target} PRIVATE ECHO_SDM_ADMISSION_HAS_CUDA=1)
+    target_link_libraries(${target} PRIVATE CUDA::cudart_static)
+    set_target_properties(${target} PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON
+      CUDA_RUNTIME_LIBRARY Static)
+  endif()
+  if(MSVC)
+    set_property(TARGET ${target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4;/utf-8>
+      $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/utf-8>)
+  else()
+    target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
+  endif()
+endforeach()
+if(ECHO_SDM_REALTIME_CUDA)
+  target_sources(echo-sdm-lab-engine PRIVATE ../../src/CudaSdmProcessor.cu ../../src/CudaFirProcessor.cu)
+else()
+  target_sources(echo-sdm-lab-engine PRIVATE ../../src/CudaSdmProcessorStub.cpp ../../src/CudaFirProcessorStub.cpp)
+endif()
+foreach(target echo-sdm-realtime-lab echo-sdm-admission-tests echo-sdm-state-tests echo-sdm-reference-capture echo-fir-kernel-tests echo-sdm-fir-precision-tests)
+  target_link_libraries(${target} PRIVATE echo-sdm-lab-engine)
+endforeach()

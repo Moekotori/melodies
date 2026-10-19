@@ -23,13 +23,15 @@ public sealed partial class DspViewModel
     partial void OnSelectedRackChanged(DspRackRow? value)
     {
         OnPropertyChanged(nameof(CanMoveRackUp)); OnPropertyChanged(nameof(CanMoveRackDown));
+        OpenRackSelection(value);
     }
 
     private void AttachOptions(JsonObject state)
     {
         foreach (var definition in SelectedModule.Toggles)
         {
-            var toggle = new DspToggle(definition.Key, definition.Label, Bool(state, definition.Key));
+            var toggle = new DspToggle(definition.Key, definition.Label,
+                definition.Key == "limiterAutoCeiling" && !state.ContainsKey(definition.Key) ? state["dspLimiterCeilingDb"] is null : Bool(state, definition.Key));
             toggle.PropertyChanged += DraftChanged; Toggles.Add(toggle);
         }
         foreach (var definition in SelectedModule.Choices)
@@ -38,21 +40,7 @@ public sealed partial class DspViewModel
             var field = new DspChoiceField(definition, state[definition.Key]?.ToString() ?? "");
             field.PropertyChanged += DraftChanged; Choices.Add(field);
         }
-        if (!IsRack) return;
-        rackOrder.Clear();
-        if (state["order"] is JsonArray order)
-            foreach (var id in order.Take(8)) if (id?.ToString() is { Length: > 0 } text) rackOrder.Add(text);
-        RebuildRack();
-        if (state["fixedPostStages"] is JsonArray pinned)
-            foreach (var id in pinned.Take(8))
-                if (id?.ToString() is { Length: > 0 } text) { RackRows.Add(new(text, "固定 · " + RackLabel(text), true)); RackStages.Add("固定 · " + text); }
-    }
-
-    private void RebuildRack()
-    {
-        RackRows.Clear(); RackStages.Clear();
-        foreach (var id in rackOrder) { RackRows.Add(new(id, RackLabel(id), false)); RackStages.Add(id); }
-        SelectedRack = RackRows.FirstOrDefault();
+        if (IsRack) InitializeRack(state);
     }
 
     private void CaptureOptions(JsonObject state)
@@ -60,8 +48,15 @@ public sealed partial class DspViewModel
         foreach (var toggle in Toggles) state[toggle.Key] = toggle.Value;
         foreach (var field in Choices) state[field.Key] = field.Selected.Key;
         if (IsChannel) CaptureBands(state);
-        if (IsRack) state["order"] = new JsonArray(rackOrder.Select(id => (JsonNode)JsonValue.Create(id)!).ToArray());
+        if (IsRack) CaptureRack(state);
         if (IsRoom) { state["irPath"] = IrPath; state["clearIr"] = IrPath.Length == 0 && HasImpulse(state); }
+    }
+
+    private void CaptureRack(JsonObject state)
+    {
+        if (rackWorkspace is not null)
+        { state["filters"] = rackWorkspace["filters"]?.DeepClone(); state["procedural"] = rackWorkspace["procedural"]?.DeepClone(); }
+        DspRackDraft.Reorder(state, rackOrder);
     }
 
     private void CaptureBands(JsonObject state)
@@ -77,9 +72,11 @@ public sealed partial class DspViewModel
 
     private double InitialParameter(JsonObject state, DspParameterDefinition definition)
     {
+        if (definition.Key == "dspLimiterCeilingDb" && state[definition.Key] is null) return -1;
         if (IsChannel && definition.Key.Split('.') is [var band, var side] && state["bandGains"] is JsonObject bands && bands[band] is JsonObject pair)
             return Number(pair, side == "left" ? "leftGainDb" : "rightGainDb");
-        return Number(state, definition.Key);
+        return DspParameterPath.Read(state, definition.Key) is JsonValue value && value.TryGetValue<double>(out var number)
+            ? number : 0;
     }
 
     private void DescribeRoom(JsonObject state)
@@ -101,6 +98,7 @@ public sealed partial class DspViewModel
     {
         "equalizer" => "参数 EQ", "convolution" => "房间校正", "replayGain" => "音量均衡", "compressor" => "压缩器",
         "crossfeed" => "交叉馈送", "stereoField" => "立体声场", "channelMatrix" => "声道矩阵", "channelBalance" => "声道工具",
+        "multiband" => "多段压缩", "deesser" => "齿音抑制", "procedural" => "运算处理",
         "headroom" => "Headroom", "truePeakLimiter" => "安全限幅", "playbackRate" => "播放速率", "levelMeter" => "电平表", _ => id,
     };
 
@@ -108,7 +106,7 @@ public sealed partial class DspViewModel
     {
         foreach (var toggle in Toggles) toggle.PropertyChanged -= DraftChanged;
         foreach (var field in Choices) field.PropertyChanged -= DraftChanged;
-        Toggles.Clear(); Choices.Clear(); RackRows.Clear(); rackOrder.Clear(); SelectedRack = null;
+        Toggles.Clear(); Choices.Clear(); ReleaseRack(); RackRows.Clear(); rackOrder.Clear(); SelectedRack = null;
     }
 
     [RelayCommand] private void MoveRackUp() => MoveRack(-1);

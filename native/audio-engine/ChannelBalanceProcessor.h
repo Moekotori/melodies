@@ -29,6 +29,7 @@ enum class ChannelBalanceMonoMode
 
 struct ChannelBalanceState
 {
+    bool operator==(const ChannelBalanceState&) const = default;
     bool enabled = false;
     float balance = 0.0f;
     float leftGainDb = 0.0f;
@@ -56,7 +57,8 @@ public:
 
     void prepare(double sampleRate, int maximumBlockSize, int channelCount);
     void reset();
-    void processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples);
+    template <typename Sample>
+    void processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples);
     int64_t tailFramesRemaining() const noexcept;
     bool isTailDrained() const noexcept { return tailFramesRemaining() == 0; }
 
@@ -68,16 +70,17 @@ public:
     bool hasClippingRisk() const;
 
 private:
+    friend struct DspPreparedRuntime;
     struct TargetSnapshot
     {
         bool enabled = false;
-        float balance = 0.0f;
-        float leftGainDb = 0.0f;
-        float rightGainDb = 0.0f;
-        std::array<float, channelBalanceBandCount> leftBandGainsDb {};
-        std::array<float, channelBalanceBandCount> rightBandGainsDb {};
-        float leftDelayMs = 0.0f;
-        float rightDelayMs = 0.0f;
+        double balance = 0.0;
+        double leftGainDb = 0.0;
+        double rightGainDb = 0.0;
+        std::array<double, channelBalanceBandCount> leftBandGainsDb {};
+        std::array<double, channelBalanceBandCount> rightBandGainsDb {};
+        double leftDelayMs = 0.0;
+        double rightDelayMs = 0.0;
         bool swapLeftRight = false;
         ChannelBalanceMonoMode monoMode = ChannelBalanceMonoMode::Off;
         bool invertLeft = false;
@@ -88,53 +91,53 @@ private:
     void updateSmoothingSteps();
     TargetSnapshot readTargetSnapshot() const;
     void updateSwitchTargets(const TargetSnapshot& target);
-    static void calculateBalanceGains(float balance, bool constantPower, float& leftGain, float& rightGain);
-    float applyBandCompensation(int channel, float sample, const std::array<float, channelBalanceBandCount>& bandGainsDb);
-    float readDelaySample(int channel, float delayMs) const;
-    void pushDelaySample(int channel, float sample);
+    static void calculateBalanceGains(double balance, bool constantPower, double& leftGain, double& rightGain);
+    double applyBandCompensation(int channel, double sample, const std::array<double, channelBalanceBandCount>& bandGainsDb);
+    double readDelaySample(int channel, double delayMs) const;
+    void pushDelaySample(int channel, double sample);
 
     double currentSampleRate = 44100.0;
     int preparedChannels = 0;
     int preparedBlockSize = 0;
     int delayBufferLength = 1;
     int delayWriteIndex = 0;
-    std::vector<std::vector<float>> delayHistory;
+    std::vector<std::vector<double>> delayHistory;
     int parameterSmoothingSamples = 1;
     int switchSmoothingSamples = 1;
 
-    float smoothedBalance = 0.0f;
-    float smoothedLeftGainDb = 0.0f;
-    float smoothedRightGainDb = 0.0f;
-    std::array<float, channelBalanceBandCount> smoothedLeftBandGainsDb {};
-    std::array<float, channelBalanceBandCount> smoothedRightBandGainsDb {};
-    float smoothedLeftDelayMs = 0.0f;
-    float smoothedRightDelayMs = 0.0f;
-    float enabledMix = 0.0f;
-    float swapMix = 0.0f;
-    float monoMix = 0.0f;
-    float invertLeftMix = 0.0f;
-    float invertRightMix = 0.0f;
-    float constantPowerMix = 1.0f;
+    double smoothedBalance = 0.0;
+    double smoothedLeftGainDb = 0.0;
+    double smoothedRightGainDb = 0.0;
+    std::array<double, channelBalanceBandCount> smoothedLeftBandGainsDb {};
+    std::array<double, channelBalanceBandCount> smoothedRightBandGainsDb {};
+    double smoothedLeftDelayMs = 0.0;
+    double smoothedRightDelayMs = 0.0;
+    double enabledMix = 0.0;
+    double swapMix = 0.0;
+    double monoMix = 0.0;
+    double invertLeftMix = 0.0;
+    double invertRightMix = 0.0;
+    double constantPowerMix = 1.0;
 
-    float balanceStep = 0.0f;
-    float leftGainStepDb = 0.0f;
-    float rightGainStepDb = 0.0f;
-    std::array<float, channelBalanceBandCount> leftBandGainStepsDb {};
-    std::array<float, channelBalanceBandCount> rightBandGainStepsDb {};
-    float leftDelayStepMs = 0.0f;
-    float rightDelayStepMs = 0.0f;
-    float enabledStep = 0.0f;
-    float swapStep = 0.0f;
-    float monoStep = 0.0f;
-    float invertLeftStep = 0.0f;
-    float invertRightStep = 0.0f;
-    float constantPowerStep = 0.0f;
+    double balanceStep = 0.0;
+    double leftGainStepDb = 0.0;
+    double rightGainStepDb = 0.0;
+    std::array<double, channelBalanceBandCount> leftBandGainStepsDb {};
+    std::array<double, channelBalanceBandCount> rightBandGainStepsDb {};
+    double leftDelayStepMs = 0.0;
+    double rightDelayStepMs = 0.0;
+    double enabledStep = 0.0;
+    double swapStep = 0.0;
+    double monoStep = 0.0;
+    double invertLeftStep = 0.0;
+    double invertRightStep = 0.0;
+    double constantPowerStep = 0.0;
 
     ChannelBalanceMonoMode previousMonoMode = ChannelBalanceMonoMode::Off;
     ChannelBalanceMonoMode activeMonoMode = ChannelBalanceMonoMode::Off;
     ChannelBalanceMonoMode targetMonoMode = ChannelBalanceMonoMode::Off;
-    std::array<float, 2> lowBandState {};
-    std::array<float, 2> highLowpassState {};
+    std::array<double, 2> lowBandState {};
+    std::array<double, 2> highLowpassState {};
 
     std::atomic<bool> targetEnabled { false };
     std::atomic<float> atomicBalance { 0.0f };

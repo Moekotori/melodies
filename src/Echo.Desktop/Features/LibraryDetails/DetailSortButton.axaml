@@ -2,8 +2,10 @@
  xmlns:icon="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.LibraryDetails.DetailSortButton">
  <UserControl.Styles>
   <Style Selector="Button.sort-opener"><Setter Property="Padding" Value="8,0" /><Setter Property="Height" Value="30" /><Setter Property="MinHeight" Value="30" /><Setter Property="CornerRadius" Value="4" /></Style>
-  <Style Selector="Button.sort-item"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="10,0" /><Setter Property="MinHeight" Value="34" /><Setter Property="CornerRadius" Value="4" /></Style>
+  <Style Selector="Button.sort-item"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="10,0" /><Setter Property="MinHeight" Value="34" /><Setter Property="CornerRadius" Value="4" /></Style>
  </UserControl.Styles>
+ <Grid>
+ <Border Name="InlineHost" IsVisible="False" />
  <Button Name="SortOpener" Classes="sort-opener" ToolTip.Tip="{DynamicResource detail.sort.label}" AutomationProperties.Name="{DynamicResource detail.sort.label}">
   <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
    <TextBlock Name="SelectedLabel" FontSize="12" Classes="muted" VerticalAlignment="Center" />
@@ -11,7 +13,7 @@
    <icon:GlyphIcon Kind="chevron-right" Width="12" Height="12" StrokeWidth="1.5"><icon:GlyphIcon.RenderTransform><RotateTransform Angle="90" /></icon:GlyphIcon.RenderTransform></icon:GlyphIcon>
   </StackPanel>
   <Button.Flyout>
-   <Flyout Placement="BottomEdgeAlignedRight"><StackPanel Width="172" Spacing="2">
+   <Flyout Placement="BottomEdgeAlignedRight"><StackPanel Name="SortOptions" Width="172" Spacing="2">
     <Button Classes="sort-item" Tag="0" Click="OnSort" AutomationProperties.Name="{DynamicResource detail.sort.order}"><Grid ColumnDefinitions="*,14" ColumnSpacing="10"><TextBlock Text="{DynamicResource detail.sort.order}" FontSize="13" VerticalAlignment="Center" /><icon:GlyphIcon Name="OrderCheck" Grid.Column="1" Kind="check" Width="14" Height="14" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
     <Button Classes="sort-item" Tag="1" Click="OnSort" AutomationProperties.Name="{DynamicResource ui.AlbumDetailView.d44e9b3d3b31}"><Grid ColumnDefinitions="*,14" ColumnSpacing="10"><TextBlock Text="{DynamicResource ui.AlbumDetailView.d44e9b3d3b31}" FontSize="13" VerticalAlignment="Center" /><icon:GlyphIcon Name="TitleCheck" Grid.Column="1" Kind="check" Width="14" Height="14" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
     <Button Classes="sort-item" Tag="2" Click="OnSort" AutomationProperties.Name="{DynamicResource ui.AlbumDetailView.04a95e0654d3}"><Grid ColumnDefinitions="*,14" ColumnSpacing="10"><TextBlock Text="{DynamicResource ui.AlbumDetailView.04a95e0654d3}" FontSize="13" VerticalAlignment="Center" /><icon:GlyphIcon Name="DurationCheck" Grid.Column="1" Kind="check" Width="14" Height="14" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
@@ -22,4 +24,5 @@
    </StackPanel></Flyout>
   </Button.Flyout>
  </Button>
+ </Grid>
 </UserControl>

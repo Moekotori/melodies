@@ -7,10 +7,15 @@
 #include "NativePcmChannelPolicy.h"
 #include "MqaPassthroughPolicy.h"
 #include "ProcessMemoryTelemetry.h"
+#include "SdmRealtimeHealthJson.h"
+#include "NativeHostIdentity.h"
 #include "RuntimeOutputTransitionCoordinator.h"
 #include "RpcOutputWriter.h"
 #include "ListenTogetherRpc.h"
 #include "WindowsCddaReader.h"
+#include "DeviceVolume.h"
+#include <cmath>
+#include <limits>
 #include <unordered_map>
 #if defined(__APPLE__)
 #include "MacCoreAudioDeviceInfo.h"
@@ -298,6 +303,7 @@ Options parseOptions(const std::vector<std::string>& args)
         else if ((arg == "-buffer" || arg == "-buffer-size") && i + 1 < args.size())
         {
             options.bufferSize = std::max(0, parseInt(args[++i], options.bufferSize));
+            options.deviceBufferManaged = options.bufferSize == 0;
         }
         else if (arg == "-asio-output-channel-start" && i + 1 < args.size())
         {
@@ -371,6 +377,8 @@ void writeErrorEvent(const std::string& message, const std::string& reason = "ru
 
 int getDeviceBufferSize(const Options& options)
 {
+    if (options.asio || options.deviceBufferManaged)
+        return 0;
     if (options.bufferSize > 0)
         return options.bufferSize;
 
@@ -379,6 +387,8 @@ int getDeviceBufferSize(const Options& options)
 
 std::vector<int> buildBufferSizeAttempts(int requested)
 {
+    if (requested == 0)
+        return { 0 }; // Do not replace a device-managed request with a fixed size.
     static constexpr int supportedSizes[] { 64, 128, 256, 512, 1024, 2048, 4096, 8192 };
     requested = std::max(1, requested);
     std::vector<int> attempts;
@@ -397,7 +407,7 @@ std::vector<int> buildBufferSizeAttempts(const Options& options)
 std::vector<int> buildPreferredBufferSizeAttempts(int requested, int preferred)
 {
     auto attempts = buildBufferSizeAttempts(requested);
-    if (preferred <= 0 || preferred == requested)
+    if (requested == 0 || preferred <= 0 || preferred == requested)
         return attempts;
 
     attempts.erase(std::remove(attempts.begin(), attempts.end(), preferred), attempts.end());
@@ -1744,8 +1754,6 @@ bool requestsProNativeProcessing(const echo_audio_host::Json& params)
     if (! params.is_object() || ! params.contains("processing") || ! params["processing"].is_object())
         return false;
     const auto& processing = params["processing"];
-    if (processing.contains("echoSrc") && processing["echoSrc"].is_object())
-        return true;
     if (processing.contains("sdm") && processing["sdm"].is_object())
         return true;
     if (processing.contains("dither") && processing["dither"].is_object())
@@ -2120,7 +2128,7 @@ bool initMiniaudioSharedOutput(MiniaudioSharedOutput& output, PcmRingAudioSource
     // miniaudio safely falls back to the closest supported native rate.
     config.coreaudio.allowNominalSampleRateChange = options.exclusive ? MA_TRUE : MA_FALSE;
 #endif
-    config.periodSizeInFrames = static_cast<ma_uint32>(std::max(1, bufferFrames));
+    config.periodSizeInFrames = static_cast<ma_uint32>(std::max(0, bufferFrames));
     config.performanceProfile = ma_performance_profile_low_latency;
     config.dataCallback = miniaudioSharedDataCallback;
 #if defined(__APPLE__)
@@ -3131,6 +3139,13 @@ bool openNativePcmOutputWithFallback(
     std::string& error,
     int preferredBufferFrames = 0)
 {
+    const int outputChannels = options.dopOutput || options.asioNativeDsdOutput
+        ? channels : pipeline.pcmSource().requestedDspOutputChannels(sampleRate);
+    if (outputChannels < 1 || outputChannels > maxNativePcmChannels || (outputChannels > 2 && !options.asio))
+    {
+        error = "convolution_output_device_layout_unsupported";
+        return false;
+    }
     static constexpr int asioSettleDelaysMs[] { 250, 500 };
     static constexpr size_t maxAsioSettleRetries = sizeof(asioSettleDelaysMs) / sizeof(asioSettleDelaysMs[0]);
     size_t asioSettleRetriesUsed = 0;
@@ -3143,8 +3158,9 @@ bool openNativePcmOutputWithFallback(
         const int candidate = attempts[attemptIndex];
         backend.close();
         std::string attemptError;
-        if (backend.open(pipeline, options, sampleRate, channels, candidate, attemptError))
+        if (backend.open(pipeline, options, sampleRate, outputChannels, candidate, attemptError))
         {
+            pipeline.pcmSource().setDeviceOutputChannels(backend.readyInfo().channels);
             const int actualOpenedBufferFrames = backend.readyInfo().openedDeviceBufferFrames;
             openedBufferFrames = actualOpenedBufferFrames > 0 ? actualOpenedBufferFrames : candidate;
             error.clear();
@@ -3251,7 +3267,23 @@ bool configureRuntimeOutputOptions(
         return false;
     }
     next.channels = static_cast<int>(requestedChannels);
-    next.bufferSize = std::max(0, static_cast<int>(getJsonDouble(params, "bufferSize", next.bufferSize)));
+    const double requestedBufferSize = getJsonDouble(params, "bufferSize", next.bufferSize);
+    if (params.contains("bufferSize") && (!params["bufferSize"].is_number()
+        || !std::isfinite(requestedBufferSize) || requestedBufferSize < 0
+        || requestedBufferSize > std::numeric_limits<int>::max()
+        || std::floor(requestedBufferSize) != requestedBufferSize))
+    {
+        error = "invalid native device buffer size";
+        return false;
+    }
+    next.bufferSize = static_cast<int>(requestedBufferSize);
+    if (params.contains("bufferSize"))
+        next.deviceBufferManaged = next.bufferSize == 0;
+    if (next.asio)
+    {
+        next.deviceBufferManaged = true;
+        next.bufferSize = 0;
+    }
     next.asioOutputChannelStart = std::max(0, static_cast<int>(getJsonDouble(params, "asioOutputChannelStart", next.asioOutputChannelStart)));
 
     if (next.channels != current.channels)
@@ -3268,7 +3300,7 @@ bool configureRuntimeOutputOptions(
         return false;
     }
 
-    if (next.bufferSize <= 0)
+    if (next.bufferSize <= 0 && !next.deviceBufferManaged)
     {
         const std::string latencyProfile = getJsonString(params, "latencyProfile", "balanced");
         next.bufferSize = latencyProfile == "lowLatency" ? 1024 : latencyProfile == "stable" ? 8192 : 2048;
@@ -3337,6 +3369,7 @@ echo_audio_host::Json buildNativeProcessingTelemetry(const NativePlaybackPipelin
 {
     const auto status = pipeline.processingStatus();
     echo_audio_host::Json telemetry {
+        {"hostIdentity", echo_audio_host::nativeHostIdentity()},
         {"outputFormat", nativeOutputFormatText(status.outputFormat)},
         {"dither", {
             {"active", status.ditherActive},
@@ -3411,6 +3444,22 @@ echo_audio_host::Json buildNativeProcessingTelemetry(const NativePlaybackPipelin
             {"activeBackend", nativeComputeBackendText(status.sdm.activeBackend)},
             {"modulatorBackend", nativeComputeBackendText(status.sdm.modulatorBackend)},
             {"oversamplingBackend", nativeComputeBackendText(status.sdm.oversamplingBackend)},
+            {"terminalBackend", nativeComputeBackendText(status.sdm.terminalBackend)},
+            {"oversamplingPrecision", status.sdm.oversamplingPrecision},
+            {"terminalPrecision", status.sdm.terminalPrecision},
+            {"modulatorPrecision", status.sdm.modulatorPrecision},
+            {"terminalBackendReason", status.sdm.terminalBackendReason},
+            {"oversamplingCudaProcessedBlocks", status.sdm.oversamplingCudaProcessedBlocks},
+            {"inputClamps", status.sdm.inputClamps},
+            {"loopInputClamps", status.sdm.loopInputClamps},
+            {"quantizationErrorClamps", status.sdm.quantizationErrorClamps},
+            {"oversamplingCudaH2dMs", status.sdm.oversamplingCudaTimings.h2dMs},
+            {"oversamplingCudaFirMs", status.sdm.oversamplingCudaTimings.firMs},
+            {"oversamplingCudaD2hMs", status.sdm.oversamplingCudaTimings.d2hMs},
+            {"oversamplingCudaSynchronizeMs", status.sdm.oversamplingCudaTimings.synchronizeMs},
+            {"oversamplingCudaCommitMs", status.sdm.oversamplingCudaTimings.commitMs},
+            {"oversamplingCudaDeviceBytes", status.sdm.oversamplingCudaTimings.deviceBytes},
+            {"oversamplingCudaPinnedBytes", status.sdm.oversamplingCudaTimings.pinnedBytes},
             {"estimatedMacsPerSecond", status.sdm.estimatedMacsPerSecond},
             {"processedBlocks", status.sdm.processedBlocks},
             {"lastInputFrames", status.sdm.lastInputFrames},
@@ -3429,6 +3478,7 @@ echo_audio_host::Json buildNativeProcessingTelemetry(const NativePlaybackPipelin
             {"oversamplingWarmupMilliseconds", status.sdm.oversamplingWarmupMilliseconds},
             {"oversamplingRuntimeFallbacks", status.sdm.oversamplingRuntimeFallbacks},
             {"realtimeAdmissionRatio", status.sdm.realtimeAdmissionRatio},
+            {"realtimeHealth", echo_audio_host::sdmRealtimeHealthJson(status.sdm.realtime)},
             {"realtimeAdmissionWithinBudget", status.sdm.realtimeAdmissionWithinBudget},
             {"realtimeAdmissionWarning", nativeFallbackReasonJson(status.sdm.realtimeAdmissionWarning)},
             {"deviceName", status.sdm.deviceName.empty()
@@ -3473,7 +3523,8 @@ bool configureNativeProcessing(
     const echo_audio_host::Json& params,
     Options& options,
     NativePlaybackPipeline& pipeline,
-    std::string& error)
+    std::string& error,
+    const std::function<void()>& beforeCommit)
 {
     const echo_audio_host::Json* processing = nullptr;
     if (params.contains("processing") && params["processing"].is_object())
@@ -3727,7 +3778,7 @@ bool configureNativeProcessing(
             : sdmPreModulatorProfile == "heavy"
                 ? echo::SdmPreModulatorProfile::Heavy
                 : echo::SdmPreModulatorProfile::Standard;
-    if (!pipeline.configure(processingConfig, error))
+    if (!pipeline.configure(processingConfig, error, beforeCommit))
         return false;
 
     options.dopOutput = nativeFormat != NativePlaybackPipeline::OutputFormat::Pcm;
@@ -3746,6 +3797,7 @@ bool hasSameRuntimeOutputOptions(const Options& left, const Options& right)
         && left.channels == right.channels
         && left.deviceIndex == right.deviceIndex
         && left.bufferSize == right.bufferSize
+        && left.deviceBufferManaged == right.deviceBufferManaged
         && left.asioOutputChannelStart == right.asioOutputChannelStart
         && left.dopOutput == right.dopOutput
         && left.asioNativeDsdOutput == right.asioNativeDsdOutput
@@ -3763,6 +3815,7 @@ bool hasSameRuntimeBufferCacheScope(const Options& left, const Options& right)
         && left.channels == right.channels
         && left.deviceIndex == right.deviceIndex
         && left.bufferSize == right.bufferSize
+        && left.deviceBufferManaged == right.deviceBufferManaged
         && left.asioOutputChannelStart == right.asioOutputChannelStart
         && left.dopOutput == right.dopOutput
         && left.asioNativeDsdOutput == right.asioNativeDsdOutput
@@ -3804,6 +3857,7 @@ echo_audio_host::Json buildDeviceReadyJson(
         {"readyLevel", "device"},
         {"protocolVersion", 1},
         {"backendContractVersion", 2},
+        {"hostIdentity", echo_audio_host::nativeHostIdentity()},
         {"capabilities", {
             {"deviceReadyV2", true},
             {"runtimeDeviceConfigureV1", true},
@@ -3828,7 +3882,7 @@ echo_audio_host::Json buildDeviceReadyJson(
         {"actualBufferFrames", deviceBufferFrames},
         {"requestedDeviceBufferFrames", requestedBufferFrames},
         {"openedDeviceBufferFrames", openedBufferFrames},
-        {"bufferSizeFallback", openedBufferFrames != requestedBufferFrames},
+        {"bufferSizeFallback", requestedBufferFrames > 0 && openedBufferFrames != requestedBufferFrames},
         {"fifoCapacityFrames", fifoCapacityFrames},
         {"startupPrebufferFrames", startupPrebufferFrames},
         {"startupPrebufferTimeoutMs", startupPrebufferTimeoutMs},
@@ -4040,6 +4094,8 @@ void runJsonRpcOnStdio(
     echo::LevelMeterProcessor& meter,
     echo::DspRackOrder& rackOrder,
     echo::WorkshopAudioEffectController& workshopAudioEffect,
+    echo::MultibandCompressorProcessor& multiband,
+    echo::DeEsserProcessor& deEsser,
     std::atomic<bool>& running,
     std::atomic<bool>* shutdownRequested,
     PcmRingAudioSource* audioSource = nullptr,
@@ -4153,6 +4209,16 @@ void runJsonRpcOnStdio(
                     try { object = echo_audio_host::parseJson(line); }
                     catch (...) { object = echo_audio_host::Json::object(); }
                     const auto method = getJsonString(object, "method", {});
+                    if (method == "host.identity")
+                    {
+                        const auto params = object.find("params");
+                        const bool includePath = params != object.end() && params->is_object()
+                            && params->contains("includeLoadedExecutable") && (*params)["includeLoadedExecutable"] == true;
+                        const auto rpcId = getJsonRpcIntegerId(object);
+                        if (rpcId >= 0)
+                            writeJsonRpcResult(stdoutFd, rpcId, echo_audio_host::nativeHostIdentity(includePath));
+                        continue;
+                    }
                     if (audioSource != nullptr)
                     {
                         const echo_audio_host::Json emptyParams = echo_audio_host::Json::object();
@@ -4204,6 +4270,13 @@ void runJsonRpcOnStdio(
                             echo_audio_host::Json readyResult = lastDeviceReady != nullptr
                                 ? *lastDeviceReady
                                 : echo_audio_host::Json::object();
+                            // DSP may have been restored after output.configure. Reopen only
+                            // at the serialized session boundary, never in the device callback.
+                            if (runtimeDeviceClose != nullptr && deviceOpened != nullptr
+                                && deviceOpened->load(std::memory_order_acquire) && lastDeviceReady != nullptr
+                                && getJsonDouble(*lastDeviceReady, "channels", 0) != audioSource->requestedDspOutputChannels()
+                                && (playbackPipeline == nullptr || playbackPipeline->outputFormat() == NativePlaybackPipeline::OutputFormat::Pcm))
+                                (*runtimeDeviceClose)();
                             if (deferredDeviceInit != nullptr && deviceOpened != nullptr && !deviceOpened->load(std::memory_order_acquire))
                             {
                                 const int sr = paramsObject ? static_cast<int>(getJsonDouble(*paramsObject, "sr", audioSampleRate)) : static_cast<int>(audioSampleRate);
@@ -4244,6 +4317,9 @@ void runJsonRpcOnStdio(
                                     && (*paramsObject)["startPaused"].get<bool>();
                                 if (playbackPipeline != nullptr) playbackPipeline->beginSession(startPaused);
                                 else audioSource->beginSession(startPaused);
+                                const bool preparedEq = paramsObject != nullptr
+                                    && paramsObject->value("preparedEqPlayback", false);
+                                audioSource->setPreparedEqPlayback(preparedEq);
                                 const bool initialPlayGateRequested = paramsObject != nullptr
                                     && paramsObject->contains("initialPlayGate")
                                     && (*paramsObject)["initialPlayGate"].is_boolean()
@@ -4275,6 +4351,7 @@ void runJsonRpcOnStdio(
                                     {"accepted", accepted},
                                     {"sessionId", assignedSessionId},
                                     {"ready", readyResult},
+                                    {"preparedEqPlayback", audioSource->preparedEqPlaybackAccepted()},
                                 };
                                 writeJsonRpcResult(stdoutFd, getJsonRpcIntegerId(object), result);
                             }
@@ -4591,7 +4668,7 @@ void runJsonRpcOnStdio(
                     echo::EqPresetStore presets;
                     std::string response = echo::JsonRpcProtocol::handleJsonLine(
                         line, eq, cb, conv, headroom, rg, compressor, spatialDsp, rate, meter, rackOrder,
-                        workshopAudioEffect, presets, proDspAllowed) + "\n";
+                        workshopAudioEffect, multiband, deEsser, presets, proDspAllowed) + "\n";
                     writeJsonRpcFd(stdoutFd, response.data(), response.size());
                     if (method == "rpc.shutdown")
                     {
@@ -4643,6 +4720,8 @@ int runNativePcmHost(const Options& options)
     echo::DspHeadroomProcessor headroomProcessor;
     echo::ReplayGainProcessor replayGainProcessor;
     echo::CompressorProcessor compressorProcessor;
+    echo::MultibandCompressorProcessor multibandProcessor;
+    echo::DeEsserProcessor deEsserProcessor;
     echo::SpatialDspProcessor spatialDspProcessor;
     echo::PlaybackRateProcessor rateProcessor;
     echo::LevelMeterProcessor meterProcessor;
@@ -4672,7 +4751,7 @@ int runNativePcmHost(const Options& options)
     PcmRingAudioSource source(options.channels, fifoCapacityFrames, startupPrebufferFrames, startupPrebufferTimeoutMs,
         options.volume, eqProcessor, convolutionProcessor, channelBalanceProcessor, headroomProcessor,
         replayGainProcessor, compressorProcessor, spatialDspProcessor, rateProcessor, meterProcessor, &dspRackOrder,
-        &workshopAudioEffectController);
+        &workshopAudioEffectController, &multibandProcessor, &deEsserProcessor);
     DopRingSource dopSource(options.channels, fifoCapacityFrames, startupPrebufferFrames, startupPrebufferTimeoutMs);
     NativeDsdRingSource nativeDsdSource(options.channels, nativeDsdFifoCapacityByteFrames,
         nativeDsdStartupPrebufferByteFrames, startupPrebufferTimeoutMs);
@@ -4680,7 +4759,7 @@ int runNativePcmHost(const Options& options)
         source, dopSource, nativeDsdSource, options.channels,
         eqProcessor, convolutionProcessor, channelBalanceProcessor, headroomProcessor,
         replayGainProcessor, compressorProcessor, spatialDspProcessor, rateProcessor, meterProcessor, &dspRackOrder,
-        &workshopAudioEffectController);
+        &workshopAudioEffectController, &multibandProcessor, &deEsserProcessor);
     if (options.dopOutput)
     {
         std::string passthroughError;
@@ -4759,7 +4838,8 @@ int runNativePcmHost(const Options& options)
                 fifoCapacityFrames,
                 nativeDsdFifoCapacityByteFrames);
 
-            const int effectiveBuffer = bufferFrames > 0 ? bufferFrames : requestedDeviceBufferFrames;
+            const int effectiveBuffer = runtimeOptions.asio || runtimeOptions.deviceBufferManaged
+                ? 0 : bufferFrames > 0 ? bufferFrames : requestedDeviceBufferFrames;
             runtimeOptions.sampleRate = sampleRate;
             runtimeOptions.channels = channels;
             runtimeOptions.bufferSize = effectiveBuffer;
@@ -4769,7 +4849,7 @@ int runNativePcmHost(const Options& options)
             if (runtimeOptions.asio && ! runtimeOptions.dopOutput && ! runtimeOptions.asioNativeDsdOutput)
             {
                 const auto cached = successfulAsioBufferFramesBySampleRate.find(sampleRate);
-                if (cached != successfulAsioBufferFramesBySampleRate.end())
+                if (!runtimeOptions.deviceBufferManaged && cached != successfulAsioBufferFramesBySampleRate.end())
                 {
                     preferredBuffer = cached->second;
                     logLine("ASIO runtime buffer reuse: sampleRate=" + std::to_string(sampleRate)
@@ -4825,6 +4905,7 @@ int runNativePcmHost(const Options& options)
             playbackPipeline.requestStop();
             playbackPipeline.markInputEnded();
             outputBackend->close();
+            playbackPipeline.pcmSource().setDeviceOutputChannels(0);
             deviceOpened.store(false, std::memory_order_release);
             lastDeviceReady = echo_audio_host::Json::object();
         };
@@ -4844,13 +4925,29 @@ int runNativePcmHost(const Options& options)
                 || runtimeProcessingFingerprint != nextProcessingFingerprint;
             const bool outputOptionsChanged = ! hasSameRuntimeOutputOptions(runtimeOptions, next);
             const bool bufferCacheScopeChanged = ! hasSameRuntimeBufferCacheScope(runtimeOptions, next);
-            const bool changed = processingChanged || outputOptionsChanged;
-            if (changed && deviceOpened.load(std::memory_order_acquire))
+            const int requestedDspChannels = playbackPipeline.pcmSource().requestedDspOutputChannels();
+            const bool dspLayoutChanged = deviceOpened.load(std::memory_order_acquire)
+                && getJsonDouble(lastDeviceReady, "channels", runtimeOptions.channels) != requestedDspChannels;
+            const bool changed = processingChanged || outputOptionsChanged || dspLayoutChanged;
+            if (!processingChanged && changed && deviceOpened.load(std::memory_order_acquire))
                 closeRuntimeDeviceLocked();
+            auto clearedDeviceReady = echo_audio_host::Json::object();
+            const auto closeAdmittedDevice = [&]
+            {
+                if (!changed || !deviceOpened.load(std::memory_order_acquire)) return;
+                // Pipeline has admitted the independent graph and holds its
+                // producer boundary. Device callbacks consume ring sources;
+                // close joins them before shared live DSP is prepared. Do not
+                // reenter requestStop/markInputEnded under that pipeline lock.
+                outputBackend->close();
+                playbackPipeline.pcmSource().setDeviceOutputChannels(0);
+                deviceOpened.store(false, std::memory_order_release);
+                lastDeviceReady.swap(clearedDeviceReady);
+            };
+            if (processingChanged && ! configureNativeProcessing(params, next, playbackPipeline, error, closeAdmittedDevice))
+                return false;
             if (bufferCacheScopeChanged)
                 successfulAsioBufferFramesBySampleRate.clear();
-            if (processingChanged && ! configureNativeProcessing(params, next, playbackPipeline, error))
-                return false;
             runtimeOptions = std::move(next);
             strictAsioPcmOutput.store(
                 runtimeOptions.asio && ! runtimeOptions.dopOutput && ! runtimeOptions.asioNativeDsdOutput,
@@ -5099,6 +5196,7 @@ int runNativePcmHost(const Options& options)
                 options.rpcStdinFd, rpcOutputWriter, std::ref(eqProcessor), std::ref(channelBalanceProcessor),
                 std::ref(convolutionProcessor), std::ref(headroomProcessor), std::ref(replayGainProcessor), std::ref(compressorProcessor), std::ref(spatialDspProcessor),
                 std::ref(rateProcessor), std::ref(meterProcessor), std::ref(dspRackOrder), std::ref(workshopAudioEffectController),
+                std::ref(multibandProcessor), std::ref(deEsserProcessor),
                 std::ref(jsonRpcRunning), &shutdownRequested, &source,
                 static_cast<double>(actualSampleRate), options.channels,
                 &deferredDeviceInit, &deviceOpened, pcmInputReader.get(), &runtimeDeviceConfigure, &runtimeDeviceClose, &lastDeviceReady,
@@ -5111,6 +5209,7 @@ int runNativePcmHost(const Options& options)
                 options.rpcStdinFd, rpcOutputWriter, std::ref(eqProcessor), std::ref(channelBalanceProcessor),
                 std::ref(convolutionProcessor), std::ref(headroomProcessor), std::ref(replayGainProcessor), std::ref(compressorProcessor), std::ref(spatialDspProcessor),
                 std::ref(rateProcessor), std::ref(meterProcessor), std::ref(dspRackOrder), std::ref(workshopAudioEffectController),
+                std::ref(multibandProcessor), std::ref(deEsserProcessor),
                 std::ref(jsonRpcRunning), &shutdownRequested, &source,
                 static_cast<double>(actualSampleRate), options.channels,
                 nullptr, nullptr, pcmInputReader.get(), nullptr, nullptr, nullptr, &playbackPipeline, nullptr,
@@ -5230,7 +5329,8 @@ int runNativePcmHost(const Options& options)
             double echoFeedback,
             double vocalExitStartProgress,
             double vocalEntryStartProgress,
-            AutomixHandoffSchedule handoffSchedule) {
+            AutomixHandoffSchedule handoffSchedule,
+            echo::automix_alpha::Parameters alpha) {
             return playbackPipeline.prepareAutomixDeckFrames(
                 fadeStartFrame,
                 overlapFrames,
@@ -5246,7 +5346,7 @@ int runNativePcmHost(const Options& options)
                 echoFeedback,
                 vocalExitStartProgress,
                 vocalEntryStartProgress,
-                handoffSchedule);
+                handoffSchedule, alpha);
         },
         [&playbackPipeline](uint64_t deckLease, const float* samples, int frames) {
             return playbackPipeline.pushAutomixDeck(deckLease, samples, frames);
@@ -5306,6 +5406,14 @@ int runNativePcmHost(const Options& options)
           },
           [&replayGainProcessor]() { return replayGainProcessor.requiresTrackPreparation(); },
           [&source](std::shared_ptr<DualTrackMixBuffer> mix) { source.installDualTrackMix(std::move(mix)); },
+        [&playbackPipeline](std::chrono::steady_clock::time_point deadline) {
+            return playbackPipeline.markInputEndedUntil(deadline);
+        },
+        [&playbackPipeline]() {
+            return std::pair<uint64_t, uint64_t>{playbackPipeline.getSourceTrackFrames(),
+                                               playbackPipeline.getDeviceOutputFrames()};
+        },
+        [&meterProcessor]() { return meterProcessor.dspMeasurements.read(); },
     };
     audioDaemon = std::make_unique<AudioDaemon>(std::move(sourceHooks),
         actualSampleRate, rpcOutputWriter, shutdownRequested,
@@ -5337,7 +5445,8 @@ int runNativePcmHost(const Options& options)
             + ",\"asio\":" + asioCapability
             + ",\"kernelStreaming\":" + kernelStreamingCapability
             + ",\"coreAudioExclusive\":" + coreAudioExclusiveCapability + "}"
-            + (options.channels > 2 ? ",\"channels\":" + std::to_string(options.channels) : "") + "}");
+            + (options.channels > 2 ? ",\"channels\":" + std::to_string(options.channels) : "")
+            + ",\"hostIdentity\":" + echo_audio_host::nativeHostIdentity().dump() + "}");
     }
     else
     {
@@ -5352,7 +5461,8 @@ int runNativePcmHost(const Options& options)
             + ",\"asio\":" + asioCapability
             + ",\"kernelStreaming\":" + kernelStreamingCapability
             + ",\"coreAudioExclusive\":" + coreAudioExclusiveCapability
-            + "},\"sampleRate\":" + std::to_string(actualSampleRate)
+            + "},\"hostIdentity\":" + echo_audio_host::nativeHostIdentity().dump()
+            + ",\"sampleRate\":" + std::to_string(actualSampleRate)
             + ",\"hardwareSampleRate\":" + std::to_string(ready.hardwareSampleRate > 0 ? ready.hardwareSampleRate : actualSampleRate)
             + ",\"sharedDeviceSampleRate\":" + std::to_string(actualSampleRate)
             + ",\"sharedSampleRate\":" + std::to_string(actualSampleRate)
@@ -5364,7 +5474,7 @@ int runNativePcmHost(const Options& options)
             + ",\"actualBufferFrames\":" + std::to_string(actualDeviceBufferFrames)
             + ",\"requestedDeviceBufferFrames\":" + std::to_string(requestedDeviceBufferFrames)
             + ",\"openedDeviceBufferFrames\":" + std::to_string(openedDeviceBufferFrames)
-            + ",\"bufferSizeFallback\":" + std::string(openedDeviceBufferFrames != requestedDeviceBufferFrames ? "true" : "false")
+            + ",\"bufferSizeFallback\":" + std::string(requestedDeviceBufferFrames > 0 && openedDeviceBufferFrames != requestedDeviceBufferFrames ? "true" : "false")
             + ",\"fifoCapacityFrames\":" + std::to_string(fifoCapacityFrames)
             + ",\"startupPrebufferFrames\":" + std::to_string(startupPrebufferFrames)
             + ",\"startupPrebufferTimeoutMs\":" + std::to_string(startupPrebufferTimeoutMs)
@@ -5418,7 +5528,8 @@ int runNativePcmHost(const Options& options)
                 + ",\"underrunCallbacks\":" + std::to_string(playbackPipeline.getUnderrunCallbacks())
                 + ",\"underrunFrames\":" + std::to_string(playbackPipeline.getUnderrunFrames())
                 + ",\"dspLimiterProtecting\":" + std::string(playbackPipeline.pcmSource().isDspLimiterProtecting() ? "true" : "false")
-                + ",\"dspLimiterGainReductionDb\":" + std::to_string(playbackPipeline.pcmSource().getDspLimiterGainReductionDb()) + "}");
+                + ",\"dspLimiterGainReductionDb\":" + std::to_string(playbackPipeline.pcmSource().getDspLimiterGainReductionDb())
+                + ",\"dspLimiterTruePeakDb\":" + std::to_string(playbackPipeline.pcmSource().getDspLimiterTruePeakDb()) + "}");
             lastReportedSource = sourceFrames;
             lastReportedOutput = outputFrames;
 
@@ -5465,7 +5576,8 @@ int runNativePcmHost(const Options& options)
             + ",\"underrunCallbacks\":" + std::to_string(playbackPipeline.getUnderrunCallbacks())
             + ",\"underrunFrames\":" + std::to_string(playbackPipeline.getUnderrunFrames())
             + ",\"dspLimiterProtecting\":" + std::string(playbackPipeline.pcmSource().isDspLimiterProtecting() ? "true" : "false")
-            + ",\"dspLimiterGainReductionDb\":" + std::to_string(playbackPipeline.pcmSource().getDspLimiterGainReductionDb()) + "}");
+            + ",\"dspLimiterGainReductionDb\":" + std::to_string(playbackPipeline.pcmSource().getDspLimiterGainReductionDb())
+                + ",\"dspLimiterTruePeakDb\":" + std::to_string(playbackPipeline.pcmSource().getDspLimiterTruePeakDb()) + "}");
 
     if (playbackPipeline.getUnderrunCallbacks() > 0)
         logLine("Output underruns: callbacks=" + std::to_string(playbackPipeline.getUnderrunCallbacks())
@@ -5585,6 +5697,8 @@ int runHost(const Options& options)
 } // namespace
 
 #include "AudioDaemon.h"
+#include "BlindEqRenderer.h"
+#include "Eac3HdmiHost.h"
 
 #ifndef ECHO_AUDIO_HOST_TESTS
 int main(int argc, char* argv[])
@@ -5593,6 +5707,13 @@ int main(int argc, char* argv[])
 
     try
     {
+        const auto arguments = getCommandLineArgs(argc, argv);
+        if (arguments.size() == 4 && arguments[1] == "--eac3-hdmi-host"
+            && arguments[2] == "--defer-device-open" && arguments[3] == "--no-stdin")
+            return runEac3HdmiHost();
+        if (const auto result = handleDeviceVolumeCommand(arguments)) return *result;
+        if (arguments.size() == 3 && arguments[1] == "--blind-eq-render")
+            return renderBlindEq(arguments[2]);
         options = parseOptions(getCommandLineArgs(argc, argv));
         validatePcmWireOptions(options);
         if (options.deviceOpenDeferred && options.channelInitializationDeferred)
@@ -5605,9 +5726,14 @@ int main(int argc, char* argv[])
 
         if (options.buildCapabilities)
         {
-            std::cout << "{\"nativeCudaDspV1\":"
-                      << (CudaFirProcessor::builtWithCuda() ? "true" : "false")
-                      << "}" << std::endl;
+            nlohmann::json capabilities {{"nativeCudaDspV1", CudaFirProcessor::builtWithCuda()},
+                {"blindEqPreparationV1", true}, {"hostIdentity", echo_audio_host::nativeHostIdentity()}};
+#ifdef _WIN32
+            capabilities["deviceVolumeV1"] = true; capabilities["eac3HdmiV1"] = true;
+#else
+            capabilities["deviceVolumeV1"] = false; capabilities["eac3HdmiV1"] = false;
+#endif
+            std::cout << capabilities.dump() << std::endl;
             return 0;
         }
 

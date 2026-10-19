@@ -2,7 +2,7 @@
         xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
         xmlns:lyrics="using:Echo.Desktop.Controls.Lyrics"
         x:Class="Echo.Desktop.Features.Floating.DesktopLyricsWindow" x:DataType="shell:ShellViewModel"
-        Title="ECHO" Width="960" Height="144" MinWidth="360" MinHeight="84" CanMaximize="False" CanMinimize="False"
+        Title="melodies" Width="960" Height="144" MinWidth="360" MinHeight="84" CanMaximize="False" CanMinimize="False"
         WindowDecorations="None" Background="Transparent" TransparencyLevelHint="Transparent" ShowInTaskbar="False" ShowActivated="False" Topmost="True">
   <Window.Styles>
     <Style Selector="Button.lyric-tool">

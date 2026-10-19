@@ -31,7 +31,7 @@ public partial class UserLanguagesView : UserControl
         _picking = true;
         try
         {
-            var file = await top.StorageProvider.SaveFilePickerAsync(new() { Title = Caption("language.user.export"), SuggestedFileName = "echo-language.json",
+            var file = await top.StorageProvider.SaveFilePickerAsync(new() { Title = Caption("language.user.export"), SuggestedFileName = "melodies-language.json",
                 DefaultExtension = "json", FileTypeChoices = [new FilePickerFileType("JSON") { Patterns = ["*.json"] }] });
             if (!this.IsAttachedToVisualTree() || file is null) return;
             await using var destination = await file.OpenWriteAsync();

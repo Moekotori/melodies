@@ -54,7 +54,7 @@ bool NativeSdmProcessor::configure(
         error = "native_cuda_sdm_ultimate_premod_not_implemented";
         return false;
     }
-    if (requestCuda && decisionMode == echo::SdmDecisionMode::ReferenceX)
+    if (requestCuda && !doubleProcessing_ && decisionMode == echo::SdmDecisionMode::ReferenceX)
     {
         error = "native_cuda_sdm_reference_x_not_implemented";
         return false;
@@ -62,11 +62,11 @@ bool NativeSdmProcessor::configure(
 
     const bool experimentalCpuOnly =
         interpolationMode != echo::SdmInterpolationMode::Linear;
-    if (requestCuda && experimentalCpuOnly)
+    if (requestCuda && !doubleProcessing_ && experimentalCpuOnly)
     {
         fallbackReason_ = "native_cuda_sdm_disabled_for_experimental_interpolation";
     }
-    else if (requestCuda)
+    else if (requestCuda && !doubleProcessing_)
     {
         std::string cudaError;
         if (!CudaSdmProcessor::supportsRealtimeDoublePrecision(cudaError))
@@ -166,6 +166,7 @@ bool NativeSdmProcessor::configure(
         }
     }
 
+    if (requestCuda && doubleProcessing_) fallbackReason_ = "native_cuda_fp64_processing_unavailable";
     reset();
     error.clear();
     return true;
@@ -174,11 +175,19 @@ bool NativeSdmProcessor::configure(
 void NativeSdmProcessor::reset()
 {
     cpu_.reset();
+    processingError_.clear();
     if (backend_ == Backend::Cuda)
     {
         std::string error;
         if (!cuda_.reset(cpu_.state(), error))
-            fallBackToCpu(error);
+        {
+            // This is an explicit new timeline. Never import the previous
+            // CUDA session over the fresh CPU state after a failed reset.
+            backend_ = Backend::Cpu;
+            fallbackReason_ = "native_cuda_sdm_reset_failed:" + error;
+            deviceName_.clear();
+            cuda_.release();
+        }
     }
     processedBlocks_ = 0;
     lastInputFrames_ = 0;
@@ -201,6 +210,7 @@ std::vector<uint32_t> NativeSdmProcessor::processDop(
     const float* interleaved,
     int frames)
 {
+    if (!processingError_.empty()) return {};
     const auto started = std::chrono::steady_clock::now();
     if (backend_ != Backend::Cuda)
     {
@@ -219,7 +229,7 @@ std::vector<uint32_t> NativeSdmProcessor::processDop(
     std::string cudaError;
     if (!cuda_.processDop(interleaved, frames, output, cudaError))
     {
-        fallBackToCpu(cudaError);
+        if (!fallBackToCpu(cudaError)) return {};
         output = cpu_.processDop(interleaved, frames);
     }
     if (frames > 0 && preModulatorTailTransportFrames() > 0)
@@ -236,6 +246,7 @@ std::vector<uint8_t> NativeSdmProcessor::processNativeDsd(
     const float* interleaved,
     int frames)
 {
+    if (!processingError_.empty()) return {};
     const auto started = std::chrono::steady_clock::now();
     if (backend_ != Backend::Cuda)
     {
@@ -255,7 +266,7 @@ std::vector<uint8_t> NativeSdmProcessor::processNativeDsd(
     std::string cudaError;
     if (!cuda_.processNativeDsd(interleaved, frames, output, cudaError))
     {
-        fallBackToCpu(cudaError);
+        if (!fallBackToCpu(cudaError)) return {};
         output = cpu_.processNativeDsd(interleaved, frames);
     }
     if (frames > 0 && preModulatorTailTransportFrames() > 0)
@@ -274,10 +285,17 @@ std::vector<uint32_t> NativeSdmProcessor::flushDop()
     const int tailFrames = preModulatorTailTransportFrames();
     if (!preModulatorTailPending_ || tailFrames <= 0)
         return {};
-    std::vector<float> silence(
-        static_cast<size_t>(tailFrames * channels_),
-        0.0f);
-    auto output = processDop(silence.data(), tailFrames);
+    std::vector<uint32_t> output;
+    if (doubleProcessing_)
+    {
+        std::vector<double> silence(static_cast<size_t>(tailFrames * channels_), 0.0);
+        output = processDop(silence.data(), tailFrames);
+    }
+    else
+    {
+        std::vector<float> silence(static_cast<size_t>(tailFrames * channels_), 0.0f);
+        output = processDop(silence.data(), tailFrames);
+    }
     preModulatorTailPending_ = false;
     return output;
 }
@@ -287,10 +305,17 @@ std::vector<uint8_t> NativeSdmProcessor::flushNativeDsd()
     const int tailFrames = preModulatorTailTransportFrames();
     if (!preModulatorTailPending_ || tailFrames <= 0)
         return {};
-    std::vector<float> silence(
-        static_cast<size_t>(tailFrames * channels_),
-        0.0f);
-    auto output = processNativeDsd(silence.data(), tailFrames);
+    std::vector<uint8_t> output;
+    if (doubleProcessing_)
+    {
+        std::vector<double> silence(static_cast<size_t>(tailFrames * channels_), 0.0);
+        output = processNativeDsd(silence.data(), tailFrames);
+    }
+    else
+    {
+        std::vector<float> silence(static_cast<size_t>(tailFrames * channels_), 0.0f);
+        output = processNativeDsd(silence.data(), tailFrames);
+    }
     preModulatorTailPending_ = false;
     return output;
 }
@@ -309,7 +334,12 @@ uint64_t NativeSdmProcessor::stabilityRecoveryCount() const noexcept
         : cpu_.stabilityRecoveryCount();
 }
 
-void NativeSdmProcessor::fallBackToCpu(const std::string& cudaError)
+echo::SdmClampCounts NativeSdmProcessor::clampCounts() const noexcept
+{
+    return backend_ == Backend::Cuda ? cuda_.clampCounts() : cpu_.clampCounts();
+}
+
+bool NativeSdmProcessor::fallBackToCpu(const std::string& cudaError)
 {
     echo::SdmProcessorState state;
     const bool restored =
@@ -321,10 +351,12 @@ void NativeSdmProcessor::fallBackToCpu(const std::string& cudaError)
         : "native_cuda_sdm_runtime_failure:" + cudaError;
     if (!restored)
     {
-        cpu_.reset();
         fallbackReason_ += ":state_restore_failed";
+        processingError_ = fallbackReason_;
     }
     deviceName_.clear();
+    cuda_.release();
+    return restored;
 }
 
 void NativeSdmProcessor::recordProcess(
@@ -339,4 +371,24 @@ void NativeSdmProcessor::recordProcess(
     totalProcessMilliseconds_ += milliseconds;
     peakProcessMilliseconds_ =
         std::max(peakProcessMilliseconds_, milliseconds);
+}
+
+std::vector<uint32_t> NativeSdmProcessor::processDop(const double* interleaved, int frames)
+{
+    if (!processingError_.empty()) return {};
+    const auto start = std::chrono::steady_clock::now();
+    auto output = cpu_.processDop(interleaved, frames);
+    if (frames > 0 && preModulatorTailTransportFrames() > 0) preModulatorTailPending_ = true;
+    recordProcess(frames, static_cast<int>(output.size() / static_cast<size_t>(channels_)), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count());
+    return output;
+}
+
+std::vector<uint8_t> NativeSdmProcessor::processNativeDsd(const double* interleaved, int frames)
+{
+    if (!processingError_.empty()) return {};
+    const auto start = std::chrono::steady_clock::now();
+    auto output = cpu_.processNativeDsd(interleaved, frames);
+    if (frames > 0 && preModulatorTailTransportFrames() > 0) preModulatorTailPending_ = true;
+    recordProcess(frames, static_cast<int>(output.size() / static_cast<size_t>(channels_ * 2)), std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count());
+    return output;
 }

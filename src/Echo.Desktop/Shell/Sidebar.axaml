@@ -21,7 +21,7 @@
       <Button Grid.Column="1" Classes="nav" Classes.active="{Binding IsActive}" Classes.editing="{Binding IsEditing}" Classes.on-path="{Binding IsOnPath}" Click="OnNavigationClicked"
               ToolTip.Tip="{Binding Label}" AutomationProperties.Name="{Binding Label}">
         <Grid ColumnDefinitions="30,*" ColumnSpacing="7">
-          <icon:EchoIcon Kind="{Binding IconId}" BaseBrush="{Binding $parent[Button].Foreground}" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          <icon:EchoIcon Kind="{Binding IconId}" BaseBrush="{Binding $parent[Button].Foreground}" StrokeWidth="1.9" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
           <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                      IsVisible="{Binding $parent[shell:Sidebar].((shell:ShellViewModel)DataContext).IsSidebarLabelVisible}" Foreground="{Binding $parent[Button].Foreground}" />
         </Grid>
@@ -46,7 +46,7 @@
     <Style Selector="Button.nav.subnav"><Setter Property="Padding" Value="22,0,10,0" /><Setter Property="Height" Value="34" /><Setter Property="MinHeight" Value="34" /><Setter Property="Margin" Value="0,2,0,0" /></Style>
     <Style Selector="Button.nav TextBlock"><Setter Property="FontWeight" Value="Normal" /></Style>
     <Style Selector="Button.nav.active TextBlock"><Setter Property="FontWeight" Value="SemiBold" /></Style>
-    <Style Selector="TextBlock.sidebar-caption"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Height" Value="24" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="Margin" Value="10,0" /></Style>
+    <Style Selector="TextBlock.sidebar-caption"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="Normal" /><Setter Property="Height" Value="24" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="Margin" Value="10,0" /></Style>
     <Style Selector="Button.sidebar-eye"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
     <Style Selector="Grid.navigation-row.hidden Button.nav"><Setter Property="Opacity" Value="0.45" /></Style>
     <Style Selector="Grid.navigation-row.drop-target"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
@@ -103,7 +103,7 @@
       <Border Grid.Row="4" IsVisible="{Binding !IsSidebarEditing}" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource EchoDivider}" Padding="0,2,0,0">
         <Button Classes="nav" Command="{Binding NavigateCommand}" CommandParameter="settings" ToolTip.Tip="{DynamicResource ui.Sidebar.df3d58c7d84b}">
           <Grid ColumnDefinitions="30,*" ColumnSpacing="7">
-            <icon:EchoIcon Kind="settings" BaseBrush="{DynamicResource EchoMuted}" Width="20" Height="20" HorizontalAlignment="Center" />
+            <icon:EchoIcon Kind="settings" BaseBrush="{DynamicResource EchoMuted}" StrokeWidth="1.9" Width="22" Height="22" HorizontalAlignment="Center" />
             <TextBlock Grid.Column="1" Text="{DynamicResource ui.Sidebar.df3d58c7d84b}" IsVisible="{Binding IsSidebarLabelVisible}" FontSize="14" Classes="muted" VerticalAlignment="Center" />
           </Grid>
         </Button>

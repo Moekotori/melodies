@@ -5,5 +5,6 @@
     <ProjectReference Include="../Echo.Output.Client/Echo.Output.Client.csproj" />
     <ProjectReference Include="../Echo.Audio.Client/Echo.Audio.Client.csproj" />
     <ProjectReference Include="../Echo.Platform/Echo.Platform.csproj" />
+    <ProjectReference Include="../Modules/Echo.AlbumInformation/Echo.AlbumInformation.csproj" />
   </ItemGroup>
 </Project>

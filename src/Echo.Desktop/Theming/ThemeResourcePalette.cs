@@ -56,6 +56,16 @@ internal static class ThemeResourcePalette
         result["EchoPageContent"] = wallpaper ? new SolidColorBrush(C("appBg"), wallpaperAlpha * (appearance.WallpaperUnifiedOpacity ? 1 : .62))
             : acrylic ? Brushes.Transparent : result["EchoPageBase"];
         result["EchoPageGlow"] = Brushes.Transparent;
+        // Electron's player aura is a single retained brush, with no extra animation or image cache.
+        result["EchoPlayerGlow"] = wallpaper || acrylic ? Brushes.Transparent : new RadialGradientBrush
+        {
+            Center = new RelativePoint(.5, 1.38, RelativeUnit.Relative),
+            GradientOrigin = new RelativePoint(.5, 1.38, RelativeUnit.Relative),
+            RadiusX = new RelativeScalar(.56, RelativeUnit.Relative),
+            RadiusY = new RelativeScalar(1.5, RelativeUnit.Relative),
+            GradientStops = new() { new(Color.FromArgb(26, C("accent").R, C("accent").G, C("accent").B), 0),
+                new(Colors.Transparent, .64) }
+        };
         if (wallpaper)
         {
             result["EchoTitlebar"] = new SolidColorBrush(C("titlebar"), wallpaperAlpha * (appearance.WallpaperUnifiedOpacity ? 1 : .74));
@@ -83,6 +93,7 @@ internal static class ThemeResourcePalette
         Brush("ExpanderContentBackground", "panel", alpha); result["ExpanderContentBorderBrush"] = new SolidColorBrush(border);
         Brush("TextControlBackgroundDisabled", "field", .6); Brush("TextControlForegroundDisabled", "muted");
         Brush("TextControlBorderBrushDisabled", "border", .45);
+        PlaylistCoverPalette.Apply(result, C, dark);
         SemiResourcePalette.Apply(result, C, dark);
         return result;
     }

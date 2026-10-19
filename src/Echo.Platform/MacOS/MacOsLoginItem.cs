@@ -14,7 +14,7 @@ public static class MacOsLoginItem
         token.ThrowIfCancellationRequested();
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException("此平台未提供登录启动适配。");
         var path = Path.GetFullPath(executable);
-        if (!File.Exists(path)) throw new IOException("无法定位 ECHO 可执行文件。");
+        if (!File.Exists(path)) throw new IOException("无法定位 melodies 可执行文件。");
         var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "LaunchAgents");
         Directory.CreateDirectory(directory);
         var plist = Path.Combine(directory, Label + ".plist");

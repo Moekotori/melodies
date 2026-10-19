@@ -1,6 +1,7 @@
 #pragma once
 
 #include "buffer.h"
+#include "ConvolutionRouting.h"
 
 #include <atomic>
 #include <complex>
@@ -18,38 +19,48 @@ public:
     PartitionedConvolutionEngine(
         const std::vector<std::vector<float>>& impulseTaps,
         int processingChannels);
+    PartitionedConvolutionEngine(
+        const std::vector<std::vector<double>>& impulseTaps,
+        int processingChannels,
+        const std::vector<ConvolutionRoute>& routes = {}, int outputChannels = 0);
 
     void resetForHardReplace();
     void continueForGapless() noexcept {}
-    void processBlock(FloatAudioBuffer& buffer, int startSample, int numSamples);
+    template <typename Sample>
+    void processBlock(PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples);
 
     int64_t tailFramesRemaining() const noexcept;
     bool isTailDrained() const noexcept { return tailFramesRemaining() == 0; }
+    int outputChannels() const noexcept { return outputChannels_; }
+    int inputChannels() const noexcept { return processingChannels_; }
     int tapCount() const noexcept { return tapCount_; }
     bool isPrepared() const noexcept { return prepared_; }
 
 private:
-    using Complex = std::complex<float>;
+    using Complex = std::complex<double>;
     using Spectrum = std::vector<Complex>;
 
     void fft(Spectrum& values, bool inverse) const noexcept;
     void completeInputPartition() noexcept;
 
     int processingChannels_ = 0;
+    int outputChannels_ = 0;
     int impulseChannels_ = 0;
     int tapCount_ = 0;
     int frontTapCount_ = 0;
     int tailPartitionCount_ = 0;
     bool prepared_ = false;
 
-    std::vector<std::vector<float>> frontTaps_;
+    std::vector<ConvolutionRoute> routes_;
+    std::vector<int> routeImpulseChannels_;
+    std::vector<std::vector<double>> frontTaps_;
     std::vector<std::vector<Spectrum>> impulseSpectra_;
     Spectrum roots_;
 
-    std::vector<std::vector<float>> directHistory_;
-    std::vector<std::vector<float>> inputPartition_;
-    std::vector<std::vector<float>> pendingTail_;
-    std::vector<std::vector<float>> overlap_;
+    std::vector<std::vector<double>> directHistory_;
+    std::vector<std::vector<double>> inputPartition_;
+    std::vector<std::vector<double>> pendingTail_;
+    std::vector<std::vector<double>> overlap_;
     std::vector<std::vector<Spectrum>> inputSpectra_;
     Spectrum fftScratch_;
     Spectrum accumulationScratch_;

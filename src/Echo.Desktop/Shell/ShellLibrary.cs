@@ -11,6 +11,7 @@ public sealed partial class ShellViewModel
     public IArtistLibrary? ArtistLibrary => AlbumLibrary as IArtistLibrary;
     public IGenreLibrary? GenreLibrary => AlbumLibrary as IGenreLibrary;
     public AlbumArtworkCache? AlbumArtwork { get; private set; }
+    public Echo.Core.Contracts.IAlbumInformationClient? AlbumInformation { get; set; }
     public IDetailResources? DetailResources { get; private set; }
     public Func<string, IProgress<ScanProgress>, CancellationToken, Task<ScanReport>>? ImportLibrary { get; private set; }
     public void AttachLibrary(IAlbumLibrary library, AlbumArtworkCache artwork,

@@ -120,8 +120,9 @@ public sealed partial class PlaybackSessionCoordinator : IPlaybackSession
         Publish(snapshot with { OperationId = op, PositionSeconds = positionBase, DurationSeconds = live ? 0 : opened.Number("durationSeconds"),
             SampleRate = (int)opened.Number("sampleRate", rate), Channels = (int)(output?.Long("channels", requestedChannels) ?? requestedChannels),
             Output = output, Status = paused ? PlaybackStatus.Paused : PlaybackStatus.Loading });
-        if (deviceConfiguration?.Text("outputMode") == "asio")
-            await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
+        // Bind the selected occurrence to the acknowledged open, including when
+        // multiple queue entries reference the same file on shared output.
+        await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
         await TryPrepareAlbumGaplessAsync(track).ConfigureAwait(false);
         if (!paused)
         {

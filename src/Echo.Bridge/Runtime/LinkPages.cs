@@ -5,8 +5,8 @@ namespace Echo.Bridge;
 
 internal static class LinkPages
 {
-    public static byte[] Pair(string codeHint) => Page("配对 ECHO",
-        "<h1>配对这台 ECHO</h1><p>输入电脑上显示的 6 位配对码。码会过期，连续猜错会锁定一分钟。</p>"
+    public static byte[] Pair(string codeHint) => Page("配对 melodies",
+        "<h1>配对这台 melodies</h1><p>输入电脑上显示的 6 位配对码。码会过期，连续猜错会锁定一分钟。</p>"
         + "<form method=\"post\" action=\"/echo-link/pair\"><input name=\"code\" inputmode=\"numeric\" maxlength=\"6\" autocomplete=\"one-time-code\" />"
         + "<button class=\"main\" type=\"submit\">配对</button></form><p>" + WebUtility.HtmlEncode(codeHint) + "</p>");
 
@@ -21,7 +21,7 @@ internal static class LinkPages
         body.Append("<div class=\"row\">").Append(Form(token, "previous", "上一首", false)).Append(Form(token, "next", "下一首", false)).Append("</div>");
         body.Append(Form(token, "stop", "停止", false));
         body.Append("<div class=\"row\">").Append(Form(token, "volume:20", "20", false)).Append(Form(token, "volume:60", "60", false)).Append(Form(token, "volume:100", "100", false)).Append("</div>");
-        return Page("ECHO Link", body.ToString());
+        return Page("melodies Link", body.ToString());
     }
 
     private static string Status(string status) => status switch

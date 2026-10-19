@@ -24,7 +24,7 @@ public sealed partial class DspViewModel
         }
         finally { projecting = false; }
         IsDirty = true; NoteEdit();
-        Message = "曲线已铺到参数 EQ。应用后记入撤销，也可以再到参数 EQ 里细调。";
+        Message = "曲线已铺到独立耳机校正链，可继续调整频段与前级。应用后记入撤销。";
     }
 
     private static List<(double Hz, double Gain)> ReadCurve(string[] lines)

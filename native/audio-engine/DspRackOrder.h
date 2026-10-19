@@ -1,5 +1,8 @@
 #pragma once
 
+#include "ProceduralDsp.h"
+#include "DspFilterRack.h"
+#include "EqProcessor.h"
 #include <array>
 #include <atomic>
 #include <cstddef>
@@ -18,19 +21,27 @@ enum class DspRackModuleId
     StereoField,
     ChannelMatrix,
     ChannelBalance,
+    Multiband,
+    Deesser,
+    Procedural,
 };
 
 class DspRackOrder final
 {
 public:
-    static constexpr std::size_t moduleCount = 8;
+    static constexpr std::size_t moduleCount = 11;
     using Snapshot = std::array<DspRackModuleId, moduleCount>;
 
     DspRackOrder();
+    ProceduralDspController procedural;
+    DspFilterRack filters;
+    // Fixed bounded profile, independently controlled from the personal EQ.
+    // DspChain is the sole realtime owner, including PCM-before-SDM routes.
+    EqProcessor headphoneCorrection { true };
 
     Snapshot snapshot() const noexcept;
-    bool setOrder(const std::vector<DspRackModuleId>& order, std::string& error) noexcept;
-    void resetToDefault() noexcept;
+    bool setOrder(const std::vector<DspRackModuleId>& order, std::string& error, bool publishFilters = true);
+    void resetToDefault();
 
     static Snapshot defaultOrder() noexcept;
     static const char* moduleIdText(DspRackModuleId module) noexcept;

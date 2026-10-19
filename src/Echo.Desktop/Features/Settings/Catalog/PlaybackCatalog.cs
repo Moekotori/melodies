@@ -30,7 +30,7 @@ public static partial class SettingsCatalog
             Toggle("full-frame-presentation", "整帧提交（闪屏排查）"), Toggle("album-wall-virtualization", "全局虚拟化", true),
             Toggle("native-direct-local-playback", "本地文件直读", true), Choices("scan-performance", "扫描性能", ["低占用", "均衡", "高性能", "极速"], "均衡")),
         InTab("性能与播放", "试验性功能", Toggle("miniaudio-output", "miniaudio WASAPI 输出实验"),
-            Action("mini-player", "ECHO 灵动岛", "显示", "重置位置"),
+            Action("mini-player", "melodies 灵动岛", "显示", "重置位置"),
             Toggle("ultra-light-disable-gpu", "超轻模式禁用 Electron GPU", help: "原版兼容设置；Avalonia 不使用 Electron。", badge: "危险选项")),
         InTab("兼容与保护", "窗口、可视化与图形保护", Toggle("signal-path-control", "显示音频链路"), Toggle("lyrics-mv-graphics-pressure-guard", "歌词图形内存保护", true),
             Toggle("audio-visual-spectrum", "实时频谱分析")),

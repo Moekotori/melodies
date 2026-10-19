@@ -16,13 +16,11 @@ internal sealed class LyricsPlayerVisibility(
     private Point? pointer;
     private bool disposed;
     public bool HasPendingChange => pending is not null;
-    private bool Protected => !model.IsPlaying || transport.HasProtectedInteraction || externalInteraction();
+    private bool Protected => transport.HasProtectedInteraction || externalInteraction();
     private bool CanCompact => model.Appearance.PlayerCompact;
     private Rect ExpandedBounds => new(0, 0, transport.Bounds.Width, transport.Bounds.Height);
-    private Rect CompactBounds => new((transport.Bounds.Width - Math.Min(340, transport.Bounds.Width)) / 2,
-        transport.Bounds.Height - 40, Math.Min(340, transport.Bounds.Width), 40);
     private bool NearControls => pointer is { } point &&
-        (transport.Display == LyricsPlayerDisplay.Expanded ? ExpandedBounds.Inflate(12) : CompactBounds.Inflate(22)).Contains(point);
+        ExpandedBounds.Inflate(transport.Display == LyricsPlayerDisplay.Expanded ? 18 : 8).Contains(point);
     private bool NearStageEdge => pointer is { } point && ExpandedBounds.Inflate(new Thickness(80, 96)).Contains(point);
 
     public void PointerMoved(Point point)
@@ -51,11 +49,11 @@ internal sealed class LyricsPlayerVisibility(
             return;
         }
         if (transport.Display == LyricsPlayerDisplay.Expanded)
-            Schedule(LyricsPlayerDisplay.Compact, TimeSpan.FromMilliseconds(120));
+            Schedule(LyricsPlayerDisplay.Compact, TimeSpan.FromMilliseconds(220));
         else if (NearStageEdge || !model.Appearance.PlayerAutoHide)
         { Cancel(); transport.Present(LyricsPlayerDisplay.Compact); }
         else if (transport.Display == LyricsPlayerDisplay.Compact)
-            Schedule(LyricsPlayerDisplay.Hidden, TimeSpan.FromMilliseconds(Math.Max(400,
+            Schedule(LyricsPlayerDisplay.Hidden, TimeSpan.FromMilliseconds(Math.Max(620,
                 motion.UseSpatialMotion ? motion.Duration(TimeSpan.FromMilliseconds(LyricsTransportView.CapsuleCollapseMilliseconds)).TotalMilliseconds + 80 : 0)));
         else Cancel();
     }

@@ -13,13 +13,18 @@ public partial class LibraryFilterView : UserControl
     public LibraryFilterView()
     {
         InitializeComponent();
-        AttachedToVisualTree += (_, _) => { Attach(); RefreshChoices(); if (observed is { DepthIndex: > 0 } or { SourceIndex: > 0 }) ShowAdvancedOptions(); };
+        AttachedToVisualTree += (_, _) => { Attach(); RefreshChoices(); if (observed is { DepthIndex: > 0 } or { SourceIndex: > 0 } or { FavoriteOnly: true } or { LosslessOnly: true }) ShowAdvancedOptions(); };
         DetachedFromVisualTree += (_, _) => Detach();
         DataContextChanged += (_, _) => { Detach(); Attach(); };
+    }
+    private void OnValueAttached(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        if (sender is TextBlock value) value.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("FilterReferenceText"));
     }
     private void Attach()
     {
         if (DataContext is not LibraryFilterViewModel model || ReferenceEquals(observed, model)) return;
+        model.FormatActive ??= count => string.Format(System.Globalization.CultureInfo.CurrentCulture, Label("query.activeFilters"), count);
         observed = model; model.PropertyChanged += OnInputChanged; RefreshChoices();
     }
     private void Detach()
@@ -52,7 +57,8 @@ public partial class LibraryFilterView : UserControl
         var selected = options.FirstOrDefault(item => !item.Browse && item.Value == value);
         if (selected is null) { selected = new(value, value); options = [.. options, selected]; }
         var wasOpen = combo.IsDropDownOpen;
-        combo.ItemsSource = options; combo.SelectedItem = selected;
+        if (combo is FilterChoiceBox searchable) searchable.SetChoices(options, selected);
+        else { combo.ItemsSource = options; combo.SelectedItem = selected; }
         if (wasOpen) combo.IsDropDownOpen = true;
     }
     private void OnYearSelected(object? sender, SelectionChangedEventArgs e)
@@ -84,7 +90,13 @@ public partial class LibraryFilterView : UserControl
             {
                 var page = await model.Genres!.GetGenresAsync(new(Limit: 128, Sort: Echo.Contracts.Library.GenreSort.Name, Descending: false), request.Token);
                 if (request.IsCancellationRequested || !ReferenceEquals(observed, model)) return;
-                genres = page.Items.Select(item => new FilterChoice(item.Name, item.Name)).ToArray(); genresLoaded = true;
+                genres = page.Items.Select(item => item.Name).Concat(
+                    page.Total > 128 ? (await model.Genres.GetGenresAsync(new(Offset: 128, Limit: 128, Sort: Echo.Contracts.Library.GenreSort.Name, Descending: false), request.Token)).Items.Select(item => item.Name) : [])
+                    .Where(name => !string.IsNullOrWhiteSpace(name)).Select(name => name.Normalize(System.Text.NormalizationForm.FormKC).Trim())
+                    .Distinct(StringComparer.CurrentCultureIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase)
+                    .Select(name => new FilterChoice(name, name)).ToArray();
+                if (request.IsCancellationRequested || !ReferenceEquals(observed, model)) return;
+                genresLoaded = true;
             }
             RefreshChoices();
         }

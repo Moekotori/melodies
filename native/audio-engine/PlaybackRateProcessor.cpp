@@ -14,8 +14,8 @@ constexpr int windowTableResolution = 4096;
 
 struct ResamplerLookupTables
 {
-    std::array<float, sincTableMaximum * sincTableResolution + 1> sinc {};
-    std::array<float, windowTableResolution + 1> hannHalfWindow {};
+    std::array<double, sincTableMaximum * sincTableResolution + 1> sinc {};
+    std::array<double, windowTableResolution + 1> hannHalfWindow {};
 
     ResamplerLookupTables()
     {
@@ -23,13 +23,13 @@ struct ResamplerLookupTables
         {
             const double value = static_cast<double>(index) / sincTableResolution;
             sinc[index] = value < 1.0e-12
-                ? 1.0f
-                : static_cast<float>(std::sin(resamplerPi * value) / (resamplerPi * value));
+                ? 1.0
+                : static_cast<double>(std::sin(resamplerPi * value) / (resamplerPi * value));
         }
         for (std::size_t index = 0; index < hannHalfWindow.size(); ++index)
         {
             const double value = static_cast<double>(index) / windowTableResolution;
-            hannHalfWindow[index] = static_cast<float>(
+            hannHalfWindow[index] = static_cast<double>(
                 0.5 * (1.0 + std::cos(resamplerPi * value)));
         }
     }
@@ -42,19 +42,19 @@ const ResamplerLookupTables& resamplerLookupTables()
 }
 
 template <std::size_t Size>
-float interpolateLookup(const std::array<float, Size>& table, double scaledIndex) noexcept
+double interpolateLookup(const std::array<double, Size>& table, double scaledIndex) noexcept
 {
     const double bounded = std::clamp(scaledIndex, 0.0, static_cast<double>(Size - 1));
     const auto index = static_cast<std::size_t>(bounded);
     const auto next = std::min(index + 1, Size - 1);
-    const float fraction = static_cast<float>(bounded - static_cast<double>(index));
+    const double fraction = static_cast<double>(bounded - static_cast<double>(index));
     return table[index] + (table[next] - table[index]) * fraction;
 }
 }
 
 namespace echo
 {
-float PlaybackRateProcessor::sanitize(float value)
+double PlaybackRateProcessor::sanitize(double value)
 {
     return std::isfinite(value) ? value : 0.0f;
 }
@@ -73,7 +73,7 @@ void PlaybackRateProcessor::prepare(double sampleRateIn, int maximumBlockSize, i
     channelCount = std::max(1, channelCountIn);
     history.assign(
         static_cast<std::size_t>(channelCount),
-        std::vector<float>(static_cast<std::size_t>(resamplerTaps), 0.0f));
+        std::vector<double>(static_cast<std::size_t>(resamplerTaps), 0.0f));
     // Force the immutable sinc/window tables to initialize on the control
     // thread. The render callback only performs bounded lookups.
     (void) resamplerLookupTables();
@@ -88,7 +88,8 @@ void PlaybackRateProcessor::reset()
         std::fill(channel.begin(), channel.end(), 0.0f);
 }
 
-void PlaybackRateProcessor::processBlock(echo::FloatAudioBuffer& buffer, int startSample, int numSamples)
+template <typename Sample>
+void PlaybackRateProcessor::processBlock(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples)
 {
     (void) buffer;
     (void) startSample;
@@ -118,7 +119,7 @@ PlaybackRateProcessor::Configuration PlaybackRateProcessor::unpackConfiguration(
 
 bool PlaybackRateProcessor::configure(float rate, SpeedMode mode, std::string* error)
 {
-    const float clamped = std::clamp(sanitize(rate), playbackRateMin, playbackRateMax);
+    const float clamped = std::clamp<double>(sanitize(rate), playbackRateMin, playbackRateMax);
     (void) error;
     packedConfiguration.store(packConfiguration(clamped, mode), std::memory_order_release);
     return true;
@@ -166,7 +167,7 @@ int PlaybackRateProcessor::sourceFramesRequired(
     return std::max(1, static_cast<int>(std::ceil(endPosition)));
 }
 
-float PlaybackRateProcessor::historySample(int channel, int sourceIndex) const noexcept
+double PlaybackRateProcessor::historySample(int channel, int sourceIndex) const noexcept
 {
     if (channel < 0 || channel >= static_cast<int>(history.size()) || sourceIndex >= 0)
         return 0.0f;
@@ -176,8 +177,9 @@ float PlaybackRateProcessor::historySample(int channel, int sourceIndex) const n
     return history[static_cast<std::size_t>(channel)][static_cast<std::size_t>(historyIndex)];
 }
 
+template <typename Sample>
 void PlaybackRateProcessor::retainHistory(
-    const echo::FloatAudioBuffer& source,
+    const echo::PlanarAudioBuffer<Sample>& source,
     int sourceStart,
     int sourceFrames) noexcept
 {
@@ -200,15 +202,16 @@ void PlaybackRateProcessor::retainHistory(
     historyFrames = retained;
 }
 
+template <typename Sample>
 int PlaybackRateProcessor::processResampledBlock(
-    const echo::FloatAudioBuffer& source,
+    const echo::PlanarAudioBuffer<Sample>& source,
     int sourceFrames,
-    echo::FloatAudioBuffer& output,
+    echo::PlanarAudioBuffer<Sample>& output,
     int outputStart,
     int outputFrames,
     const Configuration& configuration) noexcept
 {
-    if (sourceFrames <= 0 || outputFrames <= 0 || configuration.rate <= 0.0f)
+    if (sourceFrames <= 0 || outputFrames <= 0 || configuration.rate <= 0.0)
         return 0;
 
     const int sourceChannels = source.getNumChannels();
@@ -226,15 +229,15 @@ int PlaybackRateProcessor::processResampledBlock(
         if (base >= sourceFrames)
             break;
         const double fraction = position - static_cast<double>(base);
-        std::array<float, resamplerTaps> weights {};
+        std::array<double, resamplerTaps> weights {};
         double weightSum = 0.0;
         for (int tap = 0; tap < resamplerTaps; ++tap)
         {
             const double distance = fraction + static_cast<double>(tap);
-            const float sinc = cutoff * interpolateLookup(
+            const double sinc = cutoff * interpolateLookup(
                 lookup.sinc,
                 cutoff * distance * sincTableResolution);
-            const float window = interpolateLookup(
+            const double window = interpolateLookup(
                 lookup.hannHalfWindow,
                 distance * windowTableResolution / static_cast<double>(resamplerTaps));
             weights[static_cast<std::size_t>(tap)] = sinc * window;
@@ -247,7 +250,7 @@ int PlaybackRateProcessor::processResampledBlock(
             for (int tap = 0; tap < resamplerTaps; ++tap)
             {
                 const int sourceIndex = base - tap;
-                const float sample = sourceIndex >= 0
+                const double sample = sourceIndex >= 0
                     ? source.getSample(channel, sourceIndex)
                     : historySample(channel, sourceIndex);
                 weighted += static_cast<double>(sample)
@@ -257,8 +260,8 @@ int PlaybackRateProcessor::processResampledBlock(
                 channel,
                 outputStart + frame,
                 std::abs(weightSum) > 1.0e-12
-                    ? static_cast<float>(weighted / weightSum)
-                    : 0.0f);
+                    ? static_cast<double>(weighted / weightSum)
+                    : 0.0);
         }
         ++renderedFrames;
     }
@@ -269,8 +272,9 @@ int PlaybackRateProcessor::processResampledBlock(
     return renderedFrames;
 }
 
+template <typename Sample>
 void PlaybackRateProcessor::primeSourceHistory(
-    const echo::FloatAudioBuffer& source,
+    const echo::PlanarAudioBuffer<Sample>& source,
     int sourceStart,
     int sourceFrames) noexcept
 {
@@ -281,4 +285,13 @@ void PlaybackRateProcessor::primeSourceHistory(
     retainHistory(source, sourceStart, sourceFrames);
     sourcePhase = 0.0;
 }
+
+template void PlaybackRateProcessor::primeSourceHistory<float>(const echo::PlanarAudioBuffer<float>&, int, int) noexcept;
+template void PlaybackRateProcessor::primeSourceHistory<double>(const echo::PlanarAudioBuffer<double>&, int, int) noexcept;
+template int PlaybackRateProcessor::processResampledBlock<float>(const echo::PlanarAudioBuffer<float>&, int, echo::PlanarAudioBuffer<float>&, int, int, const Configuration&) noexcept;
+template int PlaybackRateProcessor::processResampledBlock<double>(const echo::PlanarAudioBuffer<double>&, int, echo::PlanarAudioBuffer<double>&, int, int, const Configuration&) noexcept;
+template void PlaybackRateProcessor::retainHistory<float>(const echo::PlanarAudioBuffer<float>&, int, int) noexcept;
+template void PlaybackRateProcessor::retainHistory<double>(const echo::PlanarAudioBuffer<double>&, int, int) noexcept;
+template void PlaybackRateProcessor::processBlock<float>(echo::PlanarAudioBuffer<float>&, int, int);
+template void PlaybackRateProcessor::processBlock<double>(echo::PlanarAudioBuffer<double>&, int, int);
 } // namespace echo

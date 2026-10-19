@@ -11,7 +11,7 @@ namespace Echo.Desktop.Features.Artists;
 public sealed class ArtistWallViewport : UserControl, IDisposable
 {
     private readonly ScrollViewer _scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-    private readonly Canvas _canvas = new();
+    private readonly Canvas _canvas = new() { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
     private readonly Dictionary<int, ArtistCard> _cards = [];
     private readonly Stack<ArtistCard> _pool = new(24);
     private readonly ArtistsViewModel _model;

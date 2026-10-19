@@ -223,6 +223,7 @@ void testDisabledSpectrumSkipsGoertzel()
     require(meter.getSpectrumComputationCountForTests() == 0,
         "disabled visual spectrum must not run Goertzel");
     require(! gate.copy().visualSpectrumReady, "disabled visual spectrum must not report ready");
+    require(gate.copy().visualWaveform.empty(), "disabled visuals must not expose a waveform");
 }
 
 void testSpectrumReadyOnlyAfterFullWindow()
@@ -247,6 +248,12 @@ void testSpectrumReadyOnlyAfterFullWindow()
         "native spectrum must provide 128 real frequency probes");
     require(*std::max_element(snapshot.visualSpectrum.begin(), snapshot.visualSpectrum.end()) > 0.1f,
         "primed spectrum must react to audible energy");
+    require(snapshot.visualWaveform.size() == echo::levelMeterVisualWaveformSampleCount,
+        "waveform must be a bounded time-domain snapshot");
+    require(snapshot.visualWaveformSampleRate == 48000.0, "waveform must report its effective sample rate");
+    for (size_t sample = 0; sample < snapshot.visualWaveform.size(); ++sample)
+        require(std::abs(snapshot.visualWaveform[sample] - buffer.getSample(0, static_cast<int>(sample % 64))) < 0.00001f,
+            "waveform must preserve signed chronological samples from the native analysis window");
 }
 
 void testDenseSpectrumLocatesRealFrequency()

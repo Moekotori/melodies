@@ -1,7 +1,7 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
   <Styles.Resources>
     <ControlTheme x:Key="LyricsRailButton" TargetType="RepeatButton">
-      <Setter Property="Template"><ControlTemplate><Grid Background="Transparent"><Border Background="{TemplateBinding Background}" Height="6" CornerRadius="3" VerticalAlignment="Center" /></Grid></ControlTemplate></Setter>
+      <Setter Property="Template"><ControlTemplate><Grid Background="Transparent"><Border Background="{TemplateBinding Background}" Height="3" CornerRadius="1.5" VerticalAlignment="Center" /></Grid></ControlTemplate></Setter>
     </ControlTheme>
     <ControlTheme x:Key="LyricsRailThumb" TargetType="Thumb">
       <Setter Property="Template"><ControlTemplate><Border Background="{DynamicResource LyricsProgress}" CornerRadius="5" /></ControlTemplate></Setter>
@@ -12,19 +12,20 @@
         <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}" Orientation="Horizontal">
           <Track.DecreaseButton><RepeatButton Name="PART_DecreaseButton" Theme="{StaticResource LyricsRailButton}" Background="{DynamicResource LyricsProgress}" Focusable="False" /></Track.DecreaseButton>
           <Track.IncreaseButton><RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource LyricsRailButton}" Background="{DynamicResource LyricsRail}" Focusable="False" /></Track.IncreaseButton>
-          <Thumb Name="thumb" Width="0" Height="10" Opacity="0" Theme="{StaticResource LyricsRailThumb}" />
+          <Thumb Name="thumb" Width="10" Height="10" Opacity="0" Theme="{StaticResource LyricsRailThumb}" />
         </Track>
       </Border></ControlTemplate></Setter>
       <Style Selector="^:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource LyricsInk}" /><Setter Property="BorderThickness" Value="1" /></Style>
-      <Style Selector="^:pointerover /template/ Thumb"><Setter Property="Opacity" Value="1" /><Setter Property="Width" Value="10" /></Style>
-      <Style Selector="^:focus-visible /template/ Thumb"><Setter Property="Opacity" Value="1" /><Setter Property="Width" Value="10" /></Style>
+      <Style Selector="^:pointerover /template/ Thumb"><Setter Property="Opacity" Value="1" /></Style>
+      <Style Selector="^:focus-visible /template/ Thumb"><Setter Property="Opacity" Value="1" /></Style>
     </ControlTheme>
   </Styles.Resources>
   <Style Selector="TextBlock"><Setter Property="Foreground" Value="{DynamicResource LyricsInk}" /></Style>
-  <Style Selector="TextBlock.lyric-time"><Setter Property="FontFamily" Value="Segoe UI" /><Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
+  <Style Selector="TextBlock.lyric-time"><Setter Property="FontFamily" Value="Inter, Segoe UI" /><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
   <Style Selector="TextBlock.idle-time"><Setter Property="FontSize" Value="11" /></Style>
   <Style Selector="Slider.lyric-rail"><Setter Property="Theme" Value="{StaticResource LyricsRailTheme}" /></Style>
-  <Style Selector="Button.lyric-control"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Width" Value="44" /><Setter Property="Height" Value="44" /><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Foreground" Value="{DynamicResource LyricsControlInk}" /></Style>
+  <Style Selector="Button.lyric-control"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Width" Value="32" /><Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /><Setter Property="CornerRadius" Value="16" /><Setter Property="Foreground" Value="{DynamicResource LyricsControlInk}" /></Style>
+  <Style Selector="Button.lyric-play"><Setter Property="Background" Value="#12FFFFFF" /><Setter Property="CornerRadius" Value="16" /></Style>
   <Style Selector="Button.lyric-control:pointerover /template/ Border#PART_ButtonBorder"><Setter Property="Background" Value="{DynamicResource LyricsHover}" /></Style>
   <Style Selector="Button.lyric-control:focus-visible /template/ Border#PART_ButtonBorder"><Setter Property="BorderBrush" Value="{DynamicResource LyricsInk}" /><Setter Property="BorderThickness" Value="1" /></Style>
   <Style Selector="Button.lyric-control:disabled"><Setter Property="Opacity" Value="0.4" /></Style>

@@ -44,7 +44,7 @@ internal static class FilterReferenceCapture
         {
             window.Show(); Pump(); Capture("filter-reference-light.png");
             var condition = panel.FindControl<ComboBox>("ConditionChoice")!;
-            condition.SelectedIndex = 3; Pump(); Check(model.FavoriteOnly && model.LosslessOnly, "combined conditions");
+            condition.SelectedIndex = 1; Pump(); Check(model.DuplicatesOnly && model.Snapshot().DuplicatesOnly, "duplicate condition");
             condition.SelectedIndex = 0; Pump(); Check(!model.HasActive, "clear conditions");
             var year = panel.FindControl<ComboBox>("YearChoice")!;
             year.SelectedItem = year.ItemsSource!.Cast<FilterChoice>().First(choice => choice.Value == "2026");

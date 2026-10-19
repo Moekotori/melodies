@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:pl="using:Echo.Desktop.Features.Playlists" xmlns:folders="using:Echo.Desktop.Features.Folders" xmlns:icon="using:Echo.Desktop.Controls"
+             xmlns:pl="using:Echo.Desktop.Features.Playlists" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Playlists.PlaylistTrackList" x:DataType="pl:PlaylistsViewModel">
   <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="/Features/Playlists/PlaylistStyles.axaml" />
@@ -9,37 +9,37 @@
     <Style Selector="Button.liked icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
   </UserControl.Styles>
   <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
-    <folders:FolderColumnsGrid Name="HeaderColumns" Margin="8,0,8,0" HorizontalAlignment="Left">
+    <pl:PlaylistColumnsGrid Name="HeaderColumns" Margin="8,0,50,0" HorizontalAlignment="Left">
       <TextBlock Text="#" Classes="muted" FontSize="11" />
       <TextBlock Grid.Column="1" Text="{DynamicResource playlists.track}" Classes="muted" FontSize="11" />
-      <TextBlock Grid.Column="2" Text="{DynamicResource playlists.album}" Classes="muted wide" FontSize="11" />
-      <TextBlock Grid.Column="3" Text="{DynamicResource playlists.quality}" Classes="muted wide" FontSize="11" />
+      <TextBlock Grid.Column="2" Text="{DynamicResource playlists.album}" Classes="muted album-column" FontSize="11" />
+      <TextBlock Grid.Column="3" Text="{DynamicResource playlists.quality}" Classes="muted quality-column" FontSize="11" />
       <TextBlock Grid.Column="4" Text="{DynamicResource playlists.duration}" Classes="muted" FontSize="11" HorizontalAlignment="Right" />
-    </folders:FolderColumnsGrid>
+    </pl:PlaylistColumnsGrid>
     <ListBox Name="TrackList" Grid.Row="1" ItemsSource="{Binding Tracks}" Background="Transparent" Padding="0" BorderThickness="0"
              ItemContainerTheme="{StaticResource PlaylistListItem}" SelectionMode="Multiple" SelectionChanged="OnSelection" DoubleTapped="OnDoubleTap" KeyDown="OnKey"
              IsEnabled="{Binding CanAct}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
       <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="pl:PlaylistTrackItem">
-          <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="8,9" Classes.playing="{Binding IsPlaying}">
+          <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0" Padding="8,10,50,10" Classes.playing="{Binding IsPlaying}">
             <Border.ContextMenu><ContextMenu>
               <MenuItem Header="{DynamicResource playlists.play}" Click="OnMenuPlay" />
               <MenuItem Header="{DynamicResource playlists.nextUp}" Click="OnMenuNext" />
               <MenuItem Header="{DynamicResource playlists.append}" Click="OnMenuAppend" />
             </ContextMenu></Border.ContextMenu>
-            <folders:FolderColumnsGrid>
+            <pl:PlaylistColumnsGrid>
               <TextBlock Text="{Binding Number}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
               <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Row.Title}" Classes="track-title heading" FontSize="13" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Row.Title}" Classes="track-title heading" FontSize="13" FontWeight="Normal" TextTrimming="CharacterEllipsis" />
                 <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="11.5" TextTrimming="CharacterEllipsis" />
               </StackPanel>
-              <TextBlock Grid.Column="2" Text="{Binding Row.Album}" Classes="muted wide" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              <TextBlock Grid.Column="3" Text="{Binding Signal}" Classes="muted wide" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="2" Text="{Binding Row.Album}" Classes="muted album-column" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="3" Text="{Binding Signal}" Classes="muted quality-column" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
               <TextBlock Grid.Column="4" Text="{Binding Duration}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
               <Button Grid.Column="5" Classes="icon" Classes.liked="{Binding Favorite}" Command="{Binding FavoriteCommand}" Click="OnFavorite"
                       ToolTip.Tip="{DynamicResource playlists.favorite}" AutomationProperties.Name="{DynamicResource playlists.favorite}"><icon:GlyphIcon Kind="{Binding HeartIcon}" Width="16" Height="16" /></Button>
-            </folders:FolderColumnsGrid>
+            </pl:PlaylistColumnsGrid>
           </Border>
         </DataTemplate>
       </ListBox.ItemTemplate>

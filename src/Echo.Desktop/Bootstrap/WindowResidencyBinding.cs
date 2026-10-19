@@ -79,7 +79,7 @@ internal sealed class WindowResidencyBinding : IDisposable
         if (global::Avalonia.Application.Current is not { } application) return false;
         _icons = TrayIcon.GetIcons(application);
         if (_icons is null) { _icons = new TrayIcons(); TrayIcon.SetIcons(application, _icons); }
-        _tray = new TrayIcon { Icon = _window.Icon, ToolTipText = "ECHO", IsVisible = true };
+        _tray = new TrayIcon { Icon = _window.Icon, ToolTipText = "melodies", IsVisible = true };
         UpdateMenu();
         _tray.Clicked += Restore;
         _icons.Add(_tray); // Avalonia 12 attaches the native implementation only through Application.Icons.
@@ -100,7 +100,7 @@ internal sealed class WindowResidencyBinding : IDisposable
         Add("ultralight.previous", () => _shell.Player?.PreviousCommand.Execute(null));
         Add("ultralight.next", () => _shell.Player?.NextCommand.Execute(null));
         menu.Items.Add(new NativeMenuItemSeparator());
-        _ultralight = new NativeMenuItem("ECHO Ultralight") { ToggleType = MenuItemToggleType.CheckBox, IsChecked = _shell.UltraLightEnabled };
+        _ultralight = new NativeMenuItem("melodies Ultralight") { ToggleType = MenuItemToggleType.CheckBox, IsChecked = _shell.UltraLightEnabled };
         _ultralight.Click += (_, _) => _shell.UltraLightEnabled = !_shell.UltraLightEnabled;
         menu.Items.Add(_ultralight);
         Add("ultralight.hide", () => { if (!TryHideToTray(false)) _shell.Settings.Feedback = _shell.Text["ultralight.trayUnavailable"]; });

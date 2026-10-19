@@ -11,7 +11,7 @@ public sealed record AlbumQuery(int Offset = 0, int Limit = 200, string? Search 
 public sealed record AlbumPage(IReadOnlyList<AlbumRow> Items, int Total, long Revision);
 public enum DetailTrackSort { Order, Title, Duration, Quality }
 public sealed record AlbumTrackQuery(string AlbumId, int Offset = 0, int Limit = 200, long? Revision = null,
-    DetailTrackSort Sort = DetailTrackSort.Order, bool Descending = false);
+    DetailTrackSort Sort = DetailTrackSort.Order, bool Descending = false, bool FavoriteOnly = false);
 
 // This is a read boundary, separate from the scan/write owner.
 public interface IAlbumLibrary

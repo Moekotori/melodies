@@ -1,4 +1,5 @@
 #include "NativeFormatProcessor.h"
+#include "../sdm-analysis-lab/SdmSpectrumAnalysis.h"
 
 #include <algorithm>
 #include <bit>
@@ -1080,6 +1081,7 @@ struct StressMeasurement
     std::string extraLoop;
     double peakFeedbackState = 0.0;
     std::uint64_t stabilityRecoveries = 0;
+    echo::SdmClampCounts clampCounts;
 };
 
 // Mirrors the full-scale suite in audio_engine_tests: full-scale +/- steps,
@@ -1087,10 +1089,10 @@ struct StressMeasurement
 StressMeasurement measureFullScaleStress(
     const RateSpec& rate,
     const ProfileSpec& profile,
-    echo::SdmDecisionMode decisionMode)
+    echo::SdmDecisionMode decisionMode,
+    std::uint32_t randomState = 0x12345678u)
 {
     const int frames = rate.transportSampleRate / 8;
-    std::uint32_t randomState = 0x12345678u;
     std::vector<float> stress(static_cast<std::size_t>(frames));
     for (int frame = 0; frame < frames; ++frame)
     {
@@ -1126,6 +1128,7 @@ StressMeasurement measureFullScaleStress(
     result.extraLoop = decisionModeName(decisionMode);
     result.peakFeedbackState = processor.peakFeedbackState();
     result.stabilityRecoveries = processor.stabilityRecoveryCount();
+    result.clampCounts = processor.clampCounts();
     return result;
 }
 
@@ -1136,7 +1139,10 @@ void writeStressMeasurement(const StressMeasurement& measurement, bool last)
               << ", \"profile\": \"" << measurement.profile << "\""
               << ", \"extraLoop\": \"" << measurement.extraLoop << "\""
               << ", \"peakFeedbackState\": " << measurement.peakFeedbackState
-              << ", \"stabilityRecoveries\": " << measurement.stabilityRecoveries << " }"
+              << ", \"stabilityRecoveries\": " << measurement.stabilityRecoveries
+              << ", \"inputClampCount\": " << measurement.clampCounts.input
+              << ", \"loopInputClampCount\": " << measurement.clampCounts.loopInput
+              << ", \"quantizationErrorClampCount\": " << measurement.clampCounts.quantizationError << " }"
               << (last ? "\n" : ",\n");
 }
 
@@ -1344,6 +1350,7 @@ void writePreModulatorResponseMeasurement(
               << "      \"postRingingEnergyRatio\": " << measurement.postRingingEnergyRatio << "\n"
               << "    }" << (last ? "\n" : ",\n");
 }
+#include "SdmP0Audit.inc"
 } // namespace
 
 int main(int argc, char** argv)
@@ -1359,6 +1366,8 @@ int main(int argc, char** argv)
             return runHorizonWeightSweep();
         if (std::string(argv[argument]) == "--ec-sweep")
             return runEcSweep();
+        if (std::string(argv[argument]) == "--p0-audit")
+            return runSdmP0Audit();
     }
     const std::vector<RateSpec> rates {
         { "DSD64", 176'400 },
@@ -1574,7 +1583,7 @@ int main(int argc, char** argv)
 
     std::cout << std::fixed << std::setprecision(6)
               << "{\n"
-              << "  \"schemaVersion\": 12,\n"
+              << "  \"schemaVersion\": 13,\n"
               << "  \"generator\": \"echo-sdm-quality-lab\",\n"
               << "  \"analysisBandHz\": 20000,\n"
               << "  \"stimulus\": { \"type\": \"sine\", \"frequencyHz\": 1000, \"amplitude\": 0.1, \"durationSeconds\": 0.125 },\n"

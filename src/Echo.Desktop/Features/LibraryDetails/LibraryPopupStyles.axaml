@@ -62,13 +62,19 @@
     </ControlTheme>
   </Styles.Resources>
   <Style Selector="FlyoutPresenter.libraryPopup"><Setter Property="Theme" Value="{StaticResource LibraryPopupPresenter}" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="8" /></Style>
+  <!-- Match the Electron library toolbar: neutral text actions, no nested button boxes. -->
   <Style Selector="Button.libraryTool, Button.songTool">
-    <Setter Property="Height" Value="36" /><Setter Property="MinHeight" Value="36" /><Setter Property="Padding" Value="10,0" />
-    <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="7" /><Setter Property="FontSize" Value="13" />
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="32" /><Setter Property="Padding" Value="8,0" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="CornerRadius" Value="3" /><Setter Property="FontSize" Value="13" />
   </Style>
-  <Style Selector="Button.libraryTool icon|GlyphIcon, Button.songTool icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccent}" /></Style>
-  <Style Selector="Button.libraryTool TextBlock, Button.songTool TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="Button.libraryTool icon|GlyphIcon, Button.songTool icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.libraryTool TextBlock, Button.songTool TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+  <Style Selector="Button.libraryTool:pointerover, Button.songTool:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Button.libraryTool.active TextBlock, Button.songTool.active TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="Button.libraryTool.active icon|GlyphIcon, Button.songTool.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
   <Style Selector="Button.libraryOption">
     <Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="Height" Value="34" /><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="10,0" />

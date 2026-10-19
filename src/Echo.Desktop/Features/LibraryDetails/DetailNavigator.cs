@@ -37,7 +37,7 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
     {
         if (target is AlbumRow album)
         {
-            var view = new AlbumDetailView(album, shell.AlbumLibrary!, shell.AlbumArtwork!, shell.Player, shell.DetailResources, shell.Text);
+            var view = new AlbumDetailView(album, shell.AlbumLibrary!, shell.AlbumArtwork!, shell.Player, shell.DetailResources, shell.Text, shell.AlbumInformation);
             view.Back += GoBack; view.ArtistRequested += name => _ = ResolveArtistAsync(name);
             view.GenreRequested += name => _ = ResolveGenreAsync(name);
             view.AlbumRequested += OpenAlbum;

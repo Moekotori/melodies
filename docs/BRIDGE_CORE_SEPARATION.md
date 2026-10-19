@@ -116,3 +116,5 @@ Bridge 角色只能访问列出的播放控制和分页只读能力，不能读�
 
 
 2026-10-19 深入输出端：新增 `Echo.Output.Contracts`、`Echo.Output.Client`、`Echo.Output.Host`。Core 组合入口可显式选择远端 `INativeAudio`，原生处理与设备留在 Output 机器；控制/媒体角色分别配对。机器本地绑定在自动 Core 启动时恢复，退出/崩溃释放原生租约。详细边界、预算、部署和未验收项见 [NETWORK_OUTPUT.md](NETWORK_OUTPUT.md)。
+
+2026-10-19 合并 main 集成：保留 main 的专辑资料模块、原生宿主身份/能力校验、资源和 SDM 遥测，以及带期限的 DSP 尾部处理。专辑资料兼容管道由默认 Core owner 内托管，与业务监听共享关闭和空闲判定；其他 profile 不抢占用户级资料管道。轻量性能记录和 DSP 草稿模板移至契约项目，Control 无需重新引用 Playback 实现。Release 解决方案及 macOS 原生宿主编译、IPC/远程 Control/网络 Output 聚焦检查、原生 PCM 管道检查通过；未做真实设备、双机或 AOT 发布验收。

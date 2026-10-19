@@ -49,7 +49,7 @@ internal static class SignalPathSections
         var idle = new List<SignalPathChip>();
         void Add(string label, string value, bool engagedChip, bool emphasis) => (engagedChip ? engaged : idle).Add(new(label, value, emphasis));
         Add(readout.Text("chipVolume"), $"{readout.Volume:P0}", true, readout.Attenuated);
-        Add(readout.Text("chipResampler"), readout.EchoSrc ? "ECHO SRC" : readout.Resampled ? readout.Text("on") : readout.Text("off"), readout.Resampled, readout.Resampled);
+        Add(readout.Text("chipResampler"), readout.EchoSrc ? "melodies SRC" : readout.Resampled ? readout.Text("on") : readout.Text("off"), readout.Resampled, readout.Resampled);
         if (readout.DitherKnown) Add(readout.Text("dither"), readout.DitherActive ? readout.DitherMode ?? readout.Text("on") : readout.Text("off"), readout.DitherActive, readout.DitherActive);
         if (readout.LimiterKnown)
         {

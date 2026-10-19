@@ -116,7 +116,7 @@ public sealed class FloatingLyricsControl : Control, IDisposable
         if (shown.Count == 0)
         {
             primary = lyrics!.IsLoading ? lyrics.MessageDisplay : DesktopLyricsLayout.PlayInfo(lyrics.Title, lyrics.Artist);
-            if (primary.Length == 0) primary = "ECHO";
+            if (primary.Length == 0) primary = "melodies";
             return;
         }
         var synced = lyrics!.Document.IsSynced;
@@ -129,7 +129,7 @@ public sealed class FloatingLyricsControl : Control, IDisposable
         var upper = pair.Upper >= 0 && pair.Upper < shown.Count ? shown[pair.Upper] : null;
         primary = upper?.Text ?? "";
         if (primary.Length == 0) primary = DesktopLyricsLayout.PlayInfo(lyrics.Title, lyrics.Artist);
-        if (primary.Length == 0) primary = "ECHO";
+        if (primary.Length == 0) primary = "melodies";
         var upperNext = pair.Upper >= 0 && pair.Upper + 1 < shown.Count ? shown[pair.Upper + 1] : null;
         primaryProgress = index < 0 ? 0 : DesktopLyricsLayout.Fill(upper, upperNext, position, duration, settings.Interpolated);
         if (secondaryTrack)

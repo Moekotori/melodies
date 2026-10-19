@@ -79,6 +79,10 @@ public:
     int factor() const noexcept { return active() ? sdmUltimatePreModulatorFactor : 1; }
     int delayBits() const noexcept { return delayBits_; }
     SdmPreModulatorProfile profile() const noexcept { return profile_; }
+    int tailTransportFrames() const noexcept
+    {
+        return active() ? (sdmUltimatePreModulatorTapCount - 1) / sdmUltimatePreModulatorFactor : 0;
+    }
     const std::vector<double>& taps() const noexcept { return taps_; }
 
     void processSample(int channel, double input, double* output);

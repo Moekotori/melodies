@@ -87,7 +87,7 @@ public sealed partial class ThemeViewModel
         if (System.Text.Encoding.UTF8.GetByteCount(json) > 65536) throw new InvalidDataException("主题文件最大 64 KiB");
         using var document = JsonDocument.Parse(json, new() { MaxDepth = 16 });
         var root = document.RootElement;
-        if (!root.TryGetProperty("schema", out var schema)) throw new InvalidDataException("这不是 ECHO 主题文件");
+        if (!root.TryGetProperty("schema", out var schema)) throw new InvalidDataException("这不是 melodies 主题文件");
         var format = schema.GetString(); JsonElement toneRoot; string preset; string name;
         if (format == "echo.custom-theme" && root.GetProperty("version").GetInt32() == 2)
         {
@@ -97,7 +97,7 @@ public sealed partial class ThemeViewModel
         }
         else if (format == "echo.theme-preset" && root.GetProperty("version").GetInt32() == 1)
         { preset = root.GetProperty("preset").GetString() ?? "classic"; toneRoot = root.GetProperty("overrides").GetProperty(preset); name = "导入的主题"; }
-        else throw new InvalidDataException("不支持的 ECHO 主题版本");
+        else throw new InvalidDataException("不支持的 melodies 主题版本");
         if (!Presets.Any(p => p.Id == preset)) throw new InvalidDataException("此主题的基础预设尚未迁入");
         if (Library.Count >= 16) throw new InvalidDataException("最多保存 16 个主题，请先删除一个");
         var fallback = ThemeCatalog.Find(preset);

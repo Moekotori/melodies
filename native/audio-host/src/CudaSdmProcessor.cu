@@ -84,12 +84,13 @@ struct DeviceSdmState
     uint32_t ditherState[maximumSdmChannels] {};
     uint32_t idleRunFrames[maximumSdmChannels] {};
     uint8_t idleLocked[maximumSdmChannels] {};
-    float previousSamples[maximumSdmChannels] {};
+    double previousSamples[maximumSdmChannels] {};
     double adaptiveEnvelope[maximumSdmChannels] {};
     double ecCorrelatedError[maximumSdmChannels] {};
     double preModulatorHistory[maximumSdmChannels * echo::sdmPreModulatorMaxStages * echo::sdmPreModulatorHistoryLength] {};
     double channelPeakFeedback[maximumSdmChannels] {};
     uint64_t channelStabilityRecoveries[maximumSdmChannels] {};
+    echo::SdmClampCounts channelClampCounts[maximumSdmChannels] {};
     uint64_t dopFrameIndex = 0;
     uint64_t targetGainRevision = 0;
 };
@@ -98,6 +99,7 @@ struct DeviceSdmTelemetry
 {
     double channelPeakFeedback[maximumSdmChannels] {};
     uint64_t channelStabilityRecoveries[maximumSdmChannels] {};
+    echo::SdmClampCounts channelClampCounts[maximumSdmChannels] {};
 };
 
 __device__ double clampDevice(double value, double minimum, double maximum)
@@ -207,8 +209,8 @@ __global__ void processSdmKernel(
         lane == 0 ? committedState->idleRunFrames[channel] : 0u;
     uint8_t idleLocked =
         lane == 0 && committedState->idleLocked[channel] != 0 ? 1 : 0;
-    float previousSample =
-        lane == 0 ? committedState->previousSamples[channel] : 0.0f;
+    double previousSample =
+        lane == 0 ? committedState->previousSamples[channel] : 0.0;
     double adaptiveEnvelope =
         lane == 0 ? committedState->adaptiveEnvelope[channel] : 0.0;
     double ecCorrelatedError =
@@ -225,6 +227,8 @@ __global__ void processSdmKernel(
         lane == 0 ? committedState->channelPeakFeedback[channel] : 0.0;
     uint64_t channelStabilityRecoveries =
         lane == 0 ? committedState->channelStabilityRecoveries[channel] : 0u;
+    echo::SdmClampCounts channelClampCounts = lane == 0
+        ? committedState->channelClampCounts[channel] : echo::SdmClampCounts {};
     double currentUserGain =
         lane == 0 ? committedState->currentUserGain : 1.0;
     double targetUserGain = committedState->targetUserGain;
@@ -266,14 +270,14 @@ __global__ void processSdmKernel(
                     : 1.0;
             const double protectedGain =
                 config.profileHeadroomGain * currentUserGain * transitionGain;
-            const float protectedSample = static_cast<float>(
-                static_cast<double>(
-                    input[frame * config.channels + channel])
-                * protectedGain);
+            const double protectedSample = __dmul_rn(
+                static_cast<double>(input[frame * config.channels + channel]), protectedGain);
+            const double finiteSample = isfinite(protectedSample) ? protectedSample : 0.0;
             sample = clampDevice(
-                static_cast<double>(protectedSample),
+                finiteSample,
                 -config.inputLimit,
                 config.inputLimit);
+            echo::recordSdmClamp(finiteSample, sample, channelClampCounts.input);
             previous = clampDevice(
                 static_cast<double>(previousSample),
                 -config.inputLimit,
@@ -282,7 +286,7 @@ __global__ void processSdmKernel(
             const double magnitude = fabs(sample);
             if (idleLocked != 0)
             {
-                if (magnitude < config.idleUnlockThreshold)
+                if (magnitude <= config.idleUnlockThreshold)
                 {
                     emitIdleSilence = 1;
                 }
@@ -352,6 +356,8 @@ __global__ void processSdmKernel(
             for (int carrier = 0; carrier < factor; ++carrier)
             {
                 const double current = clampDevice(carriers[carrier], -config.inputLimit, config.inputLimit);
+                if (lane == 0)
+                    echo::recordSdmClamp(carriers[carrier], current, channelClampCounts.input);
                 if (lane == 0)
                     previous = clampDevice(static_cast<double>(previousSample), -config.inputLimit, config.inputLimit);
                 previous = __shfl_sync(warpMask, previous, 0);
@@ -552,10 +558,12 @@ __global__ void processSdmKernel(
                         // clamped loop input excludes dither; dither only
                         // perturbs the selection, and the fed-back error is
                         // loopInput - y so the dither is NTF-shaped.
+                        const double unboundedLoopInput = __dadd_rn(bitSample, injectedFeedback);
                         const double loopInput = clampDevice(
-                            __dadd_rn(bitSample, injectedFeedback),
+                            unboundedLoopInput,
                             -config.stabilityLimit,
                             config.stabilityLimit);
+                        echo::recordSdmClamp(unboundedLoopInput, loopInput, channelClampCounts.loopInput);
                         const double decision = __dadd_rn(loopInput, dither);
                         if (config.decisionMode == static_cast<int>(echo::SdmDecisionMode::Horizon))
                         {
@@ -649,10 +657,12 @@ __global__ void processSdmKernel(
                                 ? (decision + 0.5 * ecBias >= 0.0 ? 1 : 0)
                                 : (decision >= 0.0 ? 1 : 0);
                         }
+                        const double unboundedQuantizationError = __dsub_rn(loopInput, one != 0 ? 1.0 : -1.0);
                         quantizationError = clampDevice(
-                            __dsub_rn(loopInput, one != 0 ? 1.0 : -1.0),
+                            unboundedQuantizationError,
                             -config.stabilityLimit,
                             config.stabilityLimit);
+                        echo::recordSdmClamp(unboundedQuantizationError, quantizationError, channelClampCounts.quantizationError);
                         if (ecEngaged)
                         {
                             ecCorrelatedError = __dadd_rn(
@@ -713,7 +723,7 @@ __global__ void processSdmKernel(
                     ++bitIndex;
                 }
                 if (lane == 0)
-                    previousSample = static_cast<float>(current);
+                    previousSample = current;
             }
         }
 
@@ -760,6 +770,8 @@ __global__ void processSdmKernel(
         pendingState->channelPeakFeedback[channel] = channelPeakFeedback;
         pendingState->channelStabilityRecoveries[channel] =
             channelStabilityRecoveries;
+        pendingState->channelClampCounts[channel] = channelClampCounts;
+        telemetry->channelClampCounts[channel] = channelClampCounts;
         telemetry->channelPeakFeedback[channel] = channelPeakFeedback;
         telemetry->channelStabilityRecoveries[channel] =
             channelStabilityRecoveries;
@@ -823,8 +835,9 @@ public:
         // or allocated.
         if (touchedRuntime())
         {
-            if (deviceIndex >= 0)
-                cudaSetDevice(deviceIndex);
+            std::string cleanupError;
+            if (!runtimeLease.activate("native_cuda_sdm_", cleanupError))
+                std::cerr << "[echo-audio-host] CUDA SDM cleanup: " << cleanupError << std::endl;
             if (stream != nullptr)
                 cudaStreamSynchronize(stream);
             cudaFree(deviceInput);
@@ -836,8 +849,8 @@ public:
             cudaFreeHost(hostState);
             if (stream != nullptr)
                 cudaStreamDestroy(stream);
-            CudaDeviceSelector::releaseRuntime();
         }
+        runtimeLease.reset();
         deviceInput = nullptr;
         deviceOutput = nullptr;
         deviceState[0] = nullptr;
@@ -864,10 +877,10 @@ public:
         if (!CudaDeviceSelector::select(
                 "native_cuda_sdm_",
                 selection,
+                runtimeLease,
                 error,
                 CudaDeviceWorkload::DoublePrecision))
             return false;
-        CudaDeviceSelector::retainRuntime();
         deviceIndex = selection.index;
         selectedDeviceName = std::move(selection.name);
         return true;
@@ -961,6 +974,7 @@ public:
         }
         target.channelStabilityRecoveries[0] =
             source.stabilityRecoveryCount;
+        target.channelClampCounts[0] = source.clampCounts;
         target.dopFrameIndex = source.dopFrameIndex;
         error.clear();
         return true;
@@ -1038,6 +1052,8 @@ public:
                 static_cast<double>(source.channelPeakFeedback[channel]));
             target.stabilityRecoveryCount +=
                 source.channelStabilityRecoveries[channel];
+            target.clampCounts = echo::addSdmClampCounts(
+                target.clampCounts, source.channelClampCounts[channel]);
         }
         target.dopFrameIndex = source.dopFrameIndex;
         return true;
@@ -1068,8 +1084,7 @@ public:
             error = "native_cuda_sdm_block_too_large";
             return false;
         }
-        if (!CudaDeviceSelector::activate(
-                deviceIndex,
+        if (!runtimeLease.activate(
                 "native_cuda_sdm_",
                 error))
             return false;
@@ -1123,6 +1138,7 @@ public:
 
     DeviceSdmConfig config {};
     int deviceIndex = -1;
+    CudaDeviceSelector::RuntimeLease runtimeLease;
     cudaStream_t stream = nullptr;
     float* deviceInput = nullptr;
     uint8_t* deviceOutput = nullptr;
@@ -1149,17 +1165,16 @@ CudaSdmProcessor& CudaSdmProcessor::operator=(CudaSdmProcessor&&) noexcept = def
 void CudaSdmProcessor::release()
 {
     impl_->release();
-    // Also drops a context left behind by supportsRealtimeDoublePrecision()
-    // when the admission probe decided against CUDA.
-    CudaDeviceSelector::resetIfIdle();
 }
 
 bool CudaSdmProcessor::supportsRealtimeDoublePrecision(std::string& error)
 {
     CudaDeviceSelection selection;
+    CudaDeviceSelector::RuntimeLease runtimeLease;
     if (!CudaDeviceSelector::select(
             "native_cuda_sdm_",
             selection,
+            runtimeLease,
             error,
             CudaDeviceWorkload::DoublePrecision))
         return false;
@@ -1179,6 +1194,18 @@ bool CudaSdmProcessor::configure(
     std::string& error)
 {
     impl_->release();
+    if (config.preModulatorProfile == echo::SdmPreModulatorProfile::UltimateReference
+        || config.preModulatorProfile == echo::SdmPreModulatorProfile::UltimateTransient)
+    {
+        error = "native_cuda_sdm_ultimate_premod_not_implemented";
+        return false;
+    }
+    if (config.preModulatorUpsampleFactor != 1 && config.preModulatorUpsampleFactor != 2
+        && config.preModulatorUpsampleFactor != echo::sdmPreModulatorMaxFactor)
+    {
+        error = "native_cuda_sdm_invalid_premod_factor";
+        return false;
+    }
     const int order =
         static_cast<int>(config.feedbackNumeratorCoefficients.size());
     if (config.channels <= 0 || config.channels > maximumSdmChannels
@@ -1366,8 +1393,7 @@ bool CudaSdmProcessor::reset(
     DeviceSdmState converted {};
     if (!impl_->stateToDevice(state, converted, error))
         return false;
-    if (!CudaDeviceSelector::activate(
-            impl_->deviceIndex,
+    if (!impl_->runtimeLease.activate(
             "native_cuda_sdm_",
             error))
         return false;
@@ -1406,6 +1432,7 @@ bool CudaSdmProcessor::reset(
             converted.channelPeakFeedback[channel];
         impl_->latestTelemetry.channelStabilityRecoveries[channel] =
             converted.channelStabilityRecoveries[channel];
+        impl_->latestTelemetry.channelClampCounts[channel] = converted.channelClampCounts[channel];
     }
     error.clear();
     return true;
@@ -1477,8 +1504,7 @@ bool CudaSdmProcessor::copyLatestState(
     if (!impl_->configured)
         return false;
     std::string error;
-    if (!CudaDeviceSelector::activate(
-            impl_->deviceIndex,
+    if (!impl_->runtimeLease.activate(
             "native_cuda_sdm_",
             error)
         || cudaMemcpy(
@@ -1535,4 +1561,13 @@ uint64_t CudaSdmProcessor::stabilityRecoveryCount() const noexcept
     for (int channel = 0; channel < impl_->config.channels; ++channel)
         count += impl_->latestTelemetry.channelStabilityRecoveries[channel];
     return count;
+}
+
+echo::SdmClampCounts CudaSdmProcessor::clampCounts() const noexcept
+{
+    echo::SdmClampCounts counts;
+    if (impl_->configured)
+        for (int channel = 0; channel < impl_->config.channels; ++channel)
+            counts = echo::addSdmClampCounts(counts, impl_->latestTelemetry.channelClampCounts[channel]);
+    return counts;
 }

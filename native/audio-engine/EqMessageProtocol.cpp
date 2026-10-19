@@ -1,5 +1,9 @@
+#include "DspMeasurementJson.h"
 #include "EqMessageProtocol.h"
+#include "DspSafetyLimiter.h"
 #include "third_party/nlohmann_json.hpp"
+
+#include <limits>
 
 namespace echo
 {
@@ -99,6 +103,7 @@ nlohmann::json buildEqState(const EqProcessor& processor)
     const auto state = processor.getState();
     nlohmann::json obj;
     obj["type"] = "eq:state";
+    obj["loudness"] = dspMeasurementJson(processor.loudnessMeasurement());
     obj["enabled"] = state.enabled;
     obj["preampDb"] = state.preampDb;
     obj["strengthPercent"] = state.strengthPercent;
@@ -114,6 +119,12 @@ nlohmann::json buildEqState(const EqProcessor& processor)
         band["q"] = state.bandQ[static_cast<size_t>(index)];
         band["filterType"] = eqFilterTypeText(state.bandFilterTypes[static_cast<size_t>(index)]);
         band["enabled"] = state.bandEnabled[static_cast<size_t>(index)];
+        band["scope"] = eqBandScopeText(state.bandScopes[static_cast<size_t>(index)]);
+        band["dynamicMode"] = eqDynamicModeText(state.bandDynamicModes[static_cast<size_t>(index)]);
+        band["dynamicThresholdDb"] = state.bandDynamicThresholdDb[static_cast<size_t>(index)];
+        band["dynamicRatio"] = state.bandDynamicRatio[static_cast<size_t>(index)];
+        band["dynamicAttackMs"] = state.bandDynamicAttackMs[static_cast<size_t>(index)];
+        band["dynamicReleaseMs"] = state.bandDynamicReleaseMs[static_cast<size_t>(index)];
         bands.push_back(std::move(band));
     }
     obj["bands"] = std::move(bands);
@@ -168,6 +179,12 @@ nlohmann::json buildRoomCorrectionState(const ConvolutionProcessor& processor)
     obj["irId"] = state.irId;
     obj["irName"] = state.irName;
     obj["channelMode"] = state.channelMode;
+    obj["filterBank"] = state.filterBank;
+    obj["selectedFilter"] = state.selectedFilter;
+    obj["inputChannels"] = state.inputChannels;
+    obj["outputChannels"] = state.outputChannels;
+    obj["deviceOutputChannels"] = state.deviceOutputChannels;
+    obj["dspPrecisionBits"] = DspChain::processingPrecisionBits;
     obj["sampleRate"] = state.sampleRate;
     obj["tapCount"] = state.tapCount;
     obj["trimDb"] = state.trimDb;
@@ -184,6 +201,11 @@ nlohmann::json buildDspState(const DspHeadroomProcessor& processor)
     obj["ok"] = true;
     obj["headroomDb"] = processor.getHeadroomDb();
     obj["safetyLimiterEnabled"] = DspChain::isSafetyLimiterEnabled();
+    const float limiterCeilingDb = dspLimiterCeilingDb();
+    obj["dspLimiterCeilingDb"] = std::isfinite(limiterCeilingDb)
+        ? nlohmann::json(limiterCeilingDb)
+        : nlohmann::json(nullptr);
+    obj["dspLimiterReleaseMs"] = dspLimiterReleaseMs();
     return obj;
 }
 
@@ -259,7 +281,10 @@ std::string EqMessageProtocol::handleJsonLine(
     const auto type = getString(parsed, "type");
 
     if (type == "eq:get-state")
+    {
+        processor.requestLoudnessMeasurement();
         return createStateMessage(processor);
+    }
 
     if (type == "channelBalance.getState" || type == "channelBalance:get-state")
         return createChannelBalanceStateMessage(channelBalanceProcessor);
@@ -279,6 +304,22 @@ std::string EqMessageProtocol::handleJsonLine(
     if (type == "dsp.setSafetyLimiterEnabled" || type == "dsp:set-safety-limiter-enabled")
     {
         DspChain::setSafetyLimiterEnabled(getBool(parsed, "enabled", true));
+        return createDspStateMessage(headroomProcessor);
+    }
+
+    if (type == "dsp.setLimiterCeiling" || type == "dsp:set-limiter-ceiling")
+    {
+        const auto ceiling = parsed.find("ceilingDb");
+        if (ceiling == parsed.end() || ceiling->is_null())
+            DspChain::setLimiterCeilingDb(std::numeric_limits<float>::quiet_NaN());
+        else
+            DspChain::setLimiterCeilingDb(getNumber(parsed, "ceilingDb", std::numeric_limits<float>::quiet_NaN()));
+        return createDspStateMessage(headroomProcessor);
+    }
+
+    if (type == "dsp.setLimiterRelease" || type == "dsp:set-limiter-release")
+    {
+        DspChain::setLimiterReleaseMs(getNumber(parsed, "releaseMs", dspLimiterReleaseDefaultMs));
         return createDspStateMessage(headroomProcessor);
     }
 
@@ -416,6 +457,7 @@ std::string EqMessageProtocol::handleJsonLine(
                 processor.setBandQ(index, 1.0f);
                 processor.setBandFilterType(index, EqFilterType::Peaking);
                 processor.setBandEnabled(index, true);
+                processor.setBandProcessing(index, EqBandScope::Stereo, EqDynamicMode::Off, eqDynamicThresholdDefaultDb, eqDynamicRatioDefault, eqDynamicAttackDefaultMs, eqDynamicReleaseDefaultMs);
                 continue;
             }
 
@@ -428,6 +470,14 @@ std::string EqMessageProtocol::handleJsonLine(
             processor.setBandFilterType(index, parseEqFilterType(bandFilterType, EqFilterType::Peaking));
             processor.setBandQ(index, getNumber(bandObj, "q", 1.0f));
             processor.setBandEnabled(index, getBool(bandObj, "enabled", true));
+            processor.setBandProcessing(
+                index,
+                parseEqBandScope(getString(bandObj, "scope")),
+                parseEqDynamicMode(getString(bandObj, "dynamicMode")),
+                getNumber(bandObj, "dynamicThresholdDb", eqDynamicThresholdDefaultDb),
+                getNumber(bandObj, "dynamicRatio", eqDynamicRatioDefault),
+                getNumber(bandObj, "dynamicAttackMs", eqDynamicAttackDefaultMs),
+                getNumber(bandObj, "dynamicReleaseMs", eqDynamicReleaseDefaultMs));
         }
 
         return createStateMessage(processor);

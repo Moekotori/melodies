@@ -11,7 +11,7 @@ namespace Echo.Desktop.Features.Genres;
 public sealed class GenreWallViewport : UserControl, IDisposable
 {
     private readonly ScrollViewer _scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-    private readonly Canvas _canvas = new();
+    private readonly Canvas _canvas = new() { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
     private readonly Dictionary<int, GenreCard> _cards = [];
     private readonly Stack<GenreCard> _pool = new(24);
     private readonly GenresViewModel _model;

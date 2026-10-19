@@ -12,15 +12,20 @@ public sealed partial class DspViewModel
             ? saved.Clone() : default;
         var live = session?.Snapshot.Processing;
         var echo = Child(live, "echoSrc");
+        var configuredEcho = Child(processing, "echoSrc");
         var dither = Child(processing.ValueKind == JsonValueKind.Object ? processing : live, "dither");
         var sdm = Child(live, "sdm");
-        var source = (int)NumberOf(echo, "sourceSampleRate");
-        var target = (int)NumberOf(echo, "targetSampleRate");
-        var active = Flag(echo, "active") && source > 0 && target >= source && target / source is 2 or 4 && target % source == 0;
+        var source = (int)NumberOf(configuredEcho ?? echo, "sourceSampleRate");
+        var target = (int)NumberOf(configuredEcho ?? echo, "targetSampleRate");
+        var configured = configuredEcho is { } savedEcho && savedEcho.TryGetProperty("stages", out var stages)
+            && stages.ValueKind == JsonValueKind.Array && stages.GetArrayLength() > 0;
+        var active = (configured || Flag(echo, "active")) && source > 0 && target >= source && target / source is 2 or 4 or 8 or 16 && target % source == 0;
         var deviceRate = requested is { ValueKind: JsonValueKind.Object } ? (int)requested.Value.GetPropertyOrDefault("sampleRate") : SampleRate;
         if (!active) source = deviceRate > 0 ? deviceRate : SampleRate;
         var format = TextOf(processing.ValueKind == JsonValueKind.Object ? processing : live, "outputFormat") ?? "pcm";
         var savedSdm = Child(processing.ValueKind == JsonValueKind.Object ? processing : default, "sdm");
+        var carrier = (int)NumberOf(savedSdm, "targetSampleRate");
+        if (carrier <= 0 && format != "pcm") carrier = format == "dsd-native-raw" ? deviceRate / 16 : deviceRate;
         var loop = TextOf(savedSdm, "extraLoop") ?? TextOf(sdm, "decisionMode");
         OutputFacts = DescribeOutput(echo, sdm, format);
         return new JsonObject
@@ -29,8 +34,9 @@ public sealed partial class DspViewModel
             ["sourceRate"] = source,
             ["ditherMode"] = TextOf(dither, "mode") ?? "off",
             ["ditherBits"] = ((int)NumberOf(dither, "bitDepth") is 16 ? 16 : 24).ToString(),
-            ["outputFormat"] = format is "dop24le" or "dsd-native-raw" ? "dop24le" : "pcm",
+            ["outputFormat"] = format is "dop24le" or "dsd-native-raw" ? format : "pcm",
             ["qualityProfile"] = TextOf(savedSdm, "qualityProfile") ?? TextOf(sdm, "qualityProfile") ?? "safe",
+            ["carrierRate"] = carrier > 0 ? carrier.ToString() : "176400",
             ["extraLoop"] = loop is "horizon" or "extra" ? loop : "off",
         };
     }
@@ -46,7 +52,7 @@ public sealed partial class DspViewModel
         var processing = root["processing"] as JsonObject ?? new JsonObject();
         root["processing"] = processing;
         if (IsSrc) PatchSrc(root, processing, draft);
-        else PatchSdm(processing, draft, format);
+        else PatchSdm(root, processing, draft, format);
         using var json = JsonDocument.Parse(root.ToJsonString());
         await session.ConfigureOutputAsync(json.RootElement, lifetime.Token);
         OutputFacts = DescribeOutput(Child(session.Snapshot.Processing, "echoSrc"), Child(session.Snapshot.Processing, "sdm"),
@@ -55,14 +61,14 @@ public sealed partial class DspViewModel
 
     private static void PatchSrc(JsonObject root, JsonObject processing, JsonObject draft)
     {
-        var factor = int.TryParse(draft["ratio"]?.ToString(), out var parsed) && parsed is 2 or 4 ? parsed : 1;
+        var factor = int.TryParse(draft["ratio"]?.ToString(), out var parsed) && parsed is 2 or 4 or 8 or 16 ? parsed : 1;
         var source = draft["sourceRate"] is JsonValue rate && rate.TryGetValue<double>(out var value) && value > 0 ? (int)value : 48000;
         var bits = draft["ditherBits"]?.ToString() == "16" ? 16 : 24;
         processing["dither"] = new JsonObject { ["mode"] = draft["ditherMode"]?.ToString() ?? "off", ["bitDepth"] = bits };
         if (factor == 1) { processing.Remove("echoSrc"); root["sampleRate"] = source; return; }
         var target = source * factor;
-        if (target > 384000) throw new IOException("升频后的采样率超过 384 kHz。");
-        var taps = new JsonArray(DspSrcFilter.Lowpass(factor).Select(tap => (JsonNode)JsonValue.Create(Math.Round(tap, 6))!).ToArray());
+        if (target > 768000) throw new IOException("升频后的采样率超过 768 kHz。");
+        var taps = new JsonArray(DspSrcFilter.Lowpass(factor).Select(tap => (JsonNode)JsonValue.Create(tap)!).ToArray());
         processing["echoSrc"] = new JsonObject
         {
             ["sourceSampleRate"] = source, ["targetSampleRate"] = target, ["computeBackend"] = "cpu",
@@ -71,15 +77,27 @@ public sealed partial class DspViewModel
         root["sampleRate"] = target;
     }
 
-    private static void PatchSdm(JsonObject processing, JsonObject draft, string format)
+    private static void PatchSdm(JsonObject root, JsonObject processing, JsonObject draft, string format)
     {
+        var previousFormat = processing["outputFormat"]?.ToString() ?? "pcm";
         processing["outputFormat"] = format;
-        if (format == "pcm") { processing.Remove("sdm"); return; }
-        processing["sdm"] = new JsonObject
+        if (format == "pcm")
         {
-            ["qualityProfile"] = draft["qualityProfile"]?.ToString() ?? "safe",
-            ["extraLoop"] = draft["extraLoop"]?.ToString() ?? "off",
-        };
+            if (previousFormat == "dsd-native-raw" && root["sampleRate"] is JsonValue rate && rate.TryGetValue<double>(out var bits))
+                root["sampleRate"] = (int)(bits / 16);
+            processing.Remove("sdm"); return;
+        }
+        if (!int.TryParse(draft["carrierRate"]?.ToString(), out var carrier)
+            || carrier is not (176400 or 192000 or 352800 or 384000 or 705600 or 768000 or 1411200 or 1536000))
+            throw new IOException("请选择有效的 DSD 传输率。");
+        var sdm = processing["sdm"] as JsonObject ?? new JsonObject();
+        sdm["qualityProfile"] = draft["qualityProfile"]?.ToString() ?? "safe";
+        sdm["extraLoop"] = draft["extraLoop"]?.ToString() ?? "off";
+        if (sdm["oversampling"] is null && sdm["stages"] is null) sdm["sourceSampleRate"] = carrier;
+        sdm["targetSampleRate"] = carrier;
+        sdm["sampleRateFamily"] = carrier % 44100 == 0 ? "44.1k" : "48k";
+        processing["sdm"] = sdm;
+        root["sampleRate"] = format == "dsd-native-raw" ? carrier * 16 : carrier;
     }
 
     private static string DescribeOutput(JsonElement? echo, JsonElement? sdm, string format)

@@ -243,6 +243,17 @@ internal static class QueueScenarios
             { if (clock.Elapsed > TimeSpan.FromSeconds(4)) throw new TimeoutException("native FIFO advance"); await Task.Delay(10); }
             Check(played.TakeLast(3).SequenceEqual(new[] { "fifo-b1", "fifo-b2", "fifo-tail" }) && session.Queue.Count == 2, "native next-up FIFO/return/cleanup");
             Console.WriteLine("PASS real Native Host EOF: inserted B1 -> B2 -> original tail, consumed occurrences removed");
+            await session.SetQueueAsync([new("duplicate-first", "a", a), new("duplicate-second", "a", a)], "duplicate-first");
+            await session.SelectQueueItemAsync("duplicate-second");
+            clock.Restart();
+            while (session.Snapshot.Status != PlaybackStatus.Playing)
+            { if (clock.Elapsed > TimeSpan.FromSeconds(2)) throw new TimeoutException("duplicate occurrence start"); await Task.Delay(10); }
+            await session.SeekAsync(2.15);
+            clock.Restart();
+            while (session.Snapshot.Status != PlaybackStatus.Ended)
+            { if (clock.Elapsed > TimeSpan.FromSeconds(2)) throw new TimeoutException("manual duplicate cursor replayed an earlier occurrence"); await Task.Delay(10); }
+            Check(session.Snapshot.Current?.ItemId == "duplicate-second", "manual same-source occurrence remains authoritative");
+            Console.WriteLine("PASS real Native Host cursorOperationId: manual same-source occurrence ends without replaying itself");
         }
         finally { session.Changed -= Observe; }
     }

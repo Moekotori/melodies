@@ -73,7 +73,7 @@ public sealed class LocalBackupService(string dataDirectory, ILibraryMaintenance
         await using var input = new FileStream(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read);
         if (archive.Entries.Count > 10) throw new InvalidDataException("备份条目数量超出范围。");
-        var info = archive.GetEntry("manifest.json") ?? throw new InvalidDataException("缺少 ECHO 备份清单。");
+        var info = archive.GetEntry("manifest.json") ?? throw new InvalidDataException("缺少 melodies 备份清单。");
         if (info.Length > 8192) throw new InvalidDataException("备份清单过大。");
         await using var manifestStream = info.Open();
         var manifest = await JsonSerializer.DeserializeAsync(manifestStream, BackupJsonContext.Default.BackupManifest, token).ConfigureAwait(false)

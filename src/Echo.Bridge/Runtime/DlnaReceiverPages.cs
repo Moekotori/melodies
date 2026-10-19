@@ -11,7 +11,7 @@ internal static class DlnaReceiverPages
     {
         var xml = "<?xml version=\"1.0\"?><root xmlns=\"urn:schemas-upnp-org:device-1-0\"><device>"
             + "<deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType><friendlyName>" + ConnectXml.Escape(name) + "</friendlyName>"
-            + "<manufacturer>ECHO</manufacturer><modelName>ECHO</modelName><UDN>uuid:" + ConnectXml.Escape(uuid) + "</UDN><serviceList>"
+            + "<manufacturer>melodies</manufacturer><modelName>melodies</modelName><UDN>uuid:" + ConnectXml.Escape(uuid) + "</UDN><serviceList>"
             + Service("AVTransport", "/upnp/av", "/upnp/av.xml")
             + Service("RenderingControl", "/upnp/rc", "/upnp/rc.xml")
             + "</serviceList></device></root>";

@@ -14,20 +14,29 @@ DspChain::DspChain(
     PlaybackRateProcessor& rateProcessorToUse,
     LevelMeterProcessor& meterProcessorToUse,
     DspRackOrder* rackOrderToUse,
-    WorkshopAudioEffectController* workshopAudioEffectControllerToUse)
+    WorkshopAudioEffectController* workshopAudioEffectControllerToUse,
+    MultibandCompressorProcessor* multibandProcessorToUse,
+    DeEsserProcessor* deEsserProcessorToUse)
     : eqProcessor(eqProcessorToUse),
       convolutionProcessor(convolutionProcessorToUse),
       channelBalanceProcessor(channelBalanceProcessorToUse),
       headroomProcessor(headroomProcessorToUse),
       replayGainProcessor(replayGainProcessorToUse),
       compressorProcessor(compressorProcessorToUse),
+      ownedMultibandProcessor(multibandProcessorToUse == nullptr ? std::make_unique<MultibandCompressorProcessor>() : nullptr),
+      ownedDeEsserProcessor(deEsserProcessorToUse == nullptr ? std::make_unique<DeEsserProcessor>() : nullptr),
+      multibandProcessor(multibandProcessorToUse != nullptr ? multibandProcessorToUse : ownedMultibandProcessor.get()),
+      deEsserProcessor(deEsserProcessorToUse != nullptr ? deEsserProcessorToUse : ownedDeEsserProcessor.get()),
       spatialDspProcessor(spatialDspProcessorToUse),
       rateProcessor(rateProcessorToUse),
       meterProcessor(meterProcessorToUse),
       ownedRackOrder(rackOrderToUse == nullptr ? std::make_unique<DspRackOrder>() : nullptr),
       rackOrder(rackOrderToUse != nullptr ? rackOrderToUse : ownedRackOrder.get()),
+      proceduralProcessor(std::make_unique<ProceduralDspProcessor>(rackOrder->procedural)),
       ownedWorkshopAudioEffectController(
           workshopAudioEffectControllerToUse == nullptr ? std::make_unique<WorkshopAudioEffectController>() : nullptr),
+      workshopController(workshopAudioEffectControllerToUse != nullptr
+          ? workshopAudioEffectControllerToUse : ownedWorkshopAudioEffectController.get()),
       workshopAudioEffectProcessor(std::make_unique<WorkshopAudioEffectProcessor>(
           workshopAudioEffectControllerToUse != nullptr
               ? *workshopAudioEffectControllerToUse
@@ -37,17 +46,32 @@ DspChain::DspChain(
 
 void DspChain::prepare(double sampleRate, int maximumBlockSize, int channelCount)
 {
-    eqProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
+    playingRack.reset();
+    rackFadeRemaining = 0;
+    rackTransitionTail.store(0, std::memory_order_release);
+    processingSampleRate = sampleRate > 0 ? sampleRate : 48000;
+    loudnessMeter.prepare(processingSampleRate);
+    meterProcessor.dspMeasurements.invalidate();
+    timingCostMs = measuredRatio = 0;
+    timingFrames = 0;
+    // Bounded capacity covers any supported PCM output layout; only the active view is processed.
+    const int capacity = std::max(8, channelCount);
+    rackOrder->filters.prepare(sampleRate, maximumBlockSize, channelCount);
+    proceduralProcessor->prepare(sampleRate, capacity);
+    eqProcessor.prepare(sampleRate, maximumBlockSize, capacity);
+    rackOrder->headphoneCorrection.prepare(sampleRate, maximumBlockSize, capacity);
     convolutionProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
-    channelBalanceProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
-    headroomProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
-    replayGainProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
-    compressorProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
-    spatialDspProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
-    rateProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
-    meterProcessor.prepare(sampleRate, maximumBlockSize, channelCount);
-    workshopAudioEffectProcessor->prepare(sampleRate, maximumBlockSize, channelCount);
-    truePeakLimiter.prepare(sampleRate, channelCount);
+    channelBalanceProcessor.prepare(sampleRate, maximumBlockSize, capacity);
+    headroomProcessor.prepare(sampleRate, maximumBlockSize, capacity);
+    replayGainProcessor.prepare(sampleRate, maximumBlockSize, capacity);
+    compressorProcessor.prepare(sampleRate, maximumBlockSize, capacity);
+    multibandProcessor->prepare(sampleRate, maximumBlockSize, capacity);
+    deEsserProcessor->prepare(sampleRate, maximumBlockSize, capacity);
+    spatialDspProcessor.prepare(sampleRate, maximumBlockSize, capacity);
+    rateProcessor.prepare(sampleRate, maximumBlockSize, capacity);
+    meterProcessor.prepare(sampleRate, maximumBlockSize, capacity);
+    workshopAudioEffectProcessor->prepare(sampleRate, maximumBlockSize, capacity);
+    truePeakLimiter.prepare(sampleRate, capacity);
     wasActive = isActive();
     bypassTailBlocksRemaining = wasActive ? bypassTailBlocks : 0;
 }
@@ -59,12 +83,23 @@ void DspChain::reset()
 
 void DspChain::resetForHardReplace()
 {
+    meterProcessor.dspMeasurements.invalidate();
+    timingCostMs = measuredRatio = 0;
+    timingFrames = 0;
+    playingRack.reset();
+    rackFadeRemaining = 0;
+    rackTransitionTail.store(0, std::memory_order_release);
+    rackOrder->filters.reset();
+    proceduralProcessor->reset();
     eqProcessor.reset();
+    rackOrder->headphoneCorrection.reset();
     convolutionProcessor.resetForHardReplace();
     channelBalanceProcessor.reset();
     headroomProcessor.reset();
     replayGainProcessor.reset();
     compressorProcessor.reset();
+    multibandProcessor->reset();
+    deEsserProcessor->reset();
     spatialDspProcessor.reset();
     rateProcessor.reset();
     meterProcessor.reset();
@@ -104,63 +139,141 @@ void DspChain::applySessionTransition(DspSessionTransition transition)
 int64_t DspChain::tailFramesRemaining() const noexcept
 {
     return std::max({
+        static_cast<int64_t>(rackTransitionTail.load(std::memory_order_acquire)),
+        rackOrder->filters.tail(),
+        proceduralProcessor->tailFramesRemaining(),
         convolutionProcessor.tailFramesRemaining(),
         eqProcessor.tailFramesRemaining(),
+        rackOrder->headphoneCorrection.tailFramesRemaining(),
         channelBalanceProcessor.tailFramesRemaining(),
         spatialDspProcessor.tailFramesRemaining(),
     });
 }
 
+template <typename Sample>
 void DspChain::processBlock(
-    echo::FloatAudioBuffer& buffer,
+    echo::PlanarAudioBuffer<Sample>& buffer,
     int startSample,
     int numSamples,
     bool processReplayGain,
     bool forceSafetyProcessing)
 {
-    const bool active = isActive() || forceSafetyProcessing;
+    if (numSamples <= 0) return;
+    const double started = DspMeasurementStore::nowMs();
+    const auto eqRevision = eqProcessor.measurementRevision();
+    if (eqRevision != observedEqRevision) {
+        observedEqRevision = eqRevision;
+        meterProcessor.dspMeasurements.invalidate();
+    }
+    const auto revision = meterProcessor.dspMeasurements.revision();
+    const bool measureLoudness = meterProcessor.dspMeasurements.loudnessRequested();
+    if (measureLoudness) loudnessMeter.begin(buffer, startSample, numSamples, revision);
+    const auto finishMeasurement = [&] {
+        auto measurement = measureLoudness ? loudnessMeter.end(buffer, startSample, numSamples) : DspMeasurement {};
+        measurement.revision = revision;
+        timingCostMs += std::max(0.0, DspMeasurementStore::nowMs() - started);
+        timingFrames += numSamples;
+        if (timingFrames < processingSampleRate * 0.1) return;
+        measuredRatio = timingCostMs / (timingFrames * 1000.0 / processingSampleRate);
+        timingFrames = 0; timingCostMs = 0;
+        // Arbitrary delay/rate graphs cannot be represented by one latency.
+        const double instanceLatency = rackOrder->filters.latencyMs();
+        const bool latencyKnown = instanceLatency >= 0 && !proceduralProcessor->isActive() && !channelBalanceProcessor.isEnabled()
+            && !spatialDspProcessor.isVirtualStageEnabled() && !rateProcessor.isActive();
+        measurement.latencyMs = latencyKnown ? convolutionProcessor.algorithmLatencySamples() * 1000.0 / processingSampleRate + instanceLatency : -1;
+        if (!latencyKnown || !processReplayGain || eqProcessor.isAuditionProcessing()) measurement.ready = false;
+        measurement.realtimeRatio = measuredRatio;
+        meterProcessor.dspMeasurements.publish(measurement);
+    };
+    const bool active = isActive() || forceSafetyProcessing || rackFadeRemaining > 0;
 
     if (! active && ! wasActive && bypassTailBlocksRemaining <= 0)
     {
         // Metering observes the native output even when every mutating DSP
         // stage is bypassed. Keep it out of isActive() so a read-only meter
         // does not make the signal path report DSP processing.
+        playingRack.reset(); rackFadeRemaining = 0;
+        rackTransitionTail.store(0, std::memory_order_release);
         meterProcessor.processBlock(buffer, startSample, numSamples);
+        finishMeasurement();
         return;
     }
 
-    const auto order = rackOrder->snapshot();
-    for (const auto module : order)
-    {
+    auto graph = rackOrder->filters.acquire();
+    const auto processBase = [&](DspRackModuleId module, int rackStart, int rackCount) {
         switch (module)
         {
+            case DspRackModuleId::Procedural:
+                proceduralProcessor->processBlock(buffer, rackStart, rackCount);
+                break;
             case DspRackModuleId::Equalizer:
-                eqProcessor.processBlock(buffer, startSample, numSamples);
+                rackOrder->headphoneCorrection.processBlock(buffer, rackStart, rackCount);
+                eqProcessor.processBlock(buffer, rackStart, rackCount);
                 break;
             case DspRackModuleId::Convolution:
-                convolutionProcessor.processBlock(buffer, startSample, numSamples);
+                convolutionProcessor.processBlock(buffer, rackStart, rackCount);
                 break;
             case DspRackModuleId::ReplayGain:
                 if (processReplayGain)
-                    replayGainProcessor.processBlock(buffer, startSample, numSamples);
+                    replayGainProcessor.processBlock(buffer, rackStart, rackCount);
                 break;
             case DspRackModuleId::Compressor:
-                compressorProcessor.processBlock(buffer, startSample, numSamples);
+                compressorProcessor.processBlock(buffer, rackStart, rackCount);
+                break;
+            case DspRackModuleId::Multiband:
+                multibandProcessor->processBlock(buffer, rackStart, rackCount);
+                break;
+            case DspRackModuleId::Deesser:
+                deEsserProcessor->processBlock(buffer, rackStart, rackCount);
                 break;
             case DspRackModuleId::Crossfeed:
-                spatialDspProcessor.processCrossfeedBlock(buffer, startSample, numSamples);
+                // Virtual stage shares this slot and is mutually exclusive with
+                // crossfeed, so the rack order protocol stays unchanged.
+                spatialDspProcessor.processVirtualStageBlock(buffer, rackStart, rackCount);
+                spatialDspProcessor.processCrossfeedBlock(buffer, rackStart, rackCount);
                 break;
             case DspRackModuleId::StereoField:
-                spatialDspProcessor.processStereoFieldBlock(buffer, startSample, numSamples);
+                spatialDspProcessor.processStereoFieldBlock(buffer, rackStart, rackCount);
                 break;
             case DspRackModuleId::ChannelMatrix:
-                spatialDspProcessor.processChannelMatrixBlock(buffer, startSample, numSamples);
+                spatialDspProcessor.processChannelMatrixBlock(buffer, rackStart, rackCount);
                 break;
             case DspRackModuleId::ChannelBalance:
-                channelBalanceProcessor.processBlock(buffer, startSample, numSamples);
+                channelBalanceProcessor.processBlock(buffer, rackStart, rackCount);
                 break;
         }
+    };
+    const auto processGraph = [&](const DspFilterRack::Lease& lease, int rackStart, int rackCount) {
+        for (const auto& node : lease->nodes) {
+            if (node.filter) node.filter->process(buffer, rackStart, rackCount);
+            else processBase(static_cast<DspRackModuleId>(node.baseModule), rackStart, rackCount);
+        }
+    };
+    const int fadeLength = std::max(1, static_cast<int>(processingSampleRate * 0.005));
+    if (!playingRack && graph) playingRack.emplace(std::move(graph));
+    if (graph && playingRack && graph->revision != (*playingRack)->revision && !rackFadeRemaining) {
+        rackFadingOut = true; rackFadeRemaining = fadeLength;
     }
+    int offset = 0;
+    while (offset < numSamples && playingRack) {
+        const int count = rackFadeRemaining ? std::min(numSamples-offset, rackFadeRemaining) : numSamples-offset;
+        processGraph(*playingRack, startSample+offset, count);
+        if (rackFadeRemaining) {
+            for (int frame=0; frame<count; ++frame) {
+                const double remaining = static_cast<double>(rackFadeRemaining-frame) / fadeLength;
+                const double gain = rackFadingOut ? remaining : 1.0-remaining;
+                for (int c=0; c<buffer.getNumChannels(); ++c) buffer.getWritePointer(c,startSample+offset)[frame] *= gain;
+            }
+            rackFadeRemaining -= count;
+            if (!rackFadeRemaining && rackFadingOut && graph) {
+                playingRack.reset(); playingRack.emplace(std::move(graph));
+                rackFadingOut = false; rackFadeRemaining = fadeLength;
+            }
+        }
+        offset += count;
+    }
+    rackTransitionTail.store(rackFadeRemaining, std::memory_order_release);
+    if (!playingRack) for (auto m : rackOrder->snapshot()) processBase(m,startSample,numSamples);
 
     // Workshop owns the bounded effect configuration; Audio Core owns the
     // realtime execution. The fixed post-rack/pre-headroom placement is
@@ -174,6 +287,7 @@ void DspChain::processBlock(
     processSafetyLimiter(buffer, startSample, numSamples);
     rateProcessor.processBlock(buffer, startSample, numSamples);
     meterProcessor.processBlock(buffer, startSample, numSamples);
+    finishMeasurement();
 
     if (active)
     {
@@ -189,12 +303,15 @@ void DspChain::processBlock(
 
 bool DspChain::isActive() const
 {
-    return eqProcessor.isEnabled() || eqProcessor.isAuditionProcessing()
+    return rackOrder->filters.active() || proceduralProcessor->isActive() || eqProcessor.isEnabled() || eqProcessor.isAuditionProcessing()
+        || rackOrder->headphoneCorrection.isEnabled()
         || convolutionProcessor.isEnabled()
         || channelBalanceProcessor.isEnabled()
         || headroomProcessor.isEnabled()
         || replayGainProcessor.isActive()
         || compressorProcessor.isProcessingActive()
+        || multibandProcessor->isProcessingActive()
+        || deEsserProcessor->isProcessingActive()
         || spatialDspProcessor.isAnyEnabled()
         || rateProcessor.isActive()
         || workshopAudioEffectProcessor->isActive()
@@ -203,10 +320,12 @@ bool DspChain::isActive() const
 
 bool DspChain::hasClippingRisk() const
 {
-    return eqProcessor.hasClippingRisk()
+    return rackOrder->filters.clippingRisk() || eqProcessor.hasClippingRisk()
+        || rackOrder->headphoneCorrection.hasClippingRisk()
         || convolutionProcessor.hasClippingRisk()
         || channelBalanceProcessor.hasClippingRisk()
         || compressorProcessor.hasClippingRisk()
+        || multibandProcessor->hasClippingRisk()
         || spatialDspProcessor.hasClippingRisk()
         || workshopAudioEffectProcessor->hasClippingRisk()
         || truePeakLimiter.isProtecting();
@@ -224,9 +343,13 @@ float DspChain::safetyLimiterGainReductionDb() const
 
 float DspChain::safetyLimiterCeilingDb() const
 {
-    return upstreamPcmProcessingActive.load(std::memory_order_acquire)
-        ? upstreamTruePeakCeilingDb
-        : 0.0f;
+    return resolveDspLimiterCeilingDb(
+        upstreamPcmProcessingActive.load(std::memory_order_acquire));
+}
+
+float DspChain::safetyLimiterTruePeakDb() const
+{
+    return truePeakLimiter.truePeakDb();
 }
 
 void DspChain::setUpstreamPcmProcessingActive(bool active)
@@ -239,12 +362,23 @@ void DspChain::setSafetyLimiterEnabled(bool enabled)
     setDspSafetyLimiterEnabled(enabled);
 }
 
+void DspChain::setLimiterCeilingDb(float ceilingDb)
+{
+    setDspLimiterCeilingDb(ceilingDb);
+}
+
+void DspChain::setLimiterReleaseMs(float releaseMs)
+{
+    setDspLimiterReleaseMs(releaseMs);
+}
+
 bool DspChain::isSafetyLimiterEnabled()
 {
     return isDspSafetyLimiterEnabled();
 }
 
-void DspChain::processSafetyLimiter(echo::FloatAudioBuffer& buffer, int startSample, int numSamples)
+template <typename Sample>
+void DspChain::processSafetyLimiter(echo::PlanarAudioBuffer<Sample>& buffer, int startSample, int numSamples)
 {
     if (numSamples <= 0 || ! isSafetyLimiterEnabled())
     {
@@ -252,14 +386,17 @@ void DspChain::processSafetyLimiter(echo::FloatAudioBuffer& buffer, int startSam
         return;
     }
 
-    const float ceilingDb =
-        upstreamPcmProcessingActive.load(std::memory_order_acquire)
-        ? upstreamTruePeakCeilingDb
-        : 0.0f;
+    const double ceilingDb = resolveDspLimiterCeilingDb(
+        upstreamPcmProcessingActive.load(std::memory_order_acquire));
     truePeakLimiter.processBlock(
         buffer,
         startSample,
         numSamples,
         ceilingDb);
 }
+
+template void DspChain::processSafetyLimiter<float>(echo::PlanarAudioBuffer<float>&, int, int);
+template void DspChain::processSafetyLimiter<double>(echo::PlanarAudioBuffer<double>&, int, int);
+template void DspChain::processBlock<float>(echo::PlanarAudioBuffer<float>&, int, int, bool, bool);
+template void DspChain::processBlock<double>(echo::PlanarAudioBuffer<double>&, int, int, bool, bool);
 } // namespace echo

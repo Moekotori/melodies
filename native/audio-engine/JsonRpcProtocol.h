@@ -2,12 +2,14 @@
 #include "ChannelBalanceProcessor.h"
 #include "CompressorProcessor.h"
 #include "ConvolutionProcessor.h"
+#include "DeEsserProcessor.h"
 #include "DspChain.h"
 #include "DspHeadroomProcessor.h"
 #include "DspRackOrder.h"
 #include "EqProcessor.h"
 #include "EqPresetStore.h"
 #include "LevelMeterProcessor.h"
+#include "MultibandCompressorProcessor.h"
 #include "PlaybackRateProcessor.h"
 #include "ReplayGainProcessor.h"
 #include "SpatialDspProcessor.h"
@@ -70,7 +72,8 @@ public:
         const nlohmann::json& items,
         const std::string& repeatMode,
         uint64_t revision,
-        const std::string& currentItemId)>;
+        const std::string& currentItemId,
+        uint64_t cursorOperationId)>;
     static void setQueueSetCallback(QueueSetCallback callback);
 
     using QueueClearCallback = std::function<bool()>;
@@ -83,6 +86,7 @@ public:
         SpatialDspProcessor& spatialDsp,
         PlaybackRateProcessor& rate, LevelMeterProcessor& meter, DspRackOrder& rackOrder,
         WorkshopAudioEffectController& workshopAudioEffect,
+        MultibandCompressorProcessor& multiband, DeEsserProcessor& deEsser,
         EqPresetStore& presets, bool proDspAllowed = true);
     static nlohmann::json buildCompressorTelemetry(const CompressorProcessor& compressor);
     static std::string createJsonRpcNotification(const std::string& method, const nlohmann::json& params);

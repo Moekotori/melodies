@@ -3,4 +3,4 @@ namespace Echo.Contracts.Settings;
 
 public sealed record LibraryViewPreferences(string Page, int SortIndex = 0, bool Descending = false,
     int SecondaryIndex = 0, bool SecondaryDescending = false,     int TertiaryIndex = 0, bool TertiaryDescending = false,
-    LibraryFilter? Filter = null, string Layout = "list", bool Alphabet = false);
+    LibraryFilter? Filter = null, string Layout = "list", bool Alphabet = false, IReadOnlyList<TrackOrder>? SortOrder = null, bool MultiSort = false);

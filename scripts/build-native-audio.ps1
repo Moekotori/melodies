@@ -15,4 +15,5 @@ New-Item -ItemType Directory -Force -Path $runtime | Out-Null
 Copy-Item -LiteralPath (Join-Path $build 'Release/echo-audio-host.exe') -Destination $runtime
 Copy-Item -LiteralPath (Join-Path $build 'Release/echo-track-analysis.exe') -Destination $runtime
 Get-ChildItem -LiteralPath (Join-Path $build 'Release') -Filter '*.dll' | Copy-Item -Destination $runtime
+Copy-Item -LiteralPath (Join-Path $build 'native-identity/Release/receipt-echo-audio-host.json') -Destination (Join-Path $runtime 'echo-audio-host.build.json')
 Write-Host 'Native C++ audio host staged. Rebuild Echo.Desktop to copy the runtime.'
