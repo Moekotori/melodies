@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:home="using:Echo.Desktop.Features.Home" xmlns:library="using:Echo.Contracts.Library"
+             x:Class="Echo.Desktop.Features.Home.HomeArtistRanking" x:DataType="home:HomeViewModel">
+  <StackPanel Spacing="16">
+    <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource EchoDivider}" Padding="0,0,0,12">
+      <TextBlock Text="{DynamicResource ui.ListeningOverview.7817196f39a2}" Classes="heading" FontSize="16" />
+    </Border>
+    <ItemsControl ItemsSource="{Binding TopArtists}" IsVisible="{Binding HasListening}">
+      <ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ListeningArtist"><home:HomeArtistRow /></DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <StackPanel Spacing="8" IsVisible="{Binding !HasListening}">
+      <TextBlock Text="{DynamicResource ui.ListeningOverview.22daf6f8085c}" Classes="heading" FontSize="13" />
+      <TextBlock Text="{DynamicResource ui.ListeningOverview.96f73169e806}" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="20" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

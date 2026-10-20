@@ -2,6 +2,8 @@
 
 日期：2026-10-02。
 
+2026-10-20 更新：文件导入/导出、跨重启删除恢复及 201–1000 项的 Core 跨页播放已经补入。以下为早期迁移记录；当前功能、资源预算、剩余差距与检查入口以 [ECHO 功能对照](ECHO_FUNCTIONAL_PARITY.md) 为准。
+
 ## 来源与交付
 
 只读对照旧 `D:\ECHO` 工作区，HEAD `3dbf28993`（包含当前未提交样式）。结构依据 `SteamPlaylistsPage.tsx`、`CollectionPlaylistSidebar.tsx`、`PlaylistBrowseView.tsx`、`PlaylistFavoritesSummary.tsx`、`collection-playlists.css`、`playlist-collection-view.css` 和 `playlist-detail.css`。保留集合内侧栏、总览、喜欢歌曲/专辑、列表/卡片、封面详情头部、紧凑曲目表和右侧滚动条，使用当前 Avalonia 主题与中英文资源。

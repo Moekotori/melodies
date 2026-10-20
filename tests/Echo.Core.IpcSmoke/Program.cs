@@ -39,6 +39,7 @@ try
     Check(b.Playback.LocalZone.Session.Queue.Count == 2, "Shared queue was not published");
     await b.Playback.LocalZone.Session.PauseAsync(token);
     await Until(() => a.Playback.LocalZone.Session.Snapshot.Status == PlaybackStatus.Paused, token);
+    await PlaybackPoliciesSmoke.BeforeRestartAsync(a, b, token);
     Console.WriteLine("IPC_STAGE scan-detach");
     var job = await a.Library.StartTaskAsync(new("", Paths: [music]), token);
     await a.DisposeAsync(); a = null;
@@ -90,6 +91,7 @@ try
     var restarted = await a.InfoAsync(token); owned.Add(restarted.ProcessId);
     Check(restarted.Instance != info.Instance && a.Playback.LocalZone.Session.Queue.Count == 2
         && a.Playback.LocalZone.Session.Snapshot.Status == PlaybackStatus.Paused, "Core restart lost the checkpoint or autoplayed");
+    await PlaybackPoliciesSmoke.AfterRestartAsync(a, tracks, token);
     await a.ShutdownAsync(token); await a.DisposeAsync(); a = null;
     Console.WriteLine("PASS independent Core/native/Bridge processes, two controls, shared queue, detach-surviving scan, committed mutations, bridge capability restrictions, detached bridge listener, bounded framing, Core-owned backup, persisted restart");
 }

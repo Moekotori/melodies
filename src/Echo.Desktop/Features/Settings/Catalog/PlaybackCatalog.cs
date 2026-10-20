@@ -19,9 +19,9 @@ public static partial class SettingsCatalog
             Choices("sleep-timer-action", "定时结束动作", ["暂停", "停止", "退出应用"]),
             Action("sleep-timer", "睡眠定时", "开始定时", "取消定时"),
             Action("segment-loop", "A–B 片段循环", "清除片段循环")),
-        InTab("播放偏好", "队列衔接与播放顺序", Toggle("automix", "智能过渡", badge: "BETA", help: "按节拍、调性和人声活动把下一首本地歌曲交叉进来。分析来不及完成时退回短交叉淡化。单曲循环、变速、DSD 和 SDM 不启用。"),
-            Toggle("gapless-playback", "专辑无缝播放", help: "本地 PCM 曲目由音频宿主提前解码并衔接。变速、DSD、单曲循环，以及采样率不一致的独占输出不会启用。"),
-            Choices("shuffle-credibility", "随机播放避重", ["不避重", "避开最近 25 首", "避开最近 100 首"])),
+        InTab("播放偏好", "队列衔接与播放顺序", Toggle("automix", "智能过渡", badge: "ALPHA", help: "根据节拍、调性、人声和频谱选择平滑混合、低频交接、尾音延续、学习 EQ、能量衔接或短切。分析来不及完成时使用短交叉淡化。单曲循环、片段循环、变速、DSD 和 SDM 不启用。"),
+            Toggle("gapless-playback", "专辑无缝播放", help: "顺序播放本地 PCM 曲目时提前解码并连续衔接。随机、智能过渡、片段循环、变速、DSD、单曲循环及采样率不一致的独占输出不会启用。"),
+            Choices("shuffle-credibility", "随机播放避重", ["不避重", "避开最近 25 首", "避开最近 100 首"], help: "随机播放优先安排最近未听的歌曲；候选不足时保留队列内曲目。手动添加的下一首仍优先播放。")),
         InTab("输出与设备", "状态与排障", Action("audio-status", "当前输出状态", "查看详细状态"))];
 
     private static IReadOnlyList<SettingsSectionDefinition> Performance() => [

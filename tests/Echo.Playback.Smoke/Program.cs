@@ -19,6 +19,8 @@ Directory.CreateDirectory(root);
 var a = Path.Combine(root, "a.wav");
 var b = Path.Combine(root, "b.wav");
 Wave(a, 2.5); Wave(b, 0.6);
+if (args.Contains("--seams-only")) { await SeamAndShuffleChecks.RunAsync(a); return; }
+if (args.Contains("--gapless-native")) { await NativeGaplessChecks.RunAsync(args[0], a, b); return; }
 if (args.Contains("--admission-only")) { await AdmissionSmoke.RunAsync(a, root); await StateSmoke.RunAsync(a); return; }
 if (args.Contains("--state-only")) { await StateSmoke.RunAsync(a); await RuntimeSmoke.RunAsync(root, a); return; }
 if (args.Contains("--runtime-only")) { await RuntimeSmoke.RunAsync(root, a); return; }
@@ -27,6 +29,7 @@ if (!args.Contains("--native-only"))
     AutomixPlannerChecks.Run();
     await FakeAsync(a, b);
     await QueueScenarios.RunAsync(a, b);
+    await SeamAndShuffleChecks.RunAsync(a);
     await RuntimeSmoke.RunAsync(root, a);
 }
 if (args.Length == 0) { Console.WriteLine("PASS session ownership, stale events, queue revision, pause/seek/stop"); return; }
@@ -146,6 +149,7 @@ sealed class FakeHost : INativeAudio
             "audio.sessionBegin" => "{\"accepted\":true,\"sessionId\":1,\"ready\":{\"sampleRate\":48000,\"format\":\"float32le\"}}",
             "audio.openFile" => $"{{\"operationId\":{++operation},\"sampleRate\":48000,\"durationSeconds\":10}}",
             "audio.seek" => $"{{\"operationId\":{++operation}}}",
+            "audio.gaplessPrepare" => "{\"prepared\":true}",
             _ => "true"
         };
         return Task.FromResult(JsonDocument.Parse(json).RootElement.Clone());

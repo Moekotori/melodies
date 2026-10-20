@@ -31,7 +31,8 @@ public sealed partial class DspViewModel
         foreach (var definition in SelectedModule.Toggles)
         {
             var toggle = new DspToggle(definition.Key, definition.Label,
-                definition.Key == "limiterAutoCeiling" && !state.ContainsKey(definition.Key) ? state["dspLimiterCeilingDb"] is null : Bool(state, definition.Key));
+                definition.Key == "limiterAutoCeiling" && !state.ContainsKey(definition.Key) ? state["dspLimiterCeilingDb"] is null
+                    : DspParameterPath.Read(state, definition.Key)?.GetValue<bool>() == true);
             toggle.PropertyChanged += DraftChanged; Toggles.Add(toggle);
         }
         foreach (var definition in SelectedModule.Choices)
@@ -45,7 +46,7 @@ public sealed partial class DspViewModel
 
     private void CaptureOptions(JsonObject state)
     {
-        foreach (var toggle in Toggles) state[toggle.Key] = toggle.Value;
+        foreach (var toggle in Toggles) DspParameterPath.Write(state, toggle.Key, toggle.Value);
         foreach (var field in Choices) state[field.Key] = field.Selected.Key;
         if (IsChannel) CaptureBands(state);
         if (IsRack) CaptureRack(state);

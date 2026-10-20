@@ -20,7 +20,8 @@ internal sealed class SourceMetadataReader
             {
                 var value = await read(physical, key.Item2, cancellation).ConfigureAwait(false);
                 var text = key.Item1.Length + value.Title.Length + value.Artist.Length + value.Album.Length
-                    + value.AlbumArtist.Length + value.Genre.Length + value.Codec.Length;
+                    + value.AlbumArtist.Length + value.Genre.Length + value.Codec.Length
+                    + (value.Credits?.Sum(tag => tag.Tag.Length + tag.Value.Length + 32) ?? 0);
                 cached = new(source.AudioSize, source.AudioTicks, value, null, 256 + text * 2);
             }
             catch (MetadataReadException error) when (!error.IsInfrastructureFailure && error.Code is not
@@ -48,6 +49,9 @@ internal sealed class SourceMetadataReader
         return MetadataRules.Normalize(file, metadata with
         {
             Title = source.Title ?? metadata.Title, Artist = artist,
+            Credits = metadata.Credits?.Where(tag =>
+                !(artist != metadata.Artist && Library.ArtistRoleRules.TagKey(tag.Tag) == "ARTIST")
+                && !(source.AlbumArtist is { Length: > 0 } && Library.ArtistRoleRules.TagKey(tag.Tag) is "ALBUMARTIST" or "ALBUMPERFORMER")).ToArray(),
             Album = string.IsNullOrWhiteSpace(source.Album) ? metadata.Album : source.Album,
             // Keep track performers out of album identity: a compilation's CUE must stay one album.
             AlbumArtist = string.IsNullOrWhiteSpace(source.AlbumArtist) ? metadata.AlbumArtist : source.AlbumArtist,

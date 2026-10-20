@@ -3,27 +3,27 @@
   <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeWallpaperStyles.axaml" /></UserControl.Styles>
   <StackPanel Spacing="16">
     <Grid ColumnDefinitions="*,*" ColumnSpacing="28">
-      <StackPanel Spacing="4"><TextBlock Text="水平位置" Classes="wallpaper-label" /><Slider Classes="wallpaper-slider" Minimum="0" Maximum="100" Value="{Binding WallpaperX, Mode=TwoWay}" AutomationProperties.Name="背景水平位置" /></StackPanel>
-      <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="垂直位置" Classes="wallpaper-label" /><Slider Classes="wallpaper-slider" Minimum="0" Maximum="100" Value="{Binding WallpaperY, Mode=TwoWay}" AutomationProperties.Name="背景垂直位置" /></StackPanel>
+      <StackPanel Spacing="4"><TextBlock Text="{DynamicResource ui.ThemeWallpaperFineSettings.5484805add55}" Classes="wallpaper-label" /><Slider Classes="wallpaper-slider" Minimum="0" Maximum="100" Value="{Binding WallpaperX, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource ui.ThemeWallpaperFineSettings.a4c42dcc03c4}" /></StackPanel>
+      <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="{DynamicResource ui.ThemeWallpaperFineSettings.985aade0a013}" Classes="wallpaper-label" /><Slider Classes="wallpaper-slider" Minimum="0" Maximum="100" Value="{Binding WallpaperY, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource ui.ThemeWallpaperFineSettings.6bb9c6e7ccb1}" /></StackPanel>
     </Grid>
     <StackPanel Spacing="6">
-      <TextBlock Text="视频暂停" Classes="wallpaper-label" />
-      <ComboBox ItemsSource="{Binding VideoPauseChoices}" SelectedItem="{Binding SelectedVideoPauseChoice, Mode=TwoWay}" HorizontalAlignment="Left" Width="200" AutomationProperties.Name="背景视频暂停策略" />
+      <TextBlock Text="{DynamicResource ui.ThemeWallpaperFineSettings.df962a91489e}" Classes="wallpaper-label" />
+      <ComboBox ItemsSource="{Binding VideoPauseChoices}" SelectedItem="{Binding SelectedVideoPauseChoice, Mode=TwoWay}" HorizontalAlignment="Left" Width="200" AutomationProperties.Name="{DynamicResource ui.ThemeWallpaperFineSettings.823a29d68fdb}" />
     </StackPanel>
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
       <StackPanel Spacing="2" VerticalAlignment="Center">
-        <TextBlock Text="统一透明度" FontSize="13" Foreground="{DynamicResource EchoText}" />
-        <TextBlock Text="页面、侧栏和播放栏一起变淡" Classes="wallpaper-label" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource ui.ThemeWallpaperFineSettings.df88249c26ad}" FontSize="13" Foreground="{DynamicResource EchoText}" />
+        <TextBlock Text="{DynamicResource ui.ThemeWallpaperFineSettings.8a790bd43b63}" Classes="wallpaper-label" TextWrapping="Wrap" />
       </StackPanel>
-      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding WallpaperUnifiedOpacity, Mode=TwoWay}" VerticalAlignment="Center" AutomationProperties.Name="统一界面透明度" />
+      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding WallpaperUnifiedOpacity, Mode=TwoWay}" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource ui.ThemeWallpaperFineSettings.4e339357b950}" />
     </Grid>
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
       <StackPanel Spacing="2" VerticalAlignment="Center">
-        <TextBlock Text="可读性保护" FontSize="13" Foreground="{DynamicResource EchoText}" />
-        <TextBlock Text="界面再透明，也留住一层底色" Classes="wallpaper-label" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource ui.ThemeWallpaperFineSettings.8e81302aee67}" FontSize="13" Foreground="{DynamicResource EchoText}" />
+        <TextBlock Text="{DynamicResource ui.ThemeWallpaperFineSettings.7a75ebcfdd85}" Classes="wallpaper-label" TextWrapping="Wrap" />
       </StackPanel>
-      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding WallpaperVisualProtection, Mode=TwoWay}" VerticalAlignment="Center" AutomationProperties.Name="背景可读性保护" />
+      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding WallpaperVisualProtection, Mode=TwoWay}" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource ui.ThemeWallpaperFineSettings.a3cfb2a1abec}" />
     </Grid>
-    <Button Content="重置位置" Classes="theme-quiet" Command="{Binding ResetWallpaperPositionCommand}" HorizontalAlignment="Left" />
+    <Button Content="{DynamicResource ui.ThemeWallpaperFineSettings.8143c43db805}" Classes="theme-quiet" Command="{Binding ResetWallpaperPositionCommand}" HorizontalAlignment="Left" />
   </StackPanel>
 </UserControl>

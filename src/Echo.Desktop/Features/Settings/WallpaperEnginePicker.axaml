@@ -7,12 +7,12 @@
   <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
       <TextBlock Text="Wallpaper Engine" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" />
-      <Button Grid.Column="1" Content="选择目录" Classes="theme-action" Click="ChooseFolder" IsEnabled="{Binding CanScan}" />
+      <Button Grid.Column="1" Content="{DynamicResource ui.WallpaperEnginePicker.e5fe24ca742f}" Classes="theme-action" Click="ChooseFolder" IsEnabled="{Binding CanScan}" />
     </Grid>
-    <TextBox Grid.Row="1" Text="{Binding Query, Mode=TwoWay}" PlaceholderText="搜索壁纸" Classes="theme-input" AutomationProperties.Name="搜索 Wallpaper Engine 壁纸" />
+    <TextBox Grid.Row="1" Text="{Binding Query, Mode=TwoWay}" PlaceholderText="{DynamicResource ui.WallpaperEnginePicker.d064df82ef6c}" Classes="theme-input" AutomationProperties.Name="{DynamicResource ui.WallpaperEnginePicker.599fe027f475}" />
     <Grid Grid.Row="2" ColumnDefinitions="*,220" ColumnSpacing="20">
       <ListBox ItemsSource="{Binding VisibleProjects}" SelectedItem="{Binding Selected, Mode=TwoWay}"
-               Background="{DynamicResource EchoPanelMuted}" BorderThickness="0" AutomationProperties.Name="Wallpaper Engine 壁纸库">
+               Background="{DynamicResource EchoPanelMuted}" BorderThickness="0" AutomationProperties.Name="{DynamicResource ui.WallpaperEnginePicker.4149119edd91}">
         <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="media:WallpaperEngineProject">
@@ -33,8 +33,8 @@
     </Grid>
     <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
       <TextBlock Text="{Binding Status}" TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{DynamicResource EchoMuted}" FontSize="12" />
-      <Button Grid.Column="1" Content="取消" Classes="theme-quiet" Click="Cancel" />
-      <Button Grid.Column="2" Content="导入并应用" Classes="theme-save" Click="Select" IsEnabled="{Binding CanSelect}" />
+      <Button Grid.Column="1" Content="{DynamicResource ui.WallpaperEnginePicker.2cd0f3be8738}" Classes="theme-quiet" Click="Cancel" />
+      <Button Grid.Column="2" Content="{DynamicResource ui.WallpaperEnginePicker.28200a87c40c}" Classes="theme-save" Click="Select" IsEnabled="{Binding CanSelect}" />
     </Grid>
   </Grid>
 </Window>

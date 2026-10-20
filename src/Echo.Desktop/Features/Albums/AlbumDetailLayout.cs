@@ -43,7 +43,7 @@ public partial class AlbumDetailView
         var units = _model.Album.Title.Trim().EnumerateRunes().Sum(rune => System.Text.Rune.IsWhiteSpace(rune) ? .32 : rune.Value <= 0x24f ? .58 : 1);
         AlbumTitle.FontSize = narrow ? 32 : units >= 48 ? 34 : units >= 30 ? 38 : compact ? 40 : 48;
         AlbumTitle.LineHeight = AlbumTitle.FontSize * 1.25;
-        AlbumTitle.FontWeight = FontWeight.SemiBold;
+        AlbumTitle.FontWeight = FontWeight.Medium;
         ArtistLink.FontSize = ArtistLabel.FontSize = narrow ? 18 : 20;
 
         // The header and realized rows use the same available-width breakpoint.

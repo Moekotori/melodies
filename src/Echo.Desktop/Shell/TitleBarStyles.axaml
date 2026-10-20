@@ -4,14 +4,25 @@
     <Setter Property="Width" Value="32" />
     <Setter Property="Height" Value="32" />
     <Setter Property="MinHeight" Value="32" />
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="5" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.titleSearch">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
   </Style>
   <Style Selector="Button.titleWindow">
     <Setter Property="Width" Value="38" />
     <Setter Property="Height" Value="32" />
     <Setter Property="MinHeight" Value="32" />
-    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="CornerRadius" Value="4" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="Button.titleAction icon|EchoIcon">
@@ -22,26 +33,31 @@
   <Style Selector="Button.titleWindow icon|GlyphIcon">
     <Setter Property="StrokeWidth" Value="1.5" />
   </Style>
-  <Style Selector="Button.titleAction icon|GlyphIcon">
+  <Style Selector="Button.titleAction icon|GlyphIcon, Button.titleSearch icon|GlyphIcon">
     <Setter Property="StrokeWidth" Value="1.75" />
   </Style>
-  <Style Selector="Button.titleAction:pointerover, Button.titleAction:pressed, Button.titleWindow:pointerover">
+  <Style Selector="Button.titleAction:pointerover, Button.titleAction:focus-visible, Button.titleSearch:pointerover, Button.titleSearch:focus-visible, Button.titleWindow:pointerover, Button.titleWindow:focus-visible">
+    <Setter Property="Background" Value="{DynamicResource EchoHover}" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.titleAction:pressed, Button.titleSearch:pressed, Button.titleWindow:pressed">
     <Setter Property="Background" Value="{DynamicResource EchoDivider}" />
   </Style>
   <Style Selector="Button.titleAction:pointerover icon|EchoIcon, Button.titleAction:focus-visible icon|EchoIcon">
     <Setter Property="BaseBrush" Value="{DynamicResource EchoHeading}" />
     <Setter Property="AccentBrush" Value="{DynamicResource EchoHeading}" />
   </Style>
-  <Style Selector="Button.titleWindow:pointerover icon|GlyphIcon">
+  <Style Selector="Button.titleWindow:pointerover icon|GlyphIcon, Button.titleWindow:focus-visible icon|GlyphIcon">
     <Setter Property="Stroke" Value="{DynamicResource EchoHeading}" />
   </Style>
-  <Style Selector="Button.titleAction:pointerover icon|GlyphIcon, Button.titleAction:focus-visible icon|GlyphIcon">
+  <Style Selector="Button.titleAction:pointerover icon|GlyphIcon, Button.titleAction:focus-visible icon|GlyphIcon, Button.titleSearch:pointerover icon|GlyphIcon, Button.titleSearch:focus-visible icon|GlyphIcon">
     <Setter Property="Stroke" Value="{DynamicResource EchoHeading}" />
   </Style>
-  <Style Selector="Button.titleWindow.close:pointerover">
+  <Style Selector="Button.titleWindow.close:pointerover, Button.titleWindow.close:pressed">
     <Setter Property="Background" Value="#e5484d" />
   </Style>
-  <Style Selector="Button.titleWindow.close:pointerover icon|GlyphIcon">
+  <Style Selector="Button.titleWindow.close:pointerover icon|GlyphIcon, Button.titleWindow.close:pressed icon|GlyphIcon">
     <Setter Property="Stroke" Value="White" />
   </Style>
 </Styles>

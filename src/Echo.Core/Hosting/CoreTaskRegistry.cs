@@ -27,13 +27,19 @@ internal sealed class CoreTaskRegistry(CoreRuntime runtime) : IAsyncDisposable
             }
             var id = request.Id == Guid.Empty ? Guid.NewGuid() : request.Id;
             if (entries.ContainsKey(id)) return new(id);
-            var entry = new Entry(new(id, request.RemoteSourceId is not null ? "remote" : request.Resources is null ? "scan" : "resources", "running"), stop.Token);
+            var entry = new Entry(new(id, request.ArtistImport is not null ? "artist-import" : request.RemoteSourceId is not null ? "remote" : request.Resources is null ? "scan" : "resources", "running"), stop.Token);
             entries[id] = entry;
             entry.Work = Task.Run(async () =>
             {
                 try
                 {
-                    if (request.BackupPath is { } destination)
+                    if (request.ArtistImport is { } artistImport)
+                    {
+                        await runtime.Library.RebuildArtistCreditsAsync(artistImport,
+                            new DirectProgress<ArtistImportProgress>(progress => Update(id, value => value with { ArtistImportProgress = progress })), entry.Cancel.Token).ConfigureAwait(false);
+                        Update(id, value => value with { Status = "completed" });
+                    }
+                    else if (request.BackupPath is { } destination)
                     {
                         await runtime.Backup.CreateAsync(destination, entry.Cancel.Token).ConfigureAwait(false);
                         Update(id, value => value with { Status = "completed" });
@@ -94,6 +100,7 @@ internal sealed class CoreTaskRegistry(CoreRuntime runtime) : IAsyncDisposable
                     }
                 }
                 catch (OperationCanceledException) { Update(id, value => value with { Status = "canceled" }); }
+                catch (ArtistImportChangedException error) { Update(id, value => value with { Status = "failed", Error = error.Message }); }
                 catch (Exception) { Update(id, value => value with { Status = "failed", Error = "Core 任务未完成，请检查文件或权限。" }); }
             });
             return new(id);

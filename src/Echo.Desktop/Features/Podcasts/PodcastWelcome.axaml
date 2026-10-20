@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Podcasts" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Podcasts.PodcastWelcome" x:DataType="local:PodcastViewModel">
+  <StackPanel MaxWidth="440" Margin="24,0,24,40" Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Border Width="76" Height="76" CornerRadius="22" Background="{DynamicResource EchoSelected}" HorizontalAlignment="Center">
+      <icon:GlyphIcon Kind="headphones" Width="34" Height="34" Stroke="{DynamicResource EchoAccentText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+    <TextBlock Text="{Binding EmptyTitle}" Classes="heading" FontSize="24" TextAlignment="Center" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding EmptyDescription}" Classes="muted" FontSize="13" LineHeight="23" TextWrapping="Wrap" TextAlignment="Center" />
+    <Button Classes="primary" Content="{DynamicResource ui.PodcastWelcome.1fb74f151925}" Command="{Binding ToggleEditorCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Center" />
+  </StackPanel>
+</UserControl>

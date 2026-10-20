@@ -25,17 +25,18 @@ internal static partial class BackgroundShaderSource
         var end = source.LastIndexOf('}'); source = source[..end] + $"return half4({output});\n" + source[end..];
         source = BackgroundMipmaps.Declarations(source, samplers);
         var functions = BackgroundMipmaps.Functions(samplers)+string.Join("\n", samplers.Select(n => $"float4 sample_{n}(float2 uv){{return {n}.eval(float2(uv.x,1.0-uv.y)*{n}_size);}}"));
-        // Insert helpers after uniforms, before any source functions that sample them.
-        var insertion = source.LastIndexOf("uniform ", StringComparison.Ordinal);
-        insertion = insertion < 0 ? 0 : source.IndexOf(';', insertion) + 1;
-        source = source.Insert(insertion, "\n" + functions + "\n");
-        return "uniform float2 native_size;\n" + source;
+        // A scene may declare history after cover helpers. Hoist uniforms so sampling
+        // functions always follow their declarations and precede every caller.
+        var uniforms = string.Join("\n", UniformDeclaration().Matches(source).Select(m => m.Value));
+        source = UniformDeclaration().Replace(source, "");
+        return "uniform float2 native_size;\n" + uniforms + "\n" + functions + "\n" + source;
     }
     [GeneratedRegex(@"#version[^\n]*")] private static partial Regex Version();
     [GeneratedRegex(@"precision\s+\w+\s+\w+\s*;")] private static partial Regex Precision();
     [GeneratedRegex(@"out\s+vec4\s+(\w+)\s*;")] private static partial Regex Output();
     [GeneratedRegex(@"(?:varying|in)\s+vec2\s+v_uv\s*;")] private static partial Regex Varying();
     [GeneratedRegex(@"uniform\s+sampler2D\s+(\w+)\s*;")] private static partial Regex Sampler();
+    [GeneratedRegex(@"\buniform\s+\w+\s+\w+(?:\s*\[\s*\d+\s*\])?\s*;")] private static partial Regex UniformDeclaration();
     [GeneratedRegex(@"\bvec([234])\b")] private static partial Regex Vector();
     [GeneratedRegex(@"\bmat([234])\b")] private static partial Regex Matrix();
 }

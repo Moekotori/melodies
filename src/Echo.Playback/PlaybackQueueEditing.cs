@@ -73,11 +73,12 @@ public sealed partial class PlaybackSessionCoordinator
         var order = shuffleOrder.Where(id => items.Any(x => x.ItemId == id)).ToList();
         var known = order.ToHashSet(StringComparer.Ordinal);
         var additions = items.Where(x => !x.QueuedNext && !known.Contains(x.ItemId)).Select(x => x.ItemId).ToArray();
-        QueuePlaybackPlan.PlaceAdditions(order, items, additions, snapshot.Current?.ItemId, QueuePlaybackPlan.RecentTrackIds(history));
-        shuffleOrder = order.ToArray();
+        QueuePlaybackPlan.PlaceAdditions(order, items, additions, snapshot.Current?.ItemId, RecentShuffleTracks());
+        shuffleOrder = QueuePlaybackPlan.ReorderRemaining(order.ToArray(), items, snapshot.Current?.ItemId, RecentShuffleTracks());
         try { if (initialized) await SendQueueAsync(items, snapshot.Current?.ItemId, removedCurrent ? RepeatMode.Off : repeat).ConfigureAwait(false); }
         catch { shuffleOrder = previous.ShuffleOrder; throw; }
         SetQueueItems(items); history = editHistory?.Invoke(history) ?? history; undo = previous;
+        await RefreshAlbumGaplessAsync().ConfigureAwait(false);
         Publish(snapshot with { Current = items.FirstOrDefault(x => x.ItemId == snapshot.Current?.ItemId) ?? snapshot.Current });
         PublishQueue();
     }, token, affectsPlayback: false);
@@ -89,6 +90,7 @@ public sealed partial class PlaybackSessionCoordinator
         try { if (initialized) await SendQueueAsync(previous.Items, snapshot.Current?.ItemId, repeat).ConfigureAwait(false); }
         catch { shuffleOrder = oldOrder; throw; }
         SetQueueItems(previous.Items); history = previous.History; undo = null;
+        await RefreshAlbumGaplessAsync().ConfigureAwait(false);
         Publish(snapshot with { Current = queue.FirstOrDefault(x => x.ItemId == snapshot.Current?.ItemId) ?? snapshot.Current });
         PublishQueue();
     }, token, affectsPlayback: false);

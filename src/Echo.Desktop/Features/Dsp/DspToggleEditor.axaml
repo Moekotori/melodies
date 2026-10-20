@@ -1,0 +1,6 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspToggleEditor" x:DataType="local:DspToggle">
+  <Grid ColumnDefinitions="*,Auto" Margin="0,0,22,14" ColumnSpacing="12">
+    <TextBlock Text="{Binding Label}" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap"/>
+    <ToggleSwitch Grid.Column="1" OnContent="开启" OffContent="关闭" IsChecked="{Binding Value, Mode=TwoWay}"/>
+  </Grid>
+</UserControl>

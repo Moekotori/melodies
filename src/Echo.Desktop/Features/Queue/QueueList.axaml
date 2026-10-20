@@ -50,11 +50,11 @@
   <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
     <Border Classes="list-heading" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="10,0,10,8" Margin="0,0,0,4">
       <queue:QueueColumnsGrid>
-        <TextBlock Grid.Column="1" Text="#" Classes="muted fullColumn" FontSize="11" />
-        <TextBlock Grid.Column="3" Text="{DynamicResource ui.AlbumDetailView.739ed1896dcd}" Classes="muted" FontSize="11" />
-        <TextBlock Grid.Column="4" Text="{DynamicResource ui.AlbumDetailView.eb11dd93ee99}" Classes="muted fullColumn" FontSize="11" />
-        <TextBlock Grid.Column="5" Text="{Binding SourceHeading}" Classes="muted fullColumn" FontSize="11" />
-        <TextBlock Grid.Column="6" Text="{DynamicResource ui.AlbumDetailView.04a95e0654d3}" Classes="muted fullColumn" FontSize="11" HorizontalAlignment="Right" />
+        <TextBlock Grid.Column="1" Text="#" Classes="muted fullColumn" FontSize="12" />
+        <TextBlock Grid.Column="3" Text="{DynamicResource ui.AlbumDetailView.739ed1896dcd}" Classes="muted" FontSize="12" />
+        <TextBlock Grid.Column="4" Text="{DynamicResource ui.AlbumDetailView.eb11dd93ee99}" Classes="muted fullColumn" FontSize="12" />
+        <TextBlock Grid.Column="5" Text="{Binding SourceHeading}" Classes="muted fullColumn" FontSize="12" />
+        <TextBlock Grid.Column="6" Text="{DynamicResource ui.AlbumDetailView.04a95e0654d3}" Classes="muted fullColumn" FontSize="12" HorizontalAlignment="Right" />
       </queue:QueueColumnsGrid>
     </Border>
     <ListBox Name="Tracks" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0"
@@ -68,13 +68,13 @@
             <Border Classes="upcoming-mark" IsVisible="{Binding IsUpcoming}" />
             <queue:QueueColumnsGrid VerticalAlignment="Center">
               <icon:GlyphIcon Kind="grip" Width="14" Height="16" Classes="row-grip fullColumn drawer-grip" Cursor="SizeNorthSouth" />
-              <Grid Grid.Column="1"><TextBlock Text="{Binding VisibleNumber}" Classes="muted fullColumn" FontSize="11" VerticalAlignment="Center" /><icon:GlyphIcon Kind="music-stat" Width="14" Height="14" Stroke="{DynamicResource EchoAccentText}" IsVisible="{Binding IsCurrent}" /></Grid>
+              <Grid Grid.Column="1"><TextBlock Text="{Binding VisibleNumber}" Classes="muted fullColumn" FontSize="12" VerticalAlignment="Center" /><icon:GlyphIcon Kind="music-stat" Width="14" Height="14" Stroke="{DynamicResource EchoAccentText}" IsVisible="{Binding IsCurrent}" /></Grid>
               <queue:QueueArtwork Grid.Column="2" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding ArtworkPath}" Cache="{Binding Artwork}" />
               <StackPanel Grid.Column="3" Spacing="3" VerticalAlignment="Center">
                 <TextBlock Text="{Binding Title}" Classes="heading track-title" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 <StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="12" MaxWidth="240" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /><Border Classes="queue-state" IsVisible="{Binding HasBadge}"><TextBlock Text="{Binding State}" /></Border></StackPanel>
               </StackPanel>
-              <StackPanel Grid.Column="4" Classes="fullColumn" Spacing="2" VerticalAlignment="Center"><TextBlock Text="{Binding Quality}" Foreground="{DynamicResource EchoAccentText}" FontSize="11" FontWeight="SemiBold" /><TextBlock Text="{Binding AudioDetail}" Classes="muted" FontSize="10" /></StackPanel>
+              <StackPanel Grid.Column="4" Classes="fullColumn" Spacing="2" VerticalAlignment="Center"><TextBlock Text="{Binding Quality}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="Medium" /><TextBlock Text="{Binding AudioDetail}" Classes="muted" FontSize="12" /></StackPanel>
               <TextBlock Grid.Column="5" Text="{Binding Source}" Classes="muted fullColumn drawer-detail" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
               <TextBlock Grid.Column="6" Text="{Binding Duration}" Classes="muted fullColumn drawer-detail" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" HorizontalAlignment="Right" />
               <StackPanel Grid.Column="7" Classes="row-actions" Orientation="Horizontal" Spacing="2"><Button Classes="icon" Click="OnRowPlay" ToolTip.Tip="{DynamicResource ui.AlbumTrackRow.79aaf3909d9f}"><icon:GlyphIcon Kind="play" Width="14" Height="14" /></Button><Button Classes="icon" Click="OnRowMenu" ToolTip.Tip="{DynamicResource ui.QueueList.7bbb8a858f8c}"><icon:EchoIcon Scope="player" Kind="more" Width="17" Height="17" /></Button></StackPanel>
@@ -85,7 +85,7 @@
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>
-    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" IsHitTestVisible="False">
+    <StackPanel Classes="reveal" Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" IsHitTestVisible="False">
       <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" HorizontalAlignment="Center">
         <icon:GlyphIcon Kind="queue" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>

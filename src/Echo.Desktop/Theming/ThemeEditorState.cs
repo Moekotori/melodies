@@ -8,7 +8,7 @@ namespace Echo.Desktop.Theming;
 // Only editor navigation and gallery metadata; no second persisted theme state.
 public sealed partial class ThemeViewModel
 {
-    public IReadOnlyList<string> EditorSections { get; } = ["配色", "材质与动效", "背景与字体", "我的主题"];
+    public IReadOnlyList<string> EditorSections { get; } = ["配色", "材质与动效", "背景与封面", "我的主题"];
     public IReadOnlyList<WallpaperFitChoice> WallpaperChoices { get; } = [new("UniformToFill", "填满画面"), new("Uniform", "完整显示"), new("Fill", "拉伸铺满"), new("Tile", "平铺"), new("Center", "居中")];
     [ObservableProperty] private string editorSection = "配色";
     [ObservableProperty] private ThemeColorGroup? activeColorGroup;
@@ -18,7 +18,7 @@ public sealed partial class ThemeViewModel
     [ObservableProperty] private IReadOnlyList<ThemePresetCard> galleryPresets = [];
     public bool IsColorsSection => EditorSection == "配色";
     public bool IsMaterialsSection => EditorSection == "材质与动效";
-    public bool IsBackgroundSection => EditorSection == "背景与字体";
+    public bool IsBackgroundSection => EditorSection == "背景与封面";
     public bool IsLibrarySection => EditorSection == "我的主题";
     public bool HasLibrary => Library.Count > 0;
     public string CurrentThemeLabel => Library.FirstOrDefault(t => t.Id == Snapshot.SelectedCustomId)?.Name ?? SelectedPreset.Name;

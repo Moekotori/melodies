@@ -31,6 +31,7 @@ public partial class MainWindow
     internal void UnloadSurface()
     {
         if (_surface is null) return;
+        onboarding?.Close();
         AvaloniaSurfaceRelease.ReleaseFocus(this, _surface);
         _viewModel?.Shortcuts.CancelRecording();
         _viewModel?.CloseQueueDrawerCommand.Execute(null);
@@ -39,7 +40,7 @@ public partial class MainWindow
         _viewModel?.CloseGlobalSearchCommand.Execute(null);
         _viewModel?.Player?.AudioSettings.CancelPendingRead();
         _layoutMotion.Cancel();
-        ReleaseLibraryPage(); ReleaseLyricsPage();
+        SettleLyricsStage(); ReleaseLibraryPage(); ReleaseLyricsPage();
         PageHost.Content = null; PageHost.Settle();
         LyricsStageHost.Content = null;
         _appearanceVisuals?.Dispose(); _appearanceVisuals = null;

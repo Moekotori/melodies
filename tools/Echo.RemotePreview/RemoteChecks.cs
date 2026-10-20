@@ -11,13 +11,14 @@ using Echo.Contracts.Remote;
 using Echo.Desktop.Features.Player;
 using Echo.Desktop.Features.Remote;
 using Echo.Desktop.Shell;
+using Echo.Desktop.Localization;
 using Echo.Infrastructure.Remote;
 using Echo.Platform.Windows;
 using Echo.Playback;
 
 internal static class RemoteChecks
 {
-    public static void Run(string output)
+    public static void Run(string output, string? languageRoot = null)
     {
         Directory.CreateDirectory(output); var clock = Stopwatch.StartNew(); var checks = 0;
         var fixture = new RemoteFixture(); using var files = new WebDavFileClient(fixture);
@@ -44,7 +45,18 @@ internal static class RemoteChecks
             byte[] input = [1, 2, 3, 4]; var encrypted = WindowsSecretProtection.Protect(input);
             Check(!encrypted.SequenceEqual(input) && WindowsSecretProtection.Unprotect(encrypted).SequenceEqual(input), "Real in-memory platform protection");
         }
-        var shell = new ShellViewModel(); shell.AttachRemote(catalog, files);
+        LocalizationService? text = null;
+        if (languageRoot is not null)
+        {
+            var packs = new[] { "zh-CN", "en-US" }.Select(code =>
+            {
+                using var stream = File.OpenRead(Path.Combine(languageRoot, code + ".json"));
+                return LanguageCatalog.ReadPack(stream);
+            }).ToArray();
+            text = new LocalizationService(new LanguageCatalog(packs));
+            Console.WriteLine("Using isolated committed language fixtures; live language edits are not validated here.");
+        }
+        var shell = new ShellViewModel(text); shell.AttachRemote(catalog, files);
         var native = new RemoteNative(); var session = new PlaybackSessionCoordinator(native);
         var player = new PlayerViewModel(new PlaybackZone("remote-preview", "本机", session), shell.Text); shell.AttachPlayback(player);
         shell.Motion.SelectedChoice = shell.Motion.Choices.First(x => x.Mode == Echo.Desktop.Motion.MotionMode.Off);
@@ -55,6 +67,7 @@ internal static class RemoteChecks
             var view = window.GetVisualDescendants().OfType<RemoteView>().Single(); var model = view.Model;
             Until(() => !model.IsBusy); model.SelectedSource = model.Sources[0]; Until(() => !model.IsBusy); Settle();
             Check(model.Entries.Count == 200 && model.Total == 424, "Native page selects persisted source");
+            RemoteMotionChecks.Run(window, view, shell, output);
             Check(view.FindControl<ListBox>("FileList")!.GetVisualDescendants().OfType<ListBoxItem>().Count() < 30, "Actual row virtualization");
             Check(view.FindControl<ComboBox>("SourcePicker")!.SelectedItem is RemoteSourceInfo, "Source picker binds selection");
             Save("remote-light.png"); shell.IsDark = true; Settle(); Save("remote-dark.png"); shell.IsDark = false;
@@ -107,15 +120,21 @@ internal static class RemoteChecks
             fixture.Hold = true; var late = model.RefreshCommand.ExecuteAsync(null); Until(() => fixture.Pending > 0);
             model.CancelCommand.Execute(null); fixture.Release.TrySetResult(); Pump(late);
             Check(!model.IsBusy && model.Entries.Count == 200, "Cancelled result retains previous page"); fixture.Hold = false;
+            model.RequestRemoveCommand.Execute(null); Settle();
+            Check(model.ConfirmRemove, "Remove source opens confirmation");
+            model.CancelRemoveCommand.Execute(null); Settle();
+            Check(!model.ConfirmRemove && model.Sources.Count == 1, "Cancelling removal preserves source");
+            model.RequestRemoveCommand.Execute(null); Pump(model.RemoveCommand.ExecuteAsync(null));
+            Check(model.HasNoSources && store.Saved.Length == 0 && model.Entries.Count == 0, "Confirmed UI removal restores first-connection workspace");
             shell.NavigateCommand.Execute("home"); Settle(); Check(model.Entries.Count == 0 && model.Sources.Count == 0, "Navigation releases page data");
             var emptyCatalog = new RemoteSourceCatalog(null, files); shell.AttachRemote(emptyCatalog, files);
             shell.NavigateCommand.Execute("remote"); Settle(); var empty = window.GetVisualDescendants().OfType<RemoteView>().Single(); Until(() => !empty.Model.IsBusy);
             shell.Text.SetLanguage("zh-CN"); Settle(); Save("remote-empty.png"); Check(empty.Model.HasNoSources, "First connection empty state");
-            Click(empty.GetVisualDescendants().OfType<Button>().Single(x => x.Name == "ConnectButton"));
+            Check(empty.GetVisualDescendants().OfType<Button>().Count(x => x.Tag is string id && RemoteProviders.All.Contains(id)) == 7, "First connection shows providers directly");
             empty.Model.ChooseProviderCommand.Execute("webdav"); Settle();
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             Settle(); Check(!empty.Model.EditorOpen, "Keyboard Escape closes connection editor");
-            Check(empty.GetVisualDescendants().OfType<Button>().Single(x => x.Name == "ConnectButton").IsFocused, "Empty-state editor restores connection focus");
+            Check(empty.GetVisualDescendants().OfType<Button>().Single(x => x.Tag as string == "subsonic").IsFocused, "Empty-state editor restores provider focus");
             Pump(catalog.RemoveAsync(connection.Id, default)); Check(catalog.Sources.Count == 0 && store.Saved.Length == 0, "Removal persists empty catalog");
             Console.WriteLine($"PASS {checks} checks; actual Avalonia page, WebDAV HTTP fixtures, playback protocol fixture; {clock.Elapsed.TotalSeconds:0.0}s.");
         }
@@ -129,7 +148,14 @@ internal static class RemoteChecks
         void Settle() { for (var i = 0; i < 3; i++) { Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); } }
         void Save(string name)
         {
-            Settle(); using var frame = window.CaptureRenderedFrame(); if (frame is null) throw new IOException("Missing rendered frame");
+            // Allow real compositor commits after theme changes; three immediate ticks can capture a stale fade.
+            for (var frameIndex = 0; frameIndex < 6; frameIndex++) { Settle(); Thread.Sleep(10); }
+            if (name == "remote-light.png")
+            {
+                var ancestors = window.GetVisualDescendants().OfType<RemoteView>().Single().GetVisualAncestors().OfType<Control>().ToArray();
+                Check(ancestors.All(control => Echo.Desktop.Motion.MotionLane.CurrentOpacity(control) > 0.99), "Browser restores full presentation opacity");
+            }
+            using var frame = window.CaptureRenderedFrame(); if (frame is null) throw new IOException("Missing rendered frame");
             frame.Save(Path.Combine(output, name), PngBitmapEncoderOptions.Default);
         }
         void Click(Button button)

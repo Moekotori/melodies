@@ -36,6 +36,8 @@ public partial class SongsView
         DenseHeader.ColumnDefinitions = new ColumnDefinitions(narrow ? "*,*,56" : "*,*,*,110,56");
         DenseAlbumHeader.IsVisible = !narrow; DenseSpecHeader.IsVisible = !narrow;
         Grid.SetColumn(DenseDurationHeader, narrow ? 2 : 4);
+        ListHeader.IsVisible = layout == "list" && width >= 700;
+        ListHeaderColumns.ColumnDefinitions = SongTrackRow.RichColumns();
         var split = layout == "split";
         var stack = split && Workspace.Bounds.Width > 0 && Workspace.Bounds.Width < 900;
         Inspector.IsVisible = split;

@@ -1,4 +1,5 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls">
+  <StyleInclude Source="DspWorkbenchStyles.axaml" />
   <Styles.Resources>
     <SolidColorBrush x:Key="DspPlotBackground" Color="#22262D" />
     <SolidColorBrush x:Key="DspPlotMuted" Color="#ACB4C0" />
@@ -6,23 +7,27 @@
     <SolidColorBrush x:Key="DspPlotCurve" Color="#F3F5F8" />
     <SolidColorBrush x:Key="DspPlotField" Color="#2C323C" />
     <ControlTheme x:Key="DspNavigationItem" TargetType="ListBoxItem" x:DataType="local:DspModule">
-      <Setter Property="IsVisible" Value="{Binding NavigationVisible}" />
+      <Setter Property="IsVisible" Value="{Binding NavigationItemVisible}" />
       <Setter Property="Padding" Value="0" />
       <Setter Property="Margin" Value="0" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Template">
         <ControlTemplate>
-          <StackPanel>
-            <TextBlock Text="{Binding Group}" IsVisible="{Binding HasGroupHeading}" Margin="10,20,8,8" FontSize="11" Foreground="{DynamicResource EchoMuted}" />
-            <Border Name="Row" Padding="10,9" MinHeight="46" CornerRadius="5" BorderThickness="1" BorderBrush="Transparent" Cursor="Hand">
+          <StackPanel Name="NavigationItem">
+            <TextBlock Name="GroupHeading" Classes="dsp-group-heading" Classes.has-heading="{Binding HasGroupHeading}" Text="{Binding Group}" Margin="36,16,8,5" FontSize="12" Foreground="{DynamicResource EchoMuted}" />
+            <ToggleButton IsVisible="{Binding HasAdvancedHeading}" Classes="dsp-advanced-toggle" HorizontalAlignment="Stretch"
+                          IsChecked="{Binding $parent[ListBox].((local:DspViewModel)DataContext).AdvancedExpanded, Mode=TwoWay}" ToolTip.Tip="{DynamicResource ui.DspStyles.6a98e8d55e8d}">
+              <Grid ColumnDefinitions="*,14"><TextBlock Text="{DynamicResource ui.DspStyles.b10935532587}" FontSize="12" /><icons:GlyphIcon Grid.Column="1" Kind="chevron-right" Width="12" Height="12" /></Grid>
+            </ToggleButton>
+            <Border Name="Row" IsVisible="{Binding NavigationVisible}" Padding="12,8" MinHeight="46" CornerRadius="6" BorderThickness="1" BorderBrush="Transparent" Cursor="Hand">
               <Grid ColumnDefinitions="18,*,14" ColumnSpacing="10">
                 <icons:GlyphIcon Name="ModuleIcon" Kind="{Binding Icon}" Width="16" Height="16" StrokeWidth="1.6" Stroke="{DynamicResource EchoMuted}" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="5">
-                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Grid.Column="1" Text="{Binding Badge}" IsVisible="{Binding HasBadge}" FontSize="10" Classes="muted" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="Medium" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{Binding Badge}" IsVisible="{Binding HasBadge}" FontSize="12" Classes="muted" VerticalAlignment="Center" />
                   </Grid>
-                  <TextBlock Text="{Binding Detail}" IsVisible="{Binding ShowsDetail}" FontSize="11" Classes="muted" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Detail}" IsVisible="{Binding ShowsDetail}" FontSize="12" Classes="muted" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <icons:GlyphIcon Grid.Column="2" Kind="check" Width="12" Height="12" StrokeWidth="2.2" IsVisible="{Binding IsActive}" Stroke="{DynamicResource EchoSignalModified}" VerticalAlignment="Center" />
               </Grid>
@@ -35,8 +40,7 @@
       </Style>
       <Style Selector="^:selected /template/ Border#Row">
         <Setter Property="Background" Value="{DynamicResource LibraryPopupSelected}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
-        <Setter Property="BorderThickness" Value="2,0,0,0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
       </Style>
       <Style Selector="^:selected /template/ icons|GlyphIcon#ModuleIcon">
         <Setter Property="Stroke" Value="{DynamicResource EchoAccent}" />
@@ -73,6 +77,25 @@
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="ItemContainerTheme" Value="{StaticResource DspNavigationItem}" />
+    <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate></Setter>
+  </Style>
+  <Style Selector="ListBox.dsp-navigation.horizontal">
+    <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="4" /></ItemsPanelTemplate></Setter>
+  </Style>
+  <Style Selector="TextBlock.dsp-group-heading"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="TextBlock.dsp-group-heading.has-heading"><Setter Property="IsVisible" Value="True" /></Style>
+  <Style Selector="ListBox.dsp-navigation.horizontal ListBoxItem /template/ Border#Row">
+    <Setter Property="Width" Value="160" /><Setter Property="MinHeight" Value="46" />
+  </Style>
+  <Style Selector="ListBox.dsp-navigation.horizontal ListBoxItem /template/ StackPanel#NavigationItem">
+    <Setter Property="Orientation" Value="Horizontal" />
+  </Style>
+  <Style Selector="ListBox.dsp-navigation.horizontal ListBoxItem /template/ ToggleButton.dsp-advanced-toggle">
+    <Setter Property="Margin" Value="0,0,4,0" /><Setter Property="Padding" Value="12,6" />
+    <Setter Property="MinHeight" Value="46" /><Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ListBox.dsp-navigation.horizontal ListBoxItem /template/ TextBlock#GroupHeading">
+    <Setter Property="IsVisible" Value="False" />
   </Style>
   <Style Selector="ListBox.dsp-bands">
     <Setter Property="Background" Value="Transparent" />
@@ -135,12 +158,16 @@
   </Style>
   <Style Selector="ToggleButton.dsp-advanced-toggle">
     <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
-    <Setter Property="Padding" Value="10,9" /><Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="36,6,12,6" /><Setter Property="FontSize" Value="12" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Margin" Value="0,14,0,4" />
     <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
   </Style>
   <Style Selector="ToggleButton.dsp-advanced-toggle:checked">
     <Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" />
-    <Setter Property="Background" Value="{DynamicResource LibraryPopupSelected}" />
+  </Style>
+  <Style Selector="ToggleButton.dsp-advanced-toggle:checked icons|GlyphIcon">
+    <Setter Property="RenderTransform"><RotateTransform Angle="90" /></Setter>
   </Style>
   <Style Selector="Expander">
     <Setter Property="MinHeight" Value="36" /><Setter Property="FontSize" Value="12" />

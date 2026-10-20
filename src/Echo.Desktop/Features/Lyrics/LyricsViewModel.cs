@@ -31,7 +31,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string title = "暂无播放";
     [ObservableProperty] private string artist = "";
     [ObservableProperty] private string album = "";
-    [ObservableProperty] private string message = "播放一首歌曲，或导入歌词预览所有样式。";
+    [ObservableProperty] private string message = "";
     [ObservableProperty] private string origin = "";
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private bool hasLyrics;
@@ -56,6 +56,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
     {
         this.player = player; this.source = source; this.artwork = artwork; Appearance = appearance;
         this.selection = selection ?? new();
+        this.selection.ReloadRequested += ReloadSelected;
         player.Text.Changed += RefreshLanguage; RefreshLanguage();
         player.Session.Changed += OnSnapshot;
         OnSnapshot(player.Session.Snapshot);
@@ -101,6 +102,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
         return value + Appearance.OffsetMs;
     }
     public Task ImportAsync(string path) => LoadAsync(path);
+    private void ReloadSelected() => _ = LoadAsync(null);
     [RelayCommand] private Task ReloadAsync() => LoadAsync(null);
     public async Task LoadAsync(string? explicitPath)
     {
@@ -108,20 +110,20 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
         load?.Cancel(); var request = ++generation;
         using var cancellation = new CancellationTokenSource(); load = cancellation;
         Document = LyricsDocument.Empty; HasLyrics = false; Origin = ""; IsLoading = true;
-        Message = "正在读取歌词…"; Changed?.Invoke();
+        Message = ""; Changed?.Invoke();
         coverLease?.Dispose(); coverLease = null; Cover = null; CoverColors = null;
         var track = snapshot?.Current;
         var selectionKey = track?.FilePath ?? "";
         var effectivePath = explicitPath ?? selection.ForTrack(selectionKey);
         try
         {
-            if (track is null && effectivePath is null) { Message = "播放一首歌曲，或导入歌词预览所有样式。"; return; }
+            if (track is null && effectivePath is null) return;
             var text = await source.ReadAsync(track?.FilePath ?? effectivePath!, effectivePath, cancellation.Token);
             var parsed = text is null ? LyricsDocument.Empty : await Task.Run(() => LyricsParser.Parse(text, cancellation.Token), cancellation.Token);
             if (closed || request != generation) return;
             Document = parsed; HasLyrics = parsed.Lines.Count > 0; Origin = text?.Origin ?? "";
             if (explicitPath is not null && HasLyrics) selection.Select(selectionKey, explicitPath);
-            Message = HasLyrics ? (parsed.IsSynced ? "" : "纯文本歌词 · 可手动滚动") : "没有找到歌词。可导入 LRC、YRC、TTML 或字幕文件。";
+            Message = HasLyrics && !parsed.IsSynced ? "纯文本歌词 · 可手动滚动" : "";
             Changed?.Invoke();
             if (artwork is not null && track is not null)
             {
@@ -131,6 +133,8 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
             }
         }
         catch (OperationCanceledException) { }
+        catch (LyricsLookupUnavailableException)
+        { if (!closed && request == generation) Message = "网络歌词服务暂不可用，请稍后重新加载或导入本地歌词。"; }
         catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or System.Xml.XmlException)
         { if (!closed && request == generation) Message = "歌词读取失败。请检查文件格式或重新导入。"; }
         finally
@@ -144,6 +148,7 @@ public sealed partial class LyricsViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         if (closed) return; closed = true; generation++; load?.Cancel();
+        selection.ReloadRequested -= ReloadSelected;
         player.Text.Changed -= RefreshLanguage; player.Session.Changed -= OnSnapshot; coverLease?.Dispose(); coverLease = null; Cover = null;
         Document = LyricsDocument.Empty; Changed = null;
     }

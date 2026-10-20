@@ -7,14 +7,14 @@ using Echo.Playback.NativeAudio;
 
 internal static class NativeRadioSmoke
 {
-    public static async Task RunAsync(string executable, CancellationToken token)
+    public static async Task RunAsync(string executable, CancellationToken token, bool publicRadio = true)
     {
         using var resolver = new HttpRadioStreamResolver();
         await using var host = new NativeAudioHost(executable);
         await using var session = new PlaybackSessionCoordinator(host);
         using var radio = new RadioPlaybackService(session, resolver);
         await session.SetVolumeAsync(0, token); // Actual device render; this probe remains silent.
-        try
+        if (publicRadio) try
         {
             await radio.StartAsync(new("echo-real", "ECHO Radio", RadioCatalog.EchoUrl), token);
             await UntilAsync(() => session.Snapshot.Status == PlaybackStatus.Playing && session.Snapshot.PositionSeconds > 0.05, 5500, token);
@@ -23,7 +23,7 @@ internal static class NativeRadioSmoke
         }
         catch (Exception error) when (!token.IsCancellationRequested)
         {
-            Console.WriteLine("PUBLIC RADIO UNVERIFIED: " + error.Message);
+            Console.WriteLine("PUBLIC RADIO UNVERIFIED: " + error.Message + "; " + session.Snapshot.Status + "; " + session.Snapshot.Error);
             await session.StopAsync(token);
         }
         await using var fixture = new LoopbackRadio();

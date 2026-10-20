@@ -104,6 +104,7 @@ Core 持有业务状态和资源生命周期，Control 负责交互与有界展�
 - [扫描与数据库](docs/SCANNING_DATABASE.md) · [扫描迁移与兼容](docs/LEGACY_SCAN_MIGRATION.md)
 - [原生音频适配](docs/NATIVE_HOST_ADAPTATION.md) · [音频格式](docs/AUDIO_FORMAT_SUPPORT.md)
 - [歌词界面](docs/LYRICS_MIGRATION.md) · [本地歌词兼容](docs/LYRICS_LOCAL_COMPATIBILITY.md)
+- [ECHO 功能对照与歌单补齐](docs/ECHO_FUNCTIONAL_PARITY.md)
 - [远程 Control](docs/REMOTE_CONTROL.md) · [网络 Output](docs/NETWORK_OUTPUT.md)
 - [语言包与国际化](docs/I18N.md) · [主题系统](docs/THEME_SYSTEM.md)
 

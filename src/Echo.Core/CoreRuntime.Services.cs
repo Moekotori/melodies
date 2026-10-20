@@ -48,7 +48,8 @@ public sealed partial class CoreRuntime
         RemoteFiles = new(); RemoteSources = new(options?.RemoteStore, RemoteFiles);
         RemoteFiles.BindTokenWriter(RemoteSources);
         if (ownsPlayback) ((Echo.Playback.PlaybackSessionCoordinator)Playback.LocalZone.Session).AttachRemoteResolver(new RemotePlaybackResolver(RemoteSources, RemoteFiles));
-        Lyrics = new RemoteSidecarLyrics(new LocalLyricsSource(), RemoteSources.Find, RemoteFiles);
+        Lyrics = new Lyrics.CoreLyricsSource(new RemoteSidecarLyrics(new LocalLyricsSource(), RemoteSources.Find, RemoteFiles),
+            IdentifyLyricsAsync, Settings.Read("network-lyrics", new(true)).Enabled);
         Artwork = new RemoteSidecarArtwork(new LocalAlbumArtwork(), RemoteSources.Find, RemoteFiles);
         Details = new LocalDetailResources();
         Broadcast = new(() =>
@@ -107,9 +108,9 @@ public sealed partial class CoreRuntime
         {
             Podcasts?.Dispose(); radioNowPlaying?.Dispose(); RadioDirectory.Dispose();
             if (RadioStreams is IDisposable disposable) disposable.Dispose();
+            if (Lyrics is IAsyncDisposable lyrics) await lyrics.DisposeAsync().ConfigureAwait(false);
             RemoteFiles.Dispose();
             await Broadcast.DisposeAsync().ConfigureAwait(false);
-            if (Lyrics is IAsyncDisposable lyrics) await lyrics.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

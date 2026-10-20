@@ -16,6 +16,7 @@
     <StyleInclude Source="/Resources/Themes/EchoControls.axaml" />
     <StyleInclude Source="/Resources/Themes/EchoLayout.axaml" />
     <StyleInclude Source="/Resources/Themes/EchoSelectors.axaml" />
+    <StyleInclude Source="/Resources/Themes/EchoMenus.axaml" />
     <StyleInclude Source="/Resources/Themes/AccessibilityStyles.axaml" />
     <StyleInclude Source="/Features/Queue/QueueStyles.axaml" />
     <StyleInclude Source="/Features/Songs/SongsStyles.axaml" />
@@ -25,6 +26,7 @@
     <StyleInclude Source="/Features/Player/SignalPathStyles.axaml" />
     <StyleInclude Source="/Features/Player/PlayerVolumeStyles.axaml" />
     <StyleInclude Source="/Features/Settings/SettingsStyles.axaml" />
+    <StyleInclude Source="/Resources/Themes/EchoPages.axaml" />
     <StyleInclude Source="/Resources/Motion/EchoMotion.axaml" />
   </Application.Styles>
 </Application>

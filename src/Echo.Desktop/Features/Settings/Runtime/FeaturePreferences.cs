@@ -7,6 +7,7 @@ public sealed class FeaturePreferences : Echo.Bridge.IBridgePreferences
     private readonly Dictionary<string, FeatureSetting> _values = new(StringComparer.Ordinal);
     public event Action<string>? Changed;
     public FeatureSetting Read(string id, FeatureSetting fallback) => _values.GetValueOrDefault(id, fallback);
+    public bool Contains(string id) => _values.ContainsKey(id);
     public IReadOnlyDictionary<string, FeatureSetting> Values => Snapshot();
     public Dictionary<string, FeatureSetting> Snapshot() => new(_values, StringComparer.Ordinal);
     public void Confirm(string id, FeatureSetting value)

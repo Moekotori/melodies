@@ -32,7 +32,7 @@ public sealed partial class PodcastViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int filterIndex;
     [ObservableProperty] private string message = "";
     [ObservableProperty] private bool busy;
-    [ObservableProperty] private bool editorOpen;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowSubscriptionRail), nameof(ShowWelcome))] private bool editorOpen;
     [ObservableProperty] private bool confirmRemove;
     [ObservableProperty] private string draftUrl = "";
     [ObservableProperty] private bool descriptionOpen;
@@ -48,6 +48,8 @@ public sealed partial class PodcastViewModel : ObservableObject, IDisposable
     public int DescriptionLines => DescriptionOpen ? 12 : 3;
     public string DescriptionToggle => DescriptionOpen ? "收起简介" : "展开简介";
     public bool HasShows => Shows.Count > 0;
+    public bool ShowSubscriptionRail => all.Count > 0 || EditorOpen;
+    public bool ShowWelcome => !ShowSubscriptionRail;
     public bool HasEpisodes => Episodes.Count > 0;
     public string CountText => $"{Total} 集";
     public string PageText => Total == 0 ? "" : $"第 {Page + 1} 页";
@@ -173,6 +175,8 @@ public sealed partial class PodcastViewModel : ObservableObject, IDisposable
         foreach (var row in visible) Shows.Add(row);
         MarkSelected();
         OnPropertyChanged(nameof(HasShows));
+        OnPropertyChanged(nameof(ShowSubscriptionRail));
+        OnPropertyChanged(nameof(ShowWelcome));
     }
 
     private void MarkSelected()

@@ -11,6 +11,9 @@ internal static class ArtistCoreSmoke
         var cache = Path.Combine(root, "artist-information"); Directory.CreateDirectory(cache);
         foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "providers"), "*.json"))
             File.Copy(file, Path.Combine(cache, Path.GetFileName(file)), true);
+        Directory.CreateDirectory(Path.Combine(cache, "images"));
+        foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "providers", "images"), "*.img"))
+            File.Copy(file, Path.Combine(cache, "images", Path.GetFileName(file)), true);
         using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var endpoint = new CoreEndpoint(root, Path.Combine(root, "artists.sqlite"));
         await using var runtime = new CoreRuntime(new PlaybackRuntime(new ArtistDetailSmoke.AudioFixture()), endpoint.LibraryPath);
@@ -25,6 +28,9 @@ internal static class ArtistCoreSmoke
             Check(insights.Plays == 2 && other.Plays == insights.Plays && other.Revision == insights.Revision, "Independent Controls must observe one Core's artist state.");
             var information = await first.Library.GetArtistInformationAsync(new("Aurora"), stop.Token);
             Check(information.Biography is not null && information.Facts.Count > 0, "Online artist information must travel through the typed Core RPC.");
+            Check(first.Artwork is Echo.Contracts.Library.IArtistArtwork portraits && information.Biography?.ArtworkReference is { } reference
+                && await portraits.ReadArtistAsync("online:" + reference, stop.Token) is { Length: > 0 }, "Core image references travel through the resource IPC without Control-side downloads.");
+            Check(information.Relations.Single().LocalArtist?.Name == "Björk", "Core resolves online relationships against its library and returns typed navigation targets.");
             await second.DisposeAsync();
             await using var reconnected = await CoreConnection.ConnectAsync(endpoint, token: stop.Token);
             Check((await reconnected.Library.GetArtistInsightsAsync(artist.Id, artist.Grouping, stop.Token)).Plays == 2,

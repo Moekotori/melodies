@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspDeesserView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,12,24">
+      <local:DspDynamicsStatus/>
+      <Button Name="DeesserListenButton" Content="{DynamicResource ui.DspDeesserView.ef2036652dae}" IsEnabled="{Binding CanEdit}"/>
+      <StackPanel Spacing="8"><TextBlock Text="检测带 · 拖动曲线调整频率" FontSize="14" FontWeight="Medium"/><local:DspDiagramControl Kind="deesserBand" UseThemeSurface="True" Height="165"/></StackPanel>
+      <Border Classes="dsp-rule" Padding="0,18,0,0"><StackPanel Spacing="8"><TextBlock Text="衰减轨迹" FontSize="14" FontWeight="Medium"/><local:DspDiagramControl Kind="history" UseThemeSurface="True" Height="145"/></StackPanel></Border>
+      <local:DspColumns MinimumColumnWidth="300" MaximumColumns="3">
+        <Border Classes="dsp-section">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspDeesserView.e8c727fd25d8}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+              <local:DspParameterEditor DataContext="{Binding Fields[frequencyHz]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[q]}"/>
+            </StackPanel>
+            <TextBlock IsVisible="{Binding DeesserListening}" Text="{DynamicResource ui.DspDeesserView.6cdbf34fbaf0}" Classes="dsp-note"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="dsp-section">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspDeesserView.10f20a601818}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+              <local:DspColumns MinimumColumnWidth="180" MaximumColumns="2">
+                <local:DspParameterEditor DataContext="{Binding Fields[thresholdDb]}"/>
+                <local:DspParameterEditor DataContext="{Binding Fields[ratio]}"/>
+                <local:DspParameterEditor DataContext="{Binding Fields[rangeDb]}"/>
+                <local:DspParameterEditor DataContext="{Binding Fields[kneeDb]}"/>
+              </local:DspColumns>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspDeesserView.c2e80f04c803}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+            <local:DspColumns MinimumColumnWidth="300" MaximumColumns="1">
+              <local:DspParameterEditor DataContext="{Binding Fields[attackMs]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[releaseMs]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[mix]}"/>
+            </local:DspColumns>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      
+      </local:DspColumns>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspDeesserView.0906241d2a8a}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <local:DspRuntimeReadout/>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

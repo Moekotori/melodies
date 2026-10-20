@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:models="using:Echo.Desktop.Features.Settings.Models" xmlns:settings="using:Echo.Desktop.Features.Settings.Controls" xmlns:icon="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Settings.Controls.SettingRowView" x:DataType="models:SettingRowViewModel">
   <UserControl.Resources>
     <DataTemplate x:Key="ToggleEditor" x:DataType="models:SettingRowViewModel">
-      <ToggleSwitch IsChecked="{Binding BoolValue, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" OnContent="" OffContent="" HorizontalAlignment="Right" AutomationProperties.Name="{Binding Title}" />
+      <ToggleSwitch IsChecked="{Binding BoolValue, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" OnContent="" OffContent="" HorizontalAlignment="Right" Margin="0,0,-14,0" AutomationProperties.Name="{Binding Title}" />
     </DataTemplate>
     <DataTemplate x:Key="SelectEditor" x:DataType="models:SettingRowViewModel">
       <ComboBox Classes="settings-select" ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedOption, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" AutomationProperties.Name="{Binding Title}">
@@ -82,18 +82,16 @@
       </ItemsControl>
     </DataTemplate>
   </UserControl.Resources>
-  <Border BorderThickness="0" BorderBrush="{DynamicResource SettingsDivider}" Padding="0,14" MinHeight="64" CornerRadius="6" Background="Transparent" Name="RowBorder" ToolTip.Tip="{Binding UnavailableHint}">
-    <Grid Name="RowLayout" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="20">
-      <StackPanel VerticalAlignment="Center" Spacing="5" Margin="0,0,6,0">
+  <Border Classes="setting-row" Classes.unavailable="{Binding IsUnavailable}" Name="RowBorder" ToolTip.Tip="{Binding UnavailableHint}">
+    <Grid Name="RowLayout" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="24">
+      <StackPanel VerticalAlignment="Center" Spacing="4" Margin="0,0,6,0">
         <WrapPanel>
-          <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Medium" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" TextWrapping="Wrap" />
-          <Border IsVisible="{Binding HasBadge}" Margin="8,0,0,0" Padding="6,3" Background="{DynamicResource SettingsBadge}" CornerRadius="10">
-            <TextBlock Text="{Binding Badge}" Foreground="{DynamicResource SettingsBadgeText}" FontSize="10" />
+          <TextBlock Text="{Binding Title}" Classes="setting-title" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Border IsVisible="{Binding HasBadge}" Margin="8,0,0,0" Padding="7,2" Background="{DynamicResource SettingsBadge}" CornerRadius="10" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Badge}" Foreground="{DynamicResource SettingsBadgeText}" FontSize="12" />
           </Border>
-          <Button IsVisible="{Binding HasHelp}" ToolTip.Tip="{Binding Help}" Width="20" Height="24" MinHeight="24" Padding="0" Margin="4,0,0,0">
-            <icon:GlyphIcon Kind="help" Width="14" Height="14" />
-          </Button>
         </WrapPanel>
+        <TextBlock IsVisible="{Binding HasHelp}" Text="{Binding Help}" Classes="muted" FontSize="12" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" />
       </StackPanel>
       <ContentControl Name="RowEditor" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" MaxWidth="520" />
     </Grid>

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Echo.Playback.Smoke/AutomixPlannerChecks.cs" Link="OriginalPlannerChecks.cs" />
+    <EmbeddedResource Include="AlphaSourceReference.json" />
+  </ItemGroup>
+</Project>

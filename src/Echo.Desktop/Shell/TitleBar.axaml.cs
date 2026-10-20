@@ -15,6 +15,11 @@ public partial class TitleBar : UserControl
         }
     }
     private Window? Host => TopLevel.GetTopLevel(this) as Window;
+    private void OnOpenOperationGuide(object? sender, RoutedEventArgs e)
+    {
+        MoreButton.Flyout?.Hide();
+        if (DataContext is ShellViewModel shell) shell.OpenOperationGuideCommand.Execute(null);
+    }
     private void OnOpenQuickSettings(object? sender, RoutedEventArgs e)
     {
         MoreButton.Flyout?.Hide();
@@ -25,10 +30,22 @@ public partial class TitleBar : UserControl
     protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
     {
         MoreButton.Flyout?.Hide();
+        BrandText.ContextMenu?.Close();
+        CloseButton.ContextMenu?.Close();
         base.OnDetachedFromVisualTree(e);
     }
     private void OnMinimize(object? sender, RoutedEventArgs e) { if (Host is { } host) host.WindowState = WindowState.Minimized; }
     private void OnClose(object? sender, RoutedEventArgs e) => Host?.Close();
+    private async void OnStopAndClose(object? sender, RoutedEventArgs e)
+    {
+        MoreButton.Flyout?.Hide();
+        if (Host is MainWindow window) await window.StopPlaybackAndExitAsync();
+    }
+    private void OnDisconnect(object? sender, RoutedEventArgs e)
+    {
+        MoreButton.Flyout?.Hide();
+        if (Host is MainWindow window) window.RequestExit();
+    }
     private void OnMaximize(object? sender, RoutedEventArgs e)
     {
         if (Host is { } host) host.WindowState = host.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;

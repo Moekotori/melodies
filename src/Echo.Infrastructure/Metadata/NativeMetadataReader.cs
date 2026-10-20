@@ -45,13 +45,14 @@ public sealed class NativeMetadataReader(string scannerPath) : IMetadataReader
             var value = new TrackMetadata(Text(fields, "title"), Text(fields, "artist"), Text(fields, "album"),
                 Text(fields, "albumArtist"), Double(fields, "duration"), Text(fields, "codec"),
                 Integer(fields, "sampleRate") ?? 0, Integer(fields, "bitDepth") ?? 0,
-                Integer(fields, "trackNo"), Integer(fields, "discNo"), Integer(fields, "year"), Text(fields, "genre"), Integer(fields, "bitrate"), Double(fields, "bpm"));
+                Integer(fields, "trackNo"), Integer(fields, "discNo"), Integer(fields, "year"), Text(fields, "genre"), Integer(fields, "bitrate"), Double(fields, "bpm"),
+                NativeCreditTags.Read(root.GetProperty("result")));
             return MetadataRules.Normalize(file, value);
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
             if (error is MetadataReadException
-                { Code: "native_format_unsupported" or "native_metadata_failed" or "invalid_audio_properties" or "metadata_text_limit" })
+                { Code: "native_format_unsupported" or "native_metadata_failed" or "invalid_audio_properties" or "metadata_text_limit" or "metadata_credit_limit" })
                 throw;
             if (!cancellation.IsCancellationRequested) _transportFailures++;
             await DisposeAsync().ConfigureAwait(false);

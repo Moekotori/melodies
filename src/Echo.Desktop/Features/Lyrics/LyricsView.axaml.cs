@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Avalonia.Platform.Storage;
+using Echo.Desktop.Controls;
 using Echo.Desktop.Shell;
 
 namespace Echo.Desktop.Features.Lyrics;
@@ -11,6 +13,7 @@ public partial class LyricsView : UserControl, IDisposable
     private readonly ShellViewModel shell;
     private readonly string backRoute;
     private bool updatingScroll, closed;
+    private TrackSwipeGesture? swipe;
     public LyricsViewModel Model { get; }
     public LyricsView(ShellViewModel shell, string backRoute = "home")
     {
@@ -29,6 +32,9 @@ public partial class LyricsView : UserControl, IDisposable
         Model.Changed += OnChanged;
         Model.Appearance.PropertyChanged += OnLyricsStyleChanged;
         InitializeChrome();
+        swipe = new(this, LyricsStage, () => !closed && shell.Player is { CanControl: true, IsSeeking: false },
+            source => source is not null && LyricsStage.IsVisualAncestorOf(source) && !TrackSwipeGesture.IsInteractive(source, LyricsStage),
+            direction => (direction > 0 ? shell.Player.NextCommand : shell.Player.PreviousCommand).Execute(null));
         DetachedFromVisualTree += (_, _) => Dispose();
         UpdateScroll();
     }
@@ -68,7 +74,7 @@ public partial class LyricsView : UserControl, IDisposable
     public void Dispose()
     {
         if (closed) return; closed = true;
-        DisposeChrome();DisposeBackgroundInput();BackgroundScene.Dispose();
+        swipe?.Dispose(); DisposeChrome();DisposeBackgroundInput();BackgroundScene.Dispose();
         SourceScene.FallbackChanged -= Viewport.SetSceneFallback; SourceScene.Dispose();
         Viewport.FrameRequested -= Backdrop.UpdateClock;
         Viewport.FrameRequested -= JizuraScene.UpdateClock; JizuraScene.Dispose();

@@ -44,7 +44,10 @@ public sealed partial class PlaybackSessionCoordinator
         await SendQueueAsync(items, previous.ItemId, repeat).ConfigureAwait(false);
         await OpenAsync(previous).ConfigureAwait(false);
         SetQueueItems(RemoveCompleted(items, current, previous)); history = trimmed;
+        if (current is not null && current.ItemId != previous.ItemId) RememberShuffleTrack(current.TrackId);
+        RefreshShuffleOrder();
         await SendQueueAsync(queue, previous.ItemId, repeat).ConfigureAwait(false);
+        await RefreshAlbumGaplessAsync().ConfigureAwait(false);
         PublishQueue();
     }, token);
 
@@ -56,7 +59,11 @@ public sealed partial class PlaybackSessionCoordinator
         await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
         await OpenAsync(track).ConfigureAwait(false);
         CompleteTransition(previous, track);
-        if (!ReferenceEquals(previousQueue, queue)) await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
+        if (RefreshShuffleOrder() || !ReferenceEquals(previousQueue, queue))
+        {
+            await SendQueueAsync(queue, track.ItemId, repeat).ConfigureAwait(false);
+            await RefreshAlbumGaplessAsync().ConfigureAwait(false);
+        }
         PublishQueue();
     }
 
@@ -68,6 +75,7 @@ public sealed partial class PlaybackSessionCoordinator
     {
         if (previous is not null && previous.ItemId != next.ItemId)
         {
+            RememberShuffleTrack(previous.TrackId);
             if (!previous.RemoveAfterPlay && queue.Any(x => x.ItemId == previous.ItemId)) history = history.Append(previous).TakeLast(500).ToArray();
             // Keep only a bounded metadata history, even for long path/title strings.
             TrimHistory();
@@ -86,6 +94,7 @@ public sealed partial class PlaybackSessionCoordinator
         try { if (initialized) await SendQueueAsync(queue, snapshot.Current?.ItemId, nextRepeat).ConfigureAwait(false); }
         catch { shuffle = oldShuffle; shuffleOrder = oldOrder; throw; }
         repeat = nextRepeat;
+        await RefreshAlbumGaplessAsync().ConfigureAwait(false);
         PublishQueue(); Publish(snapshot);
     }, token, affectsPlayback: false);
 

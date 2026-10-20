@@ -20,6 +20,7 @@ internal static class FlacMetadataReader
         int sampleRate = 0, bits = 0;
         long samples = 0;
         var title = ""; var artist = ""; var album = ""; var albumArtist = ""; var genre = "";
+        var credits = new List<CreditTag>();
         int? track = null, disc = null, year = null;
         double? bpm = null;
         var blocks = 0;
@@ -67,11 +68,18 @@ internal static class FlacMetadataReader
                     if (separator < 0) continue;
                     var key = Encoding.ASCII.GetString(comment[..separator]);
                     var value = comment[(separator + 1)..];
+                    if (Echo.Infrastructure.Library.ArtistRoleRules.Recognized(key))
+                    {
+                        credits.Add(new(key, Decode(value)));
+                        MetadataRules.ValidateCredits(credits);
+                    }
                     if (key.Equals("CUESHEET", StringComparison.OrdinalIgnoreCase)) continue;
                     if (key.Equals("TITLE", StringComparison.OrdinalIgnoreCase)) title = Decode(value);
                     else if (key.Equals("ARTIST", StringComparison.OrdinalIgnoreCase)) artist = Merge(artist, Decode(value));
                     else if (key.Equals("ALBUM", StringComparison.OrdinalIgnoreCase)) album = Decode(value);
-                    else if (key.Equals("ALBUMARTIST", StringComparison.OrdinalIgnoreCase)) albumArtist = Merge(albumArtist, Decode(value));
+                    else if (key.Equals("ALBUMARTIST", StringComparison.OrdinalIgnoreCase)
+                        || key.Equals("ALBUM_ARTIST", StringComparison.OrdinalIgnoreCase)
+                        || key.Equals("ALBUM ARTIST", StringComparison.OrdinalIgnoreCase)) albumArtist = Merge(albumArtist, Decode(value));
                     else if (key.Equals("GENRE", StringComparison.OrdinalIgnoreCase)) genre = Merge(genre, Decode(value));
                     else if ((key.Equals("BPM", StringComparison.OrdinalIgnoreCase) || key.Equals("TEMPO", StringComparison.OrdinalIgnoreCase))
                         && double.TryParse(Decode(value), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var tempo)) bpm = tempo;
@@ -88,7 +96,7 @@ internal static class FlacMetadataReader
         if (sampleRate <= 0 || samples <= 0) throw new MetadataReadException("invalid_flac_properties");
         return MetadataRules.Normalize(file, new(title, artist, album, albumArtist, (double)samples / sampleRate,
             "FLAC", sampleRate, bits, track, disc, year, genre,
-            (int)Math.Clamp(Math.Round((stream.Length - stream.Position) * 8.0 * sampleRate / samples), 0, int.MaxValue), bpm));
+            (int)Math.Clamp(Math.Round((stream.Length - stream.Position) * 8.0 * sampleRate / samples), 0, int.MaxValue), bpm, credits));
     }
 
     private static int ReadLength(byte[] data, ref int offset)

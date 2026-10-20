@@ -11,7 +11,7 @@ public sealed partial class EqBandViewModel(int index, double frequency, double 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(FrequencyLabel))] private double frequencyHz = frequency;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(GainLabel)), NotifyPropertyChangedFor(nameof(IsShaped))] private double gainDb = gain;
     [ObservableProperty] private double q = q;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(QMaximum)), NotifyPropertyChangedFor(nameof(IsGainEditable)), NotifyPropertyChangedFor(nameof(SupportsDynamic)), NotifyPropertyChangedFor(nameof(DynamicActive))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(QMaximum)), NotifyPropertyChangedFor(nameof(IsGainEditable)), NotifyPropertyChangedFor(nameof(SupportsDynamic)), NotifyPropertyChangedFor(nameof(DynamicActive)), NotifyPropertyChangedFor(nameof(IsShaped))]
     private DspChoice filter = EqFilters.All.FirstOrDefault(x => x.Key == filter) ?? EqFilters.All[0];
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsShaped))] private bool enabled = enabled;
     public string FrequencyFormat => correction ? "G7" : "0.#";
@@ -23,7 +23,7 @@ public sealed partial class EqBandViewModel(int index, double frequency, double 
     public double QMinimum => correction ? 0.001 : 0.1;
     public double QMaximum => correction ? 1000 : Filter.Key == "notch" ? 24 : 12;
     public bool IsGainEditable => Filter.Key is "peaking" or "lowShelf" or "highShelf";
-    public bool IsShaped => Enabled && Math.Abs(GainDb) > 0.01;
+    public bool IsShaped => Enabled && (!IsGainEditable || Math.Abs(GainDb) > 0.01 || DynamicActive);
     public IBrush Swatch => DspBandPalette.Brush(Index);
     public string FrequencyLabel => FrequencyHz >= 1000 ? $"{FrequencyHz / 1000:0.#}k" : $"{FrequencyHz:0.#}";
     public string GainLabel => $"{GainDb:+0.0;-0.0;0.0} dB";

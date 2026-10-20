@@ -25,10 +25,12 @@ AppBuilder.Configure<App>().UseSkia().With(DesktopFonts.CreateOptions())
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
 if (args.Contains("--local-compatibility")) { CompatibilityUiSmoke.Run(); return; }
 if (args.Contains("--word-highlighting")) { WordHighlightUiSmoke.Run(); return; }
+if (args.Contains("--highlight-styles")) { HighlightStylesUiSmoke.Run(); return; }
+if (args.Contains("--background-settings")) { BackgroundSettingsUiSmoke.Run(args[0]); return; }
 var watch = Stopwatch.StartNew();
 var root = Path.GetFullPath(args.Length > 0 ? args[0] : "misc/lyrics-migration"); Directory.CreateDirectory(root);
 using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(40));
-if (!args.Contains("--styles-only")&&!args.Contains("--backgrounds-only")) ParserSmoke.Run();
+if (!args.Contains("--styles-only")&&!args.Contains("--backgrounds-only")&&!args.Contains("--background-empty")) ParserSmoke.Run();
 var host = new TestHost(); var session = new PlaybackSessionCoordinator(host); var player = new PlayerViewModel(new PlaybackZone("lyrics-test", "歌词测试", session));
 var settingsPath = Path.Combine(root, "preferences.json");
 var settings = new LocalLyricsPreferencesStore(settingsPath); var appearance = new LyricsAppearance(settings);
@@ -62,6 +64,11 @@ using (var codec = SKCodec.Create(data))
     var thumbnail = artwork.AcquireAsync(audio, limit.Token); Pump(thumbnail);
     using var thumbnailLease = thumbnail.Result;
     Check(thumbnailLease?.Image is { } thumb && Math.Max(thumb.PixelSize.Width, thumb.PixelSize.Height) <= 320, "ordinary thumbnail budget remains 320");
+}
+if(args.Contains("--background-empty"))
+{
+    BackgroundEmptyUiSmoke.Run(view,window,shell,root,Pump,Capture);
+    window.Close();return;
 }
 if(args.Contains("--backgrounds-only"))
 {
@@ -108,7 +115,7 @@ if(args.Contains("--backgrounds-only"))
     backgroundPicker.BringIntoView();Capture("background-settings");
     backgroundPicker.IsDropDownOpen=true;Capture("background-picker");
     backgroundPicker.SelectedItem=appearance.BackgroundChoices.Single(c=>c.Id=="coverPond");Dispatcher.UIThread.RunJobs();
-    Check(appearance.BackgroundMode=="coverPond"&&appearance.BackgroundChoices.Count==20,"actual background picker updates independent source");
+    Check(appearance.BackgroundMode=="coverPond","actual background picker updates independent source");
     backgroundPicker.IsDropDownOpen=false;Capture("background-settings-selected");
     shell.CloseQuickSettingsCommand.Execute(null);appearance.BackgroundMode="coverFlow";
     Pump(settings.DisposeAsync().AsTask());

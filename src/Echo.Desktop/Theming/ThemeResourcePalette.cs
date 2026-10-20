@@ -20,7 +20,8 @@ internal static class ThemeResourcePalette
         Color C(string key) => ThemeColorMath.Saturate(Color.Parse(colors[key]), tone.Numbers["saturationPercent"] / 100);
         var appearance = preferences.Appearance ?? new();
         var wallpaper = wallpaperAvailable && appearance.WallpaperEnabled && (preferences.Wallpaper.Length > 0 || appearance.PortraitWallpaper.Length > 0);
-        if ((dark ? appearance.PageTextDark : appearance.PageTextLight) is { } textColor) colors["text"] = textColor;
+        if ((dark ? appearance.PageTextDark : appearance.PageTextLight) is { } textColor) colors["text"] = colors["heading"] = textColor;
+        if ((dark ? appearance.Typography?.SecondaryDark : appearance.Typography?.SecondaryLight) is { } secondaryColor) colors["muted"] = secondaryColor;
         var alpha = tone.Numbers["panelOpacityPercent"] / 100 * (1 - tone.Numbers["glassPercent"] / 200);
         var wallpaperAlpha = Math.Max(appearance.WallpaperVisualProtection ? .36 : 0, appearance.WallpaperUiOpacity / 100);
         if (wallpaper) alpha *= wallpaperAlpha;
@@ -55,7 +56,15 @@ internal static class ThemeResourcePalette
                 new(ThemeColorMath.PageGradientStop(C("appBg"), C("appBg3")), 1) } };
         result["EchoPageContent"] = wallpaper ? new SolidColorBrush(C("appBg"), wallpaperAlpha * (appearance.WallpaperUnifiedOpacity ? 1 : .62))
             : acrylic ? Brushes.Transparent : result["EchoPageBase"];
-        result["EchoPageGlow"] = Brushes.Transparent;
+        // A retained, theme-derived wash: no blur, bitmap layer or animation timer.
+        result["EchoPageGlow"] = wallpaper || acrylic ? Brushes.Transparent : new RadialGradientBrush
+        {
+            Center = new RelativePoint(.14, 0, RelativeUnit.Relative),
+            GradientOrigin = new RelativePoint(.14, 0, RelativeUnit.Relative),
+            RadiusX = new RelativeScalar(.72, RelativeUnit.Relative),
+            RadiusY = new RelativeScalar(.62, RelativeUnit.Relative),
+            GradientStops = new() { new(Color.FromArgb(dark ? (byte)12 : (byte)9, C("accent").R, C("accent").G, C("accent").B), 0), new(Colors.Transparent, 1) }
+        };
         // Electron's player aura is a single retained brush, with no extra animation or image cache.
         result["EchoPlayerGlow"] = wallpaper || acrylic ? Brushes.Transparent : new RadialGradientBrush
         {

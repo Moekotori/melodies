@@ -24,6 +24,7 @@ public sealed class PlaybackSettingsModule : IDisposable
             value.Selection switch { "Nightcore" => "nightcore", "Doubletime" => "speed", _ => throw new ArgumentException("无效的变速模式。") }, token));
         runtime.RegisterChange("auto-play-on-startup", (_, _) => Task.CompletedTask); // Consumed once in StartupAsync.
         runtime.RegisterChange("gapless-playback", (value, token) => playback.LocalZone.Session.SetAlbumGaplessEnabledAsync(value.Enabled, token));
+        runtime.RegisterChange("shuffle-credibility", (value, token) => playback.LocalZone.Session.SetShuffleAvoidRecentCountAsync(ShuffleAvoidance.FromSelection(value.Selection), token));
         runtime.RegisterChange("automix", (value, token) => playback.LocalZone.Session.SetAutomixEnabledAsync(value.Enabled, token));
         runtime.RegisterChange("wdm-ks", async (value, _) =>
         { shell.Player!.AudioSettings.ShowKernelStreaming = value.Enabled; await shell.Player.AudioSettings.RefreshCommand.ExecuteAsync(null); });
@@ -113,6 +114,7 @@ public sealed class PlaybackSettingsModule : IDisposable
         {
             await playback.LocalZone.Session.SetVolumeLockedAsync(shell.FeaturePreferences.Read("fixed-volume", new()).Enabled, lifetime.Token);
             await playback.LocalZone.Session.SetAlbumGaplessEnabledAsync(shell.FeaturePreferences.Read("gapless-playback", new()).Enabled, lifetime.Token);
+            await playback.LocalZone.Session.SetShuffleAvoidRecentCountAsync(ShuffleAvoidance.FromSelection(shell.FeaturePreferences.Read("shuffle-credibility", new()).Selection), lifetime.Token);
             await playback.LocalZone.Session.SetAutomixEnabledAsync(shell.FeaturePreferences.Read("automix", new()).Enabled, lifetime.Token);
             shell.Player!.AudioSettings.ShowKernelStreaming = shell.FeaturePreferences.Read("wdm-ks", new()).Enabled;
             if (shell.FeaturePreferences.Snapshot().ContainsKey("speed-mode"))

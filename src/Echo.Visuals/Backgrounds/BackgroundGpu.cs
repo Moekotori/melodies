@@ -93,7 +93,7 @@ internal sealed class BackgroundGpu(CanvasPool canvases) : IDisposable
             else {p.Children[child]=black;p.Uniforms[child+"_size"]=emptySize;}
         }
     }
-    public SKPicture TakePicture() { var value = picture ?? throw new InvalidOperationException("Background did not draw."); picture = null; return value; }
+    public SKPicture? TakePicture() { var value = picture; picture = null; return value; }
     public void Dispose()
     {
         picture?.Dispose(); foreach (var p in programs.Values) p.Dispose(); foreach (var image in images.Values) image.Dispose();

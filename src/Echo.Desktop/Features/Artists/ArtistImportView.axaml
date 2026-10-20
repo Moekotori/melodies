@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Artists" x:Class="Echo.Desktop.Features.Artists.ArtistImportView"
+             x:DataType="local:ArtistImportViewModel">
+  <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Stretch">
+    <TextBlock Name="ImportTitle" Text="{DynamicResource credits.import.title}" Classes="heading" FontSize="20" />
+    <TextBlock Text="{DynamicResource credits.import.help}" Classes="muted" TextWrapping="Wrap" />
+    <TextBox Name="DelimiterInput" Text="{Binding Delimiters,Mode=TwoWay}" AcceptsReturn="True" MinHeight="92" MaxHeight="160" MaxLength="272" IsEnabled="{Binding !Busy}" PlaceholderText=";" />
+    <WrapPanel Orientation="Horizontal">
+      <Button Content="{DynamicResource credits.import.apply}" Command="{Binding SaveCommand}" Margin="0,0,10,8" />
+      <Button Content="{DynamicResource credits.import.reset}" Command="{Binding ResetCommand}" Margin="0,0,10,8" />
+      <Button Content="{DynamicResource credits.import.reread}" Command="{Binding ReadTagsCommand}" IsEnabled="{Binding !Busy}" Margin="0,0,10,8" />
+      <Button Content="{DynamicResource credits.import.cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding Busy}" Margin="0,0,10,8" />
+    </WrapPanel>
+    <ProgressBar Minimum="0" Maximum="{Binding Total}" Value="{Binding Processed}" IsVisible="{Binding Busy}" Height="4" />
+    <TextBlock Text="{Binding Status}" Classes="muted" TextWrapping="Wrap" />
+  </StackPanel>
+</UserControl>

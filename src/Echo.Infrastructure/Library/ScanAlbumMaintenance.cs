@@ -18,6 +18,7 @@ internal sealed class ScanAlbumMaintenance
     public static void Refresh(SqliteConnection connection, SqliteTransaction transaction, ArtistIndexWriter artists,
         IReadOnlyList<string> paths, CancellationToken cancellation)
     {
+        using var interrupt = new ReadCancellation(connection, cancellation);
         using var command = connection.CreateCommand(); command.Transaction = transaction;
         cancellation.ThrowIfCancellationRequested();
         command.CommandText = AlbumDisplay.Refresh("id IN(SELECT album_id FROM scan_album_dirty)");

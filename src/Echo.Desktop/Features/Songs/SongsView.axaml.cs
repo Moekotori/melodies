@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -29,18 +30,12 @@ public partial class SongsView : UserControl, IDisposable
         trackMenu = new(this, shell, Model); TrackList.ContextMenu = trackMenu.Menu;
         TrackList.AddHandler(InputElement.PointerPressedEvent, OnTrackPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         Model.PreferenceChanged += () => { try { shell.RememberQuery(Model.Preference); } catch (ArgumentException) { } };
-        BindLayout();
+        BindLayout(); InitSearchChrome();
         AttachedToVisualTree += (_, _) => _ = Model.LoadAsync();
         DetachedFromVisualTree += (_, _) => Dispose();
     }
     private void AppearanceChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     { if (shell is not null && args.PropertyName == nameof(AppearanceVisualsViewModel.WaveformScrollbar)) ApplyScrollbar(shell); }
-    public void FocusSearch() => SearchField.Focus();
-    private void OnSearchKey(object? sender, KeyEventArgs args)
-    {
-        if (args.Key == Key.Enter) { _ = Model?.LoadAsync(); args.Handled = true; }
-        if (args.Key == Key.Escape && Model is not null) { Model.Search = ""; args.Handled = true; }
-    }
     private void OnAdvancedFilters(object? sender, RoutedEventArgs args)
     {
         if (FilterButton.Flyout is not Flyout flyout) return;
@@ -58,10 +53,13 @@ public partial class SongsView : UserControl, IDisposable
         var query = Model.Search.TrimEnd(); Model.Search = query + (query.Length > 0 ? " " : "") + "/" + token + " ";
         CommandButton.Flyout?.Hide(); FocusSearch(); SearchField.CaretIndex = Model.Search.Length;
     }
-    private void OnDoubleTapped(object? sender, TappedEventArgs args)
+    private void OnTrackTapped(object? sender, TappedEventArgs args)
     {
-        if (args.Source is Avalonia.Visual visual && visual.GetSelfAndVisualAncestors().OfType<Button>().Any()) return;
-        Model?.PlayCommand.Execute(null);
+        if (Model is null || args.Source is not Avalonia.Visual visual) return;
+        var ancestors = visual.GetSelfAndVisualAncestors().ToList();
+        if (ancestors.OfType<Button>().Any() || ancestors.OfType<ScrollBar>().Any()) return;
+        if (ancestors.OfType<ListBoxItem>().FirstOrDefault()?.DataContext is not TrackRow row) return;
+        Model.Selected = row; Model.PlayCommand.Execute(null);
     }
     private void OnTrackKey(object? sender, KeyEventArgs args)
     {
@@ -72,6 +70,8 @@ public partial class SongsView : UserControl, IDisposable
             ShowTrackMenu(row, (Control?)anchor ?? TrackList); args.Handled = true;
         }
     }
+    internal void OpenArtist(TrackRow row) => _ = trackMenu?.OpenArtistAsync(row);
+    internal void OpenAlbum(TrackRow row) => _ = trackMenu?.OpenAlbumAsync(row);
     internal void ShowTrackMenu(TrackRow row, Control anchor) => trackMenu?.Show(row, anchor);
     private void OnTrackPointerPressed(object? sender, PointerPressedEventArgs args)
     {

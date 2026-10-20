@@ -1,0 +1,81 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ControlTheme x:Key="DspWorkbenchListItem" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="10,8"/><Setter Property="Margin" Value="0,0,4,4"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Template"><ControlTemplate>
+        <Border Name="ItemSurface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/>
+        </Border>
+      </ControlTemplate></Setter>
+      <Style Selector="^:pointerover /template/ Border#ItemSurface"><Setter Property="Background" Value="{DynamicResource EchoHover}"/></Style>
+      <Style Selector="^:selected /template/ Border#ItemSurface"><Setter Property="Background" Value="{DynamicResource LibraryPopupSelected}"/></Style>
+      <Style Selector="^:selected"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}"/></Style>
+      <Style Selector="^:focus-visible /template/ Border#ItemSurface"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}"/></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="Button">
+    <Setter Property="Foreground" Value="{DynamicResource EchoText}"/>
+  </Style>
+  <Style Selector="ListBox.dsp-segments, ListBox.dsp-rack, ListBox.dsp-scenes, ListBox.dsp-headphone-results">
+    <Setter Property="ItemContainerTheme" Value="{StaticResource DspWorkbenchListItem}"/>
+  </Style>
+  <Style Selector="Border.dsp-section">
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="Padding" Value="0,20,18,0" />
+    <Setter Property="Margin" Value="0,0,10,8" />
+  </Style>
+  <Style Selector="TextBlock.dsp-section-title">
+    <Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
+  </Style>
+  <Style Selector="TextBlock.dsp-note">
+    <Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="TextWrapping" Value="Wrap" /><Setter Property="LineHeight" Value="20" />
+  </Style>
+  <Style Selector="TextBlock.dsp-eyebrow">
+    <Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/>
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}"/>
+  </Style>
+  <Style Selector="Border.dsp-rule">
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}"/>
+    <Setter Property="BorderThickness" Value="0,1,0,0"/><Setter Property="Padding" Value="0,24,0,0"/>
+  </Style>
+  <Style Selector="Border.dsp-choice-track">
+    <Setter Property="Background" Value="{DynamicResource EchoHover}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}"/>
+    <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="12"/>
+    <Setter Property="Padding" Value="3"/>
+  </Style>
+  <Style Selector="Border.dsp-plot">
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/><Setter Property="Padding" Value="0,0,0,20"/>
+  </Style>
+  <Style Selector="TextBlock.dsp-hero-number">
+    <Setter Property="FontSize" Value="64" /><Setter Property="FontWeight" Value="Light" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
+  </Style>
+  <Style Selector="TextBlock.dsp-rate-number">
+    <Setter Property="FontSize" Value="30" /><Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
+  </Style>
+  <Style Selector="Border.dsp-monitor">
+    <Setter Property="Background" Value="{DynamicResource DspPlotBackground}" />
+    <Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="16" />
+    <Setter Property="Margin" Value="0,0,20,8" /><Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="TextBlock.dsp-monitor-caption">
+    <Setter Property="Foreground" Value="{DynamicResource DspPlotMuted}" /><Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="ListBox.dsp-segments">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" /><Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="ItemsPanel"><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></Setter>
+  </Style>
+  <Style Selector="ListBox.dsp-segments ListBoxItem">
+    <Setter Property="Padding" Value="18,10" /><Setter Property="Margin" Value="0,0,6,4" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+</Styles>

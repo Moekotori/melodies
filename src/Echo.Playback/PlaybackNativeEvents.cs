@@ -91,14 +91,17 @@ public sealed partial class PlaybackSessionCoordinator
             var next = queue.FirstOrDefault(x => x.ItemId == value.Text("nextItemId"));
             if (next is null || value.Long("operationId") <= 0) return;
             var previous = snapshot.Current;
+            gaplessContinuation = value.Flag("gaplessAdvance");
             CompleteTransition(previous, next);
             positionBase = value.Number("nextStartSeconds");
             Publish(snapshot with { Current = next, OperationId = value.Long("operationId"), Status = PlaybackStatus.Playing,
                 PositionSeconds = positionBase, DurationSeconds = value.Number("nextDurationSeconds"),
                 SampleRate = (int)value.Number("nextSampleRate", snapshot.SampleRate),
                 Channels = (int)(snapshot.Output?.Long("channels", snapshot.Channels) ?? snapshot.Channels), Output = OutputFactsAfterAdvance(value) });
-            if (previous is not null && (previous.QueuedNext || previous.RemoveAfterPlay) && previous.ItemId != next.ItemId)
+            if (RefreshShuffleOrder() || previous is not null && (previous.QueuedNext || previous.RemoveAfterPlay) && previous.ItemId != next.ItemId)
                 await SendQueueAsync(queue, next.ItemId, repeat).ConfigureAwait(false);
+            if (!gaplessContinuation) await TryPrepareAlbumGaplessAsync(next).ConfigureAwait(false);
+            PublishQueue();
             return;
         }
         if (method.StartsWith("audio.", StringComparison.Ordinal) && value.Long("operationId") != snapshot.OperationId) return;

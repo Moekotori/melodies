@@ -53,6 +53,7 @@ public partial class MainWindow
     }
     private bool TryShortcut(KeyEventArgs e)
     {
+        if (_viewModel?.IsSetupOpen == true) return false;
         if (_viewModel?.IsGlobalSearchOpen == true) return false;
         if (_viewModel?.Shortcuts is not { } shortcuts || ShortcutInput.FromKey(e) is not { } key) return false;
         if (shortcuts.IsGlobalRegistered(key)) return true;
@@ -122,7 +123,6 @@ public partial class MainWindow
                         var enabled = !(eq.TryGetProperty("enabled", out var value) && value.ValueKind == JsonValueKind.True);
                         using var command = JsonDocument.Parse(enabled ? "[true]" : "[false]");
                         await player.Session.DspAsync("eq.setEnabled", command.RootElement.Clone(), true);
-                        player.AudioSettings.EqualizerEnabled = enabled;
                     }
                     break;
                 case "speedUp" or "speedDown" or "resetPlaybackSpeed":
@@ -132,7 +132,7 @@ public partial class MainWindow
                     var next = action == "resetPlaybackSpeed" ? 1 : Math.Clamp(Math.Round(rate + (action == "speedUp" ? 0.1 : -0.1), 1), 0.5, 2);
                     using (var json = JsonDocument.Parse(FormattableString.Invariant($"[{{\"rate\":{next},\"mode\":\"speed\"}}]")))
                         await player.Session.DspAsync("playbackRate.configure", json.RootElement.Clone(), true);
-                    player.AudioSettings.PlaybackRate = next; break;
+                    break;
             }
         }
         catch (Exception) { if (_viewModel is not null) _viewModel.Notice = _viewModel.Text.Translate("快捷键操作失败，请检查音源或输出设备后重试。"); }

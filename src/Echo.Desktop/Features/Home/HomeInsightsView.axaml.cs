@@ -6,9 +6,14 @@ namespace Echo.Desktop.Features.Home;
 public partial class HomeInsightsView : UserControl
 {
     public HomeInsightsView() { InitializeComponent(); SizeChanged += (_, _) => ApplyLayout(); }
-    public void RefreshQuality()
+    private IReadOnlyList<Echo.Contracts.Library.ListeningQuality>? shownQuality;
+    private IReadOnlyList<Echo.Contracts.Library.AlbumRow>? shownFavorites;
+    public void RefreshQuality(bool force = true)
     {
         if (DataContext is not HomeViewModel model) return;
+        var favorites = model.TopAlbums.Select(item => item.Album).ToArray();
+        if (!force && shownQuality is not null && shownQuality.SequenceEqual(model.Quality) && shownFavorites!.SequenceEqual(favorites)) return;
+        shownQuality = model.Quality; shownFavorites = favorites;
         QualityMix.Children.Clear(); QualityMix.ColumnDefinitions.Clear();
         var total = Math.Max(1, model.Quality.Sum(item => item.Seconds));
         foreach (var (item, index) in model.Quality.Select((item, index) => (item, index)))
@@ -19,7 +24,7 @@ public partial class HomeInsightsView : UserControl
             ToolTip.SetTip(segment, $"{item.Codec} · {item.Seconds / total:P0}"); Grid.SetColumn(segment, index); QualityMix.Children.Add(segment);
         }
         (FavoritesHost.Content as IDisposable)?.Dispose();
-        FavoritesHost.Content = new HomeAlbumShelf(model.TopAlbums.Select(item => item.Album).ToArray(), model.Shell, album => model.OpenAlbumCommand.Execute(album), true);
+        FavoritesHost.Content = new HomeAlbumShelf(favorites, model.Shell, album => model.OpenAlbumCommand.Execute(album), true);
     }
     private void ApplyLayout()
     {

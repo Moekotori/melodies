@@ -7,29 +7,24 @@ namespace Echo.Desktop.Features.Remote;
 
 public partial class RemoteConnectionEditor : UserControl
 {
-    private bool addressHasFocus;
     private bool focusQueued;
     private TextBox AddressField => DataContext is RemoteViewModel { IsOneDrive: true } ? ClientIdField : UrlField;
     public RemoteConnectionEditor()
     {
         InitializeComponent();
-        GotFocus += (_, args) => { if (args.Source is TextBox input) addressHasFocus = input == AddressField; };
-        UrlField.TemplateApplied += (_, _) => { if (addressHasFocus) FocusAddress(); };
-        UrlField.LostFocus += (_, _) =>
-        {
-            if (addressHasFocus && TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is null)
-                FocusAddress();
-        };
     }
     public void FocusAddress()
     {
         if (focusQueued) return;
         focusQueued = true;
+        var revision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
         Dispatcher.UIThread.Post(() =>
         {
             focusQueued = false;
             var field = AddressField;
-            if (!field.IsEffectivelyVisible || !field.IsEnabled || TopLevel.GetTopLevel(this) is not { } top) return;
+            if (DataContext is not RemoteViewModel { EditorOpen: true }
+                || !Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, revision)
+                || !field.IsEffectivelyVisible || !field.IsEnabled || TopLevel.GetTopLevel(this) is not { } top) return;
             // Complete visibility/template changes first, and preserve deliberate focus on another field.
             if (top.FocusManager?.GetFocusedElement() is TextBox input && input != field) return;
             field.Focus();

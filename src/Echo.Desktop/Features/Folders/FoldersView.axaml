@@ -10,7 +10,7 @@
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel Orientation="Horizontal" Spacing="12">
         <Button Name="BackFolderButton" Classes="icon" Command="{Binding BackFolderCommand}" IsVisible="{Binding HasFolder}" ToolTip.Tip="{DynamicResource folders.previous}"><icon:GlyphIcon Kind="chevron-left" Width="20" Height="20" /></Button>
-        <TextBlock IsVisible="{Binding !HasFolder}" Text="{DynamicResource folders.title}" Classes="heading" FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <TextBlock IsVisible="{Binding !HasFolder}" Text="{DynamicResource folders.title}" Classes="page-title" VerticalAlignment="Center" />
             <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" MaxHeight="30" VerticalAlignment="Center" IsVisible="{Binding HasFolder}" Name="BreadcrumbBar">
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Classes="folder-breadcrumb" Content="{DynamicResource folders.localLibrary}" Command="{Binding ShowRootsCommand}" FontSize="12" MinHeight="22" Padding="0" />
@@ -25,8 +25,8 @@
       <StackPanel Name="HeaderActions" Grid.Column="1" Orientation="Horizontal" Spacing="8">
         <Grid Name="FolderSearchBox" ColumnDefinitions="Auto,Auto" ColumnSpacing="6" IsVisible="{Binding HasFolder}">
           <Grid Name="SearchInput" IsVisible="False">
-            <TextBox Name="SearchField" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource folders.searchShort}"
-                     Height="36" Padding="12,7,32,7" CornerRadius="8" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
+            <TextBox Classes="page-search" Name="SearchField" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource folders.searchShort}"
+                     Height="36" Padding="12,7,32,7" KeyDown="OnSearchKey" />
             <Button Content="×" Click="OnClearSearch" Classes="icon" Width="28" Height="32" MinHeight="32" HorizontalAlignment="Right"
                     IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" ToolTip.Tip="{DynamicResource folders.clearSearch}" />
           </Grid>
@@ -51,7 +51,7 @@
             </Border>
           </Grid>
           <StackPanel Grid.Column="1" Spacing="10" VerticalAlignment="Center">
-            <TextBlock Name="FolderTitle" Text="{Binding Title}" Classes="heading" FontSize="40" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding PathLabel}" />
+            <TextBlock Name="FolderTitle" Text="{Binding Title}" Classes="heading" FontSize="40" FontWeight="Medium" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding PathLabel}" />
             <TextBlock Text="{Binding HeaderSummary}" Foreground="{DynamicResource EchoMuted}" FontSize="13" TextTrimming="CharacterEllipsis" />
             <WrapPanel Name="ActionBar" Margin="0,10,0,0">
               <Button Classes="primary folder-play" Command="{Binding PlayCommand}" IsEnabled="{Binding CanAct}" Margin="0,0,8,4"><StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="play-solid" Stroke="{DynamicResource EchoOnAccent}" Width="14" Height="14" /><TextBlock Text="{DynamicResource folders.playAll}" FontSize="13" /></StackPanel></Button>
@@ -69,7 +69,7 @@
           </StackPanel>
           <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" IsVisible="{Binding Wall.ShowPagination}">
             <Button Classes="icon" Command="{Binding Wall.PreviousCommand}" IsEnabled="{Binding Wall.CanPrevious}" ToolTip.Tip="{DynamicResource folders.previous}"><icon:GlyphIcon Kind="chevron-left" Width="15" Height="15" /></Button>
-            <TextBlock Text="{Binding Wall.PageText}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Wall.PageText}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
             <Button Classes="icon" Command="{Binding Wall.NextCommand}" IsEnabled="{Binding Wall.CanNext}" ToolTip.Tip="{DynamicResource folders.next}"><icon:GlyphIcon Kind="chevron-right" Width="15" Height="15" /></Button>
           </StackPanel>
         </Grid>
@@ -100,7 +100,7 @@
         </StackPanel>
         <folders:FolderTrackList Name="TrackPanel" Grid.Row="4" IsVisible="{Binding HasFolder}" />
         <Grid Grid.Row="5" IsVisible="{Binding HasFolder}" ColumnDefinitions="*,Auto,Auto" Margin="0,10,0,16">
-          <TextBlock Text="{Binding PageText}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding PageText}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
           <Button Grid.Column="1" Classes="icon" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" ToolTip.Tip="{DynamicResource folders.previous}"><icon:GlyphIcon Kind="chevron-left" Width="15" Height="15" /></Button>
           <Button Grid.Column="2" Classes="icon" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" ToolTip.Tip="{DynamicResource folders.next}"><icon:GlyphIcon Kind="chevron-right" Width="15" Height="15" /></Button>
         </Grid>

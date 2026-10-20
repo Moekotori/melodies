@@ -15,7 +15,9 @@ public partial class RadioView : UserControl, IDisposable
     private bool disposed;
     public RadioViewModel Model { get; private set; } = null!;
     public IReadOnlyList<string> Codecs { get; } = ["—", "MP3", "AAC", "OGG", "Opus", "FLAC", "HLS", "WAV"];
-    private static readonly FilePickerFileType PlaylistType = new("M3U 电台列表") { Patterns = ["*.m3u", "*.m3u8"], MimeTypes = ["audio/x-mpegurl"] };
+    private static readonly FilePickerFileType PlaylistType = new("电台列表")
+    { Patterns = ["*.m3u", "*.m3u8", "*.pls", "*.txt"], MimeTypes = ["audio/x-mpegurl", "audio/x-scpls", "text/plain"] };
+    private static readonly FilePickerFileType ExportType = new("M3U 电台列表") { Patterns = ["*.m3u"] };
     public RadioView()
     {
         InitializeComponent();
@@ -34,10 +36,23 @@ public partial class RadioView : UserControl, IDisposable
     }
     private void ModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
-        if (args.PropertyName == nameof(RadioViewModel.DirectoryOpen)) ArrangePage();
+        if (args.PropertyName == nameof(RadioViewModel.DirectoryOpen))
+        {
+            ArrangePage();
+            var revision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
+            if (Model.DirectoryOpen) Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (!disposed && Model.DirectoryOpen && Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, revision)) DirectoryPanel.FocusSearch();
+            });
+            else DirectoryButton.Focus();
+        }
         if (args.PropertyName == nameof(RadioViewModel.EditorOpen))
         {
-            if (Model.EditorOpen) Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (!disposed) StationNameField.Focus(); });
+            var revision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
+            if (Model.EditorOpen) Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (!disposed && Model.EditorOpen && Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, revision)) StationNameField.Focus();
+            });
             else AddButton.Focus();
         }
     }
@@ -102,7 +117,7 @@ public partial class RadioView : UserControl, IDisposable
         if (TopLevel.GetTopLevel(this) is not { } top || Model.IsBusy) return;
         try
         {
-            var file = await top.StorageProvider.SaveFilePickerAsync(new() { Title = "导出电台", SuggestedFileName = "ECHO Radio.m3u", DefaultExtension = "m3u", FileTypeChoices = [PlaylistType] });
+            var file = await top.StorageProvider.SaveFilePickerAsync(new() { Title = "导出电台", SuggestedFileName = "ECHO Radio.m3u", DefaultExtension = "m3u", FileTypeChoices = [ExportType] });
             if (file is null || disposed) return;
             await Model.ExportToAsync(async (text, token) =>
             {

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -9,6 +10,7 @@ using Avalonia.VisualTree;
 using Echo.Contracts.Shortcuts;
 using Echo.Desktop.Bootstrap;
 using Echo.Desktop.Features.Player;
+using Echo.Desktop.Features.Lyrics;
 using Echo.Desktop.Features.Shortcuts;
 using Echo.Desktop.Motion;
 using Echo.Desktop.Shell;
@@ -39,6 +41,8 @@ internal static class ShortcutSmoke
             Require(model.Rows.Count <= ShortcutLimits.MaxActions && model.Rows.Count(x => x.Local.Enabled) == 2 && model.Rows.All(x => !x.Global.Enabled)
                 && model.ResolveLocal("Space") == "playPause" && model.ResolveLocal("Ctrl+Q") == "openPlaybackQueue",
                 $"legacy defaults: rows={model.Rows.Count}, local={model.Rows.Count(x => x.Local.Enabled)}, global={model.Rows.Count(x => x.Global.Enabled)}");
+            VerifyLyricsSpace();
+            shell.NavigateCommand.Execute("settings"); shell.Settings.SelectCategoryCommand.Execute("shortcuts"); Settle();
             var next = model.Rows.First(x => x.Action.Id == "nextTrack").Local;
             model.BeginRecording(next); Wait(() => model.RecordingReady && !model.IsApplying);
             Press(window, Key.Q, KeyModifiers.Control);
@@ -98,6 +102,59 @@ internal static class ShortcutSmoke
             Settle(); using var bitmap = new RenderTargetBitmap(new PixelSize((int)window.Width, (int)window.Height), new Vector(96, 96));
             bitmap.Render(window); bitmap.Save(Path.Combine(output, name), PngBitmapEncoderOptions.Default);
         }
+        void VerifyLyricsSpace()
+        {
+            shell.AttachLyrics(new EmptyLyrics(), new LyricsAppearance(text: shell.Text));
+            shell.NavigateCommand.Execute("lyrics"); Settle();
+            var lyrics = window.GetVisualDescendants().OfType<LyricsView>().Single();
+            var settings = lyrics.FindControl<Button>("SettingsButton")!;
+            var audio = lyrics.FindControl<Button>("LyricsAudioDrawerButton")!;
+            var playbackRequests = 0;
+            System.ComponentModel.PropertyChangedEventHandler countPlayback = (_, e) =>
+            { if (e.PropertyName == nameof(PlayerViewModel.IsBusy) && player.IsBusy) playbackRequests++; };
+            player.PropertyChanged += countPlayback;
+            foreach (var button in new[] { settings, audio })
+            {
+                button.Focus(NavigationMethod.Pointer);
+                Require(!button.IsFocused, "pointer interaction must not retain lyrics button focus");
+                var previous = playbackRequests;
+                window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); Settle();
+                Require(!shell.IsQuickSettingsOpen && playbackRequests == previous + 1,
+                    "Space on focused lyrics button must dispatch playback without opening a drawer");
+                Pump(player.ToggleCommand.ExecutionTask!);
+            }
+            Capture("lyrics-space.png");
+            // Holding Space must not repeatedly toggle playback or synthesize a button click.
+            settings.Focus(NavigationMethod.Pointer); window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); Settle();
+            var held = playbackRequests;
+            window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); Settle();
+            Require(held == playbackRequests && !shell.IsQuickSettingsOpen, "held Space dispatches once");
+            Pump(player.ToggleCommand.ExecutionTask!);
+            window.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null);
+            window.KeyRelease(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null);
+            settings.Focus(NavigationMethod.Tab);
+            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); window.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Settle();
+            Require(shell.IsQuickSettingsOpen, "Enter still opens the focused lyrics settings button");
+            var search = window.GetVisualDescendants().OfType<TextBox>().Single(x => x.Name == "DrawerSearchInput");
+            search.Focus(); var beforeEditing = playbackRequests;
+            window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); Settle();
+            Require(shell.IsQuickSettingsOpen && playbackRequests == beforeEditing, "drawer editing retains Space");
+            var closeDrawer = window.GetVisualDescendants().OfType<Button>().Single(x => x.Name == "CloseDrawerButton" && x.IsEffectivelyVisible);
+            var closePoint = closeDrawer.TranslatePoint(new Point(closeDrawer.Bounds.Width / 2, closeDrawer.Bounds.Height / 2), window)!.Value;
+            window.MouseDown(closePoint, MouseButton.Left); window.MouseUp(closePoint, MouseButton.Left); Settle();
+            Require(!settings.IsFocused, "mouse-closing the drawer must not restore action-button focus");
+            window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); Settle();
+            Require(!shell.IsQuickSettingsOpen && playbackRequests == beforeEditing + 1, "Space after drawer close stays playback");
+            Pump(player.ToggleCommand.ExecutionTask!);
+            var playPause = shell.Shortcuts.Rows.Single(x => x.Action.Id == "playPause").Local;
+            shell.Shortcuts.Toggle(playPause); Wait(() => !shell.Shortcuts.IsApplying);
+            player.PropertyChanged -= countPlayback;
+            settings.Focus(NavigationMethod.Pointer); window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); Settle();
+            Require(!shell.IsQuickSettingsOpen, "disabled shortcut must not reactivate a pointer-focused button");
+            shell.CloseQuickSettingsCommand.Execute(null); Settle();
+            shell.Shortcuts.Toggle(playPause); Wait(() => !shell.Shortcuts.IsApplying);
+            Console.WriteLine("PASS lyrics Space: focused settings/audio buttons, playback dispatch, key repeat, Enter, drawer editing, close/retry and disabled binding.");
+        }
     }
     private static void Press(Control target, Key key, KeyModifiers modifiers = KeyModifiers.None)
     {
@@ -149,5 +206,10 @@ internal static class ShortcutSmoke
         public Task<JsonElement> CallAsync(string method, JsonElement? parameters = null, CancellationToken cancellationToken = default)
         { using var json = JsonDocument.Parse("true"); return Task.FromResult(json.RootElement.Clone()); }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+    private sealed class EmptyLyrics : Echo.Contracts.Lyrics.ILyricsSource
+    {
+        public Task<Echo.Contracts.Lyrics.LyricsText?> ReadAsync(string audioPath, string? explicitPath, CancellationToken cancellation)
+            => Task.FromResult<Echo.Contracts.Lyrics.LyricsText?>(null);
     }
 }

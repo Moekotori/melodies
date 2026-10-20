@@ -28,8 +28,13 @@
     <Project Path="src/Modules/Echo.ArtistInformation/Echo.ArtistInformation.csproj" />
     <Project Path="src/Modules/Echo.Dsp/Echo.Dsp.csproj" />
     <Project Path="src/Modules/Echo.SignalDesign/Echo.SignalDesign.csproj" />
+    <Project Path="src/Modules/Echo.Playlists/Echo.Playlists.csproj" />
+    <Project Path="src/Modules/Echo.Lyrics/Echo.Lyrics.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Echo.Automix.Smoke/Echo.Automix.Smoke.csproj" />
+    <Project Path="tests/Echo.Focus.Smoke/Echo.Focus.Smoke.csproj" />
+    <Project Path="tests/Echo.NetworkLyrics.Smoke/Echo.NetworkLyrics.Smoke.csproj" />
     <Project Path="tests/Echo.Artists.Smoke/Echo.Artists.Smoke.csproj" />
     <Project Path="tests/Echo.Visuals.MigrationSmoke/Echo.Visuals.MigrationSmoke.csproj" />
     <Project Path="tests/Echo.Visuals.NativeSmoke/Echo.Visuals.NativeSmoke.csproj" />
@@ -37,6 +42,7 @@
     <Project Path="tests/Echo.Core.Smoke/Echo.Core.Smoke.csproj" />
     <Project Path="tests/Echo.Core.IpcSmoke/Echo.Core.IpcSmoke.csproj" />
     <Project Path="tests/Echo.Core.RemoteSmoke/Echo.Core.RemoteSmoke.csproj" />
+    <Project Path="tests/Echo.Playlists.Smoke/Echo.Playlists.Smoke.csproj" />
     <Project Path="tests/Echo.NetworkOutput.Smoke/Echo.NetworkOutput.Smoke.csproj" />
   </Folder>
 </Solution>

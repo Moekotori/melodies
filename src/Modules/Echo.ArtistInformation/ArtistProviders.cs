@@ -16,7 +16,7 @@ internal sealed class ArtistProviders(ArtistHttp http)
                 using var search = await http.GetAsync(prefix + "&list=search&srlimit=3&srsearch=" + Uri.EscapeDataString(request.Name), token).ConfigureAwait(false);
                 succeeded = true;
                 var names = search.RootElement.Field("query").Field("search").Items().Select(item => item.Text("title")).OfType<string>().Append(request.Name).Distinct().Take(4);
-                using var result = await http.GetAsync(prefix + "&redirects=1&prop=extracts|info|pageprops&inprop=url&explaintext=1&exintro=1&exchars=6000&titles=" + Uri.EscapeDataString(string.Join('|', names)), token).ConfigureAwait(false);
+                using var result = await http.GetAsync(prefix + "&redirects=1&prop=extracts|info|pageprops|pageimages&piprop=thumbnail&pithumbsize=960&inprop=url&explaintext=1&exchars=2800&titles=" + Uri.EscapeDataString(string.Join('|', names)), token).ConfigureAwait(false);
                 var query = result.RootElement.Field("query");
                 var aliases = query.Field("normalized").Items().Concat(query.Field("converted").Items()).Concat(query.Field("redirects").Items()).Take(16).ToArray();
                 string Canonical(string title)
@@ -33,7 +33,7 @@ internal sealed class ArtistProviders(ArtistHttp http)
                 var lead = text[..Math.Min(450, text.Length)];
                 if (!new[] { "歌手", "音乐", "音樂", "作曲", "乐队", "樂隊", "指挥", "指揮", "艺人", "藝人", "singer", "musician", "composer", "band", "rapper", "orchestra", "disc jockey" }
                     .Any(term => lead.Contains(term, StringComparison.OrdinalIgnoreCase))) continue;
-                return new(page.Text("title")!, text[..Math.Min(6000, text.Length)], language, page.Text("fullurl") ?? $"https://{language}.wikipedia.org/wiki/{Uri.EscapeDataString(page.Text("title")!)}", page.Field("pageprops").Text("wikibase_item"));
+                return new(page.Text("title")!, text[..Math.Min(2400, text.Length)], language, page.Text("fullurl") ?? $"https://{language}.wikipedia.org/wiki/{Uri.EscapeDataString(page.Text("title")!)}", page.Field("pageprops").Text("wikibase_item"), ThumbnailUrl: page.Field("thumbnail").Text("source"));
             }
             catch (Exception error) when (error is HttpRequestException or IOException or System.Text.Json.JsonException) { failure = error; }
         }
@@ -62,7 +62,7 @@ internal sealed class ArtistProviders(ArtistHttp http)
         foreach (var relation in root.Field("relations").Items().Take(96))
         {
             var url = relation.Field("url").Text("resource");
-            if (ArtistJson.SafeLink(url) && links.Count < 12) links.Add(new(relation.Text("type") ?? new Uri(url!).Host, url!));
+            if (ArtistJson.SafeLink(url)) links.Add(new(relation.Text("type") ?? new Uri(url!).Host, url!));
             var person = relation.Field("artist");
             if (person.Text("name") is { } name && Guid.TryParse(person.Text("id"), out var relatedId) && relations.Count < 12)
                 relations.Add(new(name, relation.Text("type") == "member of band" ? relation.Text("direction") == "backward" ? "成员" : "所属组合" : relation.Text("type") ?? "关联艺人", $"https://musicbrainz.org/artist/{relatedId}"));
@@ -76,10 +76,12 @@ internal sealed class ArtistProviders(ArtistHttp http)
             using var result = await http.GetAsync($"https://musicbrainz.org/ws/2/event/?fmt=json&limit=12&query={query}", token).ConfigureAwait(false);
             foreach (var item in result.RootElement.Field("events").Items().Take(12))
             {
+                if (item.Field("cancelled").ValueKind == System.Text.Json.JsonValueKind.True || item.Text("type") is { } type && type is not ("Concert" or "Festival" or "Stage performance")) continue;
                 var date = item.Field("life-span").Text("begin");
                 if (item.Text("name") is { } name && Guid.TryParse(item.Text("id"), out var eventId) &&
                     DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day) && day >= DateOnly.FromDateTime(DateTime.UtcNow))
-                    events.Add(new(name, date!, item.Field("relations").Items().Select(r => r.Field("place").Text("name")).FirstOrDefault(n => n is not null), $"https://musicbrainz.org/event/{eventId}"));
+                    events.Add(new(name, date!, item.Field("place").Text("name") ?? item.Field("relations").Items().Select(r => r.Field("place").Text("name")).FirstOrDefault(n => n is not null), $"https://musicbrainz.org/event/{eventId}",
+                        Time: ArtistConcertPages.Time(item.Text("time")), Region: item.Field("area").Text("name"), Country: item.Field("area").Field("iso-3166-1-codes").Items().FirstOrDefault().GetStringOrNull()));
             }
         }
         catch (Exception error) when (error is HttpRequestException or IOException or OperationCanceledException or System.Text.Json.JsonException)

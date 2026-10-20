@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspRoomView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,0,24">
+      <StackPanel Spacing="7">
+        <TextBlock Text="{DynamicResource ui.DspRoomView.36ac61d67bcd}" Classes="dsp-section-title"/>
+        <TextBlock Text="{DynamicResource ui.DspRoomView.63281e597a44}" Classes="dsp-note" TextWrapping="Wrap"/>
+      </StackPanel>
+      <local:DspWorkbenchSplit MainWeight="2.6" Gap="32">
+        <Border Classes="dsp-rule">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspRoomView.e3ccd0c22c2c}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <TextBlock Text="{Binding RoomResourceReadout}" FontSize="22" FontWeight="Medium" TextWrapping="Wrap"/>
+            <local:DspImpulsePicker/>
+            <TextBlock Text="{Binding RoomFacts}" Classes="dsp-note" TextWrapping="Wrap"/>
+            <TextBlock Text="导入房间或音箱测量的脉冲响应。支持 WAV 与多采样率 ZIP 滤波器组。" Classes="dsp-note" IsVisible="{Binding !HasRoomImpulse}"/>
+            <Button Content="{DynamicResource ui.DspRoomView.f2e8d3ee58bc}" Classes="dsp-quiet" Command="{Binding ClearImpulseCommand}" IsEnabled="{Binding CanEdit}" IsVisible="{Binding HasRoomImpulse}"/>
+            <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}" IsVisible="{Binding HasRoomImpulse}">
+              <local:DspParameterEditor DataContext="{Binding Fields[trimDb]}"/>
+            </StackPanel>
+            <WrapPanel IsVisible="{Binding HasRoomImpulse}">
+              <Button Content="−6 dB" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="trim:-6" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="−3 dB" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="trim:-3" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="0 dB" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="trim:0" IsEnabled="{Binding CanEdit}"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+        <Border Classes="dsp-choice-track" Padding="20" IsVisible="{Binding HasRoomImpulse}">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspRoomView.0728047383aa}" Classes="dsp-eyebrow"/>
+            </StackPanel>
+            <StackPanel Spacing="12">
+              <TextBlock Text="试听与余量" FontSize="20" FontWeight="Medium"/>
+              <TextBlock Text="结合输出电平调整试听音量，为脉冲响应保留增益余量。" Classes="dsp-note"/>
+              <Button Content="预留 −6 dB" Command="{Binding WorkbenchPresetCommand}" CommandParameter="trim:-6" IsEnabled="{Binding CanEdit}" HorizontalAlignment="Left"/>
+            </StackPanel>
+            <local:DspRuntimeReadout/>
+            <TextBlock Text="{DynamicResource ui.DspRoomView.f525761a8991}" Classes="dsp-note" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+      </local:DspWorkbenchSplit>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

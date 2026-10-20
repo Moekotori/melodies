@@ -14,16 +14,16 @@ public partial class LibraryOverview : UserControl
 
     private void ApplyLayout()
     {
-        var compact = Bounds.Width <= 900;
-        Tiles.Columns = Bounds.Width <= 680 ? 2 : 4;
+        var compact = Bounds.Width <= 680;
+        Tiles.Columns = Bounds.Width <= 460 ? 2 : 4;
         Tiles.Rows = Tiles.Columns == 2 ? 2 : 1;
         foreach (var tile in Tiles.Children.OfType<Button>())
         {
-            tile.MinHeight = Tiles.Columns == 2 ? 88 : compact ? 76 : 96;
-            tile.Padding = new(compact ? 12 : 24, compact ? 14 : 18);
-            if (tile.Content is StackPanel copy) copy.Spacing = compact ? 10 : 16;
+            tile.MinHeight = 64;
+            tile.Padding = new(compact ? 6 : 12, 8);
+            if (tile.Content is StackPanel copy) copy.Spacing = compact ? 8 : 12;
             foreach (var icon in tile.GetVisualDescendants().OfType<GlyphIcon>())
-                icon.Width = icon.Height = compact ? 28 : 36;
+                icon.Width = icon.Height = compact ? 24 : 28;
             foreach (var number in tile.GetVisualDescendants().OfType<TextBlock>().Where(text => text.Classes.Contains("heading")))
                 number.FontSize = compact ? 24 : Math.Clamp(Bounds.Width * .026, 24, 30);
         }

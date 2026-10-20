@@ -36,7 +36,8 @@ public sealed partial class PlaybackSessionCoordinator
         {
             var method = entry.Key[..entry.Key.IndexOf(':')];
             var request = await AdaptDspRequestAsync(method, entry.Value).ConfigureAwait(false);
-            var receipt = await native.CallAsync(method, request).ConfigureAwait(false);
+            var receipt = method == "headphoneCorrection.setState" ? await CallHeadphoneAsync(request).ConfigureAwait(false)
+                : await native.CallAsync(method, request).ConfigureAwait(false);
             dspCommands[entry.Key] = request;
             if (method == "playbackRate.configure") ConfirmPlaybackRate(receipt);
         }

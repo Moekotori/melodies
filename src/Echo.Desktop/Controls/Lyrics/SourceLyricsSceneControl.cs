@@ -25,6 +25,7 @@ public sealed class SourceLyricsSceneControl : Control, IDisposable
     private SourceSceneArtwork? artwork;
     private bool artworkPending;
     private long revision, lastRequest;
+    private Point? pressedAt;
     private int posted;
     private bool closed, failed, focused = true, visible;
     private int width, height;
@@ -137,7 +138,16 @@ public sealed class SourceLyricsSceneControl : Control, IDisposable
     {
         base.OnPointerPressed(e);
         // The original scene hit boxes are processed on its owner worker; they return only a lyric time.
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { var p = e.GetPosition(this); RequestPointer(p, true); e.Handled = true; }
+        // Press fires on release so a horizontal track swipe never triggers a scene hit.
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { pressedAt = e.GetPosition(this); e.Handled = true; }
+    }
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (pressedAt is not { } start) return;
+        pressedAt = null;
+        var p = e.GetPosition(this); var d = p - start;
+        if (d.X * d.X + d.Y * d.Y <= 100) RequestPointer(p, true);
     }
     protected override void OnPointerMoved(PointerEventArgs e) { base.OnPointerMoved(e); if (focused) RequestPointer(e.GetPosition(this), false); }
     private void RequestPointer(Point point, bool press)

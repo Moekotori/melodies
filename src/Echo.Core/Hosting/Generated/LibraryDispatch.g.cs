@@ -332,6 +332,41 @@ internal sealed partial class CoreDispatch
                 var args = CoreJson.Read<LibraryGetArtistInformationRequest>(payload);
                 return CoreJson.Value(await library.GetArtistInformationAsync(args.Request, token).ConfigureAwait(false));
             }
+            case "library.ImportPlaylistFileAsync":
+            {
+                var args = CoreJson.Read<LibraryImportPlaylistFileRequest>(payload);
+                return CoreJson.Value(await library.ImportPlaylistFileAsync(args.OperationId, args.FileName, args.Content, token).ConfigureAwait(false));
+            }
+            case "library.ExportPlaylistFileAsync":
+            {
+                var args = CoreJson.Read<LibraryExportPlaylistFileRequest>(payload);
+                return CoreJson.Value(await library.ExportPlaylistFileAsync(args.Query, args.Name, args.Format, token).ConfigureAwait(false));
+            }
+            case "library.PlayPlaylistAsync":
+            {
+                var args = CoreJson.Read<LibraryPlayPlaylistRequest>(payload);
+                await library.PlayPlaylistAsync(args.Query, args.Append, args.Next, args.Shuffle, token).ConfigureAwait(false); return CoreJson.Empty;
+            }
+            case "library.GetArtistImportSettingsAsync":
+            {
+                var args = CoreJson.Read<LibraryGetArtistImportSettingsRequest>(payload);
+                return CoreJson.Value(await library.GetArtistImportSettingsAsync(token).ConfigureAwait(false));
+            }
+            case "library.GetPeopleAsync":
+            {
+                var args = CoreJson.Read<LibraryGetPeopleRequest>(payload);
+                return CoreJson.Value(await library.GetPeopleAsync(args.Query, token).ConfigureAwait(false));
+            }
+            case "library.GetTrackCreditsAsync":
+            {
+                var args = CoreJson.Read<LibraryGetTrackCreditsRequest>(payload);
+                return CoreJson.Value(await library.GetTrackCreditsAsync(args.TrackId, args.Offset, args.Limit, token).ConfigureAwait(false));
+            }
+            case "library.GetPersonCreditsAsync":
+            {
+                var args = CoreJson.Read<LibraryGetPersonCreditsRequest>(payload);
+                return CoreJson.Value(await library.GetPersonCreditsAsync(args.Query, token).ConfigureAwait(false));
+            }
             default: return null;
         }
     }

@@ -3,23 +3,23 @@
              x:Class="Echo.Desktop.Features.Queue.QueueView" x:DataType="queue:QueuePageViewModel">
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="16">
     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-      <TextBlock Text="{Binding Queue.Heading}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontWeight="Bold" />
+      <TextBlock Text="{Binding Queue.Heading}" Classes="page-title" />
       <TextBlock Text="{Binding Queue.Summary}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
     </StackPanel>
-    <StackPanel Grid.Row="1" Spacing="16" IsVisible="{Binding !Queue.ShowHistory}">
+    <StackPanel Classes="reveal" Grid.Row="1" Spacing="16" IsVisible="{Binding !Queue.ShowHistory}">
       <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="16" Padding="18,16">
         <StackPanel Spacing="14">
           <Grid Name="HeroLayout" ColumnDefinitions="88,*,228" RowDefinitions="Auto,Auto" ColumnSpacing="18">
             <queue:QueueArtwork Name="CurrentCover" Width="88" Height="88" VerticalAlignment="Center" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding Queue.CurrentArtworkPath}" Cache="{Binding Queue.Artwork}" />
             <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource ui.QueueView.e6666b2eb332}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding Player.Title}" Classes="heading" FontSize="22" FontWeight="Bold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{DynamicResource ui.QueueView.e6666b2eb332}" Classes="muted" FontSize="12" FontWeight="Medium" />
+              <TextBlock Text="{Binding Player.Title}" Classes="heading" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
               <TextBlock Text="{Binding Player.ArtistAlbum}" Classes="muted" FontSize="13" TextTrimming="CharacterEllipsis" />
-              <TextBlock Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis"><Run Text="{Binding Queue.CurrentQuality}" Foreground="{DynamicResource EchoAccentText}" FontWeight="SemiBold" /><Run Text="  ·  " /><Run Text="{Binding Queue.CurrentSource}" /></TextBlock>
+              <TextBlock Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis"><Run Text="{Binding Queue.CurrentQuality}" Foreground="{DynamicResource EchoAccentText}" FontWeight="Medium" /><Run Text="  ·  " /><Run Text="{Binding Queue.CurrentSource}" /></TextBlock>
               <Grid ColumnDefinitions="34,*,34" ColumnSpacing="8">
-                <TextBlock Text="{Binding Player.PositionText}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Player.PositionText}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
                 <ProgressBar Grid.Column="1" Classes="queue-progress" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" Classes="muted" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
               </Grid>
             </StackPanel>
             <Button Name="NextPreview" Grid.Column="2" Classes="queue-next" VerticalAlignment="Center" HorizontalAlignment="Stretch"
@@ -27,9 +27,9 @@
               <Grid ColumnDefinitions="40,*" ColumnSpacing="10">
                 <queue:QueueArtwork Width="40" Height="40" CornerRadius="8" FilePath="{Binding Queue.UpcomingPath}" Cache="{Binding Queue.Artwork}" IsVisible="{Binding Queue.HasUpcoming}" />
                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding Queue.UpcomingReason}" Classes="muted" FontSize="10" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" IsVisible="{Binding Queue.UpcomingReason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  <TextBlock Text="{Binding Queue.UpcomingTitle}" Classes="heading" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding Queue.UpcomingArtist}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Queue.UpcomingReason}" Classes="muted" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" IsVisible="{Binding Queue.UpcomingReason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <TextBlock Text="{Binding Queue.UpcomingTitle}" Classes="heading" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Queue.UpcomingArtist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </Grid>
             </Button>
@@ -51,12 +51,12 @@
             </Button>
           </StackPanel>
             </WrapPanel>
-            <TextBlock Grid.Row="1" Text="{Binding Queue.StrategyText}" Classes="muted" FontSize="11" TextWrapping="Wrap" LineHeight="16" />
+            <TextBlock Grid.Row="1" Text="{Binding Queue.StrategyText}" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="16" />
           </Grid>
         </StackPanel>
       </Border>
       <StackPanel Spacing="8" IsVisible="{Binding Queue.ShowPlan}">
-        <TextBlock Text="{Binding Queue.PlanHeading}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding Queue.PlanHeading}" Classes="muted" FontSize="12" FontWeight="Medium" />
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
           <ItemsControl ItemsSource="{Binding Queue.Plan}">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
@@ -66,8 +66,8 @@
                   <Grid ColumnDefinitions="32,*" ColumnSpacing="8">
                     <queue:QueueArtwork Width="32" Height="32" CornerRadius="6" FilePath="{Binding ArtworkPath}" Cache="{Binding Artwork}" />
                     <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center" MaxWidth="132">
-                      <TextBlock Text="{Binding Reason}" Classes="plan-reason" FontSize="10" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                      <TextBlock Text="{Binding Title}" Classes="heading" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Reason}" Classes="plan-reason" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Title}" Classes="heading" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                   </Grid>
                 </Button>
@@ -78,7 +78,7 @@
       </StackPanel>
     </StackPanel>
     <Grid Name="ListHeading" Grid.Row="2" ColumnDefinitions="*,260,Auto" ColumnSpacing="10">
-      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"><TextBlock Text="{Binding Queue.SectionTitle}" Classes="heading" FontSize="17" FontWeight="SemiBold" /><TextBlock Text="{Binding Queue.ResultText}" Classes="muted" FontSize="11" VerticalAlignment="Center" /></StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"><TextBlock Text="{Binding Queue.SectionTitle}" Classes="heading" FontSize="17" FontWeight="SemiBold" /><TextBlock Text="{Binding Queue.ResultText}" Classes="muted" FontSize="12" VerticalAlignment="Center" /></StackPanel>
       <Grid Grid.Column="1"><TextBox Name="QueueSearch" Classes="queue-search" Padding="32,5,10,5" PlaceholderText="{DynamicResource ui.QueueView.87b9143f8cb9}" Text="{Binding Queue.Search, Mode=TwoWay}" /><icon:GlyphIcon Kind="search" Width="15" Height="15" HorizontalAlignment="Left" Margin="10,0" IsHitTestVisible="False" /></Grid>
       <Button Grid.Column="2" Classes="queue-tool" Click="OnLocate" ToolTip.Tip="{DynamicResource ui.QueueView.0a0de1034dd5}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="locate" Width="15" Height="15" /><TextBlock Text="{DynamicResource ui.QueueView.0a0de1034dd5}" /></StackPanel></Button>
     </Grid>

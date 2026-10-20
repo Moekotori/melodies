@@ -35,6 +35,7 @@ public sealed partial class RemoteViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int page;
     [ObservableProperty] private int total;
     [ObservableProperty] private bool loadedDirectory;
+    [ObservableProperty] private long directoryRevision;
     public bool HasSource => SelectedSource is not null;
     public bool HasNoSources => Sources.Count == 0 && !IsBusy;
     public bool IsEmpty => HasSource && LoadedDirectory && Entries.Count == 0 && !IsBusy;
@@ -74,8 +75,10 @@ public sealed partial class RemoteViewModel : ObservableObject, IDisposable
         var result = await catalog.BrowseAsync(SelectedSource.Id, path, targetPage, Search.Trim(), AudioOnly, token);
         token.ThrowIfCancellationRequested(); if (disposed) return;
         var indexed = await IndexedPathsAsync(result.Entries, token);
+        token.ThrowIfCancellationRequested(); if (disposed) return;
         Entries.Clear(); foreach (var item in result.Entries) Entries.Add(new(item, shell.Text, indexed.Contains(item.Path)));
         SelectedEntry = null; CurrentPath = path; Page = result.Page; Total = result.Total; LoadedDirectory = true; Message = ""; RefreshLocation(); RefreshState();
+        DirectoryRevision++;
     });
     [RelayCommand] private Task RefreshAsync() => BrowseAsync();
     [RelayCommand] private Task PreviousAsync() => CanPrevious ? BrowseAsync(Page - 1) : Task.CompletedTask;
@@ -105,17 +108,21 @@ public sealed partial class RemoteViewModel : ObservableObject, IDisposable
         Message = shell.Text["remote.queued"];
     });
     [RelayCommand] private void Add()
-    { editingId = null; DraftName = ""; DraftUrl = ""; DraftUser = ""; DraftPassword = ""; EditorError = ""; ProviderPickerOpen = true; }
+    { editingId = null; EditorOpen = false; DraftName = ""; DraftUrl = ""; DraftUser = ""; DraftPassword = ""; EditorError = ""; ProviderPickerOpen = true; RefreshConnectionState(); }
     [RelayCommand] private void Edit()
     {
         if (SelectedSource is null || IsBusy) return;
         var source = catalog.GetConnection(SelectedSource.Id); editingId = source.Id;
         DraftName = source.Name; DraftUrl = source.BaseUrl; DraftUser = source.Username; DraftPassword = source.Password;
         RestoreProvider(source);
-        EditorError = ""; EditorOpen = true;
+        ProviderPickerOpen = false; EditorError = ""; EditorOpen = true;
     }
     [RelayCommand] private void CloseEditor()
-    { Cancel(); EditorOpen = false; DraftPassword = ""; draftAuthorization = null; RefreshProviderState(); EditorError = ""; }
+    {
+        var returnToPicker = !IsEditing;
+        Cancel(); EditorOpen = false; editingId = null; ProviderPickerOpen = returnToPicker;
+        DraftPassword = ""; draftAuthorization = null; RefreshProviderState(); RefreshConnectionState(); EditorError = "";
+    }
     [RelayCommand] private async Task SaveAsync()
     {
         string? savedId = null;
@@ -156,6 +163,7 @@ public sealed partial class RemoteViewModel : ObservableObject, IDisposable
     }
     private void RefreshState()
     {
+        RefreshConnectionState();
         foreach (var name in new[] { nameof(HasSource), nameof(HasNoSources), nameof(IsEmpty), nameof(CanPrevious), nameof(CanNext),
             nameof(CanUp), nameof(CanPlay), nameof(CanOpen), nameof(PageLabel), nameof(HasSavedSources), nameof(CanSync),
             nameof(NeedsSourceSelection), nameof(DirectoryCount) }) OnPropertyChanged(name);

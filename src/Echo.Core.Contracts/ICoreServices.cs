@@ -9,7 +9,7 @@ namespace Echo.Core.Contracts;
 
 public interface ICoreLibrary : ITrackLibrary, IAlbumLibrary, IArtistLibrary, IArtistInformationClient, IGenreLibrary,
     IFolderLibrary, IAlbumPersonalState, IPlayerTrackLibrary, IHomeLibrary, IFolderOperations,
-    IFolderWorkbench, IPlaylistLibrary, IRemoteTrackIndex, IHistoryLibrary, ILibraryMaintenance, ILibraryReview, IAlbumMetadata
+    IFolderWorkbench, IPlaylistLibrary, IPlaylistFiles, IPlaylistPlayback, IRemoteTrackIndex, IHistoryLibrary, ILibraryMaintenance, ILibraryReview, IAlbumMetadata, IArtistCreditLibrary
 {
     Task<LibraryStats> GetStatsAsync(CancellationToken cancellation = default);
     Task<IReadOnlyList<ScanIssue>> GetScanIssuesAsync(string jobId, int limit = 16, CancellationToken cancellation = default);
@@ -42,6 +42,10 @@ public interface ICoreServices : IAsyncDisposable
 }
 public interface ICoreTaskControl
 {
+    Task<CoreTaskStart> StartTaskAsync(CoreTaskRequest request, CancellationToken token = default);
+    Task<CoreTaskSnapshot[]> TasksAsync(CancellationToken token = default);
+    Task<CoreTaskSnapshot> GetTaskAsync(Guid id, CancellationToken token = default);
+    Task CancelTaskAsync(Guid id, CancellationToken token = default);
     Task CancelActiveTaskAsync(CancellationToken token = default);
     Task RunMaintenanceAsync(string action, IProgress<CoreTaskSnapshot> progress, CancellationToken token);
     Task<int> SetAllFolderWatchAsync(bool enabled, CancellationToken token);

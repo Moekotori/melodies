@@ -1,73 +1,252 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:player="using:Echo.Desktop.Features.Player" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="SpGood">#6C58B6</SolidColorBrush>
+          <SolidColorBrush x:Key="SpGoodTint">#146C58B6</SolidColorBrush>
+          <SolidColorBrush x:Key="SpGoodRing">#3D6C58B6</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpGoodGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#246C58B6" Offset="0" /><GradientStop Color="#006C58B6" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpProc">#4A55B4</SolidColorBrush>
+          <SolidColorBrush x:Key="SpProcTint">#144A55B4</SolidColorBrush>
+          <SolidColorBrush x:Key="SpProcRing">#3D4A55B4</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpProcGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#244A55B4" Offset="0" /><GradientStop Color="#004A55B4" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpWarn">#8A5A10</SolidColorBrush>
+          <SolidColorBrush x:Key="SpWarnTint">#148A5A10</SolidColorBrush>
+          <SolidColorBrush x:Key="SpWarnRing">#3D8A5A10</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpWarnGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#248A5A10" Offset="0" /><GradientStop Color="#008A5A10" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpDanger">#B03052</SolidColorBrush>
+          <SolidColorBrush x:Key="SpDangerTint">#14B03052</SolidColorBrush>
+          <SolidColorBrush x:Key="SpDangerRing">#3DB03052</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpDangerGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#24B03052" Offset="0" /><GradientStop Color="#00B03052" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpMuted">#7C8496</SolidColorBrush>
+          <SolidColorBrush x:Key="SpMutedTint">#147C8496</SolidColorBrush>
+          <SolidColorBrush x:Key="SpMutedRing">#3D7C8496</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpMutedGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#247C8496" Offset="0" /><GradientStop Color="#007C8496" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpLine">#246C58B6</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpHairline" StartPoint="0%,0%" EndPoint="100%,0%"><GradientStop Color="#30695696" Offset="0.55" /><GradientStop Color="#00695696" Offset="0.97" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpInk">#221C34</SolidColorBrush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="SpGood">#B8A5FF</SolidColorBrush>
+          <SolidColorBrush x:Key="SpGoodTint">#14B8A5FF</SolidColorBrush>
+          <SolidColorBrush x:Key="SpGoodRing">#3DB8A5FF</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpGoodGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#24B8A5FF" Offset="0" /><GradientStop Color="#00B8A5FF" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpProc">#9EA9FF</SolidColorBrush>
+          <SolidColorBrush x:Key="SpProcTint">#149EA9FF</SolidColorBrush>
+          <SolidColorBrush x:Key="SpProcRing">#3D9EA9FF</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpProcGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#249EA9FF" Offset="0" /><GradientStop Color="#009EA9FF" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpWarn">#E8B860</SolidColorBrush>
+          <SolidColorBrush x:Key="SpWarnTint">#14E8B860</SolidColorBrush>
+          <SolidColorBrush x:Key="SpWarnRing">#3DE8B860</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpWarnGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#24E8B860" Offset="0" /><GradientStop Color="#00E8B860" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpDanger">#FF8AA5</SolidColorBrush>
+          <SolidColorBrush x:Key="SpDangerTint">#14FF8AA5</SolidColorBrush>
+          <SolidColorBrush x:Key="SpDangerRing">#3DFF8AA5</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpDangerGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#24FF8AA5" Offset="0" /><GradientStop Color="#00FF8AA5" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpMuted">#9AA3B5</SolidColorBrush>
+          <SolidColorBrush x:Key="SpMutedTint">#149AA3B5</SolidColorBrush>
+          <SolidColorBrush x:Key="SpMutedRing">#3D9AA3B5</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpMutedGlow" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#249AA3B5" Offset="0" /><GradientStop Color="#009AA3B5" Offset="1" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpLine">#24B8A5FF</SolidColorBrush>
+          <LinearGradientBrush x:Key="SpHairline" StartPoint="0%,0%" EndPoint="100%,0%"><GradientStop Color="#30E8EEF7" Offset="0.55" /><GradientStop Color="#00E8EEF7" Offset="0.97" /></LinearGradientBrush>
+          <SolidColorBrush x:Key="SpInk">#F1EEFB</SolidColorBrush>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <!-- The presenter's own ScrollViewer is disabled: the panel scrolls by wheel only and never shows a bar. -->
   <Style Selector="FlyoutPresenter.signal-path-presenter">
     <Setter Property="Padding" Value="0" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="12" />
-    <Setter Property="MaxWidth" Value="400" />
-    <Setter Property="MaxHeight" Value="540" />
+    <Setter Property="MaxWidth" Value="424" />
+    <Setter Property="MaxHeight" Value="720" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
   </Style>
-  <Style Selector="player|SignalPathPanel TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
+  <Style Selector="player|SignalPathPanel TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.title">
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource SpInk}" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.spec">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource SpInk}" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.layers">
+    <Setter Property="Foreground" Value="{DynamicResource SpMuted}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.fact">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+    <Setter Property="LineHeight" Value="16" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.tag">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.good TextBlock.tag"><Setter Property="Foreground" Value="{DynamicResource SpGood}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.proc TextBlock.tag"><Setter Property="Foreground" Value="{DynamicResource SpProc}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.warn TextBlock.tag"><Setter Property="Foreground" Value="{DynamicResource SpWarn}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.danger TextBlock.tag"><Setter Property="Foreground" Value="{DynamicResource SpDanger}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.muted TextBlock.tag"><Setter Property="Foreground" Value="{DynamicResource SpMuted}" /></Style>
+  <Style Selector="player|SignalPathPanel TextBlock.summary">
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="LineHeight" Value="17" />
+  </Style>
   <Style Selector="player|SignalPathPanel TextBlock.eyebrow">
-    <Setter Property="Foreground" Value="{DynamicResource EchoSubtle}" /><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
   </Style>
   <Style Selector="player|SignalPathPanel TextBlock.value">
-    <Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="LineHeight" Value="18" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="LineHeight" Value="17" />
   </Style>
-  <Style Selector="player|SignalPathPanel TextBlock.value.highlight"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="player|SignalPathPanel TextBlock.value.highlight">
+    <Setter Property="Foreground" Value="{DynamicResource SpProc}" />
+  </Style>
   <Style Selector="player|SignalPathPanel TextBlock.detail">
-    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="11" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="LineHeight" Value="16" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="LineHeight" Value="16" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.scale">
+    <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.level">
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
+  </Style>
+  <Style Selector="player|SignalPathPanel TextBlock.level.clip">
+    <Setter Property="Foreground" Value="{DynamicResource SpDanger}" />
   </Style>
   <Style Selector="player|SignalPathPanel TextBlock.hero">
-    <Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
+    <Setter Property="LineHeight" Value="28" />
   </Style>
-  <Style Selector="player|SignalPathPanel Border.hairline"><Setter Property="Height" Value="1" /><Setter Property="Background" Value="{DynamicResource EchoDivider}" /></Style>
-  <Style Selector="player|SignalPathPanel Border.pill">
-    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="7,2" /><Setter Property="VerticalAlignment" Value="Center" />
+  <Style Selector="player|SignalPathPanel TextBlock.node-title">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoHeading}" />
   </Style>
-  <Style Selector="player|SignalPathPanel Border.pill TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
-  <Style Selector="player|SignalPathPanel Border.chip">
-    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="99" /><Setter Property="Padding" Value="8,3" /><Setter Property="Margin" Value="0,0,6,6" />
+  <Style Selector="player|SignalPathPanel TextBlock.node-title.processing">
+    <Setter Property="Foreground" Value="{DynamicResource SpProc}" />
   </Style>
-  <Style Selector="player|SignalPathPanel Border.chip TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
-  <Style Selector="player|SignalPathPanel Border.chip TextBlock.chip-label"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
-  <Style Selector="player|SignalPathPanel Border.chip TextBlock.chip-value"><Setter Property="FontWeight" Value="SemiBold" /></Style>
-  <Style Selector="player|SignalPathPanel Border.chip.active">
-    <Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+  <Style Selector="player|SignalPathPanel Border.rule">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Margin" Value="0,14" />
+    <Setter Property="Background" Value="{DynamicResource SpHairline}" />
   </Style>
-  <Style Selector="player|SignalPathPanel Border.chip.active TextBlock.chip-value"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
-  <Style Selector="player|SignalPathPanel Border.note">
-    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
-    <Setter Property="BorderThickness" Value="2,0,0,0" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="10,8" />
+  <Style Selector="player|SignalPathPanel Border.glow">
+    <Setter Property="Height" Value="150" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="IsHitTestVisible" Value="False" />
   </Style>
   <Style Selector="player|SignalPathPanel Border.badge">
-    <Setter Property="Width" Value="28" /><Setter Property="Height" Value="28" /><Setter Property="CornerRadius" Value="14" />
-    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SpGoodRing}" />
+    <Setter Property="Background" Value="{DynamicResource SpGoodTint}" />
   </Style>
+  <Style Selector="player|SignalPathPanel Border.connector">
+    <Setter Property="Width" Value="1" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,38,0,4" />
+    <Setter Property="Background" Value="{DynamicResource SpLine}" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Border.connector.last">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="player|SignalPathPanel Border.root.good Border.glow"><Setter Property="Background" Value="{DynamicResource SpGoodGlow}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.good TextBlock.hero"><Setter Property="Foreground" Value="{DynamicResource SpGood}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.good Border.badge"><Setter Property="BorderBrush" Value="{DynamicResource SpGoodRing}" /><Setter Property="Background" Value="{DynamicResource SpGoodTint}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.good icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource SpGood}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.proc Border.glow"><Setter Property="Background" Value="{DynamicResource SpProcGlow}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.proc TextBlock.hero"><Setter Property="Foreground" Value="{DynamicResource SpProc}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.proc Border.badge"><Setter Property="BorderBrush" Value="{DynamicResource SpProcRing}" /><Setter Property="Background" Value="{DynamicResource SpProcTint}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.proc icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource SpProc}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.warn Border.glow"><Setter Property="Background" Value="{DynamicResource SpWarnGlow}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.warn TextBlock.hero"><Setter Property="Foreground" Value="{DynamicResource SpWarn}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.warn Border.badge"><Setter Property="BorderBrush" Value="{DynamicResource SpWarnRing}" /><Setter Property="Background" Value="{DynamicResource SpWarnTint}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.warn icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource SpWarn}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.danger Border.glow"><Setter Property="Background" Value="{DynamicResource SpDangerGlow}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.danger TextBlock.hero"><Setter Property="Foreground" Value="{DynamicResource SpDanger}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.danger Border.badge"><Setter Property="BorderBrush" Value="{DynamicResource SpDangerRing}" /><Setter Property="Background" Value="{DynamicResource SpDangerTint}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.danger icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource SpDanger}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.muted Border.glow"><Setter Property="Background" Value="{DynamicResource SpMutedGlow}" /></Style>
+  <Style Selector="player|SignalPathPanel Border.root.muted TextBlock.hero"><Setter Property="Foreground" Value="{DynamicResource SpMuted}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.muted Border.badge"><Setter Property="BorderBrush" Value="{DynamicResource SpMutedRing}" /><Setter Property="Background" Value="{DynamicResource SpMutedTint}" /></Style>
+  <Style Selector="player|SignalPathPanel Grid.chain-node.muted icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource SpMuted}" /></Style>
   <Style Selector="player|SignalPathPanel Button.close">
-    <Setter Property="Width" Value="28" /><Setter Property="Height" Value="28" /><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="0" />
-    <Setter Property="CornerRadius" Value="7" /><Setter Property="Background" Value="{DynamicResource EchoField}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
   <Style Selector="player|SignalPathPanel Button.close:pointerover">
-    <Setter Property="Background" Value="{DynamicResource EchoSelected}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+    <Setter Property="Background" Value="{DynamicResource EchoHover}" />
   </Style>
-  <Style Selector="player|SignalPathPanel Button.close:pointerover icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="player|SignalPathPanel Button.close icon|GlyphIcon">
+    <Setter Property="Stroke" Value="{DynamicResource EchoMuted}" />
+  </Style>
   <Style Selector="player|SignalPathPanel Button.link">
-    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="2,3" />
-    <Setter Property="MinHeight" Value="0" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontSize" Value="12" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0,3" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" />
+    <Setter Property="FontSize" Value="12" />
   </Style>
-  <Style Selector="player|SignalPathPanel Expander">
-    <Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoSubtle}" /><Setter Property="Padding" Value="0" />
-    <Style.Resources>
-      <SolidColorBrush x:Key="ExpanderHeaderBackground">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="ExpanderHeaderBorderBrush">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="ExpanderContentBackground">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="ExpanderContentBorderBrush">Transparent</SolidColorBrush>
-    </Style.Resources>
+  <Style Selector="player|SignalPathPanel ToggleButton.fold">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="0,6" />
+    <Setter Property="MinHeight" Value="28" />
+  </Style>
+  <Style Selector="player|SignalPathPanel ToggleButton.fold /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="player|SignalPathPanel ToggleButton.fold icon|GlyphIcon">
+    <Setter Property="Stroke" Value="{DynamicResource EchoMuted}" />
+    <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+  </Style>
+  <Style Selector="player|SignalPathPanel ToggleButton.fold:checked icon|GlyphIcon">
+    <Setter Property="RenderTransform" Value="rotate(180deg)" />
+  </Style>
+  <Style Selector="player|SignalPathPanel ToggleButton.fold:pointerover icon|GlyphIcon">
+    <Setter Property="Stroke" Value="{DynamicResource EchoHeading}" />
   </Style>
 </Styles>

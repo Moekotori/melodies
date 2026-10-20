@@ -9,10 +9,22 @@ public sealed partial class DspViewModel
 {
     [ObservableProperty] private string nativeFacts = "尚无原生运行数据。";
     private int factsPending;
+    private int eqModelRate;
+    private bool eqRateConfirmed;
     private void NativeSnapshotChanged(PlaybackSnapshot snapshot)
     {
-        if (disposed || !ShowsNativeFacts || Interlocked.Exchange(ref factsPending, 1) != 0) return;
-        Dispatcher.UIThread.Post(() => { Interlocked.Exchange(ref factsPending, 0); if (!disposed) UpdateNativeFacts(); });
+        if (disposed || !(ShowsNativeFacts || ShowsDynamics || IsReplayGain || IsRoom || SelectedModule.EditsEqualizer) || Interlocked.Exchange(ref factsPending, 1) != 0) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            Interlocked.Exchange(ref factsPending, 0);
+            if (disposed) return;
+            if (eqModelRate != SampleRate || eqRateConfirmed != EqRateConfirmed)
+            {
+                eqModelRate = SampleRate; eqRateConfirmed = EqRateConfirmed;
+                InvalidateEqResponse(); OnPropertyChanged(nameof(SampleRate));
+            }
+            UpdateNativeFacts(); UpdateWorkbenchFacts();
+        });
     }
     private void UpdateNativeFacts()
     {

@@ -240,111 +240,6 @@
     "sha256": "e6ad444b6f9ce36d0d642ee043c342a878963888fa1a2f805269ce151e8f8f18"
   },
   {
-    "scene": "background",
-    "source": "src/shared/constants/lyricsShaderScenes.ts",
-    "sha256": "437b5f741fd10fc0647f103f974b8caad74a09a6d1fe9201949f239133997ef9"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/flowingLightModel.ts",
-    "sha256": "d6aef44eb7b2c5e3799fbf15608a3be3a03b80006c782f78a0162fe7d9c50df9"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/flowingLightEnvelope.ts",
-    "sha256": "391f689fd001be825e44308cec2c42d51396f54b47c4f10e4b120bf2fd9614c9"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/coverSceneInteraction.ts",
-    "sha256": "92d4d45d15f724012bf555d2b84d1a21564481928dad473d843446718d42d085"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/flatSceneHelpers.ts",
-    "sha256": "b4540a1f5ca1c9c6f9326cb779862197871e2159bae5397eec6367c37cfb0e10"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/bfsScene.ts",
-    "sha256": "04be65b64075991ac78021693155de62b312c5bcc574a4e00f4ba981ebc5ca62"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/coverScenes.ts",
-    "sha256": "31b761d7fea96521009e1468891ea29b09612b4108185bc43a8ec6ff0dabd395"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/sakuraScene.ts",
-    "sha256": "ee879c45e9b0989353b06313245f54d26fb5f171b7f65fc5a5ce7bb0479b799f"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/sceneShaders.ts",
-    "sha256": "8b033902c69116e03edac3d75d0636d7868602489b04cbab5748aff618a6f38a"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/shaderSceneAmbience.ts",
-    "sha256": "67dfc3e2fd89986c0da468029168516e4f5150de3ce148f0d44175304461b6c4"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/shaderSceneRenderer.ts",
-    "sha256": "f616e3cb54e9852fc516977be5bfa71cae70a6996c8d153ba1cabcf951b524d5"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/shader-scenes/shaderScenePalettes.ts",
-    "sha256": "d78dca73e87753070cf5a0218603b3eddf5c8918817101aaa933ce98781c1bd9"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/flowingLightRenderer.ts",
-    "sha256": "2309766b1ad911f9d9b5ea80a845ad804462860b78c3be2cd314ffb82af6ae1e"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/lyricsBackdropPalette.ts",
-    "sha256": "e56faabee0c3764e1ab52318519f4b6093f1529ff2ebbd88e53d05aacd7c80b5"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/cover-flow/coverFlowColor.ts",
-    "sha256": "caa604cb040cd1f487525f43335228ec6a6f21e081ea9113ff7f0482b4057ea8"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/cover-flow/coverFlowShader.ts",
-    "sha256": "5b29866cdd71c2d3e22d68471f7c47327af273c03f11f9b3ba39f940b20a7931"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/cover-flow/coverFlowRenderer.ts",
-    "sha256": "5c0e6d4468b0942affe5d04117565e17a80c2543b7d1a08de78a8789712d7873"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/cover-flow/coverFlowPalette.ts",
-    "sha256": "2d762d7c0d4ab3c718043a7e7f9c34f6ce4b1d49b35f18610d629663ee5ef4b0"
-  },
-  {
-    "scene": "background",
-    "source": "src/shared/constants/geometricAmbienceSettings.ts",
-    "sha256": "15d30826b8f4cfbc19f6b3cdddb783afaeacee0886be7c4fd02e29fcd9b94309"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/geometricAmbienceLayout.ts",
-    "sha256": "953d6e0fce1351e521dd4c50566041b609f8a47da10f5d46b15842bd49ca7055"
-  },
-  {
-    "scene": "background",
-    "source": "src/renderer/components/lyrics/geometricAmbienceRenderer.ts",
-    "sha256": "fdf5388bff2dbfbda293017796896e409395b01db526a1d77238705e8b345504"
-  },
-  {
     "scene": "cassette-art",
     "source": "src/renderer/assets/lyrics-cassette/aurora.webp",
     "sha256": "23e626c520e7e2a1876f22aebd2fc1fcbd5f28d11eee9753d2e719f61867e934"
@@ -495,6 +390,121 @@
     "sha256": "bbece658ce111ea0bc662b4a77dd24cf16a4080a60f465ba8d549e4be2f25211"
   },
   {
+    "scene": "cassette-shaders",
+    "source": "src/renderer/components/lyrics/cassette/cassetteShaders.ts",
+    "sha256": "7efff10b2ddffd2c4494b5a62e1710f4812e9635d781e5270f63c9643b691b92"
+  },
+  {
+    "scene": "background",
+    "source": "src/shared/constants/lyricsShaderScenes.ts",
+    "sha256": "86652d174ca8bcc807f192797e94526a4334122f52cc3188644d232e44a88279"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/flowingLightModel.ts",
+    "sha256": "ea50e302f037b7854bba441d683234a768b73861ef064d0d7681a445ebcaa1d0"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/flowingLightEnvelope.ts",
+    "sha256": "223241be95a6581fa182dca57a2b5682426047821cb6f8857d17670118bf7e4b"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/coverSceneInteraction.ts",
+    "sha256": "92d4d45d15f724012bf555d2b84d1a21564481928dad473d843446718d42d085"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/flatSceneHelpers.ts",
+    "sha256": "472d70ef60ae973e7777d451fe27ca624102ef4b1981763dd0c22b03035d4eae"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/bfsScene.ts",
+    "sha256": "ad91eb426fd6b466ae32192a3a4cf02c2e1390db09d5200372cc9b141f492eda"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/coverPixelScenes.ts",
+    "sha256": "1ea382c457e0dbed7dbe849814d88add287f18792407b54db866ceae424e6713"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/coverScenes.ts",
+    "sha256": "c57c77cff01d778a0742661cb10df18f78493298c0981579fb17dbd878c30cc4"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/sakuraScene.ts",
+    "sha256": "675994a01254bbd2ef652b92c4d5e42c19cfb648fd697239512ec86bdc81563c"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/sceneShaders.ts",
+    "sha256": "f690668a479d2b8705c539c84345a418dd698883b08cf332d7e9758021446e7d"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/shaderSceneAmbience.ts",
+    "sha256": "07a44401a3e1307eb785d4a46d5aee279cf070055e8d5d6747a0ed8b94fd51ae"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/shaderSceneRenderer.ts",
+    "sha256": "6fe71ac8b8289e611d4dc62fe2ee221f39d2d5320cfc7d0fedc3a8da24eb9b7d"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/shader-scenes/shaderScenePalettes.ts",
+    "sha256": "672b672bef300ade6a629f928310f2a00da757e15c3d5d4d0f6d6cdcded1312c"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/flowingLightRenderer.ts",
+    "sha256": "b94da477cdb51b50fe5f5cade5648f5e465ed0b55a7f93ee428a7ea6e0000bf7"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/lyricsBackdropPalette.ts",
+    "sha256": "785c451ef25249b75222ef4b6a5551cdfedf385ba96bd7abea0c93dbef7d59b7"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/cover-flow/coverFlowColor.ts",
+    "sha256": "caa604cb040cd1f487525f43335228ec6a6f21e081ea9113ff7f0482b4057ea8"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/cover-flow/coverFlowShader.ts",
+    "sha256": "5b29866cdd71c2d3e22d68471f7c47327af273c03f11f9b3ba39f940b20a7931"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/cover-flow/coverFlowRenderer.ts",
+    "sha256": "5c0e6d4468b0942affe5d04117565e17a80c2543b7d1a08de78a8789712d7873"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/cover-flow/coverFlowPalette.ts",
+    "sha256": "2d762d7c0d4ab3c718043a7e7f9c34f6ce4b1d49b35f18610d629663ee5ef4b0"
+  },
+  {
+    "scene": "background",
+    "source": "src/shared/constants/geometricAmbienceSettings.ts",
+    "sha256": "2103cda0f3323fefea36fa6074756bfa616b1109b49eb6dbe3ffde385312634e"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/geometricAmbienceLayout.ts",
+    "sha256": "2e21d213401aa2f7ee6148832ce898d4bde934c9364248f39981bef7e9bfe23f"
+  },
+  {
+    "scene": "background",
+    "source": "src/renderer/components/lyrics/geometricAmbienceRenderer.ts",
+    "sha256": "9f8e4b049f669b778881f3e94887054060a20a9ad56c8d0f5a507d5f72129227"
+  },
+  {
     "scene": "background-art",
     "source": "src/renderer/assets/geometric-ambience/ambient.png",
     "sha256": "667a476c70b3e1a659f86f229544e06814e76f2d0e85ba2b9db7dd316c051177"
@@ -507,12 +517,7 @@
   {
     "scene": "background-art",
     "source": "src/renderer/assets/geometric-ambience/README.md",
-    "sha256": "b60438e532e1793ef2b2627c9214024a4d795f9ed283665d99fc16b699f3c43d"
-  },
-  {
-    "scene": "background-art",
-    "source": "src/renderer/assets/lyrics-background-previews/README.md",
-    "sha256": "0b5d5cadd7f2293b61efe49164e8fc1522263704c946921083f5b7fc236ca7bf"
+    "sha256": "f701540ed3ff14be53ac24a8b64f72eb279a85ae50a6625f2679fbc09b72a5e1"
   },
   {
     "scene": "background-art",
@@ -561,6 +566,36 @@
   },
   {
     "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverPixelCrt.webp",
+    "sha256": "c8e9337f7f5eadb6e75361385fe76213c018a978dbc998f6f6671d5d710a6367"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverPixelRain.webp",
+    "sha256": "8ac9c2a2156d2fe0aba7d70d58c7e3077971fbd362dcd3d5206a19f964e8b322"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverPixelShuffle.webp",
+    "sha256": "fefabea3429493fb43e1d7213e48adf107a849eacdefbda0f2ffc47b5d39d60e"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverPixelSkyline.webp",
+    "sha256": "93b8ab55de8841489adacc0f59b85516bd1ca4276b35dbb408bea50d520fe805"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverPixelTiles.webp",
+    "sha256": "c5690d62ea2ffde9d0f6cf35192046cbd8378732cab732d737f9d8fd1d07f99c"
+  },
+  {
+    "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/coverPixelWarp.webp",
+    "sha256": "261b90cbe1a5db78ed33fb385b8befb30dbe8755dc58f55578af212c5233f883"
+  },
+  {
+    "scene": "background-art",
     "source": "src/renderer/assets/lyrics-background-previews/coverPond.webp",
     "sha256": "0b7e127530916ac014cbdb888f3db640412d79b18f1273ac82031cc9ffe853e5"
   },
@@ -601,6 +636,11 @@
   },
   {
     "scene": "background-art",
+    "source": "src/renderer/assets/lyrics-background-previews/README.md",
+    "sha256": "b17e63d065ba8d3158d80af69ad2deff6606204872b1ecd9c66b506ad8c555bd"
+  },
+  {
+    "scene": "background-art",
     "source": "src/renderer/assets/lyrics-background-previews/sakura.webp",
     "sha256": "ba85f4f69f59f1a66f876e47249e9ef178a64ece2d64ea358ef911214c63450c"
   },
@@ -608,10 +648,5 @@
     "scene": "background-art",
     "source": "src/renderer/assets/lyrics-background-previews/theme.webp",
     "sha256": "7ff4713da3aa3e3161a671c20c7abe378ef99173084f371b2b04a718205ee8fe"
-  },
-  {
-    "scene": "cassette-shaders",
-    "source": "src/renderer/components/lyrics/cassette/cassetteShaders.ts",
-    "sha256": "7efff10b2ddffd2c4494b5a62e1710f4812e9635d781e5270f63c9643b691b92"
   }
 ]

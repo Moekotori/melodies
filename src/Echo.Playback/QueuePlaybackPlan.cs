@@ -3,35 +3,28 @@ namespace Echo.Playback;
 // User order stays editable. Shuffle is a stable permutation: pinned songs, then songs not just heard, then recent ones.
 internal static class QueuePlaybackPlan
 {
-    public const int RecentAvoidance = 8;
     public const int PreviewLength = 6;
-    private static readonly HashSet<string> NoRecent = new(StringComparer.Ordinal);
     private static readonly QueuePlanStep[] NoSteps = [];
-
-    public static IReadOnlySet<string> RecentTrackIds(IReadOnlyList<QueueTrack> history, int limit = RecentAvoidance)
-    {
-        if (history.Count == 0 || limit <= 0) return NoRecent;
-        var ids = new HashSet<string>(Math.Min(limit, history.Count), StringComparer.Ordinal);
-        for (var index = history.Count - 1; index >= 0 && ids.Count < limit; index--)
-            ids.Add(history[index].TrackId);
-        return ids;
-    }
 
     public static string[] Order(IReadOnlyList<QueueTrack> items, string? currentId, IReadOnlySet<string> recentTrackIds)
     {
         var currentIsBase = false;
         var fresh = new List<string>();
         var recent = new List<string>();
+        var activeCopies = new List<string>();
+        var activeTrackId = items.FirstOrDefault(x => x.ItemId == currentId)?.TrackId;
         foreach (var item in items)
         {
             if (item.QueuedNext) continue;
             if (item.ItemId == currentId) { currentIsBase = true; continue; }
+            if (item.TrackId == activeTrackId) { activeCopies.Add(item.ItemId); continue; }
             (recentTrackIds.Contains(item.TrackId) ? recent : fresh).Add(item.ItemId);
         }
         var freshIds = fresh.ToArray();
         var recentIds = recent.ToArray();
         Random.Shared.Shuffle(freshIds);
         Random.Shared.Shuffle(recentIds);
+        recentIds = Join(recentIds, activeCopies.ToArray());
         if (!currentIsBase) return Join(freshIds, recentIds);
         var result = new string[freshIds.Length + recentIds.Length + 1];
         result[0] = currentId!;
@@ -62,6 +55,33 @@ internal static class QueuePlaybackPlan
             insertAt++;
         order.InsertRange(insertAt, freshIds);
         order.AddRange(recentIds);
+    }
+
+    public static string[] ReorderRemaining(string[] order, IReadOnlyList<QueueTrack> items, string? currentId,
+        IReadOnlySet<string> recentTrackIds)
+    {
+        var start = Array.IndexOf(order, currentId) + 1;
+        var tracks = items.ToDictionary(x => x.ItemId, StringComparer.Ordinal);
+        var activeTrackId = items.FirstOrDefault(x => x.ItemId == currentId)?.TrackId;
+        var highestPriority = 0;
+        var needsReorder = false;
+        for (var index = start; index < order.Length; index++)
+        {
+            if (!tracks.TryGetValue(order[index], out var track)) { needsReorder = true; break; }
+            var priority = track.TrackId == activeTrackId ? 2 : recentTrackIds.Contains(track.TrackId) ? 1 : 0;
+            if (priority < highestPriority) { needsReorder = true; break; }
+            highestPriority = priority;
+        }
+        if (!needsReorder) return order;
+        var result = new List<string>(order.Length);
+        result.AddRange(order.Take(start));
+        foreach (var id in order.Skip(start))
+            if (tracks.TryGetValue(id, out var track) && !recentTrackIds.Contains(track.TrackId) && track.TrackId != activeTrackId) result.Add(id);
+        foreach (var id in order.Skip(start))
+            if (tracks.TryGetValue(id, out var track) && recentTrackIds.Contains(track.TrackId) && track.TrackId != activeTrackId) result.Add(id);
+        foreach (var id in order.Skip(start))
+            if (tracks.TryGetValue(id, out var track) && track.TrackId == activeTrackId) result.Add(id);
+        return result.ToArray();
     }
 
     public static QueuePlanStep[] Upcoming(IReadOnlyList<QueueTrack> projected, string? currentId, bool repeatAll, bool shuffle,

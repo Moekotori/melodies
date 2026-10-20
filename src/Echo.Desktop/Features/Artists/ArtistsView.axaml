@@ -4,13 +4,13 @@
   <Grid>
     <Grid Name="Wall" RowDefinitions="Auto,Auto,Auto,*">
       <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
-        <StackPanel Orientation="Horizontal" Spacing="16"><TextBlock Name="ArtistsTitle" Text="{DynamicResource navigation.artists}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontStyle="Normal" /><TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" /></StackPanel>
-        <Button Grid.Column="1" Classes="icon" Click="OnRefresh" ToolTip.Tip="{DynamicResource ui.ArtistsView.ab75473d030d}"><icon:GlyphIcon Kind="refresh" Width="18" Height="18" /></Button>
+        <StackPanel Orientation="Horizontal" Spacing="16"><TextBlock Name="ArtistsTitle" Classes="page-title" /><TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" /></StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"><Button Content="{DynamicResource credits.people.title}" Click="OnCredits"/><Button Classes="icon" Click="OnRefresh" ToolTip.Tip="{DynamicResource ui.ArtistsView.ab75473d030d}"><icon:GlyphIcon Kind="refresh" Width="18" Height="18" /></Button></StackPanel>
       </Grid>
       <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="0,0,0,20">
         <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="120">
           <icon:GlyphIcon Kind="search" Width="18" Height="18" Margin="12,0" ZIndex="1" />
-          <TextBox Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource ui.ArtistsView.055fa6a68ccc}" Padding="40,10,60,10" CornerRadius="6" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
+          <TextBox Classes="page-search" Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource ui.ArtistsView.055fa6a68ccc}" Padding="40,10,60,10" KeyDown="OnSearchKey" />
           <Button Grid.Column="2" Classes="icon" Content="×" Click="OnClearSearch" ToolTip.Tip="{DynamicResource ui.AlbumsView.b6f00afa6537}" Margin="8,0" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </Grid>
         <Button Grid.Column="1" ToolTip.Tip="{DynamicResource ui.ArtistsView.87677e5f4c34}">
@@ -30,9 +30,10 @@
       <TextBlock Grid.Row="2" Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       <Grid Grid.Row="3">
         <ContentControl Name="ViewportHost" />
-        <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12"><TextBlock Text="{DynamicResource ui.ArtistsView.4330d888dc83}" Classes="heading" FontSize="18" HorizontalAlignment="Center" /><TextBlock Text="{DynamicResource ui.ArtistsView.132258d9e02d}" Classes="muted" FontSize="13" /><Button Content="{DynamicResource ui.AlbumsView.b6f00afa6537}" Click="OnClearSearch" HorizontalAlignment="Center" /></StackPanel>
+        <StackPanel Classes="reveal" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12"><TextBlock Text="{DynamicResource ui.ArtistsView.4330d888dc83}" Classes="heading" FontSize="18" HorizontalAlignment="Center" /><TextBlock Text="{DynamicResource ui.ArtistsView.132258d9e02d}" Classes="muted" FontSize="13" /><Button Content="{DynamicResource ui.AlbumsView.b6f00afa6537}" Click="OnClearSearch" HorizontalAlignment="Center" /></StackPanel>
       </Grid>
     </Grid>
     <ContentControl Name="DetailHost" IsVisible="False" />
+    <ContentControl Name="CreditsHost" IsVisible="False" />
   </Grid>
 </UserControl>

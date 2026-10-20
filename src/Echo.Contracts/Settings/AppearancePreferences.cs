@@ -8,4 +8,5 @@ public sealed record AppearancePreferences(
     bool WallpaperUnifiedOpacity = true, bool WallpaperVisualProtection = true, string VideoPauseMode = "smart",
     ImportedFont? MainFontFile = null, ImportedFont? ChineseFontFile = null, ImportedFont? FallbackFontFile = null,
     string? PageTextLight = null, string? PageTextDark = null, string CoverShape = "square", bool ArtistAlbumArtwork = false,
-    bool RainbowEnabled = false, string RainbowStyle = "aurora", double RainbowSpeed = 100, double RainbowIntensity = 100);
+    bool RainbowEnabled = false, string RainbowStyle = "aurora", double RainbowSpeed = 100, double RainbowIntensity = 100,
+    TypographyPreferences? Typography = null);

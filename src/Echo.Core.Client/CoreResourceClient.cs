@@ -6,12 +6,17 @@ using Echo.Core.Transport;
 
 namespace Echo.Core.Client;
 
-internal sealed class CoreResourceClient(CoreWireClient wire, bool allowLocalOpen) : IAlbumArtwork, ILyricsSource, IDetailResources
+internal sealed class CoreResourceClient(CoreWireClient wire, bool allowLocalOpen) : IAlbumArtwork, IArtistArtwork, ILyricsSource, IDetailResources
 {
+    public async Task<byte[]?> ReadArtistAsync(string samplePath, CancellationToken cancellation)
+        => (await wire.CallAsync<CoreBytes>("resource.read", CoreJson.Value(new CoreReadResource("artist-artwork", samplePath)), cancellation).ConfigureAwait(false)).Bytes;
     public async Task<byte[]?> ReadAsync(string samplePath, CancellationToken cancellation)
         => (await wire.CallAsync<CoreBytes>("resource.read", CoreJson.Value(new CoreReadResource("artwork", samplePath)), cancellation).ConfigureAwait(false)).Bytes;
-    public Task<LyricsText?> ReadAsync(string audioPath, string? explicitPath, CancellationToken cancellation)
-        => wire.CallAsync<LyricsText?>("resource.read", CoreJson.Value(new CoreReadResource("lyrics", audioPath, explicitPath)), cancellation);
+    public async Task<LyricsText?> ReadAsync(string audioPath, string? explicitPath, CancellationToken cancellation)
+    {
+        try { return await wire.CallAsync<LyricsText?>("resource.read", CoreJson.Value(new CoreReadResource("lyrics", audioPath, explicitPath)), cancellation).ConfigureAwait(false); }
+        catch (CoreRemoteException error) when (error.Code == "lyrics_unavailable") { throw new LyricsLookupUnavailableException(); }
+    }
     public Task<AttachmentPage> ReadAttachmentsAsync(string samplePath, CancellationToken cancellation)
         => wire.CallAsync<AttachmentPage>("resource.read", CoreJson.Value(new CoreReadResource("attachments", samplePath)), cancellation);
     public Task<string?> ReadDescriptionAsync(string samplePath, CancellationToken cancellation)

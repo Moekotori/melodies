@@ -51,7 +51,8 @@ public sealed partial class ThemeViewModel
         PageTextLight = ThemeColorMath.TryHex(a.PageTextLight ?? "", out var light) ? light : null,
         PageTextDark = ThemeColorMath.TryHex(a.PageTextDark ?? "", out var dark) ? dark : null,
         PortraitFraming = NormalizeFraming(a.PortraitFraming ?? new()),
-        MainFontFile = NormalizeFont(a.MainFontFile), ChineseFontFile = NormalizeFont(a.ChineseFontFile), FallbackFontFile = NormalizeFont(a.FallbackFontFile)
+        MainFontFile = NormalizeFont(a.MainFontFile), ChineseFontFile = NormalizeFont(a.ChineseFontFile), FallbackFontFile = NormalizeFont(a.FallbackFontFile),
+        Typography = a.Typography is null ? null : NormalizeTypography(a.Typography)
     };
     private static ImportedFont? NormalizeFont(ImportedFont? file) => file is not null && LocalPath(file.Path).Length > 0
         && !string.IsNullOrWhiteSpace(file.Family) && file.Family.Length <= 120 ? file : null;
@@ -67,11 +68,14 @@ public sealed partial class ThemeViewModel
         RainbowEnabled = a.RainbowEnabled; RainbowStyle = a.RainbowStyle; RainbowSpeed = a.RainbowSpeed; RainbowIntensity = a.RainbowIntensity;
         CoverShape = a.CoverShape; ArtistAlbumArtwork = a.ArtistAlbumArtwork;
         var f = a.PortraitFraming!; PortraitFit = f.Fit; PortraitX = f.X; PortraitY = f.Y; PortraitZoom = f.Zoom;
-        RefreshTextOverride();
+        RestoreTypography(); RefreshTextOverride();
         foreach (var p in new[] { nameof(RoundedCovers), nameof(SelectedRainbowChoice), nameof(SelectedVideoPauseChoice), nameof(SelectedPortraitFit), nameof(Appearance) }) OnPropertyChanged(p);
     }
     private void RefreshTextOverride()
-    { var wasSync = _sync; _sync = true; PageTextColor = (EditTone == "深色" ? Appearance.PageTextDark : Appearance.PageTextLight) ?? ""; _sync = wasSync; OnPropertyChanged(nameof(HasPageTextOverride)); }
+    {
+        var wasSync = _sync; _sync = true; PageTextColor = (EditTone == "深色" ? Appearance.PageTextDark : Appearance.PageTextLight) ?? ""; _sync = wasSync;
+        OnPropertyChanged(nameof(HasPageTextOverride)); RefreshSecondaryColor();
+    }
     partial void OnWallpaperEnabledChanged(bool value) => ChangeAppearance(Appearance with { WallpaperEnabled = value });
     partial void OnPortraitWallpaperChanged(string value) { ChangeAppearance(Appearance with { PortraitWallpaper = value }); OnPropertyChanged(nameof(PortraitFileName)); }
     partial void OnWallpaperZoomChanged(double value) => ChangeAppearance(Appearance with { WallpaperZoom = value });
@@ -100,9 +104,11 @@ public sealed partial class ThemeViewModel
     partial void OnPortraitFitChanged(string value) { ChangePortrait(); OnPropertyChanged(nameof(SelectedPortraitFit)); }
     public void SetFontFile(string slot, ImportedFont? file)
     {
-        var appearance = slot switch { "chinese" => Appearance with { ChineseFontFile = file }, "fallback" => Appearance with { FallbackFontFile = file }, _ => Appearance with { MainFontFile = file } };
+        var appearance = slot switch { "chinese" => Appearance with { ChineseFontFile = file }, "fallback" => Appearance with { FallbackFontFile = file },
+            "secondary" => Appearance with { Typography = Typography with { SecondaryFontFile = file, SecondaryFont = file?.Family ?? Typography.SecondaryFont } },
+            _ => Appearance with { MainFontFile = file } };
         var next = _preferences with { Appearance = NormalizeAppearance(appearance) };
-        if (file is not null) next = slot switch { "chinese" => next with { ChineseFont = file.Family }, "fallback" => next with { FallbackFont = file.Family }, _ => next with { Font = file.Family } };
+        if (file is not null) next = slot switch { "chinese" => next with { ChineseFont = file.Family }, "fallback" => next with { FallbackFont = file.Family }, "secondary" => next, _ => next with { Font = file.Family } };
         Commit(next); Restore(next);
     }
     [RelayCommand] private void ClearPortraitWallpaper() => PortraitWallpaper = "";

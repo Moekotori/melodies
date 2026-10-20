@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspRackWorkbench" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,0,24">
+      <StackPanel Spacing="7">
+        <TextBlock Text="{DynamicResource ui.DspRackWorkbench.8fc4fb689071}" Classes="dsp-section-title"/>
+        <TextBlock Text="{DynamicResource ui.DspRackWorkbench.1c9cc066ccae}" Classes="dsp-note" TextWrapping="Wrap"/>
+      </StackPanel>
+      <local:DspRackView/>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

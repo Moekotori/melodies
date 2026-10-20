@@ -97,7 +97,7 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
     public RadioViewModel(ShellViewModel shell)
     {
         this.shell = shell; token = lifetime.Token; catalog = shell.Radio; player = shell.Player; playback = shell.RadioPlayback; metadata = shell.RadioMetadata;
-        Directory = new(catalog, shell.RadioDirectory, () => DirectoryOpen = false);
+        Directory = new(catalog, shell.RadioDirectory, () => DirectoryOpen = false, station => PlayStationAsync(station, toggle: false));
         catalog.Changed += CatalogChanged;
         shell.RadioStageRequested += OpenCurrentStage;
         shell.Motion.PropertyChanged += MotionChanged;
@@ -176,9 +176,10 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
     [RelayCommand] private void ShowAll() => FavoritesOnly = false;
     [RelayCommand] private void ShowFavorites() => FavoritesOnly = true;
     [RelayCommand(AllowConcurrentExecutions = true)] private Task ListenAsync() => Selected is { } station ? PlayAsync(station) : Task.CompletedTask;
-    public async Task PlayAsync(RadioStation station)
+    public Task PlayAsync(RadioStation station) => PlayStationAsync(station);
+    private async Task<bool> PlayStationAsync(RadioStation station, bool toggle = true)
     {
-        if (IsBusy || player is null || playback is null || disposed) return;
+        if (IsBusy || player is null || playback is null || disposed) return false;
         Selected = station;
         Message = ""; failedStationId = null;
         try
@@ -186,14 +187,25 @@ public sealed partial class RadioViewModel : ObservableObject, IDisposable
             var state = player.Session.Snapshot;
             if (playback.IsConnecting(station.Id) || RadioPlaybackService.IsCurrent(state, station.Id)
                 && state.Status is PlaybackStatus.Playing or PlaybackStatus.Loading)
-                await playback.StopAsync(station.Id, token);
-            else if (await playback.StartAsync(station, token) is { } info && !disposed)
-                try { await catalog.UpdateAsync(items => items.Select(item => item.Id == station.Id ? RadioCatalog.ApplyProbe(item, info) : item), token); }
-                catch (Exception error) when (error is ArgumentException or IOException) { }
+            {
+                if (toggle) await playback.StopAsync(station.Id, token);
+                return true;
+            }
+            if (await playback.StartAsync(station, token) is not { } info || disposed) return false;
+            try
+            {
+                await catalog.UpdateAsync(items => items.Any(item => item.Url == station.Url)
+                    ? items.Select(item => item.Url == station.Url ? RadioCatalog.ApplyProbe(item, info) : item)
+                    : items.Count < RadioCatalog.Capacity ? items.Append(RadioCatalog.ApplyProbe(station, info)) : items, token);
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            { if (!disposed) Message = "收听请求已接受，但电台资料保存失败：" + error.Message; }
+            return true;
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { if (!disposed) { failedStationId = station.Id; Message = error.Message; } }
         finally { if (!disposed) RefreshRows(); }
+        return false;
     }
     private RadioStation? ActiveStation()
     {

@@ -4,13 +4,13 @@
   <UserControl.Styles>
     <Style Selector="Button.shortcut-key"><Setter Property="MinWidth" Value="86" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="FontFamily" Value="Cascadia Code,Consolas" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="10,7" /><Setter Property="CornerRadius" Value="4" /><Setter Property="Background" Value="{DynamicResource EchoField}" /></Style>
     <Style Selector="Button.shortcut-key.recording"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccentText}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
-    <Style Selector="ToggleButton.shortcut-toggle"><Setter Property="MinWidth" Value="28" /><Setter Property="Padding" Value="4" /><Setter Property="FontSize" Value="11" /><Setter Property="Background" Value="Transparent" /></Style>
+    <Style Selector="ToggleButton.shortcut-toggle"><Setter Property="MinWidth" Value="28" /><Setter Property="Padding" Value="4" /><Setter Property="FontSize" Value="12" /><Setter Property="Background" Value="Transparent" /></Style>
     <Style Selector="ToggleButton.shortcut-toggle:checked"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="Background" Value="{DynamicResource SettingsSelected}" /></Style>
     <Style Selector="Button.shortcut-clear"><Setter Property="Padding" Value="5,2" /><Setter Property="Background" Value="Transparent" /><Setter Property="FontSize" Value="16" /></Style>
   </UserControl.Styles>
   <StackPanel Margin="26,22,30,34" Spacing="14">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-      <StackPanel Spacing="6"><TextBlock Text="{DynamicResource shortcuts.title}" FontSize="23" FontWeight="Bold" Classes="heading" /><TextBlock Text="{Binding Summary}" Classes="muted" FontSize="12" /></StackPanel>
+      <StackPanel Spacing="6"><TextBlock Text="{DynamicResource shortcuts.title}" FontSize="23" FontWeight="SemiBold" Classes="heading" /><TextBlock Text="{Binding Summary}" Classes="muted" FontSize="12" /></StackPanel>
       <Button Grid.Column="1" Content="{DynamicResource shortcuts.restore}" Command="{Binding RestoreRecommendedCommand}" VerticalAlignment="Center" />
     </Grid>
     <TextBlock Text="{Binding PlatformHint}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
@@ -22,15 +22,15 @@
     <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource SettingsDivider}" Padding="0,2,0,12">
       <Grid ColumnDefinitions="*,230,230" ColumnSpacing="12" Name="ColumnHeader">
         <TextBlock Text="{DynamicResource shortcuts.action}" FontSize="12" Classes="muted" />
-        <TextBlock Grid.Column="1" Text="{DynamicResource shortcuts.local}" FontSize="12" FontWeight="SemiBold" />
-        <TextBlock Grid.Column="2" Text="{DynamicResource shortcuts.global}" FontSize="12" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="1" Text="{DynamicResource shortcuts.local}" FontSize="12" FontWeight="Medium" />
+        <TextBlock Grid.Column="2" Text="{DynamicResource shortcuts.global}" FontSize="12" FontWeight="Medium" />
       </Grid>
     </Border>
     <ItemsControl ItemsSource="{Binding VisibleRows}">
       <ItemsControl.ItemTemplate><DataTemplate x:DataType="s:ShortcutRow">
         <Border BorderBrush="{DynamicResource SettingsDivider}" BorderThickness="0,0,0,1" Padding="0,12">
           <Grid ColumnDefinitions="*,230,230" ColumnSpacing="12" Classes="shortcut-row-grid">
-            <StackPanel VerticalAlignment="Center" Spacing="4"><TextBlock Text="{Binding Title}" FontSize="13" TextWrapping="Wrap" /><TextBlock Text="{Binding Group}" FontSize="10" Classes="muted" /></StackPanel>
+            <StackPanel VerticalAlignment="Center" Spacing="4"><TextBlock Text="{Binding Title}" FontSize="13" TextWrapping="Wrap" /><TextBlock Text="{Binding Group}" FontSize="12" Classes="muted" /></StackPanel>
             <s:ShortcutCellView Grid.Column="1" DataContext="{Binding Local}" />
             <s:ShortcutCellView Grid.Column="2" DataContext="{Binding Global}" />
           </Grid>

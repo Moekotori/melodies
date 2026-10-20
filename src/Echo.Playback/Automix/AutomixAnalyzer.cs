@@ -4,6 +4,7 @@ internal static class AutomixAnalyzer
 {
     private const int MaximumEntries = 64;
     private static readonly Lock Gate = new();
+    private static readonly SemaphoreSlim Worker = new(1, 1);
     private static readonly Dictionary<string, CacheEntry> Cache = new(StringComparer.Ordinal);
     private static readonly Queue<string> Order = new();
 
@@ -18,19 +19,23 @@ internal static class AutomixAnalyzer
     {
         var cached = TryGet(path);
         if (cached is not null) return cached;
-        AutomixAnalysis analysis;
+        await Worker.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            token.ThrowIfCancellationRequested();
-            analysis = await MeasureAsync(path, duration, token).ConfigureAwait(false);
+            cached = TryGet(path);
+            if (cached is not null) return cached;
+            AutomixAnalysis analysis;
+            try
+            {
+                token.ThrowIfCancellationRequested();
+                analysis = await MeasureAsync(path, duration, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception error) { analysis = Failed(duration, error.Message); }
+            Remember(Identity(path), analysis, analysis.Status == "error" ? Environment.TickCount64 + 300_000 : long.MaxValue);
+            return analysis;
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-        catch (Exception error)
-        {
-            analysis = Failed(duration, error.Message);
-        }
-        Remember(Identity(path), analysis, analysis.Status == "error" ? Environment.TickCount64 + 300_000 : long.MaxValue);
-        return analysis;
+        finally { Worker.Release(); }
     }
 
     private static async Task<AutomixAnalysis> MeasureAsync(string path, double duration, CancellationToken token)
@@ -50,10 +55,12 @@ internal static class AutomixAnalyzer
         var introVocal = AutomixFeatures.Vocal(headStereo, AutomixDecode.SampleRate);
         var outroVocal = tailStereo is null ? (AutomixVocalReading?)null : AutomixFeatures.Vocal(tailStereo, AutomixDecode.SampleRate);
         var headDuration = head.Length / (double)AutomixDecode.SampleRate;
-        var intro = Window("intro", 0, headDuration, headSummary, musical.Tempo);
+        var headSpectral = AutomixAlphaSpectral.Measure(head, AutomixDecode.SampleRate, token);
+        var tailSpectral = tail is null ? headSpectral : AutomixAlphaSpectral.Measure(tail, AutomixDecode.SampleRate, token);
+        var intro = Window("intro", 0, headDuration, headSummary, musical.Tempo, headSpectral);
         AutomixWindow? outro = tail is not null && tailSummary is not null && tailMusical is not null
-            ? Window("outro", Math.Max(0, duration - 36), tail.Length / (double)AutomixDecode.SampleRate, tailSummary!.Value, tailMusical!.Value.Tempo)
-            : headDuration >= duration - 0.25 ? Window("outro", intro.StartSeconds, intro.DurationSeconds, headSummary, musical.Tempo) : null;
+            ? Window("outro", Math.Max(0, duration - 36), tail.Length / (double)AutomixDecode.SampleRate, tailSummary!.Value, tailMusical!.Value.Tempo, tailSpectral)
+            : headDuration >= duration - 0.25 ? Window("outro", intro.StartSeconds, intro.DurationSeconds, headSummary, musical.Tempo, headSpectral) : null;
         var windows = outro is null ? new[] { intro } : new[] { intro, outro };
         var leadingLimit = Math.Min(12, duration * 0.2);
         var leading = Math.Min(headSummary.LeadingSilence, leadingLimit);
@@ -75,8 +82,9 @@ internal static class AutomixAnalyzer
         };
     }
 
-    private static AutomixWindow Window(string role, double start, double duration, AutomixSegment summary, AutomixTempoReading tempo) => new()
+    private static AutomixWindow Window(string role, double start, double duration, AutomixSegment summary, AutomixTempoReading tempo, float[]? spectral) => new()
     {
+        AlphaSpectral = spectral,
         Role = role, StartSeconds = start, DurationSeconds = duration, RmsDb = summary.RmsDb, Energy = summary.Energy,
         Bpm = tempo.Bpm, BpmConfidence = tempo.BpmConfidence, BeatOffsetMs = tempo.BeatOffsetMs,
         BeatPhaseConfidence = tempo.BeatPhaseConfidence, BeatsPerBar = tempo.BeatsPerBar,

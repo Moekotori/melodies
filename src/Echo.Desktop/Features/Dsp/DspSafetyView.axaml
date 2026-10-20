@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspSafetyView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,0,24">
+      <local:DspWorkbenchSplit MainWeight="1.8" Gap="48">
+        <Border Classes="dsp-rule" BorderThickness="0" Padding="0,10,0,0">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspSafetyView.34afa57935f3}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <TextBlock Text="{Binding RuntimeHeadline}" FontSize="32" FontWeight="Medium" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding PeakReadout, StringFormat=输出峰值 {0} dBFS}" FontSize="25" FontWeight="Light"/>
+            <TextBlock Text="{Binding NativeFacts}" Classes="dsp-note" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="dsp-rule" BorderThickness="0" Padding="0,10,0,0">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspSafetyView.5e25ee22a57c}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <ToggleSwitch OnContent="安全限幅开启" OffContent="安全限幅旁路" IsChecked="{Binding Enabled, Mode=TwoWay}" IsEnabled="{Binding CanEdit}"/>
+            <TextBlock Text="{DynamicResource ui.DspSafetyView.399a2f0315ae}" Classes="dsp-note" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding GainReductionReadout, StringFormat={}{0} dB}" Classes="dsp-hero-number"/>
+          </StackPanel>
+        </Border>
+      </local:DspWorkbenchSplit>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspSafetyView.fa0c1f29cec8}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <local:DspRuntimeReadout/>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

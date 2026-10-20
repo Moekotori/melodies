@@ -1,6 +1,4 @@
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Echo.Contracts.Library;
 using Echo.Desktop.Features.Albums;
@@ -13,8 +11,7 @@ public partial class ArtistDetailView : UserControl, IDisposable
     private readonly ArtistDetailViewModel _model;
     private readonly AlbumsViewModel _albums;
     private readonly AlbumWallViewport _wall;
-    private readonly CancellationTokenSource _lifetime = new();
-    private AlbumArtworkCache.Lease? _portrait;
+    private ArtistHeroArtwork? _heroArtwork;
     private LibraryDetails.DetailPageInsetLease? _pageInset;
     private bool _closed, _visible = true;
     public event Action? Back;
@@ -30,6 +27,8 @@ public partial class ArtistDetailView : UserControl, IDisposable
     {
         _model = new(artist, shell.ArtistLibrary!, shell.AlbumLibrary as IAlbumPersonalState, shell.Player, shell.Text); DataContext = _model;
         OverviewPanel.PlayTrack += track => _ = _model.PlayTrackAsync(track);
+        OverviewPanel.PlayNext += track => _ = _model.AddTrackAsync(track, true);
+        OverviewPanel.AddToQueue += track => _ = _model.AddTrackAsync(track, false);
         OverviewPanel.OpenArtist += target => OpenArtist?.Invoke(target);
         OverviewPanel.OpenAlbum += album => OpenAlbum?.Invoke(album);
         _albums = new(shell.AlbumLibrary!, artist); _wall = new(_albums, shell.AlbumArtwork!);
@@ -47,24 +46,18 @@ public partial class ArtistDetailView : UserControl, IDisposable
         {
             var narrow = Bounds.Width < 760;
             var inset = Bounds.Width < 800 ? 22d : 42d;
-            PageContent.Margin = new(inset, 20, inset, 36);
-            Hero.Height = Math.Clamp((TopLevel.GetTopLevel(this)?.Bounds.Height ?? 900) * .35, narrow ? 280 : 300, narrow ? 340 : 360);
-            HeroMark.FontSize = Math.Clamp(Bounds.Width * .13, 72, 156);
-            var pageWidth = TopLevel.GetTopLevel(this)?.Bounds.Width ?? Bounds.Width;
+            PageContent.Width = Math.Min(1120, Math.Max(0, Bounds.Width - inset * 2));
+            Hero.MinHeight = narrow ? 276 : 248;
+            HeroMark.FontSize = narrow ? 88 : 116;
             var titleLength = artist.Name.EnumerateRunes().Count();
-            ArtistTitle.FontSize = titleLength > 72 ? Math.Clamp(pageWidth * .024, 28, 34)
-                : titleLength > 36 ? Math.Clamp(pageWidth * .028, 30, 40) : Math.Clamp(pageWidth * .032, 32, 46);
-            if (narrow) ArtistTitle.FontSize = Math.Min(34, ArtistTitle.FontSize);
+            ArtistTitle.FontSize = titleLength > 72 ? 28 : titleLength > 36 ? 34 : narrow ? 34 : 44;
             ArtistTitle.LineHeight = ArtistTitle.FontSize * 1.18;
-            HeroCopy.Margin = new(narrow ? 24 : 40);
+            HeroCopy.Margin = new(narrow ? 22 : 28, 58, narrow ? 22 : 28, 24);
+            HeroCopy.MaxWidth = Math.Min(760, Math.Max(180, PageContent.Width - (narrow ? 44 : 56)));
+            if (PreviewTrackList.ItemsPanelRoot is Avalonia.Controls.Primitives.UniformGrid grid) grid.Columns = narrow ? 1 : 2;
         };
-        _ = _model.LoadAsync(); _ = _model.Overview.LoadAsync(); if (artist.PortraitPath is { } portraitPath) _ = LoadPortraitAsync(shell.AlbumArtwork!, portraitPath);
-    }
-    private async Task LoadPortraitAsync(AlbumArtworkCache cache, string path)
-    {
-        var lease = await cache.AcquireArtistAsync(path, _lifetime.Token);
-        if (_closed) { lease?.Dispose(); return; }
-        _portrait = lease; Portrait.Source = lease?.Image;
+        _heroArtwork = new(artist, shell.AlbumArtwork!, _model.Overview, Portrait);
+        _ = _model.LoadAsync(); _ = _model.Overview.LoadAsync();
     }
     private void OnBack(object? sender, RoutedEventArgs args) => Back?.Invoke();
     private void OnTab(object? sender, RoutedEventArgs args)
@@ -76,13 +69,16 @@ public partial class ArtistDetailView : UserControl, IDisposable
     private void OnPlay(object? sender, EventArgs args) { if (sender is AlbumTrackRow { DataContext: AlbumTrackItem item }) _ = _model.PlayTrackAsync(item.Row); }
     private void OnNext(object? sender, EventArgs args) { if (sender is AlbumTrackRow { DataContext: AlbumTrackItem item }) _ = _model.AddTrackAsync(item.Row, true); }
     private void OnAdd(object? sender, EventArgs args) { if (sender is AlbumTrackRow { DataContext: AlbumTrackItem item }) _ = _model.AddTrackAsync(item.Row, false); }
-    private async void OnCopy(object? sender, RoutedEventArgs args)
-    { if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetValueAsync(DataFormat.Text, $"{_model.Artist.Name}\n{_model.Meta}\n{_model.Duration}"); }
+    private void OnOverviewPlay(TrackRow track) => _ = _model.PlayTrackAsync(track);
+    private void OnOverviewNext(TrackRow track) => _ = _model.AddTrackAsync(track, true);
+    private void OnOverviewAdd(TrackRow track) => _ = _model.AddTrackAsync(track, false);
+    private async void OnExternal(object? sender, RoutedEventArgs args)
+    { if (sender is Button { Tag: string url }) await ArtistExternalLink.OpenAsync(this, url, _model.Overview); }
     public void SetWindowVisible(bool visible) { _visible = visible; _wall.SetSuspended(!visible || !_model.IsAlbums); }
     public void Dispose()
     {
-        if (_closed) return; _closed = true; _lifetime.Cancel(); _model.Dispose(); _wall.Dispose(); _albums.Dispose();
-        Portrait.Source = null; _portrait?.Dispose(); _portrait = null; Back = null; OpenAlbum = null; OpenArtist = null;
+        if (_closed) return; _closed = true; _heroArtwork?.Dispose(); _heroArtwork = null; _model.Dispose(); _wall.Dispose(); _albums.Dispose();
+        Back = null; OpenAlbum = null; OpenArtist = null;
         _pageInset?.Dispose(); _pageInset = null;
     }
 }

@@ -83,10 +83,7 @@ public sealed partial class LibraryDatabase : IFolderLibrary
                 " AND " + FolderTrackSql.Insight(command, query) +
                 (query.HideDuplicates ? " AND NOT " + FolderTrackSql.Peer(command, query, true) : "") +
                 Echo.Infrastructure.Search.LibrarySearchSql.Tracks(command, query.Search);
-            command.CommandText = "SELECT count(*),coalesce(sum(t.duration),0),coalesce(sum(t.size_bytes),0),coalesce(sum(" + FolderLossless + "),0)" + where;
-            long total, bytes, lossless; double duration;
-            using (var reader = command.ExecuteReader())
-            { reader.Read(); total = reader.GetInt64(0); duration = reader.GetDouble(1); bytes = reader.GetInt64(2); lossless = reader.GetInt64(3); }
+            var summary = ReadFolderSummary(command, query, prefix, where, revision);
             cancellation.ThrowIfCancellationRequested();
             command.CommandText = "SELECT " + TrackRowMapping.AliasedColumns + ",t.genre" + where + FolderTrackSql.Order(command, query) + " LIMIT $limit OFFSET $offset";
             command.Parameters.AddWithValue("$limit", query.Limit);
@@ -95,7 +92,7 @@ public sealed partial class LibraryDatabase : IFolderLibrary
             using (var reader = command.ExecuteReader())
                 while (reader.Read()) { cancellation.ThrowIfCancellationRequested(); rows.Add(TrackRowMapping.Read(reader, withGenre: true)); }
             transaction.Commit();
-            return new FolderTrackPage(rows, total, revision, duration, bytes, lossless);
+            return new FolderTrackPage(rows, summary.Total, revision, summary.Duration, summary.Bytes, summary.Lossless);
         }, true, cancellation);
     }
 

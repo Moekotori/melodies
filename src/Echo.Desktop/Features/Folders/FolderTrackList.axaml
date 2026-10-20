@@ -16,7 +16,7 @@
   <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
     <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,10" Margin="0,0,0,4">
       <folders:FolderColumnsGrid Name="HeaderColumns" Margin="10,0,10,0" HorizontalAlignment="Left">
-        <TextBlock Text="#" Classes="muted" FontSize="11" />
+        <TextBlock Text="#" Classes="muted" FontSize="12" />
         <TextBlock Grid.Column="2" Text="{DynamicResource folders.track}" Classes="muted" FontSize="12" />
         <TextBlock Grid.Column="3" Text="{DynamicResource folders.album}" Classes="muted wide" FontSize="12" />
         <TextBlock Grid.Column="4" Text="{DynamicResource folders.quality}" Classes="muted wide" FontSize="12" />
@@ -24,7 +24,7 @@
       </folders:FolderColumnsGrid>
     </Border>
     <ListBox Name="TrackList" Grid.Row="1" ItemsSource="{Binding Tracks}" Background="Transparent" BorderThickness="0" Padding="0"
-             ItemContainerTheme="{StaticResource FolderListItem}" SelectionMode="Multiple" DoubleTapped="OnDoubleTap"
+             ItemContainerTheme="{StaticResource FolderListItem}" SelectionMode="Multiple" Tapped="OnTap"
              SelectionChanged="OnSelection" KeyDown="OnKey" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
       <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemTemplate>
@@ -39,7 +39,7 @@
             </Border.ContextMenu>
             <folders:FolderColumnsGrid>
               <Grid VerticalAlignment="Center">
-                <TextBlock Text="{Binding Position}" Classes="muted" FontSize="11" IsVisible="{Binding !IsPlaying}" />
+                <TextBlock Text="{Binding Position}" Classes="muted" FontSize="12" IsVisible="{Binding !IsPlaying}" />
                 <icon:GlyphIcon Kind="play-solid" Width="12" Height="12" Stroke="{DynamicResource EchoAccentText}" IsVisible="{Binding IsPlaying}" HorizontalAlignment="Left" />
               </Grid>
               <queue:QueueArtwork Grid.Column="1" Width="44" Height="44" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding Row.Path}" Cache="{Binding $parent[folders:FoldersView].Artwork}" />
@@ -49,8 +49,8 @@
               </StackPanel>
               <TextBlock Grid.Column="3" Text="{Binding Row.Album}" Classes="muted wide" FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
               <StackPanel Grid.Column="4" Classes="wide" VerticalAlignment="Center" Spacing="4" ToolTip.Tip="{Binding Signal}">
-                <TextBlock Text="{Binding CodecLabel}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding Resolution}" Classes="subtle" FontSize="10.5" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding CodecLabel}" Classes="muted" FontSize="12" FontWeight="Medium" />
+                <TextBlock Text="{Binding Resolution}" Classes="subtle" FontSize="12" TextTrimming="CharacterEllipsis" />
               </StackPanel>
               <TextBlock Grid.Column="5" Text="{Binding Duration}" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
               <Button Grid.Column="6" Classes="icon track-like" Classes.liked="{Binding Favorite}" Width="28"
@@ -62,7 +62,7 @@
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>
-    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="24">
+    <StackPanel Classes="reveal" Grid.Row="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="24">
       <icon:GlyphIcon Kind="search" Width="28" Height="28" HorizontalAlignment="Center" Opacity="0.5" />
       <TextBlock Text="{Binding EmptyTitle}" Classes="heading" FontSize="20" HorizontalAlignment="Center" />
       <TextBlock Text="{Binding EmptyHint}" Classes="muted" FontSize="13" MaxWidth="320" TextAlignment="Center" TextWrapping="Wrap" />

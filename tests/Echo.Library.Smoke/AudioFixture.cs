@@ -30,7 +30,7 @@ internal static class AudioFixture
         writer.Write(Encoding.ASCII.GetBytes(key)); writer.Write(bytes.Length); writer.Write(bytes);
         if ((bytes.Length & 1) != 0) writer.Write((byte)0);
     }
-    public static void Flac(string path)
+    public static void Flac(string path, IReadOnlyList<string>? values = null)
     {
         using var stream = File.Create(path);
         using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
@@ -44,8 +44,9 @@ internal static class AudioFixture
         using var comments = new MemoryStream();
         using (var tags = new BinaryWriter(comments, Encoding.UTF8, true))
         {
-            tags.Write(4); tags.Write("ECHO"u8); tags.Write(4);
-            foreach (var text in new[] { "TITLE=无损 测试", "ARTIST=FLAC Artist", "ALBUM=Demo", "TRACKNUMBER=2/9" })
+            values ??= ["TITLE=无损 测试", "ARTIST=FLAC Artist", "ALBUM=Demo", "TRACKNUMBER=2/9"];
+            tags.Write(4); tags.Write("ECHO"u8); tags.Write(values.Count);
+            foreach (var text in values)
             { var bytes = Encoding.UTF8.GetBytes(text); tags.Write(bytes.Length); tags.Write(bytes); }
         }
         writer.Write((byte)0x84);

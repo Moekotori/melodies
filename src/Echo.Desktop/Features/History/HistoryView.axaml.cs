@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
@@ -42,7 +43,9 @@ public partial class HistoryView : UserControl, IDisposable
     private void OnPlay(object? sender, TappedEventArgs args)
     {
         if (args.Source is Button || (args.Source as Avalonia.Visual)?.GetVisualAncestors().OfType<Button>().Any() == true) return;
-        Model?.PlayCommand.Execute(null);
+        if (args.Source is Avalonia.Visual source && source.GetSelfAndVisualAncestors().OfType<ScrollBar>().Any()) return;
+        if ((args.Source as Avalonia.Visual)?.GetSelfAndVisualAncestors().OfType<ListBoxItem>().FirstOrDefault()?.DataContext is not HistoryRow row) return;
+        RecordsList.SelectedItem = row; Model?.PlayCommand.Execute(null);
     }
     private void OnRecordsKey(object? sender, KeyEventArgs args)
     {

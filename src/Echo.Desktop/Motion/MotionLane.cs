@@ -17,13 +17,17 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
     private static readonly AttachedProperty<MotionVelocity> VelocityProperty =
         AvaloniaProperty.RegisterAttached<MotionLane, Control, MotionVelocity>("Velocity");
     private CancellationTokenSource? _pending;
+    private TaskCompletionSource? _started;
     private Control? _target;
     private CompositionVisual? _visual;
     public bool IsRunning => _pending is not null;
+    // Completes once the compositor owns the current timeline, or the request settled without one.
+    // Work started after it no longer delays the motion: the render thread keeps animating.
+    public Task Started => _started?.Task ?? Task.CompletedTask;
 
     public async Task PlayAsync(Control target, double fromOpacity, double toOpacity,
         TransformOperations fromTransform, TransformOperations toTransform,
-        TimeSpan duration, Easing? easing = null, bool preserveGeometry = false)
+        TimeSpan duration, Easing? easing = null, bool preserveGeometry = false, Easing? fadeEasing = null)
     {
         var velocity = target.GetValue(PlaybackProperty)?.SampleVelocity() ?? target.GetValue(VelocityProperty);
         Cancel();
@@ -31,7 +35,9 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
         if (!velocity.IsRecent) velocity = default;
         var pending = new CancellationTokenSource();
         var token = pending.Token;
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _pending = pending;
+        _started = started;
         _target = target;
         var from = fromTransform.Value;
         var to = toTransform.Value;
@@ -66,7 +72,7 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
             if (_visual is null || duration <= TimeSpan.Zero) return;
             var visual = _visual;
             var compositor = visual.Compositor;
-            var opacityChannel = MotionChannel.Create(fromOpacity, toOpacity, duration, easing, velocity.Opacity, bounded: true);
+            var opacityChannel = MotionChannel.Create(fromOpacity, toOpacity, duration, fadeEasing ?? easing, velocity.Opacity, bounded: true);
             var xChannel = MotionChannel.Create(from.M31, to.M31, duration, easing, velocity.X);
             var yChannel = MotionChannel.Create(from.M32, to.M32, duration, easing, velocity.Y);
             // The framework animates Translation as one vector. Existing owners move on one axis.
@@ -89,20 +95,21 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
             scale.Duration = duration;
             scale.InsertKeyFrame(0, new Vector3D(from.M11 / to.M11, from.M22 / to.M22, 1));
             scale.InsertKeyFrame(1, new Vector3D(1, 1, 1), scaleChannel.RenderCurve);
-            var started = new TaskCompletionSource();
+            var compositionStarted = new TaskCompletionSource();
             CompositionBatch? startBatch = null;
             compositor.RequestCompositionUpdate(() =>
             {
-                if (token.IsCancellationRequested) { started.TrySetCanceled(token); return; }
+                if (token.IsCancellationRequested) { compositionStarted.TrySetCanceled(token); return; }
                 playback.Begin();
                 if (fromOpacity != toOpacity) visual.StartAnimation("Opacity", fade);
                 if (from.M31 != to.M31 || from.M32 != to.M32) visual.StartAnimation("Translation", move);
                 if (from.M11 != to.M11) visual.StartAnimation("Scale", scale);
                 startBatch = compositor.RequestCompositionBatchCommitAsync();
-                started.TrySetResult();
+                compositionStarted.TrySetResult();
             });
-            await started.Task.WaitAsync(token);
+            await compositionStarted.Task.WaitAsync(token);
             await startBatch!.Processed.WaitAsync(token);
+            started.TrySetResult();
             await Task.Delay(duration, token);
             // Retire only after a real final composition frame; bound occluded-backend waiting.
             var finalBatch = compositor.RequestCompositionBatchCommitAsync();
@@ -112,6 +119,7 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
         catch (OperationCanceledException) when (pending.IsCancellationRequested) { }
         finally
         {
+            started.TrySetResult();
             if (ReferenceEquals(_pending, pending))
             {
                 // Batch notifications can run inline inside a render-loop commit.
@@ -154,7 +162,8 @@ public sealed class MotionLane : AvaloniaObject, IDisposable
     }
     public void Dispose() => Cancel();
     public static TransformOperations At(double y = 0, double scale = 1, double x = 0) =>
-        TransformOperations.Parse(string.Create(CultureInfo.InvariantCulture, $"translate({x}px, {y}px) scale({scale})"));
+        // Avalonia's transform parser does not accept exponent notation (e.g. 1E-13px).
+        TransformOperations.Parse(string.Create(CultureInfo.InvariantCulture, $"translate({x:0.#########}px, {y:0.#########}px) scale({scale:0.#########})"));
     public static TransformOperations Current(Control target)
     {
         var matrix = target.GetValue(PlaybackProperty)?.Transform ?? target.RenderTransform?.Value ?? Matrix.Identity;

@@ -176,6 +176,7 @@ public sealed partial class CoreServer(CoreEndpoint endpoint, ICoreRequestHandle
 
     private static CoreFailure Failure(Exception error) => error switch
     {
+        Echo.Contracts.Lyrics.LyricsLookupUnavailableException => new("lyrics_unavailable", "网络歌词服务暂不可用，请稍后重新加载或导入本地歌词。"),
         Echo.Contracts.Library.LibraryChangedException => new("library_changed", "曲库已更新，请刷新当前页。"),
         Echo.Contracts.Library.LibraryBusyException => new("library_busy", "曲库繁忙，请稍后重试。"),
         OperationCanceledException => new("canceled", "操作已取消；已提交的写入请核对回执。", true),

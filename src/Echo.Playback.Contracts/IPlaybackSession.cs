@@ -32,6 +32,7 @@ public interface IPlaybackSession : IAsyncDisposable
     Task<string> ExportCheckpointAsync();
     Task RestoreCheckpointAsync(string json);
     Task SetAlbumGaplessEnabledAsync(bool enabled, CancellationToken token = default);
+    Task SetShuffleAvoidRecentCountAsync(int count, CancellationToken token = default);
     Task<IReadOnlyList<AudioOutputMode>> GetOutputModesAsync(CancellationToken token = default);
     Task<IReadOnlyList<AudioOutputDevice>> GetOutputDevicesAsync(string mode, CancellationToken token = default);
     Task<JsonElement> ProbeAsioDsdAsync(AudioOutputDevice device, CancellationToken token = default);

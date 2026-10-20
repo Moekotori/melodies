@@ -37,7 +37,7 @@
   <Style Selector="Button.play:disabled /template/ Border#PART_ButtonBorder"><Setter Property="Background" Value="Transparent" /></Style>
   <Style Selector="Button.transport.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
   <Style Selector="Border.player-chip"><Setter Property="Background" Value="{DynamicResource EchoChip}" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="8,0" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
-  <Style Selector="Border.player-chip TextBlock"><Setter Property="FontSize" Value="10" /><Setter Property="FontWeight" Value="Bold" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="Border.player-chip TextBlock"><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
   <Style Selector="Border.player-chip.format TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
 </Styles>
 

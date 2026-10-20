@@ -9,7 +9,7 @@ using Echo.Contracts.Tasks;
 namespace Echo.Core.Library;
 
 // Core lifetime: one lazy database owner serves all attached controls and imported scans.
-public sealed partial class LibraryCore(string path, IBackgroundWorkAdmission? admission = null) : Echo.Core.Contracts.ICoreLibrary, IAsyncDisposable
+public sealed partial class LibraryCore(string path, IBackgroundWorkAdmission? admission = null, Echo.Playback.IPlaybackSession? playback = null) : Echo.Core.Contracts.ICoreLibrary, IAsyncDisposable
 {
     private readonly object _gate = new();
     private readonly CancellationTokenSource _shutdown = new();

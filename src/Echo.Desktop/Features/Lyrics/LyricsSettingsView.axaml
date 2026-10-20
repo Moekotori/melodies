@@ -7,7 +7,7 @@
       <ComboBox ItemsSource="{Binding StyleChoices}" SelectedItem="{Binding StyleChoice}" HorizontalAlignment="Stretch">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
-      <TextBlock Text="{Binding StyleDescription}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding StyleDescription}" FontSize="12" Classes="muted" TextWrapping="Wrap" />
       <lyrics:LyricsBackgroundSettingsView />
       <TextBlock Text="{DynamicResource ui.LyricsSettingsView.f71561b5af0a}" Classes="muted" />
       <Slider Minimum="18" Maximum="72" Value="{Binding FontSize}" TickFrequency="1" />
@@ -19,12 +19,16 @@
       <ComboBox ItemsSource="{Binding AlignmentChoices}" SelectedItem="{Binding AlignmentChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
       <Border Background="{DynamicResource EchoDivider}" Height="1" />
       <CheckBox Content="{DynamicResource ui.LyricsSettingsView.e17be4f4d18f}" IsChecked="{Binding WordHighlight}" />
+      <TextBlock Text="{DynamicResource lyrics.highlight.title}" Classes="muted" />
+      <ComboBox Name="HighlightStyleInput" ItemsSource="{Binding HighlightChoices}" SelectedItem="{Binding HighlightChoice}" IsEnabled="{Binding WordHighlight}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource lyrics.highlight.title}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
       <CheckBox Content="{DynamicResource ui.LyricsSettingsView.6531249bf16e}" IsChecked="{Binding Context}" />
       <CheckBox Content="{DynamicResource ui.LyricsSettingsView.7cd62999f274}" IsChecked="{Binding Translation}" />
       <CheckBox Content="{DynamicResource ui.LyricsSettingsView.1dd07ef2a8c1}" IsChecked="{Binding Romanization}" />
       <TextBlock Text="{DynamicResource ui.LyricsSettingsView.fb43fe56bffd}" Classes="muted" />
       <NumericUpDown Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" />
-      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.02a99f7fd75a}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+      <TextBlock Text="{DynamicResource ui.LyricsSettingsView.02a99f7fd75a}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
       <TextBlock Text="{DynamicResource ui.LyricsSettingsView.7f923409a2c7}" Classes="heading" IsVisible="{Binding IsAfterglow}" />
       <ComboBox ItemsSource="{Binding LookChoices}" SelectedItem="{Binding LookChoice}" IsVisible="{Binding IsAfterglow}" HorizontalAlignment="Stretch">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>

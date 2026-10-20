@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Echo.Contracts.Radio;
 
 namespace Echo.Infrastructure.Radio;
@@ -8,7 +9,7 @@ public sealed class RadioDirectoryClient : IRadioDirectory
     private readonly object gate = new();
     private readonly HttpClient client;
     private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> discover;
-    private CancellationTokenSource? active;
+    private readonly HashSet<CancellationTokenSource> active = [];
     private bool disposed;
 
     public RadioDirectoryClient(HttpMessageHandler? handler = null, Func<CancellationToken, Task<IReadOnlyList<string>>>? discover = null)
@@ -23,7 +24,7 @@ public sealed class RadioDirectoryClient : IRadioDirectory
         this.discover = discover ?? (token => DnsSrvQuery.LookupAsync("_api._tcp.radio-browser.info", token));
     }
 
-    public void Cancel() { lock (gate) active?.Cancel(); }
+    public void Cancel() { lock (gate) foreach (var request in active) request.Cancel(); }
 
     public async Task<RadioDirectoryResult> SearchAsync(RadioDirectoryQuery query, CancellationToken token)
     {
@@ -31,9 +32,9 @@ public sealed class RadioDirectoryClient : IRadioDirectory
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            if (active is not null) throw new InvalidOperationException("电台目录正在处理另一项查询，请稍后重试。");
+            if (active.Count >= 4) return new([], false, "busy");
             mine = CancellationTokenSource.CreateLinkedTokenSource(token);
-            active = mine;
+            active.Add(mine);
         }
         mine.CancelAfter(TimeSpan.FromSeconds(14));
         var normalized = RadioDirectoryParser.Normalize(query);
@@ -56,15 +57,15 @@ public sealed class RadioDirectoryClient : IRadioDirectory
                     return RadioDirectoryParser.Parse(bytes, normalized.Offset);
                 }
                 catch (OperationCanceledException) when (!mine.IsCancellationRequested) { }
-                catch (Exception error) when (error is HttpRequestException or IOException or InvalidDataException) { }
+                catch (Exception error) when (error is HttpRequestException or IOException or JsonException) { }
             }
-            return new([], false, mine.IsCancellationRequested ? "cancelled" : "unavailable");
+            return new([], false, token.IsCancellationRequested ? "cancelled" : "unavailable");
         }
-        catch (OperationCanceledException) { return new([], false, "cancelled"); }
+        catch (OperationCanceledException) { return new([], false, token.IsCancellationRequested ? "cancelled" : "unavailable"); }
         catch (Exception error) when (error is HttpRequestException or IOException) { return new([], false, "unavailable"); }
         finally
         {
-            lock (gate) if (active == mine) active = null;
+            lock (gate) active.Remove(mine);
             mine.Dispose();
         }
     }
@@ -112,9 +113,7 @@ public sealed class RadioDirectoryClient : IRadioDirectory
         {
             if (disposed) return;
             disposed = true;
-            active?.Cancel();
-            active?.Dispose();
-            active = null;
+            foreach (var request in active) request.Cancel();
         }
         client.Dispose();
     }

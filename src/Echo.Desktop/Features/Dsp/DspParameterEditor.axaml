@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspParameterEditor" x:DataType="local:DspParameter">
+  <StackPanel Spacing="10" Margin="0,0,22,18">
+    <Grid ColumnDefinitions="*,100" ColumnSpacing="10">
+      <StackPanel Spacing="3" VerticalAlignment="Center">
+        <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="Medium"/>
+        <TextBlock Text="{Binding Unit}" Classes="muted" FontSize="12"/>
+      </StackPanel>
+      <NumericUpDown Name="ParameterValue" Grid.Column="1" Classes="dsp-value" Minimum="{Binding EditorMinimum}" Maximum="{Binding EditorMaximum}" Increment="{Binding EditorStep}" Value="{Binding EditorValue, Mode=TwoWay}" FormatString="0.##" ShowButtonSpinner="False"/>
+    </Grid>
+    <Slider Classes="dsp-fader" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" TickFrequency="{Binding Step}" IsSnapToTickEnabled="True" Value="{Binding Value, Mode=TwoWay}"/>
+  </StackPanel>
+</UserControl>

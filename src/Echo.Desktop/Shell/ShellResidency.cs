@@ -16,9 +16,16 @@ public sealed partial class ShellViewModel
         get => FeaturePreferences.Read("close-to-tray", new()).Enabled;
         set => FeaturePreferences.Confirm("close-to-tray", new FeatureSetting(value));
     }
+    public bool HasCloseBehaviorPreference => FeaturePreferences.Contains("close-to-tray");
+    public bool IsDirectClose => HasCloseBehaviorPreference && !CloseToTray;
     private void OnResidencyPreferencesChanged(string id)
     {
         if (id is "" or "ultra-light-mode") OnPropertyChanged(nameof(UltraLightEnabled));
-        if (id is "" or "close-to-tray") OnPropertyChanged(nameof(CloseToTray));
+        if (id is "" or "close-to-tray")
+        {
+            OnPropertyChanged(nameof(CloseToTray));
+            OnPropertyChanged(nameof(IsDirectClose));
+        }
+        if (id is "" or "titlebar-text") OnPropertyChanged(nameof(TitlebarText));
     }
 }

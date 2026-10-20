@@ -6,6 +6,7 @@ using Echo.Contracts.Library;
 using Echo.Contracts.Settings;
 using Echo.Desktop.Features.Albums;
 using Echo.Desktop.Features.LibraryDetails;
+using Echo.Desktop.Motion;
 using Echo.Desktop.Features.Player;
 using Echo.Desktop.Shell;
 
@@ -18,6 +19,7 @@ public partial class PlaylistsView : UserControl, IDisposable
     private AlbumsViewModel? albums;
     private AlbumWallViewport? albumWall;
     private DetailNavigator? detail;
+    private readonly MotionPanes panes = new();
     private CancellationTokenSource? coverRequest;
     private AlbumArtworkCache.Lease? coverLease;
     private string? loadedCoverPath;
@@ -81,9 +83,14 @@ public partial class PlaylistsView : UserControl, IDisposable
     private async void OnSave(object? sender, RoutedEventArgs args)
     {
         if (string.IsNullOrWhiteSpace(NameField.Text)) { EditorError.Text = Model.Text["playlists.nameRequired"]; NameField.Focus(); return; }
+        var focusRevision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
         await Model.SavePlaylistAsync(NameField.Text, DescriptionField.Text ?? "", creating);
         if (closed) return;
-        if (Model.Error.Length == 0) { EditorOverlay.IsVisible = false; PlayButton.Focus(); }
+        if (Model.Error.Length == 0)
+        {
+            EditorOverlay.IsVisible = false;
+            if (Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, focusRevision)) PlayButton.Focus();
+        }
         else { EditorOverlay.IsVisible = true; EditorError.Text = Model.Error; }
     }
     private void OnCancelEditor(object? sender, RoutedEventArgs args) { EditorOverlay.IsVisible = false; (Model.IsHome ? CreatePlaylistButton : PlayButton).Focus(); }
@@ -138,13 +145,20 @@ public partial class PlaylistsView : UserControl, IDisposable
         Hero.ColumnSpacing = narrow ? 20 : 28;
         TrackSearch.Width = narrow ? 120 : 180;
     }
-    private void OpenAlbum(AlbumRow row)
+    private async void OpenAlbum(AlbumRow row)
     {
         detail?.Dispose(); detail = new(shell); detail.Back += CloseAlbum;
         detail.OpenAlbum(row); detail.PersonalStateChanged += (_, _, _) => { if (albums is not null) _ = albums.RefreshAsync(); _ = Model.LoadBrowserAsync(); };
-        AlbumDetailHost.Content = detail; AlbumDetailHost.IsVisible = true; Workspace.IsVisible = false; albumWall?.SetSuspended(true);
+        AlbumDetailHost.Content = detail;
+        if (await panes.Show(AlbumDetailHost, Workspace, MotionDirection.Forward) && !closed) albumWall?.SetSuspended(true);
     }
-    private void CloseAlbum() { detail?.Dispose(); detail = null; AlbumDetailHost.Content = null; AlbumDetailHost.IsVisible = false; Workspace.IsVisible = true; albumWall?.SetSuspended(!visible); }
+    private async void CloseAlbum()
+    {
+        var leaving = detail; detail = null; albumWall?.SetSuspended(!visible);
+        var settled = await panes.Show(Workspace, AlbumDetailHost, MotionDirection.Back);
+        leaving?.Dispose();
+        if (settled && !closed) AlbumDetailHost.Content = null;
+    }
     private void LoadCover()
     {
         if (visible && !closed && loadedCoverPath == Model.CoverPath && (coverRequest is not null || coverLease is not null)) return;
@@ -168,7 +182,7 @@ public partial class PlaylistsView : UserControl, IDisposable
     { visible = value; browser.SetSuspended(!value || !Model.IsHome); albumWall?.SetSuspended(!value || detail is not null); detail?.SetWindowVisible(value); if (value) LoadCover(); else ReleaseCover(); }
     public void Dispose()
     {
-        if (closed) return; closed = true; ClosePicker(); detail?.Dispose(); albumWall?.Dispose(); if (albums is not null) albums.PropertyChanged -= OnAlbumsChanged; albums?.Dispose(); browser.Dispose(); ReleaseCover();
+        if (closed) return; closed = true; CloseRecovery(); ClosePicker(); panes.Dispose(); detail?.Dispose(); albumWall?.Dispose(); if (albums is not null) albums.PropertyChanged -= OnAlbumsChanged; albums?.Dispose(); browser.Dispose(); ReleaseCover();
         Model.SelectionChanged -= OnSelection; Model.PropertyChanged -= OnModelChanged;
         if (shell.Player is not null) shell.Player.PropertyChanged -= OnPlayerChanged;
         Model.Dispose(); TrackPanel.DataContext = null;

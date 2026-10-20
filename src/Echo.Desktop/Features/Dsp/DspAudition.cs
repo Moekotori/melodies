@@ -7,10 +7,13 @@ namespace Echo.Desktop.Features.Dsp;
 public sealed partial class DspViewModel
 {
     private int auditionEpoch;
+    private bool auditionWorker;
     public bool CanResetBand => CanEdit && IsEq && SelectedBand is not null;
 
     partial void OnSelectedModuleChanging(DspModule? oldValue, DspModule newValue)
     {
+        if (oldValue?.Id == "headphone" && newValue != oldValue) { headphoneBrowseEpoch++; ResourceBusy = false; RevokeHeadphoneGainConsent(); }
+        if (oldValue?.Id == "headroom" && newValue != oldValue) _ = SetHeadroomListenAsync(false);
         if (oldValue?.Id == "deesser" && newValue != oldValue) _ = SetDeesserListenAsync(false);
         if (oldValue is null || oldValue.DraftOnly || newValue == oldValue || IsBusy || !IsDirty || confirmed is null || session is null || oldValue.WriteMethod is null) return;
         auditionEpoch++;
@@ -25,25 +28,43 @@ public sealed partial class DspViewModel
     private void NoteEdit()
     {
         if (projecting || !CanEdit || SelectedModule.DraftOnly || SelectedModule.WriteMethod is null || confirmed is null) return;
-        var epoch = ++auditionEpoch;
-        _ = HearAsync(epoch);
+        ++auditionEpoch;
+        if (IsEq) EqAuditionStatus = "正在提交试听…";
+        if (!auditionWorker) _ = HearLatestAsync();
+    }
+
+    // One coalescing worker per page. Fast pointer input never creates a timer per event.
+    private async Task HearLatestAsync()
+    {
+        auditionWorker = true;
+        try
+        {
+            while (!disposed)
+            {
+                await Task.Delay(90, lifetime.Token);
+                var epoch = auditionEpoch;
+                await HearAsync(epoch);
+                if (epoch == auditionEpoch) break;
+            }
+        }
+        catch (OperationCanceledException) { return; }
+        finally { auditionWorker = false; }
     }
 
     private async Task HearAsync(int epoch)
     {
-        try { await Task.Delay(90, lifetime.Token); }
-        catch (OperationCanceledException) { return; }
-        if (epoch != auditionEpoch || disposed || !CanEdit || confirmed is null || session is null) return;
+        if (epoch != auditionEpoch || disposed || !IsDirty || !CanEdit || confirmed is null || session is null) return;
         var module = SelectedModule;
         var state = CaptureDraft();
         try
         {
             await PushAsync(module, state, retain: false, lifetime.Token);
             if (epoch != auditionEpoch || disposed) return;
+            if (IsEq) EqAuditionStatus = "宿主已确认试听 · 应用后记入撤销";
             ClearAuditionError();
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
-        catch (Exception e) { if (epoch == auditionEpoch && !disposed) Message = "试听失败：" + e.Message; }
+        catch (Exception e) { if (epoch == auditionEpoch && !disposed) { if (IsEq) EqAuditionStatus = "试听未成功"; Message = "试听失败：" + e.Message; } }
     }
 
     private async Task CommitModuleAsync(DspModule module, JsonObject state)
@@ -85,7 +106,13 @@ public sealed partial class DspViewModel
         if (module.Id == "room") return await PushRoomAsync(state, retain, token);
         if (module.Id == "rack") await ResolveRackBanksAsync(state);
         if (module.Id == "limiter") return await PushLimiterAsync(state, retain, token);
-        return await session.DspAsync(module.WriteMethod, Json(ParametersFor(module, state)), retain, token);
+        var result = await session.DspAsync(module.WriteMethod, Json(ParametersFor(module, state)), retain, token);
+        if (retain && module.Id == "headphone" && Bool(state, "enabled") && state["correctionProfile"]?["productId"]?.ToString() is { Length: > 0 } productId)
+        {
+            try { await resources.ExecuteAsync(Echo.Core.Contracts.DspResourceOperation.RecentOpra, id: productId, token: token); }
+            catch (Exception e) when (e is not OperationCanceledException) { if (!disposed) Message = "校正已应用，最近使用记录未保存：" + e.Message; }
+        }
+        return result;
     }
 
     private async Task<JsonElement> PushRoomAsync(JsonObject state, bool retain, CancellationToken token)

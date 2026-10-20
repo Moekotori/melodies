@@ -72,6 +72,11 @@ internal sealed partial class CoreDispatch
                 var args = CoreJson.Read<PlaybackRestoreCheckpointRequest>(payload);
                 await session.RestoreCheckpointAsync(args.Json).ConfigureAwait(false); return CoreJson.Empty;
             }
+            case "playback.SetShuffleAvoidRecentCountAsync":
+            {
+                var args = CoreJson.Read<PlaybackSetShuffleAvoidRecentCountRequest>(payload);
+                await session.SetShuffleAvoidRecentCountAsync(args.Count, token).ConfigureAwait(false); return CoreJson.Empty;
+            }
             case "playback.SetAlbumGaplessEnabledAsync":
             {
                 var args = CoreJson.Read<PlaybackSetAlbumGaplessEnabledRequest>(payload);

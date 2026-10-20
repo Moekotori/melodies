@@ -2,6 +2,8 @@
   <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
+    <ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" />
+    <ProjectReference Include="../../src/Echo.Audio.Client/Echo.Audio.Client.csproj" />
     <PackageReference Include="Avalonia.Headless" />
     <ProjectReference Include="../../src/Modules/Echo.Dsp/Echo.Dsp.csproj" />
     <Compile Include="../DspFixtureResources.cs" Link="DspFixtureResources.cs" />

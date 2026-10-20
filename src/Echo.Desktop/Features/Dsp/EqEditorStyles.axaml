@@ -1,0 +1,70 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <LinearGradientBrush x:Key="EqPlotBackground" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#FCFCFF" Offset="0"/><GradientStop Color="#F2F4FA" Offset="1"/></LinearGradientBrush>
+          <SolidColorBrush x:Key="EqPlotMuted" Color="#758095"/><SolidColorBrush x:Key="EqPlotGrid" Color="#CFD5E2"/>
+          <SolidColorBrush x:Key="EqPlotCurve" Color="#5862CF"/><SolidColorBrush x:Key="EqPlotField" Color="#FFFFFF"/>
+          <SolidColorBrush x:Key="EqSurface" Color="#F8F9FC"/><SolidColorBrush x:Key="EqSurfaceBorder" Color="#E3E6EF"/>
+          <SolidColorBrush x:Key="EqSelection" Color="#ECEEFE"/>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <LinearGradientBrush x:Key="EqPlotBackground" StartPoint="0%,0%" EndPoint="0%,100%"><GradientStop Color="#1C202D" Offset="0"/><GradientStop Color="#161A24" Offset="1"/></LinearGradientBrush>
+          <SolidColorBrush x:Key="EqPlotMuted" Color="#8D98B0"/><SolidColorBrush x:Key="EqPlotGrid" Color="#353D50"/>
+          <SolidColorBrush x:Key="EqPlotCurve" Color="#B0B9FF"/><SolidColorBrush x:Key="EqPlotField" Color="#252C3C"/>
+          <SolidColorBrush x:Key="EqSurface" Color="#1C1E27"/><SolidColorBrush x:Key="EqSurfaceBorder" Color="#303440"/>
+          <SolidColorBrush x:Key="EqSelection" Color="#30344C"/>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <ControlTheme x:Key="EqSliderRail" TargetType="RepeatButton">
+        <Setter Property="Template"><ControlTemplate><Border Height="3" CornerRadius="1.5" Background="{TemplateBinding Background}" VerticalAlignment="Center"/></ControlTemplate></Setter>
+      </ControlTheme>
+      <ControlTheme x:Key="EqSliderThumb" TargetType="Thumb">
+        <Setter Property="Width" Value="15"/><Setter Property="Height" Value="15"/><Setter Property="Background" Value="{DynamicResource EchoField}"/>
+        <Setter Property="Template"><ControlTemplate><Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource EchoAccent}" BorderThickness="3" CornerRadius="8"/></ControlTemplate></Setter>
+        <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource EqSelection}"/></Style>
+      </ControlTheme>
+      <ControlTheme x:Key="EqFader" TargetType="Slider">
+        <Setter Property="MinHeight" Value="30"/>
+        <Setter Property="SmallChange" Value="0.1"/><Setter Property="LargeChange" Value="1"/>
+        <Setter Property="Template"><ControlTemplate><Border Name="FaderFocus" CornerRadius="7" BorderThickness="1" BorderBrush="Transparent" Padding="2">
+          <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+            <Track.DecreaseButton><RepeatButton Theme="{StaticResource EqSliderRail}" Background="{DynamicResource EchoAccent}"/></Track.DecreaseButton>
+            <Track.IncreaseButton><RepeatButton Theme="{StaticResource EqSliderRail}" Background="{DynamicResource EqSurfaceBorder}"/></Track.IncreaseButton>
+            <Track.Thumb><Thumb Theme="{StaticResource EqSliderThumb}"/></Track.Thumb>
+          </Track>
+        </Border></ControlTemplate></Setter>
+        <Style Selector="^:focus-visible /template/ Border#FaderFocus"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}"/></Style>
+      </ControlTheme>
+      <ControlTheme x:Key="EqBandTile" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="10,8"/><Setter Property="Margin" Value="0,0,4,0"/>
+        <Setter Property="Template"><ControlTemplate><Border Name="Tile" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}"><ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/></Border></ControlTemplate></Setter>
+        <Style Selector="^:pointerover /template/ Border#Tile"><Setter Property="Background" Value="{DynamicResource EqSurface}"/></Style>
+        <Style Selector="^:selected /template/ Border#Tile"><Setter Property="Background" Value="{DynamicResource EqSelection}"/><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}"/></Style>
+        <Style Selector="^:focus-visible /template/ Border#Tile"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}"/></Style>
+      </ControlTheme>
+    </ResourceDictionary>
+  </Styles.Resources>
+  <Style Selector="Button.eq-action">
+    <Setter Property="MinHeight" Value="32"/><Setter Property="Padding" Value="12,6"/><Setter Property="FontSize" Value="12"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Margin" Value="0,0,5,0"/>
+    <Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="{DynamicResource EqSurfaceBorder}"/><Setter Property="Background" Value="{DynamicResource EchoField}"/>
+  </Style>
+  <Style Selector="Button.eq-action:pointerover"><Setter Property="Background" Value="{DynamicResource EqSelection}"/></Style>
+  <Style Selector="Button.eq-action:disabled"><Setter Property="Opacity" Value="0.4"/></Style>
+  <Style Selector="Button.eq-tone">
+    <Setter Property="MinHeight" Value="34"/><Setter Property="Padding" Value="15,7"/><Setter Property="CornerRadius" Value="17"/><Setter Property="FontSize" Value="12"/>
+    <Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="{DynamicResource EqSurfaceBorder}"/><Setter Property="Background" Value="{DynamicResource EqSurface}"/>
+  </Style>
+  <Style Selector="Button.eq-tone:pointerover"><Setter Property="Background" Value="{DynamicResource EqSelection}"/><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}"/></Style>
+  <Style Selector="ToggleButton.eq-mode"><Setter Property="MinHeight" Value="32"/><Setter Property="Padding" Value="12,5"/><Setter Property="CornerRadius" Value="7"/></Style>
+  <Style Selector="ToggleButton.eq-mode:checked"><Setter Property="Background" Value="{DynamicResource EchoField}"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
+  <Style Selector="Expander.eq-section"><Setter Property="Margin" Value="0,4,0,0"/><Setter Property="CornerRadius" Value="8"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Background" Value="{DynamicResource EqSurface}"/></Style>
+  <Style Selector="local|EqBandInspectorView NumericUpDown.dsp-band-value /template/ TextBox">
+    <Setter Property="Background" Value="{DynamicResource EchoField}"/><Setter Property="CornerRadius" Value="7"/><Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource EqSurfaceBorder}"/><Setter Property="Padding" Value="10,5"/>
+  </Style>
+  <Style Selector="local|EqBandInspectorView NumericUpDown.dsp-band-value:focus-within /template/ TextBox"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}"/></Style>
+  <Style Selector="local|EqBandInspectorView NumericUpDown.dsp-band-value"><Setter Property="FontSize" Value="23"/></Style>
+  <Style Selector="ComboBox.eq-preset"><Setter Property="CornerRadius" Value="8"/><Setter Property="BorderBrush" Value="{DynamicResource EqSurfaceBorder}"/><Setter Property="BorderThickness" Value="1"/></Style>
+</Styles>

@@ -4,7 +4,8 @@ namespace Echo.Desktop.Controls.Lyrics;
 
 internal static class LyricsBackgroundInk
 {
-    public static bool IsDarkSource(string mode)=>mode is "coverLiquid" or "coverPrism" or "coverFrost" or "coverPond" or "coverHolo" or "coverVinyl" or "coverNeon";
+    public static bool IsDarkSource(string mode)=>mode is "coverLiquid" or "coverPrism" or "coverFrost" or "coverPond" or "coverHolo" or "coverVinyl" or "coverNeon"
+        or "coverPixelCrt" or "coverPixelWarp" or "coverPixelTiles" or "coverPixelShuffle" or "coverPixelRain" or "coverPixelSkyline";
     public static bool? ChromeDark(LyricsAppearance appearance,bool hostDark)
     {
         if(!appearance.CanSelectBackground||appearance.BackgroundMode=="page")return null;

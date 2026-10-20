@@ -131,6 +131,8 @@ internal sealed class SongTrackMenu : IDisposable
     { if (args.PropertyName == nameof(SongsViewModel.Items) || (args.PropertyName == nameof(SongsViewModel.IsActing) && model.IsActing)) Menu.Close(); }
     private void CancelReads()
     { playlistRequest?.Cancel(); playlistRequest?.Dispose(); playlistRequest = null; request?.Cancel(); request?.Dispose(); request = null; }
+    public Task OpenAlbumAsync(TrackRow row) => actions.OpenAlbumAsync(row);
+    public Task OpenArtistAsync(TrackRow row) => actions.OpenArtistAsync(row);
     public void Dispose()
     { if (closed) return; closed = true; model.PropertyChanged -= OnModelChanged; Menu.Close(); CancelReads(); Menu.ItemsSource = null; actions.Dispose(); }
 }

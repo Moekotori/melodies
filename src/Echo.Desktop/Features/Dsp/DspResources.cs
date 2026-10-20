@@ -13,7 +13,7 @@ public sealed partial class DspViewModel
     private JsonNode? presetAttribution;
     [ObservableProperty] private bool resourceBusy;
     public bool CanUseResources => CanEdit && !ResourceBusy;
-    partial void OnResourceBusyChanged(bool value) { OnPropertyChanged(nameof(CanApply)); OnPropertyChanged(nameof(CanUseResources)); OnPropertyChanged(nameof(CanLoadHeadphone)); OnPropertyChanged(nameof(HasPreviousHeadphones)); }
+    partial void OnResourceBusyChanged(bool value) { OnPropertyChanged(nameof(CanApply)); OnPropertyChanged(nameof(CanUseResources)); OnPropertyChanged(nameof(CanLoadHeadphone)); OnPropertyChanged(nameof(HasPreviousHeadphones)); NotifyHeadphoneBrowser(); }
     private async Task<JsonObject> ReadLibraryAsync()
     {
         var result = await resources.ExecuteAsync(DspResourceOperation.Library, token: lifetime.Token);
@@ -46,6 +46,7 @@ public sealed partial class DspViewModel
             if (preset[key] is { } value) draft[key] = value.DeepClone();
         draft["presetName"] = preset["name"]?.DeepClone() ?? JsonValue.Create("导入预设");
         draft["presetId"] = preset["id"]?.DeepClone() ?? JsonValue.Create("custom");
+        if (IsHeadphone) draft["correctionProfile"] = preset["correctionProfile"]?.DeepClone();
         presetAttribution = preset["attribution"]?.DeepClone();
         Project(draft, updateConfirmed: false);
         SelectedBand = Bands.FirstOrDefault(x => x.Enabled && Math.Abs(x.GainDb) > .01) ?? Bands.FirstOrDefault(x => x.Enabled) ?? Bands.FirstOrDefault();

@@ -4,31 +4,31 @@
     <DataTemplate x:Key="RankTemplate" x:DataType="local:HistoryRankDisplay">
       <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,7">
         <Grid ColumnDefinitions="26,*,Auto" ColumnSpacing="12">
-          <TextBlock Text="{Binding Number}" Classes="subtle" FontSize="11" FontFamily="Segoe UI" VerticalAlignment="Center" />
-          <Button Grid.Column="1" HorizontalContentAlignment="Stretch" Padding="0,3" Click="OnExplore" Background="Transparent"><StackPanel Spacing="4"><TextBlock Text="{Binding Name}" FontWeight="Medium" FontSize="13" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Subtitle}" FontSize="11" Classes="muted" TextTrimming="CharacterEllipsis" IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /></StackPanel></Button>
-          <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="4"><TextBlock Text="{Binding Plays}" HorizontalAlignment="Right" FontSize="11" /><TextBlock Text="{Binding Duration}" HorizontalAlignment="Right" Classes="subtle" FontSize="10" /></StackPanel>
+          <TextBlock Text="{Binding Number}" Classes="subtle" FontSize="12" FontFamily="Segoe UI" VerticalAlignment="Center" />
+          <Button Grid.Column="1" HorizontalContentAlignment="Stretch" Padding="0,3" Click="OnExplore" Background="Transparent"><StackPanel Spacing="4"><TextBlock Text="{Binding Name}" FontWeight="Medium" FontSize="13" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Subtitle}" FontSize="12" Classes="muted" TextTrimming="CharacterEllipsis" IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /></StackPanel></Button>
+          <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="4"><TextBlock Text="{Binding Plays}" HorizontalAlignment="Right" FontSize="12" /><TextBlock Text="{Binding Duration}" HorizontalAlignment="Right" Classes="subtle" FontSize="12" /></StackPanel>
         </Grid>
       </Border>
     </DataTemplate>
     <DataTemplate x:Key="FactTemplate" x:DataType="local:HistoryMetric"><Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,11"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Label}" Classes="muted" FontSize="12" /><TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="12" FontWeight="Medium" /></Grid></Border></DataTemplate>
   </UserControl.Resources>
   <UserControl.Styles>
-    <Style Selector="Button.review-metric"><Setter Property="MinHeight" Value="28" /><Setter Property="Padding" Value="10,5" /><Setter Property="FontSize" Value="11" /><Setter Property="CornerRadius" Value="5" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
-    <Style Selector="Button.review-metric.active"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="Button.review-metric"><Setter Property="MinHeight" Value="28" /><Setter Property="Padding" Value="10,5" /><Setter Property="FontSize" Value="12" /><Setter Property="CornerRadius" Value="5" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
+    <Style Selector="Button.review-metric.active"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontWeight" Value="Medium" /></Style>
   </UserControl.Styles>
   <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
     <StackPanel Spacing="24" Margin="0,0,12,24">
       <ItemsControl ItemsSource="{Binding Totals}" Margin="0,4,0,0">
         <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="{Binding $parent[local:HistoryReviewView].MetricColumns}" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:HistoryMetric"><StackPanel Spacing="10" Margin="0,0,16,0"><TextBlock Text="{Binding Label}" Classes="muted" FontSize="11" /><TextBlock Text="{Binding Value}" FontSize="26" FontWeight="Medium" Classes="heading" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+        <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:HistoryMetric"><StackPanel Spacing="10" Margin="0,0,16,0"><TextBlock Text="{Binding Label}" Classes="muted" FontSize="12" /><TextBlock Text="{Binding Value}" FontSize="26" FontWeight="Medium" Classes="heading" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
       </ItemsControl>
       <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="10" Padding="20,16">
         <StackPanel Spacing="14">
-          <Grid ColumnDefinitions="*,Auto"><StackPanel Spacing="6"><TextBlock Text="{DynamicResource history.activity}" FontSize="15" FontWeight="SemiBold" /><TextBlock Name="ActivitySummary" FontSize="11" Classes="muted" /></StackPanel>
+          <Grid ColumnDefinitions="*,Auto"><StackPanel Spacing="6"><TextBlock Text="{DynamicResource history.activity}" FontSize="15" FontWeight="SemiBold" /><TextBlock Name="ActivitySummary" FontSize="12" Classes="muted" /></StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3" VerticalAlignment="Top"><Button Name="TimeMetric" Classes="review-metric active" Content="{DynamicResource history.seconds}" Tag="seconds" Click="OnMetric" /><Button Name="PlayMetric" Classes="review-metric" Content="{DynamicResource history.plays}" Tag="plays" Click="OnMetric" /></StackPanel>
           </Grid>
           <local:HistoryActivityChart Name="Activity" Height="132" AccentBrush="{DynamicResource EchoAccent}" CellBrush="{DynamicResource EchoSubtle}" />
-          <TextBlock Text="{DynamicResource history.activityHint}" Classes="subtle" FontSize="10" />
+          <TextBlock Text="{DynamicResource history.activityHint}" Classes="subtle" FontSize="12" />
         </StackPanel>
       </Border>
       <Grid Name="RankColumns" ColumnDefinitions="*,*" ColumnSpacing="36">
@@ -37,7 +37,7 @@
       </Grid>
       <StackPanel Spacing="12"><TextBlock Text="{DynamicResource history.topAlbums}" FontSize="16" FontWeight="SemiBold" /><ItemsControl ItemsSource="{Binding Albums}" ItemTemplate="{StaticResource RankTemplate}" /></StackPanel>
       <StackPanel Spacing="12" IsVisible="{Binding HasComparison}">
-        <TextBlock Text="{DynamicResource history.comparison}" FontSize="16" FontWeight="SemiBold" /><Grid ColumnDefinitions="*,*,*,*"><TextBlock Grid.Column="1" Text="{DynamicResource history.current}" Classes="subtle" FontSize="11" /><TextBlock Grid.Column="2" Text="{DynamicResource history.previous}" Classes="subtle" FontSize="11" /><TextBlock Grid.Column="3" Text="{DynamicResource history.change}" Classes="subtle" FontSize="11" /></Grid>
+        <TextBlock Text="{DynamicResource history.comparison}" FontSize="16" FontWeight="SemiBold" /><Grid ColumnDefinitions="*,*,*,*"><TextBlock Grid.Column="1" Text="{DynamicResource history.current}" Classes="subtle" FontSize="12" /><TextBlock Grid.Column="2" Text="{DynamicResource history.previous}" Classes="subtle" FontSize="12" /><TextBlock Grid.Column="3" Text="{DynamicResource history.change}" Classes="subtle" FontSize="12" /></Grid>
         <ItemsControl ItemsSource="{Binding Comparison}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="local:HistoryComparison"><Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,11"><Grid ColumnDefinitions="*,*,*,*"><TextBlock Text="{Binding Label}" FontSize="12" /><TextBlock Grid.Column="1" Text="{Binding Current}" FontSize="12" /><TextBlock Grid.Column="2" Text="{Binding Previous}" Classes="muted" FontSize="12" /><TextBlock Grid.Column="3" Text="{Binding Change}" FontSize="12" /></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
       </StackPanel>
       <Grid ColumnDefinitions="*,*" ColumnSpacing="36">

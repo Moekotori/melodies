@@ -52,6 +52,7 @@ public sealed partial class PlaybackSessionCoordinator
         try { if (initialized) await SendQueueAsync(queue, snapshot.Current?.ItemId, repeat).ConfigureAwait(false); }
         catch { Volatile.Write(ref segmentLoop, prior); throw; }
         SetSegmentLoop(null);
+        await RefreshAlbumGaplessAsync().ConfigureAwait(false);
     }
 
     private void SetSegmentLoop(SegmentLoopState? value)
@@ -67,9 +68,13 @@ public sealed partial class PlaybackSessionCoordinator
         var result = await native.CallAsync("audio.seek", OperationParams(new JsonObject { ["positionSeconds"] = position })).ConfigureAwait(false);
         var operation = result.Long("operationId");
         if (operation <= 0) throw new IOException("Native 未确认定位请求。");
+        gaplessContinuation = false;
+        gaplessChain = [];
         positionBase = result.Number("positionSeconds", position);
         ArmOutputConfirmation(operation);
         Publish(snapshot with { OperationId = operation, PositionSeconds = positionBase });
+        await SendQueueAsync(queue, snapshot.Current?.ItemId, repeat).ConfigureAwait(false);
+        if (snapshot.Current is { } track) await TryPrepareAlbumGaplessAsync(track).ConfigureAwait(false);
     }
 
     private async Task ApplySegmentBoundaryAsync()

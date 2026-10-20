@@ -65,7 +65,8 @@ internal static class RadioServiceSmoke
             {
                 "queue.set" => $"{{\"queueRevision\":{parameters!.Value.GetProperty("revision").GetInt64()}}}",
                 "audio.sessionBegin" => "{\"accepted\":true,\"sessionId\":1,\"ready\":{\"sampleRate\":48000,\"channels\":2}}",
-                "audio.openSource" => $"{{\"operationId\":{++operation},\"durationSeconds\":100}}", _ => "true"
+                "audio.openSource" => $"{{\"operationId\":{++operation},\"durationSeconds\":100}}",
+                "audio.stop" => $"{{\"operationId\":{++operation},\"drained\":true,\"drainWaitMs\":0}}", _ => "true"
             };
             using var doc = JsonDocument.Parse(text); return Task.FromResult(doc.RootElement.Clone());
         }

@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspHeadroomView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,0,24">
+      <local:DspWorkbenchSplit MainWeight="1.8" Gap="48">
+        <Border Classes="dsp-rule" Padding="0,10,0,0" BorderThickness="0">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspHeadroomView.ec8351453102}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Text="{Binding HeadroomReadout}" FontSize="104" FontWeight="Light"/>
+              <TextBlock Text="dB" FontSize="25" Classes="muted" VerticalAlignment="Bottom" Margin="0,0,0,10"/>
+            </StackPanel>
+            <TextBlock Text="{Binding HeadroomAmplitude}" Classes="dsp-note"/>
+            <StackPanel Spacing="18" Margin="0,18,0,0" IsEnabled="{Binding CanEdit}">
+              <local:DspParameterEditor DataContext="{Binding Fields[headroomDb]}"/>
+              <Grid ColumnDefinitions="*,*,*,*,*" Margin="0,-24,22,8">
+                <TextBlock Text="−12" Classes="muted" FontSize="12"/>
+                <TextBlock Grid.Column="1" Text="−6" Classes="muted" FontSize="12" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Text="0" Classes="muted" FontSize="12" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Text="+6" Classes="muted" FontSize="12" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="4" Text="+12 dB" Classes="muted" FontSize="12" HorizontalAlignment="Right"/>
+              </Grid>
+            </StackPanel>
+            <Border Classes="dsp-choice-track"><UniformGrid Rows="1">
+              <Button Content="{DynamicResource ui.DspHeadroomView.0470bd40d8f0}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="headroom:0" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="{DynamicResource ui.DspHeadroomView.e96476f0b208}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="headroom:-3" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="{DynamicResource ui.DspHeadroomView.7806ffb8690d}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="headroom:-6" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="{DynamicResource ui.DspHeadroomView.6a810444cd9d}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="headroom:-12" IsEnabled="{Binding CanEdit}"/>
+            </UniformGrid></Border>
+            <Button Name="HeadroomListenButton" Content="{DynamicResource ui.DspHeadroomView.165b630b14dc}" IsEnabled="{Binding CanEdit}"/>
+            <TextBlock Text="{DynamicResource ui.DspHeadroomView.377064e98f5e}" Classes="dsp-note" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+        <StackPanel Spacing="28" Margin="0,10,0,0">
+          <StackPanel Spacing="12">
+            <TextBlock Text="输出峰值" Classes="dsp-eyebrow"/>
+            <TextBlock Text="{Binding PeakReadout, StringFormat={}{0} dBFS}" FontSize="42" FontWeight="Light"/>
+            <TextBlock Text="{Binding RuntimeHeadline}" Classes="dsp-note"/>
+          </StackPanel>
+          <Border Classes="dsp-rule">
+            <StackPanel Spacing="14">
+              <TextBlock Text="预留建议" Classes="dsp-eyebrow"/>
+              <TextBlock Text="为叠加处理留出空间" FontSize="20" FontWeight="Medium"/>
+              <TextBlock Text="EQ 提升、卷积与声场处理可能增加峰值。先留出余量，再根据实际输出电平调整。" Classes="dsp-note"/>
+              <WrapPanel>
+                <Button Content="预留 −6 dB" Command="{Binding WorkbenchPresetCommand}" CommandParameter="headroom:-6" IsEnabled="{Binding CanEdit}"/>
+                <Button Content="保守 −12 dB" Command="{Binding WorkbenchPresetCommand}" CommandParameter="headroom:-12" IsEnabled="{Binding CanEdit}" Margin="8,0,0,0"/>
+              </WrapPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </local:DspWorkbenchSplit>
+      <Border Classes="dsp-rule">
+        <StackPanel Spacing="20">
+          <TextBlock Text="电平预算" Classes="dsp-section-title"/>
+          <Grid ColumnDefinitions="90,*,90" ColumnSpacing="18">
+            <TextBlock Text="输出峰值" Classes="muted" VerticalAlignment="Center"/>
+            <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding PeakMeterPercent}" Height="6" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="2" Text="{Binding PeakReadout}" HorizontalAlignment="Right"/>
+          </Grid>
+          <Grid ColumnDefinitions="90,*,90" ColumnSpacing="18">
+            <TextBlock Text="限幅衰减" Classes="muted" VerticalAlignment="Center"/>
+            <Border Grid.Column="1" Background="{DynamicResource EchoDivider}" Height="6" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="2" Text="{Binding GainReductionReadout}" HorizontalAlignment="Right"/>
+          </Grid>
+          <TextBlock Text="未收到宿主测量时保留空读数。" Classes="dsp-note"/>
+        </StackPanel>
+      </Border>
+      <Expander Header="诊断详情" HorizontalAlignment="Stretch"><local:DspRuntimeReadout Margin="0,20,0,0"/></Expander>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

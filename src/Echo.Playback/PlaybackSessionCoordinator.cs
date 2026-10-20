@@ -84,6 +84,8 @@ public sealed partial class PlaybackSessionCoordinator : IPlaybackSession
 
     private async Task OpenAsync(QueueTrack track, double start = 0, bool paused = false)
     {
+        gaplessContinuation = false;
+        gaplessChain = [];
         // Reopening even the same item creates a new native operation, so its old loop cannot survive.
         if (segmentLoop is not null)
         {
@@ -188,7 +190,7 @@ public sealed partial class PlaybackSessionCoordinator : IPlaybackSession
     public Task StopAsync(CancellationToken token = default) => Command(StopNowAsync, token);
     private async Task StopNowAsync()
     {
-        if (initialized) await native.CallAsync("audio.stop", OperationParams()).ConfigureAwait(false);
+        if (initialized) await AcceptedAsync("audio.stop").ConfigureAwait(false);
         if (segmentLoop is not null) SetSegmentLoop(null);
         positionBase = 0;
         Publish(snapshot with { Status = PlaybackStatus.Stopped, OperationId = 0, PositionSeconds = 0, Error = null });
@@ -197,7 +199,15 @@ public sealed partial class PlaybackSessionCoordinator : IPlaybackSession
     private JsonElement OperationParams(JsonObject? value = null)
     { value ??= new(); if (snapshot.OperationId > 0) value["expectedOperationId"] = snapshot.OperationId; return Params(new JsonArray(value)); }
     private async Task AcceptedAsync(string method)
-    { if ((await native.CallAsync(method, OperationParams()).ConfigureAwait(false)).ValueKind != JsonValueKind.True) throw new IOException($"Native 拒绝 {method}"); }
+    {
+        var result = await native.CallAsync(method, OperationParams()).ConfigureAwait(false);
+        if (result.ValueKind == JsonValueKind.True) return;
+        // The host confirms stop with a new terminal operation and its bounded drain result.
+        if (method == "audio.stop" && result.ValueKind == JsonValueKind.Object
+            && result.Long("operationId") > snapshot.OperationId
+            && result.TryGetProperty("drained", out var drained) && drained.ValueKind is JsonValueKind.True or JsonValueKind.False) return;
+        throw new IOException($"Native 拒绝 {method}");
+    }
     internal static JsonElement Params(JsonNode node)
     {
         using var stream = new MemoryStream();

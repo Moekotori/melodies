@@ -60,22 +60,26 @@ internal static class QuickSettingsSmoke
             audio.FindControl<TabControl>("AudioTabs")!.SelectedIndex = 1; Pump(30);
             audio.FindControl<ComboBox>("SampleRateInput")!.SelectedItem = 44100;
             audio.FindControl<NumericUpDown>("BufferInput")!.Value = 512;
-            audio.FindControl<CheckBox>("EqualizerInput")!.IsChecked = true;
-            audio.FindControl<CheckBox>("CrossfeedInput")!.IsChecked = true;
-            audio.FindControl<NumericUpDown>("PlaybackRateInput")!.Value = 1.25m;
+            // Configure effects independently, then ensure output edits cannot replay stale DSP values.
+            Read(session.DspAsync("eq.setEnabled", Json("[true]"), true));
+            Read(session.DspAsync("crossfeed.setState", Json("[{\"enabled\":true}]"), true));
+            Wait(session.SetPlaybackRateAsync(1.25));
             Pump(30); Click(audio.FindControl<Button>("ApplyAudioButton")!);
             Wait(player.AudioSettings.ApplyCommand.ExecutionTask!);
             Require(session.RequestedOutput is { } config && config.GetProperty("sampleRate").GetInt32() == 44100
                 && config.GetProperty("bufferSize").GetInt32() == 512, "bound settings reach session owner");
             var eq = Read(session.DspAsync("eq.getState", Json("[]")));
             var crossfeed = Read(session.DspAsync("crossfeed.getState", Json("[]")));
-            Require(eq.GetProperty("enabled").GetBoolean() && crossfeed.GetProperty("enabled").GetBoolean(), $"native DSP acknowledges toggles: {player.AudioSettings.Message}; eq={eq.GetRawText()}, crossfeed={crossfeed.GetRawText()}");
+            Require(eq.GetProperty("enabled").GetBoolean() && crossfeed.GetProperty("enabled").GetBoolean() && session.Snapshot.PlaybackRate == 1.25,
+                "output apply preserves independently configured EQ, crossfeed and speed");
             shell.IsDark = true; Pump(30); Save(window, output, "audio-settings-dark");
             var fresh = new PlayerAudioSettingsViewModel(session); Wait(fresh.RefreshCommand.ExecuteAsync(null));
-            Require(fresh.PlaybackRate == 1.25 && fresh.SampleRate == 44100 && fresh.BufferFrames == 512, "acknowledged config reads back into a fresh settings VM");
+            Require(fresh.SampleRate == 44100 && fresh.BufferFrames == 512, "acknowledged output reads back into a fresh settings VM");
             fresh.CancelPendingRead();
+            audio.FindControl<TabControl>("AudioTabs")!.SelectedIndex = 2; Pump(30); Save(window, output, "audio-diagnostics-dark");
             window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Pump(30);
-            Require(!host.IsVisible && moreButton.IsFocused && host.FindControl<ContentControl>("DrawerContent")!.Content is null, "Escape restores focus to titlebar More and releases drawer view");
+            Require(!host.IsVisible && !host.IsKeyboardFocusWithin && host.FindControl<ContentControl>("DrawerContent")!.Content is null,
+                "Escape releases the pointer-opened drawer and its focus");
             Click(moreButton); Pump(30);
             Save(window, output, "titlebar-more-dark");
             var lyricsButton = titleBar.FindControl<MenuItem>("LyricsDrawerButton")!;
@@ -120,15 +124,26 @@ internal static class QuickSettingsSmoke
             Require(host.FindControl<Border>("DrawerPanel")!.Bounds.Width <= host.Bounds.Width - 12.0 + 0.01, "drawer fits scaled narrow viewport");
             Save(window, output, "lyrics-settings-narrow");
             shell.CloseQuickSettingsCommand.Execute(null);
+            window.Height = 640; shell.OpenQuickSettingsCommand.Execute("audio"); Pump(40);
+            Wait(player.AudioSettings.RefreshCommand.ExecutionTask!);
+            audio = host.GetVisualDescendants().OfType<AudioSettingsDrawerView>().Single();
+            audio.FindControl<TabControl>("AudioTabs")!.SelectedIndex = 1; Pump(30);
+            Save(window, output, "audio-settings-narrow");
+            host.FindControl<TextBox>("DrawerSearchInput")!.Text = "EQ"; Pump(30);
+            Click(audio.FindControl<Button>("OpenDspButton")!); Pump(30);
+            Require(shell.ActiveRouteId == "dsp" && !shell.IsQuickSettingsOpen, "DSP shortcut closes drawer and opens workbench");
             Wait(player.AudioSettings.ResetCommand.ExecuteAsync(null));
             Require(session.RequestedOutput!.Value.GetProperty("sampleRate").GetInt32() == 48000, "reset applies normal output");
-            eq = Read(session.DspAsync("eq.getState", Json("[]"))); Require(!eq.GetProperty("enabled").GetBoolean(), "reset applies native DSP defaults");
+            eq = Read(session.DspAsync("eq.getState", Json("[]")));
+            crossfeed = Read(session.DspAsync("crossfeed.getState", Json("[]")));
+            Require(eq.GetProperty("enabled").GetBoolean() && crossfeed.GetProperty("enabled").GetBoolean() && session.Snapshot.PlaybackRate == 1.25,
+                "reset output preserves DSP and speed");
             Wait(store.DisposeAsync().AsTask());
             var reader = new LocalLyricsPreferencesStore(Path.Combine(output, "lyrics-settings.json"));
             var restored = new LyricsAppearance(reader); Wait(restored.RestoreAsync(CancellationToken.None));
             Require(restored.Snapshot() == appearance.Snapshot(), "lyrics preferences persist actual drawer edits");
             Wait(reader.DisposeAsync().AsTask());
-            Console.WriteLine("PASS native quick drawers: titlebar routes, native device query/output/DSP apply/readback/reset, live lyric bindings/persistence, Escape focus, scrim, reversal, reduced/off/full, hide/restore and scaled viewport.");
+            Console.WriteLine("PASS native quick drawers: titlebar routes, output query/apply/readback/reset with DSP preserved, live lyric bindings/persistence, Escape focus, scrim, reversal, reduced/off/full, hide/restore and scaled viewport.");
         }
         finally { window.Close(); shell.Settings.Dispose(); player.Detach(); Wait(session.DisposeAsync().AsTask()); }
     }

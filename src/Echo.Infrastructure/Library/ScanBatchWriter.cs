@@ -13,16 +13,17 @@ public sealed partial class LibraryDatabase
     {
         if (entries.Count is < 1 or > 256 || sequence < 1)
             throw new ArgumentException("Invalid bounded scan batch.");
-        ValidateEntries(entries);
         // Snapshot the list so callers cannot clear a queued batch before execution.
         var owned = entries.ToArray();
-        var fingerprint = ScanBatchFingerprint.Compute(owned);
-        return _writer.QueueAsync(connection => WriteBatch(connection, _writer.ScanAlbums, jobId, sequence, owned, fingerprint, cancellation),
+        var sources = new string?[owned.Length];
+        ValidateEntries(owned, sources);
+        var fingerprint = ScanBatchFingerprint.Compute(owned, sources);
+        return _writer.QueueAsync(connection => WriteBatch(connection, _writer.ScanAlbums, jobId, sequence, owned, sources, fingerprint, cancellation),
             false, cancellation);
     }
 
     private static BatchReceipt WriteBatch(SqliteConnection connection, ScanAlbumMaintenance maintenance, string jobId, long sequence,
-        IReadOnlyList<ScanEntry> entries, string fingerprint, CancellationToken cancellation)
+        IReadOnlyList<ScanEntry> entries, IReadOnlyList<string?> sources, string fingerprint, CancellationToken cancellation)
     {
         using var transaction = connection.BeginTransaction();
         using var job = connection.CreateCommand();
@@ -56,8 +57,9 @@ public sealed partial class LibraryDatabase
             "INSERT INTO scan_errors(scan_id,ordinal,path,code) VALUES($job,$n,$path,$code)",
             ["$job","$n","$path","$code"]) : null;
         var inserted = 0; var updated = 0; var unchanged = 0; var failed = 0;
-        foreach (var entry in entries)
+        for (var index = 0; index < entries.Count; index++)
         {
+            var entry = entries[index];
             cancellation.ThrowIfCancellationRequested();
             if (presence)
             {
@@ -78,7 +80,7 @@ public sealed partial class LibraryDatabase
             }
             if (entry.Kind == ScanEntryKind.Unchanged) { unchanged++; continue; }
             if (entry.Kind == ScanEntryKind.Preserved) { if (entry.ExistingId is not null) unchanged++; continue; }
-            metadata!.Write(entry, cancellation);
+            metadata!.Write(entry, sources[index], cancellation);
             if (entry.ExistingId is null) inserted++; else updated++;
         }
         metadata?.Complete(cancellation);
@@ -118,12 +120,13 @@ public sealed partial class LibraryDatabase
         return command;
     }
 
-    private static void ValidateEntries(IReadOnlyList<ScanEntry> entries)
+    private static void ValidateEntries(IReadOnlyList<ScanEntry> entries, string?[] sources)
     {
         long characters = 0;
         var keys = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var entry in entries)
+        for (var index = 0; index < entries.Count; index++)
         {
+            var entry = entries[index];
             if (!keys.Add(entry.File.PathKey)) throw new MetadataReadException("duplicate_scan_path");
             if (entry.File.Path.Length > 4096 || entry.File.PathKey.Length > 4096 ||
                 entry.File.SizeBytes < 0 || entry.ExistingId?.Length > 64 || entry.ErrorCode?.Length > 128 ||
@@ -131,6 +134,7 @@ public sealed partial class LibraryDatabase
                 throw new ArgumentException("Invalid scan entry.");
             characters += entry.File.Path.Length + entry.File.PathKey.Length;
             var sourceJson = entry.Kind is ScanEntryKind.Error or ScanEntryKind.Preserved ? null : TrackSourceJson.Encode(entry.File.Source);
+            sources[index] = sourceJson;
             if (sourceJson?.Length > 16384) throw new ArgumentException("Virtual source exceeds 16 KiB.");
             characters += sourceJson?.Length ?? 0;
             if (entry.Kind == ScanEntryKind.Metadata)
@@ -142,6 +146,8 @@ public sealed partial class LibraryDatabase
                     (m.Bpm is { } bpm && (!double.IsFinite(bpm) || bpm <= 0 || bpm > 10000)))
                     throw new ArgumentException("Invalid bounded metadata.");
                 characters += m.Title.Length + m.Artist.Length + m.Album.Length + m.AlbumArtist.Length + m.Genre.Length;
+                ArtistRoleRules.Validate(m.Credits);
+                if (m.Credits is { } tags) foreach (var tag in tags) characters += tag.Tag.Length + tag.Value.Length;
             }
         }
         if (characters > 512 * 1024) throw new ArgumentException("Scan payload exceeds 1 MiB of text.");

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Echo.Core.Contracts;
+using Echo.Contracts.Library;
 using Echo.Core.Transport;
 using Echo.Playback;
 using Echo.Contracts.Remote;
@@ -17,6 +18,7 @@ internal sealed partial class CoreDispatch : ICoreRequestHandler, IAsyncDisposab
     private readonly Task updates;
     private readonly object frameGate = new();
     private readonly SemaphoreSlim resources = new(2, 2);
+    private readonly SemaphoreSlim lyricsResources = new(4, 4);
     private long serial;
     public Guid Instance { get; } = Guid.NewGuid();
     public event Action? Changed;
@@ -38,6 +40,7 @@ internal sealed partial class CoreDispatch : ICoreRequestHandler, IAsyncDisposab
         runtime.ListeningChanged += OnListeningChanged;
         runtime.ListeningDiagnostic += OnListeningDiagnostic;
         runtime.Library.FolderChanged += OnFolderChanged;
+        runtime.Library.ArtistImportChanged += OnArtistImportChanged;
         runtime.Playback.SleepTimer.Changed += OnSleep;
         runtime.Playback.FilesOpened += OnFiles;
         runtime.RadioMetadata.Changed += OnRadioMetadata; runtime.RadioChanged += OnRadioChanged;
@@ -57,6 +60,7 @@ internal sealed partial class CoreDispatch : ICoreRequestHandler, IAsyncDisposab
     private void OnListeningChanged() => Notice?.Invoke(new("event", Method: "library.listening", Payload: CoreJson.Empty));
     private void OnListeningDiagnostic(string message) => Notice?.Invoke(new("event", Method: "diagnostic", Payload: CoreJson.Value(new CoreDiagnostic("listening", message))));
     private void OnFolderChanged(string path) => Notice?.Invoke(new("event", Method: "library.folder", Payload: CoreJson.Value(path)));
+    private void OnArtistImportChanged(ArtistImportSettings settings) => Notice?.Invoke(new("event", Method: "library.artistImport", Payload: CoreJson.Value(settings)));
     private void OnRadioChanged() => Notice?.Invoke(new("event", Method: "radio.changed", Payload: CoreJson.Empty));
     private void OnRadioMetadata() => Notice?.Invoke(new("event", Method: "radio.metadata", Payload: CoreJson.Value(new CoreRadioMetadata(runtime.RadioMetadata.StreamUrl, runtime.RadioMetadata.StreamTitle))));
     private void OnFiles(IReadOnlyList<string> paths)
@@ -112,11 +116,14 @@ internal sealed partial class CoreDispatch : ICoreRequestHandler, IAsyncDisposab
                     {
                         case "fixed-volume": await session.SetVolumeLockedAsync(setting.Value.Enabled, token).ConfigureAwait(false); break;
                         case "gapless-playback": await session.SetAlbumGaplessEnabledAsync(setting.Value.Enabled, token).ConfigureAwait(false); break;
+                        case "shuffle-credibility": await session.SetShuffleAvoidRecentCountAsync(ShuffleAvoidance.FromSelection(setting.Value.Selection), token).ConfigureAwait(false); break;
                         case "automix": await session.SetAutomixEnabledAsync(setting.Value.Enabled, token).ConfigureAwait(false); break;
                         case "speed-mode": await session.SetPlaybackRateModeAsync(setting.Value.Selection == "Nightcore" ? "nightcore" : "speed", token).ConfigureAwait(false); break;
                         case "scan-performance": await runtime.Library.SetScanProfileAsync(setting.Value.Selection, token).ConfigureAwait(false); break;
                     }
-                    runtime.Settings.Confirm(setting.Key, setting.Value); runtime.RefreshWake(); Changed?.Invoke();
+                    runtime.Settings.Confirm(setting.Key, setting.Value); runtime.RefreshWake();
+                    if (setting.Key == "network-lyrics") runtime.RefreshNetworkLyrics();
+                    Changed?.Invoke();
                 }
                 return CoreJson.Empty;
             case "backup.validate": return CoreJson.Value(await runtime.Backup.ValidateAsync(CoreJson.Read<string>(payload), token).ConfigureAwait(false));
@@ -158,19 +165,23 @@ internal sealed partial class CoreDispatch : ICoreRequestHandler, IAsyncDisposab
 
     private async Task<JsonElement> ReadResourceAsync(CoreReadResource request, CancellationToken token)
     {
-        if (!resources.Wait(0)) throw new InvalidOperationException("Core 资源读取容量已满。");
+        var resourceLane = request.Kind == "lyrics" ? lyricsResources : resources;
+        if (!resourceLane.Wait(0)) throw new InvalidOperationException("Core 资源读取容量已满。");
         try
         {
             return request.Kind switch
             {
                 "artwork" => CoreJson.Value(new CoreBytes(await runtime.Artwork.ReadAsync(request.Path, token).ConfigureAwait(false))),
+                "artist-artwork" => CoreJson.Value(new CoreBytes(request.Path.StartsWith("online:", StringComparison.Ordinal)
+                    ? await runtime.Library.ReadArtistImageAsync(request.Path[7..], token).ConfigureAwait(false)
+                    : runtime.Artwork is IArtistArtwork artists ? await artists.ReadArtistAsync(request.Path, token).ConfigureAwait(false) : null)),
                 "lyrics" => CoreJson.Value(await runtime.Lyrics.ReadAsync(request.Path, request.ExplicitPath, token).ConfigureAwait(false)),
                 "attachments" => CoreJson.Value(await runtime.Details.ReadAttachmentsAsync(request.Path, token).ConfigureAwait(false)),
                 "description" => CoreJson.Value(await runtime.Details.ReadDescriptionAsync(request.Path, token).ConfigureAwait(false)),
                 _ => throw new ArgumentException("Unknown resource kind.")
             };
         }
-        finally { resources.Release(); }
+        finally { resourceLane.Release(); }
     }
 
     private async Task<JsonElement> DispatchRemoteAsync(CoreRemoteRequest request, CancellationToken token)
@@ -199,9 +210,10 @@ internal sealed partial class CoreDispatch : ICoreRequestHandler, IAsyncDisposab
     public async ValueTask DisposeAsync()
     {
         runtime.ListeningChanged -= OnListeningChanged; runtime.ListeningDiagnostic -= OnListeningDiagnostic;
+        runtime.Library.ArtistImportChanged -= OnArtistImportChanged;
         runtime.Library.FolderChanged -= OnFolderChanged; runtime.Playback.SleepTimer.Changed -= OnSleep; runtime.Playback.FilesOpened -= OnFiles; runtime.RadioMetadata.Changed -= OnRadioMetadata; runtime.RadioChanged -= OnRadioChanged;
         await stop.CancelAsync().ConfigureAwait(false); subscription.Dispose();
         await updates.ConfigureAwait(false); await tasks.DisposeAsync().ConfigureAwait(false);
-        resources.Dispose(); stop.Dispose();
+        resources.Dispose(); lyricsResources.Dispose(); stop.Dispose();
     }
 }

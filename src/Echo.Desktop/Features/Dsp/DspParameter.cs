@@ -10,8 +10,15 @@ public sealed partial class DspParameter(DspParameterDefinition definition, doub
     public double Minimum => Definition.Minimum;
     public double Maximum => Definition.Maximum;
     public double Step => Definition.Step;
-    public string Unit => Definition.Unit;
+    private bool UsesPercent => Definition.Key is "amount" or "strength" or "reflection" or "width" or "mix" or "stereoLink" or "balance";
+    private double EditorScale => UsesPercent ? 100 : 1;
+    public string Unit => UsesPercent ? "%" : Definition.Unit;
+    public double EditorMinimum => Minimum * EditorScale;
+    public double EditorMaximum => Maximum * EditorScale;
+    public double EditorStep => Step * EditorScale;
+    public double EditorValue { get => Value * EditorScale; set => Value = Math.Clamp(Math.Round(value / EditorScale / Step) * Step, Minimum, Maximum); }
     [ObservableProperty] private double value = Math.Clamp(Math.Round(Math.Round(initial / definition.Step) * definition.Step, 4), definition.Minimum, definition.Maximum);
+    partial void OnValueChanged(double value) => OnPropertyChanged(nameof(EditorValue));
 }
 
 public sealed partial class DspToggle(string key, string label, bool initial) : ObservableObject
@@ -40,6 +47,9 @@ public sealed class DspRackRow(string id, string label, bool pinned)
     public string Id { get; } = id;
     public string Label { get; } = label;
     public bool Pinned { get; } = pinned;
+    public int Position { get; init; }
+    public string PositionLabel => Pinned ? "锁定" : Position.ToString("00");
+    public string RoleLabel { get; init; } = "处理模块";
 }
 
 public static class EqFilters

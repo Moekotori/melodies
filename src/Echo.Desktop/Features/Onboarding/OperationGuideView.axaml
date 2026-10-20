@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Onboarding"
+             x:Class="Echo.Desktop.Features.Onboarding.OperationGuideView" x:DataType="local:OperationGuideView">
+  <Canvas Name="GuideCanvas" ClipToBounds="True">
+    <Border Name="Highlight" IsHitTestVisible="False" BorderBrush="{DynamicResource EchoAccent}" BorderThickness="2" CornerRadius="8" Background="#107F9FAF" />
+    <Border Name="Card" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" CornerRadius="12" Padding="24" BoxShadow="0 8 32 0 #28000000">
+      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="16">
+          <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource onboarding.guide.label}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" LetterSpacing="1" /><Button Grid.Column="1" Classes="icon" Content="×" Width="28" Height="28" MinHeight="28" Padding="0" Click="OnClose" ToolTip.Tip="{DynamicResource onboarding.guide.exit}" AutomationProperties.Name="{DynamicResource onboarding.guide.exit}" /></Grid>
+          <TextBlock Name="StepTitle" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" Focusable="True" />
+          <TextBlock Name="StepBody" FontSize="13" LineHeight="23" TextWrapping="Wrap" Foreground="{DynamicResource EchoMuted}" />
+          <Button Name="ActionButton" HorizontalAlignment="Left" Click="OnAction" />
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,4,0,0">
+            <TextBlock Name="Counter" FontSize="12" Foreground="{DynamicResource EchoMuted}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Name="BackButton" Content="{DynamicResource onboarding.back}" Click="OnBack" />
+            <Button Grid.Column="2" Name="ContinueButton" Classes="primary" Click="OnNext" />
+          </Grid>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+  </Canvas>
+</UserControl>

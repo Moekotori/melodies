@@ -12,7 +12,7 @@ public partial class LyricsSettingsDrawerView : UserControl, IDisposable, IDrawe
     public LyricsSettingsDrawerView(ShellViewModel shell)
     {
         _shell = shell; InitializeComponent(); DesktopLyricsSettings.DataContext = shell.Floating; DataContext = shell.LyricsAppearance;
-        _search = new(this, LyricsTabs, [new(0, "逐字高亮 highlight", "LyricHighlightInput"), new(0, "显示中文翻译 译文 translation", "LyricTranslationInput"),
+        _search = new(this, LyricsTabs, [new(0, "高亮样式 扫光 渐显 浮起 轻跳 微放大 光晕 追光 波浪 放大镜 翻转 星点 扫描线 下划线 网点 highlight style", "LyricHighlightStyleInput"), new(0, "逐字高亮 highlight", "LyricHighlightInput"), new(0, "显示中文翻译 译文 translation", "LyricTranslationInput"),
             new(0, "歌词字体 font", "LyricFontFamilyInput"), new(0, "歌词字号 大小 size", "LyricFontInput"), new(0, "歌词对齐 居中 alignment", "LyricAlignmentInput"),
             new(0, "翻译与罗马音字号 辅助字号", "LyricSecondaryInput"), new(0, "显示罗马音 romanization", "LyricRomanizationInput"), new(0, "显示上下文 context", "LyricContextInput"),
             new(1, "歌词样式 主题 style Afterglow", "LyricStyleInput"), new(1,"背景 流光 樱吹雪 background wallpaper","LyricBackgroundInput"),
@@ -29,7 +29,7 @@ public partial class LyricsSettingsDrawerView : UserControl, IDisposable, IDrawe
         appearance.SelectedStyle = appearance.Styles[0]; appearance.SelectedLook = appearance.Looks[0];
         appearance.FontSize = 36; appearance.SecondarySize = 18; appearance.Font = appearance.Fonts[0];
         appearance.Alignment = appearance.Alignments[0]; appearance.Translation = true; appearance.Romanization = true;
-        appearance.WordHighlight = true; appearance.Context = true; appearance.OffsetMs = 0;
+        appearance.WordHighlight = true; appearance.WordHighlightStyle = "sweep"; appearance.Context = true; appearance.OffsetMs = 0;
         appearance.MiniPlayer = true; appearance.PlayerAutoHide = true; appearance.PlayerCompact = true;
         appearance.BackgroundMode="page";appearance.BackgroundBlur=18;appearance.BackgroundBrightness=100;appearance.BackgroundOpacity=100;appearance.WallpaperPath="";
     }

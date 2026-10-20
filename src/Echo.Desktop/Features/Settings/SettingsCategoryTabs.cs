@@ -10,11 +10,13 @@ public sealed partial class SettingsViewModel
     [ObservableProperty] private string activeTab = "";
     [ObservableProperty] private IReadOnlyList<SettingsTabItem> tabs = [];
     public bool HasTabs => Tabs.Count > 1;
-    public bool ShowThemeWorkspace => ActiveCategory.Id == "appearance" && Shows("主题与字体");
+    public bool ShowThemeWorkspace => ActiveCategory.Id == "appearance" && Shows("主题");
+    public bool ShowFontWorkspace => ActiveCategory.Id == "appearance" && Shows("字体与文字");
     public bool ShowMotionPreview => ActiveCategory.Id == "appearance" && Shows("布局与可视化");
     public bool ShowPlaybackDevices => ActiveCategory.Id == "playback" && Shows("输出与设备");
     public bool ShowUserLanguages => ActiveCategory.Id == "general" && Shows("语言与引导");
-    public bool ShowExtraContent => ShowMotionPreview || ShowPlaybackDevices;
+    public bool ShowArtistImport => ActiveCategory.Id == "maintenance" && Shows("曲库维护");
+    public bool ShowExtraContent => ShowMotionPreview || ShowPlaybackDevices || ShowArtistImport;
     private bool Shows(string tab) => !HasTabs || ActiveTab == tab;
 
     [RelayCommand]
@@ -27,7 +29,7 @@ public sealed partial class SettingsViewModel
 
     private void PublishTabs(IReadOnlyList<(string Tab, bool HasRows)> items)
     {
-        var ids = items.Where(item => item.HasRows || ActiveCategory.Id == "appearance" && item.Tab == "主题与字体")
+        var ids = items.Where(item => item.HasRows || ActiveCategory.Id == "appearance" && item.Tab is "主题" or "字体与文字")
             .Select(item => item.Tab).Distinct().ToArray();
         if (ids.Length == 0) ActiveTab = "";
         else if (ActiveTab.Length == 0 || !ids.Contains(ActiveTab)) ActiveTab = ids[0];
@@ -39,8 +41,10 @@ public sealed partial class SettingsViewModel
         }).ToArray();
         OnPropertyChanged(nameof(HasTabs));
         OnPropertyChanged(nameof(ShowThemeWorkspace));
+        OnPropertyChanged(nameof(ShowFontWorkspace));
         OnPropertyChanged(nameof(ShowMotionPreview));
         OnPropertyChanged(nameof(ShowPlaybackDevices));
+        OnPropertyChanged(nameof(ShowArtistImport));
         OnPropertyChanged(nameof(ShowUserLanguages));
         OnPropertyChanged(nameof(ShowExtraContent));
     }

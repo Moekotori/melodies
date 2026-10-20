@@ -1,0 +1,13 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:artists="using:Echo.Desktop.Features.Artists" xmlns:icon="using:Echo.Desktop.Controls"
+             x:Class="Echo.Desktop.Features.Artists.ArtistTrackCard" x:Name="Root" x:DataType="artists:ArtistTrackCard">
+  <UserControl.Styles><Style Selector="TextBlock.card-title"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style><Style Selector="Button.playing TextBlock.card-title"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style></UserControl.Styles>
+  <Button Classes="content-link" Classes.playing="{Binding #Root.IsPlaying}" Click="OnPlay" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="10,8" Background="Transparent">
+    <Button.ContextMenu><ContextMenu><MenuItem Header="{DynamicResource ui.AlbumTrackRow.79aaf3909d9f}" Click="OnPlay" /><MenuItem Header="{DynamicResource ui.AlbumDetailView.94ca0a7bf933}" Click="OnNext" /><MenuItem Header="{DynamicResource ui.AlbumDetailView.fa5f222e10c4}" Click="OnAdd" /></ContextMenu></Button.ContextMenu>
+    <Grid ColumnDefinitions="42,*,Auto" ColumnSpacing="12">
+      <Border CornerRadius="5" ClipToBounds="True" Width="42" Height="42" Background="{DynamicResource EchoHover}"><Grid><icon:GlyphIcon Kind="disc" Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center" /><Image Name="Cover" Stretch="UniformToFill" /></Grid></Border>
+      <StackPanel Grid.Column="1" Spacing="5" VerticalAlignment="Center"><TextBlock Classes="card-title" Text="{Binding #Root.Track.Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding #Root.Subtitle}" FontSize="12" Foreground="{DynamicResource EchoMuted}" TextTrimming="CharacterEllipsis" /></StackPanel>
+      <TextBlock Grid.Column="2" Text="{Binding #Root.Duration}" Foreground="{DynamicResource EchoMuted}" FontSize="12" VerticalAlignment="Center" />
+    </Grid>
+  </Button>
+</UserControl>

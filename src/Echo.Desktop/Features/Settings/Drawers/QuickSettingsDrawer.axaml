@@ -22,10 +22,10 @@
             <Grid ColumnDefinitions="16,*,Auto" ColumnSpacing="10">
               <icon:GlyphIcon Kind="search" Width="16" Height="16" VerticalAlignment="Center" />
               <TextBox Name="DrawerSearchInput" Grid.Column="1" Classes="drawer-search" PlaceholderText="{DynamicResource ui.SettingsView.2874151bd36b}" MaxLength="100" TextChanged="OnSearchChanged" AutomationProperties.Name="{DynamicResource drawer.search.accessibleName}" />
-              <Border Grid.Column="2" Background="{DynamicResource DrawerControl}" CornerRadius="5" Padding="6,3" VerticalAlignment="Center"><TextBlock Text="Ctrl F" FontSize="9" FontWeight="SemiBold" Classes="muted" /></Border>
+              <Border Grid.Column="2" Background="{DynamicResource DrawerControl}" CornerRadius="5" Padding="6,3" VerticalAlignment="Center"><TextBlock Text="Ctrl F" FontSize="12" FontWeight="Medium" Classes="muted" /></Border>
             </Grid>
           </Border>
-          <TextBlock Name="SearchFeedback" FontSize="11" Classes="muted" IsVisible="False" />
+          <TextBlock Name="SearchFeedback" FontSize="12" Classes="muted" IsVisible="False" />
         </StackPanel>
         <ContentControl Name="DrawerContent" Grid.Row="2" />
       </Grid>

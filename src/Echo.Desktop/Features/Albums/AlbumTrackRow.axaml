@@ -38,12 +38,12 @@
         <icon:GlyphIcon Classes="row-play" Kind="play" Width="13" Height="13" Stroke="{DynamicResource EchoAccentText}" HorizontalAlignment="Left" />
       </Grid>
       <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-        <TextBlock Classes="title" Text="{Binding Row.Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Row.Title}" />
+        <TextBlock Classes="title" Text="{Binding Row.Title}" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Row.Title}" />
         <TextBlock Text="{Binding Row.Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Row.Artist}" />
       </StackPanel>
       <ItemsControl Name="Signal" Grid.Column="2" ItemsSource="{Binding Tags}" HorizontalAlignment="Right" VerticalAlignment="Center">
         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-        <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Classes="muted" FontSize="11" /></DataTemplate></ItemsControl.ItemTemplate>
+        <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Classes="muted" FontSize="12" /></DataTemplate></ItemsControl.ItemTemplate>
       </ItemsControl>
       <TextBlock Grid.Column="3" Text="{Binding Duration}" Classes="muted" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" />
       <Button Name="FavoriteButton" Grid.Column="4" Classes="icon" Classes.liked="{Binding Favorite}" Width="30" Padding="0"

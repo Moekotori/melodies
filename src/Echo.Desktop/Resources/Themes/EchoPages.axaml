@@ -1,0 +1,40 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Shared Control presentation only. Page owners keep their virtualized lists and lifecycle. -->
+  <Style Selector="TextBox.page-search">
+    <Setter Property="MinHeight" Value="40" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{DynamicResource EchoField}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBox.page-search:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+  </Style>
+  <Style Selector="Button.page-tool, Button.libraryTool, Button.history-tool, Button.radio-tool, Button.podcast-tool, Button.remote-tool">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="MinHeight" Value="36" />
+  </Style>
+  <Style Selector="Border.page-feature">
+    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" />
+    <Setter Property="CornerRadius" Value="16" />
+  </Style>
+  <Style Selector="Border.page-section">
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="Padding" Value="0,16,0,0" />
+  </Style>
+  <Style Selector="Border.portrait-surface">
+    <Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="62" />
+  </Style>
+  <Style Selector="Button.nav.active, Button.nav.active:pointerover">
+    <Setter Property="Background" Value="{DynamicResource EchoSidebarSelected}" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="Button.tab.active, Button.detail-tab.active, Button.artist-tab.active, Button.history-tab.active">
+    <Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" />
+  </Style>
+</Styles>

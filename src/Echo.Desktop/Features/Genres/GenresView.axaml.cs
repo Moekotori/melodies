@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Echo.Contracts.Library;
 using Echo.Desktop.Features.LibraryDetails;
+using Echo.Desktop.Motion;
 using Echo.Desktop.Shell;
 
 namespace Echo.Desktop.Features.Genres;
@@ -12,6 +13,7 @@ public partial class GenresView : UserControl, IDisposable
     private readonly GenresViewModel _model;
     private readonly DetailNavigator _details;
     private readonly GenreWallViewport _viewport;
+    private readonly MotionPanes _panes = new();
     public GenresViewModel Model => _model;
     public GenreWallViewport Viewport => _viewport;
     private bool _closed;
@@ -49,8 +51,16 @@ public partial class GenresView : UserControl, IDisposable
     private void OnRefresh(object? sender, RoutedEventArgs args) { _viewport.ReloadArtwork(); _ = _model.LoadAsync(); }
     private void OnSearchKey(object? sender, KeyEventArgs args) { if (args.Key == Key.Enter) { _ = _model.LoadAsync(); args.Handled = true; } }
     private void OnClearSearch(object? sender, RoutedEventArgs args) { _model.Search = ""; FocusSearch(); }
-    public void OpenDetail(GenreRow genre) { _details.OpenGenre(genre); Wall.IsVisible = false; DetailHost.IsVisible = true; _viewport.SetSuspended(true); }
-    private void CloseDetail() { DetailHost.IsVisible = false; Wall.IsVisible = true; _viewport.SetSuspended(false); }
+    public async void OpenDetail(GenreRow genre)
+    {
+        _details.OpenGenre(genre);
+        if (await _panes.Show(DetailHost, Wall, MotionDirection.Forward) && !_closed) _viewport.SetSuspended(true);
+    }
+    private async void CloseDetail()
+    {
+        _viewport.SetSuspended(false);
+        if (await _panes.Show(Wall, DetailHost, MotionDirection.Back) && !_closed) _details.Release();
+    }
     public void SetWindowVisible(bool visible) { _details.SetWindowVisible(visible); _viewport.SetSuspended(!visible || DetailHost.IsVisible); }
-    public void Dispose() { if (_closed) return; _closed = true; _details.Dispose(); _viewport.Dispose(); _model.Dispose(); }
+    public void Dispose() { if (_closed) return; _closed = true; _panes.Dispose(); _details.Dispose(); _viewport.Dispose(); _model.Dispose(); }
 }

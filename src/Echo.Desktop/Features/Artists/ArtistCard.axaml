@@ -6,16 +6,17 @@
     <Style Selector="Button.artist-card:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
   </UserControl.Styles>
   <Button Name="OpenButton" Classes="artist-card" Click="OnOpen">
-    <StackPanel Spacing="9">
+    <StackPanel Spacing="14">
       <Grid Width="124" Height="124" HorizontalAlignment="Center">
+        <Border Classes="portrait-surface" />
         <TextBlock Name="Monogram" Foreground="{DynamicResource EchoHeading}" FontFamily="Times New Roman" FontSize="58" FontWeight="Normal" HorizontalAlignment="Center" VerticalAlignment="Center" />
         <Border Name="PortraitFrame" CornerRadius="62" ClipToBounds="True" IsVisible="False">
           <Image Name="Portrait" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
         </Border>
       </Grid>
       <StackPanel Spacing="3">
-        <TextBlock Name="ArtistName" Classes="artist-name" Foreground="{DynamicResource EchoHeading}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
-        <TextBlock Name="Stats" Classes="muted" FontSize="11" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <TextBlock Name="ArtistName" Classes="artist-name" Foreground="{DynamicResource EchoHeading}" FontSize="14" FontWeight="SemiBold" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <TextBlock Name="Stats" Classes="muted" FontSize="12" TextAlignment="Center" TextTrimming="CharacterEllipsis" />
       </StackPanel>
     </StackPanel>
   </Button>

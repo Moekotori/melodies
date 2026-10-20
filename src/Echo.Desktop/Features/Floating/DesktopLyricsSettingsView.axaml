@@ -29,7 +29,7 @@
       <Button Content="{DynamicResource floating.importFont}" Click="ImportFont" />
       <Button Grid.Column="1" Content="{DynamicResource floating.resetFont}" Command="{Binding ResetFontCommand}" />
     </Grid>
-    <TextBlock Text="{Binding FontFileName}" FontSize="11" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding FontFileName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <TextBlock Text="{Binding FontFileName}" FontSize="12" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding FontFileName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     <TextBox Text="{Binding Color}" MaxLength="7" PlaceholderText="#FFFFFF" AutomationProperties.Name="{DynamicResource floating.played}" IsVisible="{Binding IsCustomMode}" />
     <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding IsGradientMode}">
       <TextBox Text="{Binding GradientStart}" MaxLength="7" PlaceholderText="#4F46E5" AutomationProperties.Name="{DynamicResource floating.gradientStart}" />

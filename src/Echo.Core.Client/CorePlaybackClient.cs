@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Runtime.InteropServices;
 using Echo.Playback;
 using Echo.Core.Contracts;
 using Echo.Core.Transport;
@@ -74,7 +75,8 @@ public sealed partial class CorePlaybackClient : IPlaybackSession
             || previous.Output.Backend != next.Output.Backend || !JsonSame(a.Processing, b.Processing) || !JsonSame(previous.Output.Requested, next.Output.Requested)) changes |= PlaybackStateChanges.Output;
         return changes;
     }
-    private static bool JsonSame(JsonElement? a, JsonElement? b) => a.HasValue == b.HasValue && (!a.HasValue || a.Value.GetRawText() == b!.Value.GetRawText());
+    private static bool JsonSame(JsonElement? a, JsonElement? b) => a.HasValue == b.HasValue && (!a.HasValue ||
+        JsonMarshal.GetRawUtf8Value(a.Value).SequenceEqual(JsonMarshal.GetRawUtf8Value(b!.Value)));
 
     private void Disconnect(Exception _)
     {

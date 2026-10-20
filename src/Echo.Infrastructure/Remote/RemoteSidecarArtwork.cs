@@ -4,8 +4,17 @@ using Echo.Contracts.Remote;
 namespace Echo.Infrastructure.Remote;
 
 // Server art is one request. A folder image is fetched once and reused for every song in that directory.
-public sealed class RemoteSidecarArtwork(IAlbumArtwork local, Func<string, RemoteConnection?> source, IRemoteFileClient files) : IAlbumArtwork
+public sealed class RemoteSidecarArtwork(IAlbumArtwork local, Func<string, RemoteConnection?> source, IRemoteFileClient files) : IAlbumArtwork, IArtistArtwork
 {
+    public Task<byte[]?> ReadArtistAsync(string samplePath, CancellationToken cancellation)
+    {
+        if (RemoteTrackPaths.TrySplit(samplePath, out var sourceId, out var remotePath))
+        {
+            var connection = source(sourceId); var path = connection is null ? null : files.LocalPath(connection, remotePath);
+            return path is not null && local is IArtistArtwork artist ? artist.ReadArtistAsync(path, cancellation) : Task.FromResult<byte[]?>(null);
+        }
+        return local is IArtistArtwork artwork ? artwork.ReadArtistAsync(samplePath, cancellation) : Task.FromResult<byte[]?>(null);
+    }
     private static readonly string[] Extensions = [".jpg", ".jpeg", ".png", ".webp"];
     private static readonly string[] Shared = ["cover", "folder", "front", "album", "song"];
     private readonly Dictionary<string, byte[]?> folders = new(StringComparer.Ordinal);

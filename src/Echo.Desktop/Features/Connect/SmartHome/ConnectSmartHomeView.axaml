@@ -8,47 +8,47 @@
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel Spacing="4">
               <TextBlock Text="MQTT" Classes="connect-kicker" />
-              <TextBlock Text="家居联动" FontSize="22" Classes="heading" />
+              <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.823acd635ba7}" FontSize="22" Classes="heading" />
             </StackPanel>
             <Border Grid.Column="1" Classes="connect-state" Classes.live="{Binding PortReachable}"><TextBlock Text="{Binding StateLabel}" FontSize="12" /></Border>
           </Grid>
           <Border Classes="connect-inset">
             <StackPanel Spacing="6">
               <Grid ColumnDefinitions="72,*">
-                <TextBlock Text="状态" Classes="muted" FontSize="12" />
+                <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.6320b4a8722a}" Classes="muted" FontSize="12" />
                 <TextBlock Grid.Column="1" Text="{Binding StateTopic}" FontSize="13" TextTrimming="CharacterEllipsis" />
               </Grid>
               <Grid ColumnDefinitions="72,*">
-                <TextBlock Text="命令" Classes="muted" FontSize="12" />
+                <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.928f87d4507b}" Classes="muted" FontSize="12" />
                 <TextBlock Grid.Column="1" Text="{Binding CommandTopic}" FontSize="13" TextTrimming="CharacterEllipsis" />
               </Grid>
               <Grid ColumnDefinitions="72,*">
-                <TextBlock Text="最近" Classes="muted" FontSize="12" />
+                <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.997a5e6e513f}" Classes="muted" FontSize="12" />
                 <TextBlock Grid.Column="1" Text="{Binding LastCommand}" FontSize="13" TextWrapping="Wrap" />
               </Grid>
             </StackPanel>
           </Border>
-          <TextBlock Text="密码只在这次连接中使用，不会写入设置。曲目、播放状态或音量变化时才发布，不跟随进度。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+          <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.b6198624c2ad}" TextWrapping="Wrap" Classes="muted" FontSize="12" />
           <Grid ColumnDefinitions="*,120" ColumnSpacing="12">
             <StackPanel Spacing="6">
-              <TextBlock Text="代理主机" FontSize="12" Classes="muted" />
+              <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.2fb1439352ac}" FontSize="12" Classes="muted" />
               <TextBox Text="{Binding Host, Mode=TwoWay}" MaxLength="253" PlaceholderText="127.0.0.1" LostFocus="OnEdited" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="6">
-              <TextBlock Text="端口" FontSize="12" Classes="muted" />
+              <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.e71ac32b544b}" FontSize="12" Classes="muted" />
               <TextBox Text="{Binding PortText, Mode=TwoWay}" MaxLength="5" PlaceholderText="1883" LostFocus="OnEdited" />
             </StackPanel>
           </Grid>
-          <TextBlock Text="主题前缀" FontSize="12" Classes="muted" />
+          <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.9857543ab103}" FontSize="12" Classes="muted" />
           <TextBox Text="{Binding Topic, Mode=TwoWay}" MaxLength="80" PlaceholderText="echo/playback" LostFocus="OnEdited" />
           <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
             <StackPanel Spacing="6">
-              <TextBlock Text="账号" FontSize="12" Classes="muted" />
-              <TextBox Text="{Binding Username, Mode=TwoWay}" MaxLength="64" PlaceholderText="可留空" LostFocus="OnEdited" />
+              <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.311bb313fdec}" FontSize="12" Classes="muted" />
+              <TextBox Text="{Binding Username, Mode=TwoWay}" MaxLength="64" PlaceholderText="{DynamicResource ui.ConnectSmartHomeView.293b74110f45}" LostFocus="OnEdited" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="6">
-              <TextBlock Text="密码" FontSize="12" Classes="muted" />
-              <TextBox Text="{Binding Password, Mode=TwoWay}" MaxLength="128" PasswordChar="•" PlaceholderText="不保存" />
+              <TextBlock Text="{DynamicResource ui.ConnectSmartHomeView.a621ab606db2}" FontSize="12" Classes="muted" />
+              <TextBox Text="{Binding Password, Mode=TwoWay}" MaxLength="128" PasswordChar="•" PlaceholderText="{DynamicResource ui.ConnectSmartHomeView.8bcc3e177f5f}" />
             </StackPanel>
           </Grid>
           <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" />

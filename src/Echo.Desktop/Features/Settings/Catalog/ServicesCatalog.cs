@@ -26,7 +26,8 @@ public static partial class SettingsCatalog
             Toggle("steam-extended-stats", "扩展个人统计"), Toggle("steam-cloud", "便携设置云同步"), Toggle("steam-leaderboards", "聆听排行榜"))];
 
     private static IReadOnlyList<SettingsSectionDefinition> Lyrics() => [
-        Section("歌词显示", Toggle("lyrics-enabled", "歌词显示", true)),
+        Section("歌词显示", Toggle("lyrics-enabled", "歌词显示", true),
+            Toggle("network-lyrics", "网络歌词匹配", true, "本地或服务器歌词缺失时，向 AMLL、网易云、QQ 音乐和 LRCLIB 查询歌名、歌手、专辑与时长；不发送文件路径。可随时关闭。")),
         Section("文字与样式", Toggle("lyrics-hide-song-info", "隐藏歌曲信息"), Toggle("lyrics-romanization", "显示罗马音"),
             Toggle("lyrics-japanese-kana", "日文歌词优先显示假名"), Toggle("lyrics-translation", "显示中文翻译", true),
             Toggle("lyrics-current-translation", "仅当前行显示译文"), Select("lyrics-page-style", "歌词样式", "经典"),
@@ -35,6 +36,6 @@ public static partial class SettingsCatalog
             new("lyrics-secondary-size", "翻译与罗马音字号", SettingKind.Slider, Value: "22"),
             new("lyrics-line-height", "歌词行距", SettingKind.Slider, Value: "110"), Select("lyrics-max-characters", "每行最多字数", "自动", "自动", "12", "18", "24", "32"),
             new("lyrics-context-opacity", "其他歌词透明度", SettingKind.Slider, Value: "49"), Toggle("lyrics-context-blur", "模糊其他歌词")),
-        Section("逐字与同步", Toggle("lyrics-word-highlight", "逐字高亮", true), Toggle("lyrics-context", "显示上下文", true)),
+        Section("逐字与同步", Toggle("lyrics-word-highlight", "逐字高亮", true), Select("lyrics-highlight-style", "高亮样式", "sweep"), Toggle("lyrics-context", "显示上下文", true)),
         Section("桌面歌词", Toggle("desktop-lyrics", "桌面歌词"), Action("desktop-lyrics-position", "桌面歌词位置", "重置位置"))];
 }

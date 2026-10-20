@@ -7,7 +7,7 @@
         <TextBlock Text="{Binding Name}" FontSize="14" TextTrimming="CharacterEllipsis" />
         <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
       </StackPanel>
-      <Button Grid.Column="1" Classes="connect-tool" Command="{Binding PinCommand}" Padding="8,0" ToolTip.Tip="固定" AutomationProperties.Name="固定设备">
+      <Button Grid.Column="1" Classes="connect-tool" Command="{Binding PinCommand}" Padding="8,0" ToolTip.Tip="{DynamicResource ui.ConnectDeviceRow.d4b3f49cd2e4}" AutomationProperties.Name="{DynamicResource ui.ConnectDeviceRow.51cad14341ab}">
         <icon:GlyphIcon Kind="{Binding PinIcon}" Width="15" Height="15" Stroke="{DynamicResource EchoMuted}" />
       </Button>
       <Button Grid.Column="2" Classes="connect-tool" Command="{Binding HideCommand}" Content="{Binding HideLabel}" AutomationProperties.Name="{Binding HideLabel}" />

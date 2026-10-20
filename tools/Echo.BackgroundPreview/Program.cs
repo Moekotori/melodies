@@ -3,10 +3,11 @@ using SkiaSharp;
 using System.Globalization;
 
 var root=Path.GetFullPath(args.Length>0?args[0]:"misc/backgrounds");Directory.CreateDirectory(root);
+if(args.Contains("--pixel-smoke")){PixelBackgroundSmoke.Run(root);return;}
 var reactive=args.Contains("--reactive");var transitions=args.Contains("--transitions");
 var sequence=args.Contains("--sequence");var light=args.Contains("--light");
 var modes=args.Skip(1).Where(a=>!a.StartsWith("--")).ToArray();
-if(modes.Length==0)modes=["coverFlow","flowingLight","geometricAmbience","liquidLight","pulseRidge","halftone","contour","sakura","bfs","coverLiquid","coverPrism","coverFrost","coverPond","coverHolo","coverVinyl","coverNeon"];
+if(modes.Length==0)modes=["coverFlow","flowingLight","geometricAmbience","liquidLight","pulseRidge","halftone","contour","sakura","bfs","coverLiquid","coverPrism","coverFrost","coverPond","coverHolo","coverVinyl","coverNeon","coverPixelCrt","coverPixelWarp","coverPixelTiles","coverPixelShuffle","coverPixelRain","coverPixelSkyline"];
 var failed=false;
 foreach(var mode in modes)
 {

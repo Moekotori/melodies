@@ -41,7 +41,7 @@ public partial class GenreCard : UserControl, IDisposable
         Monogram.Text = genre is null ? "" : ArtistMonogram.Wall(GenreName.Text ?? genre.Name);
         var cjk = genre is not null && ArtistMonogram.IsCjk(GenreName.Text ?? genre.Name);
         Monogram.FontFamily = cjk ? (FontFamily)this.FindResource("EchoFont")! : new FontFamily("Times New Roman");
-        Monogram.FontWeight = cjk ? FontWeight.SemiBold : FontWeight.Normal;
+        Monogram.FontWeight = cjk ? FontWeight.Medium : FontWeight.Normal;
         Monogram.FontSize = cjk ? 44 : 58;
         OpenButton.IsEnabled = genre is not null;
         AutomationProperties.SetName(OpenButton, genre is null ? Text["genres.loading"] : $"{GenreName.Text}, {Stats.Text}");

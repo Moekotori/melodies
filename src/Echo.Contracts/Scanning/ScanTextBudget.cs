@@ -11,7 +11,10 @@ public static class ScanTextBudget
         if (!file.PreserveExisting && file.Issue is null && file.Source is { } source)
             characters += SourceUpperBound(source);
         if (metadata is { } m)
+        {
             characters += m.Title.Length + m.Artist.Length + m.Album.Length + m.AlbumArtist.Length + m.Genre.Length + m.Codec.Length;
+            if (m.Credits is { } tags) foreach (var tag in tags) characters += tag.Tag.Length + tag.Value.Length;
+        }
         return characters;
     }
 

@@ -57,7 +57,7 @@ public partial class AlbumDetailView
     }
     private static Control DocumentPlaceholder(string label)
     {
-        var text = new TextBlock { Text = label, FontSize = 12, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
+        var text = new TextBlock { Text = label, FontSize = 12, FontWeight = FontWeight.Medium, HorizontalAlignment = HorizontalAlignment.Center };
         text.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("EchoMuted"));
         var icon = new GlyphIcon { Kind = "file", Width = 30, Height = 30, HorizontalAlignment = HorizontalAlignment.Center };
         icon.Bind(GlyphIcon.StrokeProperty, new DynamicResourceExtension("EchoSubtle"));
@@ -69,6 +69,7 @@ public partial class AlbumDetailView
     {
         if (_artwork is null) return;
         var generation = _panelGeneration;
+        var focusRevision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
         try
         {
             var lease = await _artwork.AcquireAsync(attachment.Path, _coverRequest.Token, maxEdge: 1024);
@@ -77,7 +78,8 @@ public partial class AlbumDetailView
             ClosePreview(); _previewLease = lease;
             PreviewImage.Source = lease.Image; PreviewTitle.Text = attachment.Name;
             _coverReturnFocus = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
-            CoverPreview.IsVisible = true; KeyboardNavigation.SetTabNavigation(CoverPreview, KeyboardNavigationMode.Cycle); PreviewClose.Focus();
+            CoverPreview.IsVisible = true; KeyboardNavigation.SetTabNavigation(CoverPreview, KeyboardNavigationMode.Cycle);
+            if (Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, focusRevision)) PreviewClose.Focus();
         }
         catch (OperationCanceledException) { }
         catch (Exception) { if (!_closed) _model.Error = "附件图片读取失败，请刷新后重试。"; }

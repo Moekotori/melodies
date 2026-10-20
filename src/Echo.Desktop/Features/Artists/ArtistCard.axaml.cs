@@ -37,7 +37,7 @@ public partial class ArtistCard : UserControl, IDisposable
         Monogram.Text = artist is null ? "" : ArtistMonogram.Wall(artist.Name);
         var cjk = artist is not null && ArtistMonogram.IsCjk(artist.Name);
         Monogram.FontFamily = cjk ? (FontFamily)this.FindResource("EchoFont")! : new FontFamily("Times New Roman");
-        Monogram.FontWeight = cjk ? FontWeight.SemiBold : FontWeight.Normal;
+        Monogram.FontWeight = cjk ? FontWeight.Medium : FontWeight.Normal;
         Monogram.FontSize = cjk ? 44 : 58;
         OpenButton.IsEnabled = artist is not null;
         AutomationProperties.SetName(OpenButton, artist is null ? "正在读取艺术家" : $"{artist.Name}，{artist.TrackCount} 首，{artist.AlbumCount} 张专辑");

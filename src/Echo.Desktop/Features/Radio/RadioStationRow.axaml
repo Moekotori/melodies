@@ -4,14 +4,14 @@
   <UserControl.Styles><Style Selector="Button.row-select"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="0" /></Style></UserControl.Styles>
   <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1">
     <Grid Name="RowGrid" ColumnDefinitions="44,*,128,104,90,36,36,36" MinHeight="56">
-      <TextBlock Text="{Binding Number}" FontFamily="Consolas" FontSize="10" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
-      <Button Grid.Column="1" Classes="row-select" Click="OnSelect" ToolTip.Tip="{Binding Station.Url}"><StackPanel Spacing="4" VerticalAlignment="Center" Margin="8,10,14,10"><TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Description}" FontSize="11" Classes="muted" TextTrimming="CharacterEllipsis" IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /></StackPanel></Button>
-      <TextBlock Name="FrequencyCell" Grid.Column="2" Text="{Binding Identity}" FontSize="11" FontFamily="Consolas" Classes="muted" VerticalAlignment="Center" />
-      <TextBlock Name="GenreCell" Grid.Column="3" Text="{Binding Genre}" FontSize="11" Classes="muted" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-      <TextBlock Name="CodecCell" Grid.Column="4" Text="{Binding Codec}" FontSize="11" Classes="muted" VerticalAlignment="Center" />
-      <Button Grid.Column="5" Classes="icon" Click="OnFavorite" ToolTip.Tip="收藏 / 取消收藏" VerticalAlignment="Center"><icon:GlyphIcon Kind="{Binding FavoriteIcon}" Width="17" Height="17" /></Button>
-      <Button Name="PlayStationButton" Grid.Column="6" Classes="icon" Click="OnPlay" ToolTip.Tip="收听电台" VerticalAlignment="Center"><icon:GlyphIcon Kind="play" Width="17" Height="17" /></Button>
-      <Button Grid.Column="7" Classes="icon" ToolTip.Tip="更多" VerticalAlignment="Center"><icon:GlyphIcon Kind="more" Width="17" Height="17" /><Button.Flyout><MenuFlyout><MenuItem Header="编辑电台" Click="OnEdit" /><MenuItem Header="复制地址" Click="OnCopy" /><Separator /><MenuItem Header="删除电台" Click="OnDelete" /></MenuFlyout></Button.Flyout></Button>
+      <TextBlock Text="{Binding Number}" FontFamily="Consolas" FontSize="12" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Classes="row-select" Click="OnSelect" ToolTip.Tip="{Binding Station.Url}"><StackPanel Spacing="4" VerticalAlignment="Center" Margin="8,10,14,10"><TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Description}" FontSize="12" Classes="muted" TextTrimming="CharacterEllipsis" IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /></StackPanel></Button>
+      <TextBlock Name="FrequencyCell" Grid.Column="2" Text="{Binding Identity}" FontSize="12" FontFamily="Consolas" Classes="muted" VerticalAlignment="Center" />
+      <TextBlock Name="GenreCell" Grid.Column="3" Text="{Binding Genre}" FontSize="12" Classes="muted" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <TextBlock Name="CodecCell" Grid.Column="4" Text="{Binding Codec}" FontSize="12" Classes="muted" VerticalAlignment="Center" />
+      <Button Grid.Column="5" Classes="icon" Click="OnFavorite" ToolTip.Tip="{DynamicResource ui.RadioStationRow.e98a3eaf110a}" VerticalAlignment="Center"><icon:GlyphIcon Kind="{Binding FavoriteIcon}" Width="17" Height="17" /></Button>
+      <Button Name="PlayStationButton" Grid.Column="6" Classes="icon" Click="OnPlay" ToolTip.Tip="{DynamicResource ui.RadioStationRow.b9788942be1d}" VerticalAlignment="Center"><icon:GlyphIcon Kind="play" Width="17" Height="17" /></Button>
+      <Button Grid.Column="7" Classes="icon" ToolTip.Tip="{DynamicResource ui.RadioStationRow.38844b135cf7}" VerticalAlignment="Center"><icon:GlyphIcon Kind="more" Width="17" Height="17" /><Button.Flyout><MenuFlyout><MenuItem Header="{DynamicResource ui.RadioStationRow.e708e800eb21}" Click="OnEdit" /><MenuItem Header="{DynamicResource ui.RadioStationRow.4c6de01bbe86}" Click="OnCopy" /><Separator /><MenuItem Header="{DynamicResource ui.RadioStationRow.925099de08ce}" Click="OnDelete" /></MenuFlyout></Button.Flyout></Button>
     </Grid>
   </Border>
 </UserControl>

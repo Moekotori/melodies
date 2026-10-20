@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Echo.Core.Contracts;
 
-public enum DspResourceOperation { Library, SavePreset, DeletePreset, SaveProfile, DeleteProfile, ImportEqualizer, ImportImpulse, Banks, ResolveBank, SearchOpra, OpraPreset, DeleteBank }
+public enum DspResourceOperation { Library, SavePreset, DeletePreset, SaveProfile, DeleteProfile, ImportEqualizer, ImportImpulse, Banks, ResolveBank, SearchOpra, OpraPreset, DeleteBank, BrowseOpra, FavoriteOpra, RecentOpra }
 public sealed record DspResourceRequest(int Version, string RequestId, DspResourceOperation Operation,
     string? Id = null, string? Name = null, string? Path = null, string? Query = null, int Offset = 0, JsonElement? State = null, bool Refresh = false);
 public sealed record DspResourceResponse(int Version, string RequestId, string CoreId, string Generation, long Revision, JsonElement? Result, string? Error);

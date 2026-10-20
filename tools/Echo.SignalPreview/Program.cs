@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
@@ -42,25 +43,33 @@ try
     Require(view.Spec.Contains("96") && view.Headline == "原生播放", "source and direct summary");
     Require(view.OutputFacts.Single(x => x.Label == "实际输出采样率").Value == "96 kHz", "confirmed hardware rate");
     Require(view.LevelText == "--", "unknown meter must not fabricate readings");
-    Require(view.EngagedChips.Any(x => x.Label == "音量") && !panel.FindControl<Expander>("DoctorExpander")!.IsExpanded, "volume chip and folded doctor");
-    Require(panel.Bounds.Width <= 400 && panel.Bounds.Height <= 540 && double.IsNaN(panel.Height), "compact content-sized panel");
-    Require(!panel.FindControl<Expander>("DiagnosticsExpander")!.IsExpanded, "details folded by default");
+    Require(view.EngagedChips.Any(x => x.Label == "音量"), "volume chip and folded doctor");
+    Require(panel.Bounds.Width <= 424 && panel.Bounds.Height <= 720 && double.IsNaN(panel.Height), "bounded content-sized panel");
+    Require(panel.FindControl<ItemsControl>("SignalChain")!.IsEffectivelyVisible, "signal chain visible without opening diagnostics");
+    Require(view.Nodes[^1].IsLast && view.Nodes.Take(view.Nodes.Count - 1).All(node => !node.IsLast), "chain ends at output");
+    Require(panel.FindControl<ToggleButton>("DiagnosticsToggle")!.IsChecked != true, "details folded by default");
     Capture(panel, "signal-light.png");
+    var contentScroll = panel.FindControl<ScrollViewer>("ContentScroll")!;
+    contentScroll.Offset = new Vector(0, 320); Pump();
+    Capture(panel, "signal-chain.png");
+    contentScroll.Offset = default; Pump();
     Wait(filtered.ReadAsync());
     for (var i = 0; i < 256; i++) native.Emit("audio.levelMeter", "{\"operationId\":1,\"peakDb\":[-12,-6],\"rmsDb\":[-20,-18]}");
     Until(() => session.State.Level?.PeakDb == -6);
     Until(() => view.LevelText.Contains("-6.0"));
-    Require(view.LevelPercent == 80, "peak aggregation and meter tick mapping");
+    Require(view.LevelPercent == 80 && view.RmsPercent == 50 && !view.LevelClip, "peak and RMS aggregation and meter tick mapping");
     using (var noTick = new CancellationTokenSource(35))
     {
         var read = filtered.ReadAsync(noTick.Token);
         Until(() => read.IsCompleted);
         Require(read.IsCanceled, "meter must not wake queue/clock consumers");
     }
+    for (var frame = 0; frame < 40; frame++) { Pump(); Thread.Sleep(16); }
     Capture(panel, "signal-live.png");
     player.Details.SampleRate = 192000;
     Until(() => view.Headline == "格式转换");
     Require(view.Nodes.Count == 4, "conversion stage visible in compact chain");
+    Require(view.Nodes[2].IsProcessing, "processing uses inline chain marker");
     Require(view.Metrics[1].Highlight && view.Metrics[3].Highlight && view.Metrics[3].Value == "192 kHz → 96 kHz", "changed processing and clocks highlighted");
     Require(view.EngagedChips.Any(x => x.Label == "重采样"), "conversion chip");
     Require(view.Stability.Count == 4 && view.Insights.Count > 0, "stability and doctor");
@@ -79,7 +88,7 @@ try
     window.RequestedThemeVariant = ThemeVariant.Dark; Pump(); Capture(panel, "signal-dark.png");
     text.SetLanguage("en-US"); Pump(); Capture(panel, "signal-english.png");
     panel.Width = 320; panel.MaxHeight = 500; Pump(); Capture(panel, "signal-narrow.png");
-    panel.FindControl<Expander>("DiagnosticsExpander")!.IsExpanded = true;
+    panel.FindControl<ToggleButton>("DiagnosticsToggle")!.IsChecked = true;
     var scroll = panel.FindControl<ScrollViewer>("ContentScroll")!;
     Until(() => scroll.Extent.Height > 700);
     scroll.Offset = new Vector(0, 1500);
@@ -87,7 +96,7 @@ try
     Capture(panel, "signal-diagnostics.png");
     popup.Hide(); Pump(); Require(panel.DataContext is null, "closing releases panel state");
     // Repeated opens must release subscription admission, not consume the 32 slots.
-    for (var i = 0; i < 40; i++) { popup.ShowAt(button); Pump(); Require(!panel.FindControl<Expander>("DiagnosticsExpander")!.IsExpanded && !panel.FindControl<Expander>("DoctorExpander")!.IsExpanded, "reopen folds details"); popup.Hide(); Pump(); }
+    for (var i = 0; i < 40; i++) { popup.ShowAt(button); Pump(); Require(panel.FindControl<ToggleButton>("DiagnosticsToggle")!.IsChecked != true, "reopen folds details"); popup.Hide(); Pump(); }
     Wait(session.StopAsync());
     Console.WriteLine($"PASS native product XAML, unknown/live/paused readings, burst coalescing, stale/invalid frames, category isolation, reopen disposal, light/dark/English/narrow. {clock.Elapsed.TotalSeconds:0.0}s. Audio simulated.");
 }

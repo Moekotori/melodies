@@ -31,7 +31,7 @@
       <Button Classes="lyric-tool" Command="{Binding Floating.RestoreMainCommand}" ToolTip.Tip="{DynamicResource floating.detail}"><icon:GlyphIcon Kind="lyric-home" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
       <Border Classes="lyric-divider" />
       <Button Classes="lyric-tool" Command="{Binding Floating.NudgeOffsetCommand}" Name="OffsetBackButton" CommandParameter="back" IsEnabled="{Binding Floating.CanNudgeLyrics}" ToolTip.Tip="{DynamicResource floating.offsetBack}"><icon:GlyphIcon Kind="lyric-offset-back" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
-      <TextBlock Name="OffsetReadout" Text="{Binding Floating.OffsetText}" IsVisible="{Binding Floating.HasOffset}" FontSize="12" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" TextAlignment="Center" MinWidth="46" />
+      <TextBlock Name="OffsetReadout" Text="{Binding Floating.OffsetText}" IsVisible="{Binding Floating.HasOffset}" FontSize="12" FontWeight="Medium" Foreground="White" VerticalAlignment="Center" TextAlignment="Center" MinWidth="46" />
       <Button Classes="lyric-tool" Command="{Binding Floating.NudgeOffsetCommand}" Name="OffsetForwardButton" CommandParameter="forward" IsEnabled="{Binding Floating.CanNudgeLyrics}" ToolTip.Tip="{DynamicResource floating.offsetForward}"><icon:GlyphIcon Kind="lyric-offset-forward" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>
       <Border Classes="lyric-divider" />
       <Button Classes="lyric-tool" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.previous}"><icon:GlyphIcon Kind="lyric-prev" Width="18" Height="18" Stroke="White" StrokeWidth="0" /></Button>

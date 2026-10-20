@@ -6,7 +6,7 @@
     <Style Selector="Button.album-card:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
   </UserControl.Styles>
   <Button Name="OpenButton" Classes="album-card" Click="OnOpen">
-    <StackPanel Spacing="14">
+    <StackPanel Spacing="12">
       <Border Name="CoverFrame" Background="{DynamicResource EchoPanelMuted}" CornerRadius="{DynamicResource EchoCoverRadius}" ClipToBounds="True">
         <Grid>
           <Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" />
@@ -16,8 +16,8 @@
       <StackPanel Spacing="5">
         <TextBlock Name="AlbumTitle" Classes="album-title" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" TextTrimming="CharacterEllipsis" />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-          <TextBlock Name="Artist" Classes="muted" FontSize="12.5" TextTrimming="CharacterEllipsis" />
-          <TextBlock Name="TrackCount" Grid.Column="1" Classes="muted" FontSize="11.5" VerticalAlignment="Center" />
+          <TextBlock Name="Artist" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+          <TextBlock Name="TrackCount" Grid.Column="1" Classes="muted" FontSize="12" VerticalAlignment="Center" />
         </Grid>
       </StackPanel>
     </StackPanel>

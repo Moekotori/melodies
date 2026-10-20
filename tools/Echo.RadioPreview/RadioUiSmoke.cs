@@ -31,6 +31,7 @@ internal static class RadioUiSmoke
         var player = new PlayerViewModel(new PlaybackZone("radio-preview", "本机", session), shell.Text);
         shell.AttachPlayback(player);
         var resolver = new PreviewResolver(); shell.AttachRadioPlayback(resolver);
+        var directory = new PreviewDirectory(); shell.AttachRadioServices(directory, directory, session);
         shell.Motion.SelectedChoice = shell.Motion.Choices.First(choice => choice.Mode == MotionMode.Off);
         var window = new MainWindow { DataContext = shell, Width = 1680, Height = 1000 };
         try
@@ -72,6 +73,8 @@ internal static class RadioUiSmoke
             Click(window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "CoverButton"));
             Check(model.StageOpen && shell.ActiveRouteId == "radio", "Player cover opens the active radio stage"); model.StageOpen = false;
             Pump(model.PlayAsync(first)); Settle(); Check(session.Snapshot.Status == PlaybackStatus.Stopped, "Radio stops through session owner");
+            RadioDirectoryUiSmoke.Run(window, view, directory, catalog, output);
+            Pump(catalog.UpdateAsync(items => items.Where(item => !item.Url.StartsWith("https://radio.test/", StringComparison.Ordinal)), default));
             window.Width = 900; window.Height = 720; Settle(); Save("radio-compact.png");
             Check(view.FindControl<ItemsControl>("StationList")!.Bounds.Height >= 56, "Compact list retains a visible station row");
             shell.NavigateCommand.Execute("home"); Settle(); Check(model.Rows.Count == 0, "Navigation disposes radio page");
@@ -79,7 +82,7 @@ internal static class RadioUiSmoke
             Check(empty.Stations.Count == 0, "Deleted default does not return");
             Console.WriteLine("Radio native UI, filter, edit, URL validation, persistence, M3U and HTTP session command passed. Audio and network are simulated.");
         }
-        finally { window.Close(); shell.ReleaseRadioPlayback(); player.Detach(); shell.Settings.Dispose(); shell.ReleaseLocalization(); Pump(session.DisposeAsync().AsTask()); }
+        finally { window.Close(); shell.ReleaseRadioPlayback(); shell.ReleaseRadioServices(); player.Detach(); shell.Settings.Dispose(); shell.ReleaseLocalization(); Pump(session.DisposeAsync().AsTask()); }
         void Check(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
         void Click(Button button)
         {

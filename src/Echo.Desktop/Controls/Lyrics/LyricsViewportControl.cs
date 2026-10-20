@@ -24,6 +24,7 @@ public sealed partial class LyricsViewportControl : Control, IDisposable
     private readonly AfterglowGlyphLayout afterglowGlyphs = new();
     private readonly LyricsFrameController frames;
     private readonly List<(int Index, Rect Rect)> hits = [];
+    private (int Index, Point Point)? pressed;
     private LyricsViewModel? model;
     private MotionPolicy? motion;
     private IBrush ink = Brushes.Black, accent = Brushes.Blue;
@@ -72,6 +73,8 @@ public sealed partial class LyricsViewportControl : Control, IDisposable
     { if (e.PropertyName is nameof(LyricsViewModel.Cover) or nameof(LyricsViewModel.CoverColors)) ResetLayout(); }
     private void OnAppearanceChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(LyricsAppearance.HighlightChoices) or nameof(LyricsAppearance.HighlightChoice)) return;
+        if (e.PropertyName == nameof(LyricsAppearance.WordHighlightStyle)) { Refresh(); return; }
         if (e.PropertyName == nameof(LyricsAppearance.SelectedStyle)) transition = Stopwatch.GetTimestamp();
         ResetLayout();
     }
@@ -129,11 +132,7 @@ public sealed partial class LyricsViewportControl : Control, IDisposable
         hits.Clear();
         if (current.Layout == LyricsLayout.CoverOnly)
         { frames.Update(attached && motion?.IsWindowVisible == true, focused); return; }
-        if (document.Lines.Count == 0)
-        {
-            LyricsStagePainter.Label(dc, model.Player.Text.Translate(model.IsLoading ? "正在读取歌词…" : "还没有歌词"), textRect.X, h * 0.44, 28, ink);
-            return;
-        }
+        if (document.Lines.Count == 0) return;
         var index = DisplayIndex;
         if (current.Layout == LyricsLayout.Curtain)
         {
@@ -254,7 +253,8 @@ public sealed partial class LyricsViewportControl : Control, IDisposable
         using var alpha = dc.PushOpacity(opacity);
         wordPainter.Paint(dc, layout, point, current && model!.Appearance.WordHighlight,
             model!.Appearance.SelectedStyle.Layout, model.PositionMs(motion?.CanAnimate == true) + model.Document.OffsetMs,
-            current && motion?.UseSpatialMotion == true ? Stopwatch.GetElapsedTime(transition).TotalMilliseconds : double.PositiveInfinity);
+            current && motion?.UseSpatialMotion == true ? Stopwatch.GetElapsedTime(transition).TotalMilliseconds : double.PositiveInfinity,
+            model.Appearance.WordHighlightStyle, motion?.UseSpatialMotion == true);
         if (current && model!.Appearance.SelectedStyle.Layout == LyricsLayout.Editorial)
         {
             var dot = new Point(point.X - 28, point.Y + layout.Primary.Height / 2);
@@ -302,8 +302,18 @@ public sealed partial class LyricsViewportControl : Control, IDisposable
     {
         base.OnPointerPressed(e); Focus();
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        var hit = hits.FirstOrDefault(h => h.Rect.Contains(e.GetPosition(this)));
-        if (hit.Rect.Width > 0 && model is not null) _ = model.SeekLineAsync(hit.Index);
+        var point = e.GetPosition(this);
+        var hit = hits.FirstOrDefault(h => h.Rect.Contains(point));
+        // Seek on release so a horizontal track swipe that starts on a line never seeks.
+        pressed = hit.Rect.Width > 0 ? (hit.Index, point) : null;
+    }
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (pressed is not { } start) return;
+        pressed = null;
+        var delta = e.GetPosition(this) - start.Point;
+        if (model is not null && delta.X * delta.X + delta.Y * delta.Y <= 100) _ = model.SeekLineAsync(start.Index);
     }
     protected override void OnKeyDown(KeyEventArgs e)
     {

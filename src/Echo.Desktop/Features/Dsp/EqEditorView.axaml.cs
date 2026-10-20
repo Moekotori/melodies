@@ -18,13 +18,15 @@ public partial class EqEditorView : UserControl
     private void ArrangeEditor()
     {
         var narrow = Bounds.Width < 760;
-        var plotHeight = Math.Clamp(Bounds.Height * .38, 200, 310);
-        EqPlot.Height = narrow ? Math.Min(210, plotHeight) : plotHeight;
-        EqToolbar.ColumnDefinitions = new(narrow ? "*" : "*,Auto");
+        EqToolbar.ColumnDefinitions = new(narrow ? "*" : "Auto,*");
         EqToolbar.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
         Grid.SetColumn(EqTools, narrow ? 0 : 1); Grid.SetRow(EqTools, narrow ? 1 : 0);
-        EqTools.Margin = narrow ? new Thickness(0, 8, 0, 0) : default;
-        PresetPicker.Width = Bounds.Width < 520 ? 156 : 240;
+        EqTools.HorizontalAlignment = narrow ? Avalonia.Layout.HorizontalAlignment.Left : Avalonia.Layout.HorizontalAlignment.Right;
+        PresetPicker.Width = Bounds.Width < 520 ? 140 : 180;
+        PreampBar.ColumnDefinitions = new(narrow ? "Auto,*" : "Auto,*,Auto");
+        PreampBar.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
+        Grid.SetColumn(PreampActions, narrow ? 0 : 2); Grid.SetRow(PreampActions, narrow ? 1 : 0);
+        Grid.SetColumnSpan(PreampActions, narrow ? 2 : 1);
         TrimControls.ColumnDefinitions = new(narrow ? "*" : "*,*");
         TrimControls.RowDefinitions = new(narrow ? "Auto,Auto" : "Auto");
         Grid.SetColumn(TiltField, narrow ? 0 : 1); Grid.SetRow(TiltField, narrow ? 1 : 0);

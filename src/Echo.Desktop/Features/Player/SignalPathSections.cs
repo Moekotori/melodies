@@ -32,8 +32,8 @@ internal static class SignalPathSections
         public required string? DitherMode { get; init; }
         public required string? SdmBackend { get; init; }
         public required double Volume { get; init; }
-        public required double? PeakDb { get; init; }
-        public required double? BufferMilliseconds { get; init; }
+        public required double? PeakDb { get; set; }
+        public required double? BufferMilliseconds { get; set; }
         public required double? LatencyMilliseconds { get; init; }
         public required double? BufferFrames { get; init; }
     }

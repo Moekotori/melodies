@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspCrossfeedView" x:DataType="local:DspViewModel">
+  <ScrollViewer Name="SpatialScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <local:DspWorkbenchSplit Name="SpatialWorkbench" StretchContent="True" MinHeight="{Binding #SpatialScroller.Viewport.Height}">
+        <Border Classes="dsp-plot">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+            <TextBlock Text="{DynamicResource ui.DspCrossfeedView.b08cc0e5a2ae}" Classes="dsp-note"/>
+            <local:DspDiagramControl Kind="crossfeed" Name="SpatialDiagram" Grid.Row="1" UseThemeSurface="True" MinHeight="260" MaxHeight="760" Margin="0,6,0,6"/>
+            <ItemsControl Grid.Row="2" ItemsSource="{Binding SpatialMetrics}" Margin="0,18,0,0">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:DspColumns MinimumColumnWidth="150" MaximumColumns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:DspMetric"><StackPanel Spacing="8" Margin="0,0,12,12"><TextBlock Text="{Binding Label}" Classes="muted" FontSize="12"/><TextBlock Text="{Binding Value}" FontSize="25" FontWeight="Medium"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+        </Border>
+        <Border Classes="dsp-rule" Padding="0,0,0,0" BorderThickness="0">
+          <StackPanel Spacing="28" VerticalAlignment="Center">
+            <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspCrossfeedView.0a58a859d8df}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <Border IsVisible="{Binding !CrossfeedUsesBs2b}">
+              <WrapPanel>
+                <Button Content="{DynamicResource ui.DspCrossfeedView.178ec201602f}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="crossfeed:subtle" IsEnabled="{Binding CanEdit}"/>
+                <Button Content="{DynamicResource ui.DspCrossfeedView.4f1240839836}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="crossfeed:natural" IsEnabled="{Binding CanEdit}"/>
+                <Button Content="{DynamicResource ui.DspCrossfeedView.9b73fe330c67}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="crossfeed:strong" IsEnabled="{Binding CanEdit}"/>
+                <Button Content="{DynamicResource ui.DspCrossfeedView.86b17b91965b}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="crossfeed:speaker" IsEnabled="{Binding CanEdit}"/>
+              </WrapPanel>
+            </Border>
+            <WrapPanel IsVisible="{Binding CrossfeedUsesBs2b}">
+              <Button Content="Bauer" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="bs2b:bauer"/>
+              <Button Content="Chu Moy" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="bs2b:chu-moy"/>
+              <Button Content="Jan Meier" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="bs2b:jan-meier"/>
+            </WrapPanel>
+            </StackPanel>
+            <StackPanel Spacing="30" IsEnabled="{Binding CanEdit}">
+              <local:DspChoiceEditor DataContext="{Binding Options[model]}"/>
+              <Border IsVisible="{Binding !CrossfeedUsesBs2b}">
+                <local:DspParameterEditor DataContext="{Binding Fields[amount]}"/>
+              </Border>
+              <local:DspParameterEditor DataContext="{Binding Fields[cutoffHz]}"/>
+              <Border IsVisible="{Binding CrossfeedUsesBs2b}">
+                <local:DspParameterEditor DataContext="{Binding Fields[feedDb]}"/>
+              </Border>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+    </local:DspWorkbenchSplit>
+  </ScrollViewer>
+</UserControl>

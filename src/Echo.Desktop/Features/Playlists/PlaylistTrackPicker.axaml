@@ -18,7 +18,7 @@
             <ListBox.ItemTemplate><DataTemplate x:DataType="lib:TrackRow">
               <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="8,10">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                  <StackPanel Spacing="4"><TextBlock Text="{Binding Title}" Classes="heading" FontSize="13" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="11.5" TextTrimming="CharacterEllipsis" /></StackPanel>
+                  <StackPanel Spacing="4"><TextBlock Text="{Binding Title}" Classes="heading" FontSize="13" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" /></StackPanel>
                   <TextBlock Grid.Column="1" Text="{Binding Album}" Classes="muted" MaxWidth="180" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 </Grid>
               </Border>

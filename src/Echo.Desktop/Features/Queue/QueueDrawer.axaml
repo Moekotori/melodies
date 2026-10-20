@@ -6,7 +6,7 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
         <StackPanel Spacing="1">
-          <TextBlock Text="{DynamicResource ui.PlayerBar.f01b6815d826}" Classes="muted" FontSize="11" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource ui.PlayerBar.f01b6815d826}" Classes="muted" FontSize="12" FontWeight="Medium" />
           <TextBlock Text="{Binding Player.Queue.PendingCountText}" Classes="heading" FontSize="22" FontWeight="SemiBold" />
         </StackPanel>
         <Button Grid.Column="1" Classes="icon" Click="OnShortcuts" ToolTip.Tip="{DynamicResource queue.drawer.shortcuts}" AutomationProperties.Name="{DynamicResource queue.drawer.shortcuts}"><icon:GlyphIcon Kind="keyboard" Width="17" Height="17" /></Button>
@@ -18,10 +18,10 @@
         <Grid ColumnDefinitions="52,*,30" ColumnSpacing="12">
           <queue:QueueArtwork Width="52" Height="52" CornerRadius="{DynamicResource EchoCoverRadius}" FilePath="{Binding Player.Queue.CurrentArtworkPath}" Cache="{Binding Player.Queue.Artwork}" />
           <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-            <TextBlock Text="{Binding Player.Subtitle}" Classes="muted" FontSize="10" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding Player.Title}" Classes="heading" FontSize="17" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding Player.Details.Artist}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding Player.Queue.CurrentSourceText}" Foreground="{DynamicResource EchoAccentText}" FontSize="10.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Player.Subtitle}" Classes="muted" FontSize="12" FontWeight="Medium" />
+            <TextBlock Text="{Binding Player.Title}" Classes="heading" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Player.Details.Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Player.Queue.CurrentSourceText}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
           </StackPanel>
           <Button Grid.Column="2" Classes="icon" Command="{Binding Player.ToggleCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource queue.drawer.playPause}" AutomationProperties.Name="{DynamicResource queue.drawer.playPause}"><icon:EchoIcon Scope="player" Kind="{Binding Player.PlayIcon}" Width="18" Height="18" /></Button>
         </Grid>
@@ -30,7 +30,7 @@
         <Button Name="ModeButton" Classes="drawer-mode" HorizontalAlignment="Left" Click="OnMode" IsEnabled="{Binding !Player.Queue.IsBusy}" ToolTip.Tip="{DynamicResource queue.drawer.mode}">
           <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="{Binding Player.Queue.ModeGlyph}" Width="16" Height="16" /><TextBlock Text="{Binding Player.Queue.ModeLabel}" /><TextBlock Text="⌄" Classes="muted" /></StackPanel>
         </Button>
-        <TextBlock Text="{Binding Player.Queue.StrategyText}" Classes="muted" FontSize="11" TextWrapping="Wrap" LineHeight="16" />
+        <TextBlock Text="{Binding Player.Queue.StrategyText}" Classes="muted" FontSize="12" TextWrapping="Wrap" LineHeight="16" />
       </StackPanel>
       <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" IsEnabled="{Binding !Player.Queue.IsBusy}">
         <Button Classes="drawer-action" Command="{Binding Player.Queue.ClearCommand}" ToolTip.Tip="{DynamicResource ui.QueueDrawer.d18e02739127}"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="trash" Width="15" Height="15" /><TextBlock Text="{DynamicResource queue.drawer.clear}" /></StackPanel></Button>
@@ -42,7 +42,7 @@
         <Button Grid.Column="1" Classes="icon" Command="{Binding Player.Queue.UndoCommand}" IsEnabled="{Binding Player.Queue.CanUndo}" ToolTip.Tip="{DynamicResource ui.QueueDrawer.926a50b98ece}" AutomationProperties.Name="{DynamicResource ui.QueueDrawer.926a50b98ece}"><icon:GlyphIcon Kind="reset" Width="15" Height="15" /></Button>
       </Grid>
       <Border Grid.Row="4" Background="{DynamicResource EchoQueueActive}" CornerRadius="9" Padding="10,8" IsVisible="{Binding Player.Queue.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-        <TextBlock Text="{Binding Player.Queue.Message}" Foreground="{DynamicResource EchoAccentText}" FontSize="11" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Player.Queue.Message}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" TextWrapping="Wrap" />
       </Border>
       </Grid>
       </ScrollViewer>
@@ -55,7 +55,7 @@
           <Button Classes="drawer-action" Click="OnAdd" Content="{DynamicResource ui.QueueDrawer.4c8a4e3da39e}" IsVisible="{Binding !Player.HasTrack}" />
         </StackPanel>
       </Grid>
-      <TextBlock Grid.Row="3" Text="{Binding Player.Error}" Foreground="{DynamicResource EchoAccentText}" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding Player.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <TextBlock Grid.Row="3" Text="{Binding Player.Error}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Player.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </Grid>
   </Border>
 </UserControl>

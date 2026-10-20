@@ -3,15 +3,15 @@
   <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /><StyleInclude Source="/Features/Settings/ThemeWallpaperStyles.axaml" /></UserControl.Styles>
   <StackPanel Spacing="10">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-      <TextBlock Text="窗口预览" Classes="wallpaper-kicker" VerticalAlignment="Center" />
+      <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.bfdc4787f2ca}" Classes="wallpaper-kicker" VerticalAlignment="Center" />
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
         <Border Classes="wallpaper-tone">
           <StackPanel Orientation="Horizontal" Spacing="2">
-            <Button Name="LightPreview" Content="浅色" Classes="wallpaper-preview-tone" Click="PreviewLight" AutomationProperties.Name="预览浅色背景" />
-            <Button Name="DarkPreview" Content="深色" Classes="wallpaper-preview-tone" Click="PreviewDark" AutomationProperties.Name="预览深色背景" />
+            <Button Name="LightPreview" Content="{DynamicResource ui.ThemeWallpaperPreview.aa0819dfc4d8}" Classes="wallpaper-preview-tone" Click="PreviewLight" AutomationProperties.Name="{DynamicResource ui.ThemeWallpaperPreview.1e34c5d059b4}" />
+            <Button Name="DarkPreview" Content="{DynamicResource ui.ThemeWallpaperPreview.a6b75d068032}" Classes="wallpaper-preview-tone" Click="PreviewDark" AutomationProperties.Name="{DynamicResource ui.ThemeWallpaperPreview.cf8b965d679a}" />
           </StackPanel>
         </Border>
-        <Button Name="ExpandPreview" Content="放大" Classes="wallpaper-preview-tone" Click="Expand" AutomationProperties.Name="放大背景预览" />
+        <Button Name="ExpandPreview" Content="{DynamicResource ui.ThemeWallpaperPreview.80f8fbcfa011}" Classes="wallpaper-preview-tone" Click="Expand" AutomationProperties.Name="{DynamicResource ui.ThemeWallpaperPreview.faac636bc38b}" />
       </StackPanel>
     </Grid>
     <Border Classes="wallpaper-stage">
@@ -22,7 +22,7 @@
             <Grid RowDefinitions="44,*,86" ColumnDefinitions="188,*" IsHitTestVisible="False">
               <Border Grid.ColumnSpan="2" Background="{DynamicResource EchoTitlebar}">
                 <Grid ColumnDefinitions="*,Auto" Margin="22,0">
-                  <TextBlock Text="melodies" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" />
+                  <TextBlock Text="melodies" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource EchoHeading}" VerticalAlignment="Center" />
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <Border Width="8" Height="8" CornerRadius="4" Background="{DynamicResource EchoMuted}" Opacity="0.35" />
                     <Border Width="8" Height="8" CornerRadius="4" Background="{DynamicResource EchoMuted}" Opacity="0.35" />
@@ -32,35 +32,35 @@
               </Border>
               <Border Grid.Row="1" Background="{DynamicResource EchoSidebar}" Padding="16,22">
                 <StackPanel Spacing="6">
-                  <TextBlock Text="首页" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
+                  <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.203c08e0d44a}" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
                   <Border Background="{DynamicResource EchoSidebarSelected}" CornerRadius="6" Padding="10,7">
-                    <TextBlock Text="歌曲" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource EchoAccent}" />
+                    <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.e470074a673c}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource EchoAccent}" />
                   </Border>
-                  <TextBlock Text="专辑" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
-                  <TextBlock Text="艺术家" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
-                  <TextBlock Text="歌单" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
+                  <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.9e070772b185}" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
+                  <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.8104520f6e69}" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
+                  <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.473e57b72072}" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
                   <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="10,12" />
-                  <TextBlock Text="设置" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
+                  <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.df3d58c7d84b}" FontSize="14" Foreground="{DynamicResource EchoMuted}" Margin="10,4" />
                 </StackPanel>
               </Border>
               <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource EchoPageContent}" Padding="40,32">
                 <StackPanel Spacing="28">
                   <StackPanel Spacing="6">
-                    <TextBlock Text="你的音乐" FontSize="30" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" />
-                    <TextBlock Text="背景会铺在整个窗口后面" FontSize="14" Foreground="{DynamicResource EchoMuted}" />
+                    <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.5181dae96fcb}" FontSize="30" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" />
+                    <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.b5b38cb60c19}" FontSize="14" Foreground="{DynamicResource EchoMuted}" />
                   </StackPanel>
                   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="20">
                     <Border Width="108" Height="108" CornerRadius="8" Background="{DynamicResource EchoAccent}" Opacity="0.22">
                       <TextBlock Text="♪" FontSize="42" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource EchoAccent}" />
                     </Border>
                     <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Center">
-                      <TextBlock Text="正在试听" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" />
+                      <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.360d70d4c97f}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" />
                       <Border Width="168" Height="7" Background="{DynamicResource EchoText}" Opacity="0.14" HorizontalAlignment="Left" CornerRadius="4" />
                       <Border Width="92" Height="6" Background="{DynamicResource EchoMuted}" Opacity="0.16" HorizontalAlignment="Left" CornerRadius="3" />
                     </StackPanel>
                   </Grid>
                   <StackPanel Spacing="16">
-                    <Grid ColumnDefinitions="28,*,52" ColumnSpacing="12"><TextBlock Text="01" Foreground="{DynamicResource EchoAccent}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" /><Border Grid.Column="1" Height="7" Background="{DynamicResource EchoText}" Opacity="0.12" CornerRadius="4" VerticalAlignment="Center" /><Border Grid.Column="2" Height="6" Background="{DynamicResource EchoMuted}" Opacity="0.14" CornerRadius="3" VerticalAlignment="Center" /></Grid>
+                    <Grid ColumnDefinitions="28,*,52" ColumnSpacing="12"><TextBlock Text="01" Foreground="{DynamicResource EchoAccent}" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" /><Border Grid.Column="1" Height="7" Background="{DynamicResource EchoText}" Opacity="0.12" CornerRadius="4" VerticalAlignment="Center" /><Border Grid.Column="2" Height="6" Background="{DynamicResource EchoMuted}" Opacity="0.14" CornerRadius="3" VerticalAlignment="Center" /></Grid>
                     <Grid ColumnDefinitions="28,*,52" ColumnSpacing="12"><TextBlock Text="02" Foreground="{DynamicResource EchoMuted}" FontSize="12" VerticalAlignment="Center" /><Border Grid.Column="1" Width="240" Height="7" Background="{DynamicResource EchoText}" Opacity="0.1" HorizontalAlignment="Left" CornerRadius="4" VerticalAlignment="Center" /><Border Grid.Column="2" Height="6" Background="{DynamicResource EchoMuted}" Opacity="0.12" CornerRadius="3" VerticalAlignment="Center" /></Grid>
                     <Grid ColumnDefinitions="28,*,52" ColumnSpacing="12"><TextBlock Text="03" Foreground="{DynamicResource EchoMuted}" FontSize="12" VerticalAlignment="Center" /><Border Grid.Column="1" Width="280" Height="7" Background="{DynamicResource EchoText}" Opacity="0.1" HorizontalAlignment="Left" CornerRadius="4" VerticalAlignment="Center" /><Border Grid.Column="2" Height="6" Background="{DynamicResource EchoMuted}" Opacity="0.12" CornerRadius="3" VerticalAlignment="Center" /></Grid>
                   </StackPanel>
@@ -94,8 +94,8 @@
                 <Border Width="44" Height="44" CornerRadius="22" Background="{DynamicResource EchoPanelMuted}" HorizontalAlignment="Center">
                   <Path Data="M 4,16 L 10,8 L 16,14 L 22,6 L 28,16" Stroke="{DynamicResource EchoMuted}" StrokeThickness="1.6" Width="22" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
-                <TextBlock Text="选一张图片或一段视频" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" HorizontalAlignment="Center" Margin="0,6,0,0" />
-                <TextBlock Text="效果会立刻出现在这个窗口里" FontSize="13" Foreground="{DynamicResource EchoMuted}" HorizontalAlignment="Center" />
+                <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.59bd431ca6ce}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EchoHeading}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                <TextBlock Text="{DynamicResource ui.ThemeWallpaperPreview.1947a81c54d5}" FontSize="13" Foreground="{DynamicResource EchoMuted}" HorizontalAlignment="Center" />
               </StackPanel>
             </Border>
           </Grid>

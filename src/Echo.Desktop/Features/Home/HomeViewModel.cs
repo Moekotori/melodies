@@ -15,16 +15,21 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     private readonly CancellationToken lifetimeToken;
     private CancellationTokenSource? request;
     private HomeDashboard? dashboard;
+    private CancellationTokenSource? debounce;
+    private IReadOnlyList<AlbumRow> recent = [], rediscovery = [];
+    private int currentStreak, longestStreak, activeWeeks;
     private bool closed, refreshAgain, suspended, needsRefresh;
+    // Bumped when localized text changes so the view knows card captions must be rebuilt.
+    public int TextEpoch { get; private set; }
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private bool isBusy;
     [ObservableProperty] private string error = "";
     [ObservableProperty] private int recentPage;
     public event Action<AlbumRow>? AlbumRequested;
     public event Action<string>? ArtistRequested;
-    public IReadOnlyList<AlbumRow> Recent => (Shell.RecentTab == "played" ? dashboard?.RecentPlayed : dashboard?.RecentAdded)?.Skip(RecentPage * 4).Take(4).ToArray() ?? [];
+    public IReadOnlyList<AlbumRow> Recent => recent;
     public IReadOnlyList<AlbumRow> Recommended => dashboard?.Recommended ?? [];
-    public IReadOnlyList<AlbumRow> Rediscovery => dashboard?.Listening.Albums.Where(a => a.LastPlayedUnix < DateTimeOffset.Now.AddDays(-7).ToUnixTimeSeconds()).Select(a => a.Album).Take(4).ToArray() ?? [];
+    public IReadOnlyList<AlbumRow> Rediscovery => rediscovery;
     public IReadOnlyList<ListeningArtist> TopArtists => dashboard?.Listening.Artists ?? [];
     public IReadOnlyList<ListeningTrack> TopTracks => dashboard?.Listening.Tracks ?? [];
     public IReadOnlyList<ListeningAlbum> TopAlbums => dashboard?.Listening.Albums ?? [];
@@ -38,19 +43,18 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     public bool ShowWelcome => !HasCollection && !HasFocus;
     public string WeekPlays => Number(dashboard?.Listening.WeekPlays ?? 0);
     public string WeekDuration => FormatDuration(dashboard?.Listening.WeekSeconds ?? 0);
-    public string ActiveWeeks => Shell.Text.Format("home.activeWeeks", Days.Select(day => DateOnly.ParseExact(day.Date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))
-        .Select(date => date.AddDays(-(((int)date.DayOfWeek + 6) % 7))).Distinct().Count());
+    public string ActiveWeeks => Shell.Text.Format("home.activeWeeks", activeWeeks);
     public string ActiveDays => Shell.Text.Format("home.activeDays", dashboard?.Listening.ActiveDays ?? 0);
     public string AverageDuration => FormatDuration(dashboard?.Listening.AverageSessionSeconds ?? 0);
-    public string CurrentStreak => Shell.Text.Format("home.activeDays", Streaks().Current);
-    public string LongestStreak => Shell.Text.Format("home.activeDays", Streaks().Longest);
+    public string CurrentStreak => Shell.Text.Format("home.activeDays", currentStreak);
+    public string LongestStreak => Shell.Text.Format("home.activeDays", longestStreak);
     public string RepeatRate => (dashboard?.Listening.RepeatRate ?? 0).ToString("P0", Shell.Text.Current.Culture);
     public bool HasListening => Days.Count > 0;
     public bool HasRecent => Recent.Count > 0;
     public bool HasRecommendations => Recommended.Count > 0;
     public bool HasRediscovery => Rediscovery.Count > 0;
     public bool CanPrevious => RecentPage > 0;
-    public bool CanNext => (RecentPage + 1) * 4 < (Shell.RecentTab == "played" ? dashboard?.RecentPlayed.Count : dashboard?.RecentAdded.Count);
+    public bool CanNext => (RecentPage + 1) * 4 < (RecentSource()?.Count ?? 0);
     public bool CanRandom => (dashboard?.Library.Tracks ?? 0) > 0 && !IsBusy;
     public bool CanContinue => Shell.Player is { IsConnected: true } player && (player.HasTrack || dashboard?.LastTrack is not null) && !IsBusy;
     public string FocusTitle => Shell.Player is { HasTrack: true } player ? player.Title : dashboard?.LastTrack?.Title ?? Shell.Text["home.emptyTitle"];
@@ -58,7 +62,11 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     public string FocusAlbum => Shell.Player is { HasTrack: true } player ? player.Details.Album : dashboard?.LastTrack?.Album ?? "";
     public string FocusPath => Shell.Player is { HasTrack: true } player ? player.CurrentFilePath : dashboard?.LastTrack?.Path ?? "";
     public bool HasFocus => FocusPath.Length > 0;
-    public string HeroLabel => Shell.Text[Shell.Player is { HasTrack: true } ? "home.nowPlaying" : HasFocus ? "home.continueListening" : "home.startFromLibrary"];
+    private bool IsFocusPlaying => Shell.Player is { HasTrack: true, PlayIcon: "pause" };
+    public string Greeting => Shell.Text["home.greeting." + DateTime.Now.Hour switch { >= 5 and < 11 => "morning", >= 11 and < 14 => "noon", >= 14 and < 18 => "afternoon", >= 18 and < 23 => "evening", _ => "night" }];
+    public string HeroLabel => Shell.Text[IsFocusPlaying ? "home.nowPlaying" : HasFocus ? "home.continueListening" : "home.startFromLibrary"];
+    public string ContinueIcon => IsFocusPlaying ? "pause" : "play";
+    public string ContinueLabel => Shell.Text[IsFocusPlaying ? "playerTools.pauseChoice" : "ui.HomeView.11a6c8e68b59"];
     public string Specifications => Shell.Player is { HasTrack: true } player ? string.Join(" · ", new[] { player.Details.Format, player.Details.Specifications }.Where(s => s.Length > 0)) : dashboard?.LastTrack is { } track ? string.Join(" · ", new[] { track.Codec.ToUpperInvariant(), track.BitDepth > 0 ? $"{track.BitDepth} bit" : "", track.SampleRate > 0 ? $"{track.SampleRate / 1000d:0.##} kHz" : "" }.Where(value => value.Length > 0)) : "";
     public string SourceLabel => Shell.Player?.Session.Snapshot.Current?.Origin?.Label ?? "";
     public string RecentEmptyTitle => Shell.RecentEmptyTitle;
@@ -82,7 +90,8 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         {
             var loaded = await library.GetHomeAsync(DateOnly.FromDateTime(DateTime.Now), current.Token);
             if (closed || current.IsCancellationRequested) return;
-            dashboard = loaded; RecentPage = Math.Min(RecentPage, Math.Max(0, ((Shell.RecentTab == "played" ? loaded.RecentPlayed.Count : loaded.RecentAdded.Count) - 1) / 4)); Publish();
+            dashboard = loaded; Summarize(loaded);
+            RecentPage = Math.Min(RecentPage, Math.Max(0, ((RecentSource()?.Count ?? 0) - 1) / 4)); RefreshRecent(); OnPropertyChanged(string.Empty);
         }
         catch (OperationCanceledException) { }
         catch (Exception) { if (!closed) Error = Shell.Text["home.loadError"]; }
@@ -111,7 +120,11 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
     [RelayCommand] private Task ContinueAsync() => RunAsync(async () =>
     {
         if (Shell.Player is not { } player) return;
-        if (player.HasTrack) { if (player.Session.Snapshot.Status != PlaybackStatus.Playing) await player.Session.ResumeAsync(lifetimeToken); }
+        if (player.HasTrack)
+        {
+            if (player.Session.Snapshot.Status == PlaybackStatus.Playing) await player.Session.PauseAsync(lifetimeToken);
+            else await player.Session.ResumeAsync(lifetimeToken);
+        }
         else if (dashboard?.LastTrack is { } track) await player.Session.PlayAsync(ToQueue(track), lifetimeToken);
     });
     [RelayCommand] private Task RandomAsync() => RunAsync(async () =>
@@ -142,36 +155,56 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable
         new Dictionary<string, string?> { ["title"] = track.Title, ["artist"] = track.Artist, ["album"] = track.Album, ["codec"] = track.Codec,
             ["duration"] = track.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture) }, Origin: new("home", Shell.Text["home.librarySource"]));
     private string Number(long value) => value.ToString("N0", Shell.Text.Current.Culture);
-    private (int Current, int Longest) Streaks()
+    private IReadOnlyList<AlbumRow>? RecentSource() => Shell.RecentTab == "played" ? dashboard?.RecentPlayed : dashboard?.RecentAdded;
+    private void RefreshRecent() => recent = RecentSource() is { } source ? source.Skip(RecentPage * 4).Take(4).ToArray() : [];
+    // Derived values are computed once per snapshot instead of on every binding read.
+    private void Summarize(HomeDashboard value)
     {
-        var dates = Days.Select(day => DateOnly.ParseExact(day.Date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)).Order().ToArray();
+        var cutoff = DateTimeOffset.Now.AddDays(-7).ToUnixTimeSeconds();
+        rediscovery = value.Listening.Albums.Where(a => a.LastPlayedUnix < cutoff).Select(a => a.Album).Take(4).ToArray();
+        var dates = value.Listening.Days.Select(day => DateOnly.ParseExact(day.Date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)).Order().ToArray();
+        activeWeeks = dates.Select(date => date.AddDays(-(((int)date.DayOfWeek + 6) % 7))).Distinct().Count();
         var longest = 0; var run = 0; DateOnly? last = null;
         foreach (var date in dates) { run = last?.AddDays(1) == date ? run + 1 : 1; longest = Math.Max(longest, run); last = date; }
         var active = dates.ToHashSet(); var cursor = DateOnly.FromDateTime(DateTime.Now); if (!active.Contains(cursor)) cursor = cursor.AddDays(-1);
         var current = 0; while (active.Contains(cursor)) { current++; cursor = cursor.AddDays(-1); }
-        return (current, longest);
+        currentStreak = current; longestStreak = longest;
     }
     private string FormatDuration(double seconds) => seconds >= 3600 ? Shell.Text.Format("home.duration", (int)(seconds / 3600), (int)(seconds / 60) % 60)
         : Shell.Text.Format(seconds >= 60 ? "home.minutes" : "home.seconds", (int)(seconds >= 60 ? seconds / 60 : seconds));
-    partial void OnRecentPageChanged(int value) { OnPropertyChanged(nameof(Recent)); OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext)); }
+    partial void OnRecentPageChanged(int value) { RefreshRecent(); OnPropertyChanged(nameof(Recent)); OnPropertyChanged(nameof(CanPrevious)); OnPropertyChanged(nameof(CanNext)); }
     partial void OnIsBusyChanged(bool value) { OnPropertyChanged(nameof(CanContinue)); OnPropertyChanged(nameof(CanRandom)); }
-    private void OnDataChanged() { if (suspended) needsRefresh = true; else _ = RefreshAsync(); }
+    // Playback and maintenance emit bursts of change notices; one refresh serves them all.
+    private void OnDataChanged()
+    {
+        if (closed) return;
+        if (suspended) { needsRefresh = true; return; }
+        debounce?.Cancel(); debounce?.Dispose(); debounce = CancellationTokenSource.CreateLinkedTokenSource(lifetimeToken);
+        var token = debounce.Token;
+        _ = Task.Delay(350, token).ContinueWith(t => { if (!t.IsCanceled && !closed) Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (!closed) _ = RefreshAsync(); }); }, TaskScheduler.Default);
+    }
     public void SetSuspended(bool value)
     {
         if (closed || suspended == value) return; suspended = value;
-        if (value) { if (IsLoading) needsRefresh = true; request?.Cancel(); }
+        if (value) { if (IsLoading) needsRefresh = true; request?.Cancel(); if (debounce is not null) { needsRefresh = true; debounce.Cancel(); } }
         else { PublishFocus(); if (needsRefresh) { needsRefresh = false; _ = RefreshAsync(); } }
     }
     private void OnShellChanged(object? sender, PropertyChangedEventArgs args)
-    { if (args.PropertyName == nameof(ShellViewModel.RecentTab)) { RecentPage = 0; Publish(); } }
+        {
+        if (args.PropertyName != nameof(ShellViewModel.RecentTab)) return;
+        var changed = RecentPage != 0; RecentPage = 0;
+        if (changed) return;
+        RefreshRecent();
+        foreach (var name in new[] { nameof(Recent), nameof(HasRecent), nameof(CanNext), nameof(RecentEmptyTitle), nameof(RecentEmptyDescription) }) OnPropertyChanged(name);
+    }
     private void OnPlayerChanged(object? sender, PropertyChangedEventArgs args)
     { if (!suspended && args.PropertyName is not ("Position" or "PositionText" or "Duration" or "DurationText" or "Volume" or "VolumeText")) PublishFocus(); }
     private void PublishFocus()
-    { foreach (var name in new[] { nameof(FocusTitle), nameof(FocusArtist), nameof(FocusAlbum), nameof(FocusPath), nameof(HasFocus), nameof(ShowWelcome), nameof(HeroLabel), nameof(Specifications), nameof(SourceLabel), nameof(CanContinue) }) OnPropertyChanged(name); }
-    private void Publish() { OnPropertyChanged(string.Empty); }
+    { foreach (var name in new[] { nameof(FocusTitle), nameof(FocusArtist), nameof(FocusAlbum), nameof(FocusPath), nameof(HasFocus), nameof(ShowWelcome), nameof(Greeting), nameof(HeroLabel), nameof(ContinueIcon), nameof(ContinueLabel), nameof(Specifications), nameof(SourceLabel), nameof(CanContinue) }) OnPropertyChanged(name); }
+    private void Publish() { TextEpoch++; OnPropertyChanged(string.Empty); }
     public void Dispose()
     {
-        if (closed) return; closed = true; lifetime.Cancel(); request?.Cancel(); lifetime.Dispose();
+        if (closed) return; closed = true; lifetime.Cancel(); request?.Cancel(); debounce?.Dispose(); lifetime.Dispose();
         Shell.PropertyChanged -= OnShellChanged; Shell.HomeDataChanged -= OnDataChanged; Shell.Text.Changed -= Publish;
         if (Shell.Player is { } player) { player.PropertyChanged -= OnPlayerChanged; player.Details.PropertyChanged -= OnPlayerChanged; }
         AlbumRequested = null; ArtistRequested = null; dashboard = null;

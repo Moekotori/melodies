@@ -14,21 +14,24 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
     private readonly CancellationTokenSource lifetime = new();
     private int presentationQueued;
     private PlaybackStateSnapshot latest;
-    private long presentedVersion = -1;
-    private PlaybackSnapshot? presentedPlayback;
-    private PlaybackOutputState? presentedOutput;
-    private string metadataKey = "";
+    private readonly SignalPathPresentationState presentation = new();
+    private SignalPathSections.Readout? sectionReadout;
+    private double? sectionPeak, sectionBuffer;
     private long performancePresentedAt;
     private bool disposed;
+    [ObservableProperty] private string tone = "muted";
     [ObservableProperty] private string spec = "";
     [ObservableProperty] private string headline = "";
     [ObservableProperty] private string description = "";
     [ObservableProperty] private string layers = "";
+    [ObservableProperty] private bool isModified;
     [ObservableProperty] private string levelText = "--";
     [ObservableProperty] private string levelSource = "";
     [ObservableProperty] private string levelSummary = "";
     [ObservableProperty] private string levelDetail = "";
     [ObservableProperty] private double levelPercent;
+    [ObservableProperty] private double rmsPercent;
+    [ObservableProperty] private bool levelClip;
     [ObservableProperty] private string diagnosis = "";
     [ObservableProperty] private IReadOnlyList<SignalPathFact> metrics = [];
     [ObservableProperty] private IReadOnlyList<SignalPathFact> outputFacts = [];
@@ -94,7 +97,7 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
     }
     private void RefreshLanguage()
     {
-        presentedVersion = -1;
+        presentation.Invalidate();
         foreach (var property in new[] { nameof(Title), nameof(CloseLabel), nameof(LevelLabel), nameof(LevelNote), nameof(DiagnosticsLabel), nameof(OutputSettingsLabel), nameof(ChainLabel), nameof(TechLabel), nameof(StabilityLabel) })
             OnPropertyChanged(property);
         Present();
@@ -111,11 +114,9 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(PerformanceText));
         }
         PresentMeter(frame);
-        var key = $"{player.Details.Format}/{player.Details.SampleRate}/{player.Details.BitDepth}";
-        if (presentedVersion >= 0 && frame.Playback == presentedPlayback && frame.Output == presentedOutput && key == metadataKey) return;
-        presentedVersion = frame.Version; metadataKey = key;
-        presentedPlayback = frame.Playback; presentedOutput = frame.Output;
-        BuildFacts(frame);
+        var rebuild = presentation.Update(frame, player.Details.Format, player.Details.SampleRate, player.Details.BitDepth);
+        if (rebuild) BuildFacts(frame);
+        PresentSections(frame, rebuild);
     }
     private void PresentMeter(PlaybackStateSnapshot frame)
     {
@@ -124,6 +125,8 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
             && level is not null && Stopwatch.GetElapsedTime(level.Timestamp) < TimeSpan.FromSeconds(1);
         LevelText = live ? $"{level!.PeakDb:0.0} dBFS" : "--";
         LevelPercent = live ? MeterPercent(level!.PeakDb) : 0;
+        RmsPercent = live && level!.RmsDb is { } rmsDb ? MeterPercent(rmsDb) : 0;
+        LevelClip = live && level!.PeakDb >= 0;
         LevelSource = live ? L("nativeMeter") : frame.Playback.Status == PlaybackStatus.Paused ? L("paused") : L("waitingMeter");
         LevelDetail = live ? Join(level!.RmsDb is { } rms ? $"RMS {rms:0.0} dBFS" : null,
             level.PeakDb >= 0 ? L("clip") : $"{L("headroom")} {-level.PeakDb:0.0} dB") : L("noMeter");
@@ -159,6 +162,7 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
         var dsp = Flag(output, "dspActive") || Flag(processing, "dspActive");
         var converted = Flag(src, "active") || Flag(sdm, "active") || Flag(dither, "active") || sourceRate is > 0 && streamRate is > 0 && sourceRate != streamRate;
         var attenuated = state.Volume < .999999;
+        IsModified = active && (dsp || converted || attenuated);
         Spec = state.Current is null ? L("noTrack") : Join(format, Rate(sourceRate), depth);
         Headline = state.Status == PlaybackStatus.Faulted ? L("failed") : !active ? L("waiting") : dsp ? L("dsp") : converted ? L("converted") : attenuated ? L("volumeChanged") : L("native");
         Description = !active ? L("unconfirmed") : dsp ? L("dspOn") : converted ? L("conversionOn") : attenuated ? L("volumeOn") : L("dspOff");
@@ -176,11 +180,15 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
         OutputFacts = [new(L("inputFormat"), format), new(L("sent"), Join(Text(processing, "outputFormat") ?? Text(output, "format"), Rate(streamRate), channels) is { Length: > 0 } sent ? sent : Unknown),
             new(L("declared"), Unknown), new(L("ceiling"), Unknown), new(L("currentProcessing"), active ? route : Unknown),
             new(L("actualRate"), Rate(rate) is { Length: > 0 } actualRate ? actualRate : Unknown)];
-        var chain = new List<SignalPathNode> { new("music", L("source"), Spec, state.Current?.Source?.Kind == "http" ? L("http") : L("local")),
-            new("waves", L("decode"), "PCM", L("hostDecode")) };
-        if (dsp || converted || attenuated) chain.Add(new("sliders", L("processing"), route, Join(Flag(src, "active") ? "melodies SRC" : null,
-            Flag(sdm, "active") ? "PCM → DSD" : null, Flag(dither, "active") ? Text(dither, "mode") : null, attenuated ? $"{L("volume")} {state.Volume:P0}" : null, dsp ? L("dspOn") : null)));
-        chain.Add(new("headphones", L("output"), device, Join(mode, Rate(rate))));
+        var faulted = state.Status == PlaybackStatus.Faulted;
+        var shared = mode == L("shared");
+        Tone = faulted ? "danger" : !active ? "muted" : dsp || converted || attenuated ? "proc" : "good";
+        var chain = SignalPathNodes.Create(new()
+        {
+            Text = L, State = state, Output = output, Processing = processing, Format = format, Spec = Spec, SourceRate = sourceRate,
+            BitDepth = player.Details.BitDepth, Active = active, Dsp = dsp, Resampled = resampled || Flag(src, "active"), Attenuated = attenuated,
+            Shared = shared, Device = device, Mode = mode, Clock = clock, ClockChanged = clockChanged, Rate = rate
+        });
         Nodes = chain; Layers = player.Text.Format("signal.layers", chain.Count);
         var buffer = Number(output, "actualBufferFrames") ?? Number(output, "deviceBufferFrames");
         Diagnostics = [new(L("backend"), Text(output, "backendImpl") ?? Text(output, "backend") ?? Unknown),
@@ -188,9 +196,7 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
             new(L("buffer"), buffer is > 0 ? $"{buffer:0} frames" : Unknown), new(L("src"), Flag(src, "active") ? Join(Rate(Number(src, "sourceSampleRate")), "→", Rate(Number(src, "targetSampleRate"))) : L("off")),
             new(L("dither"), Flag(dither, "active") ? Text(dither, "mode") ?? Unknown : L("off"))];
         Diagnosis = state.Error ?? (!active ? L("unconfirmed") : mode == L("shared") ? L("sharedNote") : dsp || converted || attenuated ? L("modifiedNote") : L("bitPerfectNote"));
-        var livePeak = frame.Level is { } level && state.Status == PlaybackStatus.Playing && level.OperationId == state.OperationId
-            && Stopwatch.GetElapsedTime(level.Timestamp) < TimeSpan.FromSeconds(1) ? level.PeakDb : (double?)null;
-        var sections = SignalPathSections.Create(new()
+        sectionReadout = new()
         {
             Text = L, Format = (key, args) => player.Text.Format(key, args), Active = active, Faulted = state.Status == PlaybackStatus.Faulted,
             Error = state.Error, Dsp = dsp, Sdm = Flag(sdm, "active"), Resampled = resampled || Flag(src, "active"),
@@ -200,10 +206,25 @@ public sealed partial class SignalPathViewModel : ObservableObject, IDisposable
             BitPerfect = (Flag(processing, "bitPerfectCandidate") || Flag(output, "bitPerfectCandidate")) && string.IsNullOrEmpty(state.Error),
             RequestedMode = Text(frame.Output.Requested, "outputMode"), Exclusive = exclusive, Mode = mode, Device = device,
             Backend = Text(output, "backendImpl") ?? Text(output, "backend"), Route = route, Clock = clock, DitherMode = Text(dither, "mode"),
-            SdmBackend = Text(sdm, "activeBackend"), Volume = state.Volume, PeakDb = livePeak,
-            BufferMilliseconds = frame.Performance.BufferedMilliseconds, LatencyMilliseconds = Number(src, "nominalLatencyMilliseconds"),
+            SdmBackend = Text(sdm, "activeBackend"), Volume = state.Volume, PeakDb = null,
+            BufferMilliseconds = null, LatencyMilliseconds = Number(src, "nominalLatencyMilliseconds"),
             BufferFrames = Number(output, "actualBufferFrames") ?? Number(output, "deviceBufferFrames")
-        });
+        };
+    }
+    private void PresentSections(PlaybackStateSnapshot frame, bool force)
+    {
+        if (sectionReadout is null) return;
+        var peak = frame.Level is { } level && frame.Playback.Status == PlaybackStatus.Playing
+            && level.OperationId == frame.Playback.OperationId && Stopwatch.GetElapsedTime(level.Timestamp).TotalSeconds < 1
+            ? level.PeakDb : (double?)null;
+        // The notes show near-clipping peaks to 0.1 dB and buffers to whole milliseconds.
+        var peakKey = peak is >= -3 ? Math.Round(peak.Value, 1) : (double?)null;
+        var buffer = frame.Performance.BufferedMilliseconds;
+        var bufferKey = buffer is > 0 ? Math.Round(buffer.Value) : (double?)null;
+        if (!force && peakKey == sectionPeak && bufferKey == sectionBuffer) return;
+        sectionPeak = peakKey; sectionBuffer = bufferKey;
+        sectionReadout.PeakDb = peak; sectionReadout.BufferMilliseconds = buffer;
+        var sections = SignalPathSections.Create(sectionReadout);
         EngagedChips = sections.Engaged; IdleSummary = sections.IdleSummary; InsightPreview = sections.InsightPreview;
         Insights = sections.Insights; DoctorCount = sections.DoctorCount; StabilityHeadline = sections.StabilityHeadline;
         StabilityDetail = sections.StabilityDetail; Stability = sections.Stability;

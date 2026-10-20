@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Echo.Library.Smoke/ArtistGroupingSmoke.cs" Link="ArtistGroupingSmoke.cs" />
     <ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" />
     <ProjectReference Include="../../src/Echo.Core/Echo.Core.csproj" />
     <PackageReference Include="Avalonia.Headless" />

@@ -20,7 +20,7 @@ public sealed partial class CoreRuntime : IAsyncDisposable
     {
         Playback = playback;
         this.ownsPlayback = ownsPlayback;
-        Library = new(libraryPath, playback.BackgroundWork);
+        Library = new(libraryPath, playback.BackgroundWork, playback.LocalZone.Session);
         InitializeServices(libraryPath, options);
         listening = new(playback.LocalZone, Library,
             () => Notify(ListeningChanged), message => Notify(ListeningDiagnostic, message));

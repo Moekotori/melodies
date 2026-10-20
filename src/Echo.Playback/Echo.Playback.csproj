@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><IsAotCompatible>true</IsAotCompatible></PropertyGroup>
   <ItemGroup><ProjectReference Include="../Echo.Playback.Contracts/Echo.Playback.Contracts.csproj" /><ProjectReference Include="../Echo.Contracts/Echo.Contracts.csproj" /></ItemGroup>
-  <ItemGroup><InternalsVisibleTo Include="Echo.Playback.Smoke" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Echo.Playback.Smoke" /><InternalsVisibleTo Include="Echo.Automix.Smoke" /></ItemGroup>
+  <ItemGroup>
+    <Content Include="../../licenses/QPlayer-AutoMix-Apache-2.0.txt" Link="licenses/QPlayer-AutoMix-Apache-2.0.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../THIRD_PARTY_NOTICES.md" Link="licenses/THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Remove="Processing/*.cs" />
     <ProjectReference Include="../Modules/Echo.SignalDesign/Echo.SignalDesign.csproj" />

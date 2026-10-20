@@ -65,7 +65,8 @@ public sealed record PlaybackSnapshot(long Version, PlaybackStatus Status, Queue
 public sealed record PlaybackCheckpoint(int SchemaVersion, IReadOnlyList<QueueTrack> Items, string? CurrentItemId,
     string RepeatMode, double PositionSeconds, double Volume, JsonElement? Device,
     IReadOnlyDictionary<string, JsonElement> Dsp, bool Shuffle = false,
-    IReadOnlyList<QueueTrack>? History = null, IReadOnlyList<string>? ShuffleOrder = null, QueueTrack? DetachedCurrent = null);
+    IReadOnlyList<QueueTrack>? History = null, IReadOnlyList<string>? ShuffleOrder = null, QueueTrack? DetachedCurrent = null,
+    IReadOnlyList<string>? ShuffleHistory = null);
 
 public interface IRemoteAudioResolver
 {

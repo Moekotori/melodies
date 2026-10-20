@@ -6,6 +6,7 @@ using Echo.Contracts.Library;
 using Echo.Contracts.Scanning;
 using Echo.Desktop.Shell;
 using Echo.Desktop.Features.LibraryDetails;
+using Echo.Desktop.Motion;
 
 namespace Echo.Desktop.Features.Albums;
 
@@ -15,6 +16,7 @@ public partial class AlbumsView : UserControl, IDisposable
     private readonly AlbumsViewModel _model;
     private readonly AlbumWallViewport _viewport;
     private DetailNavigator? _detail;
+    private readonly MotionPanes _panes = new();
     private CancellationTokenSource? _import;
     private bool _closed;
     public AlbumsViewModel Model => _model;
@@ -50,7 +52,8 @@ public partial class AlbumsView : UserControl, IDisposable
         _viewport.ScrollTo(0); _viewport.RequestLayout();
     }
 
-    public void OpenDetail(AlbumRow album)
+    // The wall keeps its cards until the detail has covered it, and refills before it returns.
+    public async void OpenDetail(AlbumRow album)
     {
         _detail?.Dispose();
         _detail = new(_shell);
@@ -58,13 +61,15 @@ public partial class AlbumsView : UserControl, IDisposable
         _detail.PersonalStateChanged += _model.UpdatePersonalState;
         _detail.OpenAlbum(album);
         DetailHost.Content = _detail;
-        DetailHost.IsVisible = true; Wall.IsVisible = false;
-        _viewport.SetSuspended(true);
+        if (await _panes.Show(DetailHost, Wall, MotionDirection.Forward) && !_closed) _viewport.SetSuspended(true);
     }
-    private void CloseDetail()
+    private async void CloseDetail()
     {
-        _detail?.Dispose(); _detail = null; DetailHost.Content = null;
-        DetailHost.IsVisible = false; Wall.IsVisible = true; _viewport.SetSuspended(false);
+        var leaving = _detail; _detail = null;
+        _viewport.SetSuspended(false);
+        var settled = await _panes.Show(Wall, DetailHost, MotionDirection.Back);
+        leaving?.Dispose();
+        if (settled && !_closed) DetailHost.Content = null;
     }
     private async void OnImport(object? sender, RoutedEventArgs args)
     {
@@ -95,5 +100,5 @@ public partial class AlbumsView : UserControl, IDisposable
     private void OnCancelImport(object? sender, RoutedEventArgs args) => _import?.Cancel();
     public void SetWindowVisible(bool visible) { _viewport.SetSuspended(!visible || _detail is not null); _detail?.SetWindowVisible(visible); }
     public void Dispose()
-    { if (_closed) return; _closed = true; _import?.Cancel(); _detail?.Dispose(); _viewport.Dispose(); _model.Dispose(); }
+    { if (_closed) return; _closed = true; _import?.Cancel(); _panes.Dispose(); _detail?.Dispose(); _viewport.Dispose(); _model.Dispose(); }
 }

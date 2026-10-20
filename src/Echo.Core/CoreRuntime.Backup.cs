@@ -19,6 +19,7 @@ public sealed partial class CoreRuntime
         var session = Playback.LocalZone.Session;
         await session.SetVolumeLockedAsync(Settings.Read("fixed-volume", new()).Enabled, token).ConfigureAwait(false);
         await session.SetAlbumGaplessEnabledAsync(Settings.Read("gapless-playback", new()).Enabled, token).ConfigureAwait(false);
+        await session.SetShuffleAvoidRecentCountAsync(Echo.Playback.ShuffleAvoidance.FromSelection(Settings.Read("shuffle-credibility", new()).Selection), token).ConfigureAwait(false);
         await session.SetAutomixEnabledAsync(Settings.Read("automix", new()).Enabled, token).ConfigureAwait(false);
         await session.SetPlaybackRateModeAsync(Settings.Read("speed-mode", new(false, "Doubletime")).Selection == "Nightcore" ? "nightcore" : "speed", token).ConfigureAwait(false);
         var profile = Settings.Read("scan-performance", new(false, "均衡")).Selection;

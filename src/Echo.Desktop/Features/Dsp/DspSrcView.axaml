@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspSrcView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="28" Margin="0,0,12,24">
+      <local:DspWorkbenchSplit MainWeight="1.55" Gap="56">
+        <StackPanel Spacing="28" Margin="0,12,0,0">
+          <StackPanel Spacing="12">
+            <TextBlock Text="{DynamicResource ui.DspSrcView.c1d0c9e25b22}" Classes="dsp-eyebrow"/>
+            <WrapPanel Orientation="Horizontal">
+              <StackPanel Spacing="6" Margin="0,0,24,0" VerticalAlignment="Bottom">
+                <TextBlock Text="{DynamicResource ui.DspSrcView.2087c777c06f}" Classes="muted" FontSize="12"/>
+                <TextBlock Text="{Binding InputRateReadout}" FontSize="28" Classes="muted"/>
+              </StackPanel>
+              <TextBlock Text="⟶" FontSize="32" Classes="muted" Margin="0,18,24,0" VerticalAlignment="Center"/>
+              <StackPanel Spacing="6">
+                <TextBlock Text="{DynamicResource ui.DspSrcView.115509ceccb0}" Classes="muted" FontSize="12"/>
+                <TextBlock Text="{Binding ConversionOutputRate}" FontSize="60" FontWeight="Light"/>
+              </StackPanel>
+            </WrapPanel>
+          </StackPanel>
+          <local:DspConversionPath/>
+        </StackPanel>
+        <StackPanel Spacing="20" Margin="0,12,0,0">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspSrcView.84c2f357bac8}" Classes="dsp-eyebrow"/>
+            <TextBlock Text="{Binding ConversionPrecision}" FontSize="28" FontWeight="Medium" Foreground="{DynamicResource EchoAccentText}"/>
+            <TextBlock Text="{Binding Options[ditherMode].Selected.Label}" Classes="dsp-note"/>
+          </StackPanel>
+          <Border Classes="dsp-rule" Padding="0,16,0,0">
+            <TextBlock Text="{Binding OutputFacts}" Classes="dsp-note"/>
+          </Border>
+        </StackPanel>
+      </local:DspWorkbenchSplit>
+      <Border Classes="dsp-rule" BorderThickness="0,1,0,1" Padding="0,22,0,22">
+        <StackPanel Spacing="24" IsEnabled="{Binding CanEdit}">
+          <local:DspWorkbenchSplit MainWeight="1.4" StackAt="640" Gap="24">
+            <local:DspChoiceSegments DataContext="{Binding Options[ratio]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[ditherBits]}"/>
+          </local:DspWorkbenchSplit>
+          <local:DspColumns MinimumColumnWidth="210" MaximumColumns="4">
+            <local:DspChoiceEditor DataContext="{Binding Options[filter1x]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[filterNx]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[computeBackend]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[ditherMode]}"/>
+          </local:DspColumns>
+        </StackPanel>
+      </Border>
+      <local:DspWorkbenchSplit MainWeight="1.8" Gap="48">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{DynamicResource ui.DspSrcView.2a61c3443588}" Classes="dsp-eyebrow"/>
+          <TextBlock Text="{Binding FilterReadout}" FontSize="20" FontWeight="Medium"/>
+          <local:DspDiagramControl Kind="fir" UseThemeSurface="True" Height="240"/>
+          <TextBlock Text="{DynamicResource ui.DspSrcView.71fc62caa7f4}" Classes="dsp-note"/>
+        </StackPanel>
+        <StackPanel Spacing="22">
+          <TextBlock Text="{DynamicResource ui.DspSrcView.210da22ddeb3}" Classes="dsp-eyebrow"/>
+          <StackPanel Spacing="8"><TextBlock Text="{DynamicResource ui.DspSrcView.a229b9c07901}" Classes="muted" FontSize="12"/><TextBlock Text="{Binding Options[filter1x].Selected.Label}" FontSize="15" FontWeight="Medium" TextWrapping="Wrap"/></StackPanel>
+          <Border Classes="dsp-rule" Padding="0,18,0,0"><StackPanel Spacing="8"><TextBlock Text="{DynamicResource ui.DspSrcView.c325e1e3e5e7}" Classes="muted" FontSize="12"/><TextBlock Text="{Binding Options[filterNx].Selected.Label}" FontSize="15" FontWeight="Medium" TextWrapping="Wrap"/></StackPanel></Border>
+        </StackPanel>
+      </local:DspWorkbenchSplit>
+      <Expander Header="{DynamicResource ui.DspSrcView.368f8fac6271}" HorizontalAlignment="Stretch"><local:DspRuntimeReadout Margin="0,20,0,0"/></Expander>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

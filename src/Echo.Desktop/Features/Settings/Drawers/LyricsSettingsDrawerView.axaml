@@ -2,77 +2,84 @@
              xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:backgrounds="using:Echo.Desktop.Controls.Lyrics" xmlns:icon="using:Echo.Desktop.Controls"
              xmlns:floating="using:Echo.Desktop.Features.Floating"
              x:Class="Echo.Desktop.Features.Settings.Drawers.LyricsSettingsDrawerView" x:DataType="lyrics:LyricsAppearance">
+  <UserControl.Styles><StyleInclude Source="LyricsDrawerStyles.axaml" /></UserControl.Styles>
   <Grid RowDefinitions="*,Auto">
-    <TabControl Name="LyricsTabs" Classes="drawer-tabs" Margin="0,14,0,0" HorizontalContentAlignment="Stretch">
+    <TabControl Name="LyricsTabs" Classes="drawer-tabs lyrics-tabs" Margin="0,14,0,0" HorizontalContentAlignment="Stretch">
       <TabItem Header="{DynamicResource drawer.lyrics.display}">
         <ScrollViewer Classes="drawer-scroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-          <StackPanel Spacing="0" Margin="0,22,0,24">
-            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="40"><icon:GlyphIcon Kind="captions" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.LyricsSettingsView.fe6bae899f4f}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
-            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
-              <icon:GlyphIcon Kind="captions" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.LyricsSettingsView.e17be4f4d18f}" FontSize="13" VerticalAlignment="Center" />
-              <CheckBox Name="LyricHighlightInput" Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding WordHighlight}" AutomationProperties.Name="{DynamicResource ui.LyricsSettingsView.e17be4f4d18f}" />
-              <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.wordTiming}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+          <StackPanel Spacing="0" Margin="0,0,0,28">
+            <Grid Classes="lyrics-group-heading" ColumnDefinitions="30,*" ColumnSpacing="10"><Border Classes="lyrics-group-icon"><icon:GlyphIcon Kind="captions" /></Border><TextBlock Grid.Column="1" Text="{DynamicResource ui.LyricsSettingsView.fe6bae899f4f}" Classes="lyrics-group-title" VerticalAlignment="Center" /></Grid>
+            <Border Classes="lyrics-setting"><Grid ColumnDefinitions="*,38,22" ColumnSpacing="10">
+              <TextBlock Grid.Column="0" Text="{DynamicResource ui.LyricsSettingsView.e17be4f4d18f}" FontSize="13" VerticalAlignment="Center" />
+              <CheckBox Name="LyricHighlightInput" Grid.Column="1" Classes="drawer-switch" IsChecked="{Binding WordHighlight}" AutomationProperties.Name="{DynamicResource ui.LyricsSettingsView.e17be4f4d18f}" />
+              <Button Grid.Column="2" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.wordTiming}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
             </Grid></Border>
-            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
-              <icon:GlyphIcon Kind="captions" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.LyricsSettingsView.6531249bf16e}" FontSize="13" VerticalAlignment="Center" />
-              <CheckBox Name="LyricContextInput" Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding Context}" AutomationProperties.Name="{DynamicResource ui.LyricsSettingsView.6531249bf16e}" />
-              <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.context}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+            <Border Classes="lyrics-setting"><Grid ColumnDefinitions="*,168" ColumnSpacing="10">
+              <TextBlock Text="{DynamicResource lyrics.highlight.title}" FontSize="13" VerticalAlignment="Center" />
+              <ComboBox Name="LyricHighlightStyleInput" Grid.Column="1" Classes="lyrics-choice" ItemsSource="{Binding HighlightChoices}" SelectedItem="{Binding HighlightChoice}" IsEnabled="{Binding WordHighlight}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource lyrics.highlight.title}">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+              </ComboBox>
             </Grid></Border>
-            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="52" Margin="0,14,0,0"><icon:GlyphIcon Kind="type" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource text.f21e347af3c4}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
-            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
-              <icon:GlyphIcon Kind="captions" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.LyricsSettingsView.1dd07ef2a8c1}" FontSize="13" VerticalAlignment="Center" />
-              <CheckBox Name="LyricRomanizationInput" Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding Romanization}" AutomationProperties.Name="{DynamicResource ui.LyricsSettingsView.1dd07ef2a8c1}" />
-              <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.romanization}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+            <Border Classes="lyrics-setting"><Grid ColumnDefinitions="*,38,22" ColumnSpacing="10">
+              <TextBlock Grid.Column="0" Text="{DynamicResource ui.LyricsSettingsView.6531249bf16e}" FontSize="13" VerticalAlignment="Center" />
+              <CheckBox Name="LyricContextInput" Grid.Column="1" Classes="drawer-switch" IsChecked="{Binding Context}" AutomationProperties.Name="{DynamicResource ui.LyricsSettingsView.6531249bf16e}" />
+              <Button Grid.Column="2" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.context}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
             </Grid></Border>
-            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
-              <icon:GlyphIcon Kind="captions" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource text.45e27e9ef8d6}" FontSize="13" VerticalAlignment="Center" />
-              <CheckBox Name="LyricTranslationInput" Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding Translation}" AutomationProperties.Name="{DynamicResource text.45e27e9ef8d6}" />
-              <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.translation}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+            <Grid Classes="lyrics-group-heading" ColumnDefinitions="30,*" ColumnSpacing="10"><Border Classes="lyrics-group-icon"><icon:GlyphIcon Kind="type" /></Border><TextBlock Grid.Column="1" Text="{DynamicResource text.f21e347af3c4}" Classes="lyrics-group-title" VerticalAlignment="Center" /></Grid>
+            <Border Classes="lyrics-setting"><Grid ColumnDefinitions="*,38,22" ColumnSpacing="10">
+              <TextBlock Grid.Column="0" Text="{DynamicResource ui.LyricsSettingsView.1dd07ef2a8c1}" FontSize="13" VerticalAlignment="Center" />
+              <CheckBox Name="LyricRomanizationInput" Grid.Column="1" Classes="drawer-switch" IsChecked="{Binding Romanization}" AutomationProperties.Name="{DynamicResource ui.LyricsSettingsView.1dd07ef2a8c1}" />
+              <Button Grid.Column="2" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.romanization}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
             </Grid></Border>
-            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,180" ColumnSpacing="10"><icon:GlyphIcon Kind="type" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.LyricsSettingsDrawerView.0f176ce7a138}" FontSize="13" VerticalAlignment="Center" /><ComboBox Name="LyricFontFamilyInput" Grid.Column="2" ItemsSource="{Binding FontChoices}" SelectedItem="{Binding FontChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid></Border>
-            <Border Classes="drawer-row"><StackPanel Spacing="8" Margin="0,6">
-              <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="10"><icon:GlyphIcon Kind="type" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource floating.fontSize}" FontSize="13" /><TextBlock Grid.Column="2" Text="{Binding FontSize, StringFormat='{}{0:0}px'}" Classes="muted" FontSize="12" /></Grid>
+            <Border Classes="lyrics-setting"><Grid ColumnDefinitions="*,38,22" ColumnSpacing="10">
+              <TextBlock Grid.Column="0" Text="{DynamicResource text.45e27e9ef8d6}" FontSize="13" VerticalAlignment="Center" />
+              <CheckBox Name="LyricTranslationInput" Grid.Column="1" Classes="drawer-switch" IsChecked="{Binding Translation}" AutomationProperties.Name="{DynamicResource text.45e27e9ef8d6}" />
+              <Button Grid.Column="2" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.translation}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
+            </Grid></Border>
+            <Border Classes="lyrics-setting"><Grid ColumnDefinitions="*,168" ColumnSpacing="10"><TextBlock Grid.Column="0" Text="{DynamicResource ui.LyricsSettingsDrawerView.0f176ce7a138}" FontSize="13" VerticalAlignment="Center" /><ComboBox Classes="lyrics-choice" Name="LyricFontFamilyInput" Grid.Column="1" ItemsSource="{Binding FontChoices}" SelectedItem="{Binding FontChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid></Border>
+            <Border Classes="lyrics-setting"><StackPanel Spacing="8" Margin="0,6">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10"><TextBlock Grid.Column="0" Text="{DynamicResource floating.fontSize}" FontSize="13" /><TextBlock Grid.Column="1" Text="{Binding FontSize, StringFormat='{}{0:0}px'}" Classes="lyrics-setting-value" FontSize="12" /></Grid>
               <Slider Name="LyricFontInput" Minimum="18" Maximum="72" Value="{Binding FontSize}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="{DynamicResource floating.fontSize}" />
             </StackPanel></Border>
-            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="48" Margin="0,12,0,0"><icon:GlyphIcon Kind="type" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource drawer.lyrics.layoutColor}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
-            <Border Classes="drawer-row"><StackPanel Spacing="8" Margin="0,6">
-              <Grid ColumnDefinitions="18,*,Auto" ColumnSpacing="10"><icon:GlyphIcon Kind="type" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource text.c24a11526af2}" FontSize="13" /><TextBlock Grid.Column="2" Text="{Binding SecondarySize, StringFormat='{}{0:0}px'}" Classes="muted" FontSize="12" /></Grid>
+            <Grid Classes="lyrics-group-heading" ColumnDefinitions="30,*" ColumnSpacing="10"><Border Classes="lyrics-group-icon"><icon:GlyphIcon Kind="type" /></Border><TextBlock Grid.Column="1" Text="{DynamicResource drawer.lyrics.layoutColor}" Classes="lyrics-group-title" VerticalAlignment="Center" /></Grid>
+            <Border Classes="lyrics-setting"><StackPanel Spacing="8" Margin="0,6">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10"><TextBlock Grid.Column="0" Text="{DynamicResource text.c24a11526af2}" FontSize="13" /><TextBlock Grid.Column="1" Text="{Binding SecondarySize, StringFormat='{}{0:0}px'}" Classes="lyrics-setting-value" FontSize="12" /></Grid>
               <Slider Name="LyricSecondaryInput" Minimum="10" Maximum="32" Value="{Binding SecondarySize}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="{DynamicResource text.c24a11526af2}" />
             </StackPanel></Border>
-            <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,180" ColumnSpacing="10"><icon:GlyphIcon Kind="type" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.LyricsSettingsView.fd5fb78ba29c}" FontSize="13" VerticalAlignment="Center" /><ComboBox Name="LyricAlignmentInput" Grid.Column="2" ItemsSource="{Binding AlignmentChoices}" SelectedItem="{Binding AlignmentChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid></Border>
+            <Border Classes="lyrics-setting"><Grid ColumnDefinitions="*,168" ColumnSpacing="10"><TextBlock Grid.Column="0" Text="{DynamicResource ui.LyricsSettingsView.fd5fb78ba29c}" FontSize="13" VerticalAlignment="Center" /><ComboBox Classes="lyrics-choice" Name="LyricAlignmentInput" Grid.Column="1" ItemsSource="{Binding AlignmentChoices}" SelectedItem="{Binding AlignmentChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid></Border>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
       <TabItem Header="{DynamicResource text.a245d801adea}">
         <ScrollViewer Classes="drawer-scroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-          <StackPanel Spacing="14" Margin="0,22,0,24">
-            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="36"><icon:GlyphIcon Kind="palette" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource drawer.lyrics.styles}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
-            <ComboBox Name="LyricStyleInput" ItemsSource="{Binding StyleChoices}" SelectedItem="{Binding StyleChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+          <StackPanel Spacing="14" Margin="0,0,0,28">
+            <Grid Classes="lyrics-group-heading" ColumnDefinitions="30,*" ColumnSpacing="10"><Border Classes="lyrics-group-icon"><icon:GlyphIcon Kind="palette" /></Border><TextBlock Grid.Column="1" Text="{DynamicResource drawer.lyrics.styles}" Classes="lyrics-group-title" VerticalAlignment="Center" /></Grid>
+            <ComboBox Classes="lyrics-choice" Name="LyricStyleInput" ItemsSource="{Binding StyleChoices}" SelectedItem="{Binding StyleChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
             <TextBlock Text="{Binding StyleDescription}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
             <lyrics:LyricsBackgroundSettingsView Name="LyricBackgroundInput" />
-            <StackPanel Spacing="12" IsVisible="{Binding IsAfterglow}"><TextBlock Text="{DynamicResource drawer.lyrics.afterglow}" Classes="drawer-section" /><ComboBox ItemsSource="{Binding LookChoices}" SelectedItem="{Binding LookChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
-            <Button Content="{DynamicResource ui.LyricsSettingsDrawerView.7f4cde95ec65}" Classes="drawer-action" Click="OnReset" HorizontalAlignment="Left" />
+            <StackPanel Spacing="12" IsVisible="{Binding IsAfterglow}"><TextBlock Text="{DynamicResource drawer.lyrics.afterglow}" Classes="drawer-section" /><ComboBox Classes="lyrics-choice" ItemsSource="{Binding LookChoices}" SelectedItem="{Binding LookChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+            <Button Content="{DynamicResource ui.LyricsSettingsDrawerView.7f4cde95ec65}" Classes="drawer-action lyrics-reset" Click="OnReset" HorizontalAlignment="Left" />
           </StackPanel>
         </ScrollViewer>
       </TabItem>
       <TabItem Header="{DynamicResource drawer.lyrics.sourceTiming}">
         <ScrollViewer Classes="drawer-scroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-          <StackPanel Spacing="18" Margin="0,22,0,24">
-            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="36"><icon:GlyphIcon Kind="gauge" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource drawer.lyrics.timing}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
-            <Border Classes="drawer-row"><Grid ColumnDefinitions="*,150" ColumnSpacing="12"><TextBlock Text="{DynamicResource drawer.lyrics.offset}" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Name="LyricOffsetInput" Grid.Column="1" Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" /></Grid></Border>
+          <StackPanel Spacing="18" Margin="0,0,0,28">
+            <Grid Classes="lyrics-group-heading" ColumnDefinitions="30,*" ColumnSpacing="10"><Border Classes="lyrics-group-icon"><icon:GlyphIcon Kind="gauge" /></Border><TextBlock Grid.Column="1" Text="{DynamicResource drawer.lyrics.timing}" Classes="lyrics-group-title" VerticalAlignment="Center" /></Grid>
+            <Border Classes="lyrics-setting"><Grid ColumnDefinitions="*,150" ColumnSpacing="12"><TextBlock Text="{DynamicResource drawer.lyrics.offset}" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Name="LyricOffsetInput" Grid.Column="1" Minimum="-10000" Maximum="10000" Increment="100" Value="{Binding OffsetMs}" /></Grid></Border>
             <TextBlock Text="{DynamicResource drawer.help.offset}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-            <Button Content="{DynamicResource ui.LyricsSettingsDrawerView.7f4cde95ec65}" Classes="drawer-action" Click="OnReset" HorizontalAlignment="Left" />
+            <Button Content="{DynamicResource ui.LyricsSettingsDrawerView.7f4cde95ec65}" Classes="drawer-action lyrics-reset" Click="OnReset" HorizontalAlignment="Left" />
           </StackPanel>
         </ScrollViewer>
       </TabItem>
       <TabItem Header="{DynamicResource floating.lyrics}">
         <ScrollViewer Classes="drawer-scroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-          <floating:DesktopLyricsSettingsView Name="DesktopLyricsSettings" Margin="0,22,0,24" />
+          <floating:DesktopLyricsSettingsView Name="DesktopLyricsSettings" Margin="0,0,0,28" />
         </ScrollViewer>
       </TabItem>
     </TabControl>
-    <Border Grid.Row="1" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="22,12">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12"><TextBlock Text="{DynamicResource drawer.lyrics.autosave}" FontSize="11" Classes="muted" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{DynamicResource ui.LyricsSettingsDrawerView.628043812090}" Click="OnOpenLyrics" Classes="drawer-action" /></Grid>
+    <Border Grid.Row="1" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="22,14">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12"><TextBlock Text="{DynamicResource drawer.lyrics.autosave}" FontSize="12" Classes="muted" VerticalAlignment="Center" /><Button Grid.Column="1" Content="{DynamicResource ui.LyricsSettingsDrawerView.628043812090}" Click="OnOpenLyrics" Classes="drawer-action" /></Grid>
     </Border>
   </Grid>
 </UserControl>

@@ -7,40 +7,40 @@
         <StackPanel Spacing="14">
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel Spacing="4">
-              <TextBlock Text="外部渲染器" Classes="connect-kicker" />
+              <TextBlock Text="{DynamicResource ui.ConnectHqPlayerView.6202797abfde}" Classes="connect-kicker" />
               <TextBlock Text="HQPlayer" FontSize="22" Classes="heading" />
             </StackPanel>
             <Border Grid.Column="1" Classes="connect-state" Classes.live="{Binding PortReachable}"><TextBlock Text="{Binding StateLabel}" FontSize="12" /></Border>
           </Grid>
           <Border Classes="connect-inset">
             <StackPanel Spacing="4">
-              <TextBlock Text="将要送出" Classes="connect-kicker" />
+              <TextBlock Text="{DynamicResource ui.ConnectHqPlayerView.66d06022f546}" Classes="connect-kicker" />
               <TextBlock Text="{Binding TrackLine}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
-          <TextBlock Text="检测会询问控制协议。只有按下送出之后，当前曲目才会交给 HQPlayer。melodies 不会启动它的程序。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
-          <CheckBox Content="记住为外部渲染器" IsChecked="{Binding RememberEnabled, Mode=TwoWay}" />
+          <TextBlock Text="{DynamicResource ui.ConnectHqPlayerView.7219aa998b00}" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+          <CheckBox Content="{DynamicResource ui.ConnectHqPlayerView.d8acb2e6e01d}" IsChecked="{Binding RememberEnabled, Mode=TwoWay}" />
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Classes="connect-tool" Classes.active="{Binding IsLocal}" Content="本机桌面" Command="{Binding UseLocalCommand}" />
-            <Button Classes="connect-tool" Classes.active="{Binding !IsLocal}" Content="远程" Command="{Binding UseRemoteCommand}" />
+            <Button Classes="connect-tool" Classes.active="{Binding IsLocal}" Content="{DynamicResource ui.ConnectHqPlayerView.e99f8665e310}" Command="{Binding UseLocalCommand}" />
+            <Button Classes="connect-tool" Classes.active="{Binding !IsLocal}" Content="{DynamicResource ui.ConnectHqPlayerView.7ba00927dde9}" Command="{Binding UseRemoteCommand}" />
           </StackPanel>
           <Grid ColumnDefinitions="*,120" ColumnSpacing="12">
             <StackPanel Spacing="6">
-              <TextBlock Text="主机" FontSize="12" Classes="muted" />
+              <TextBlock Text="{DynamicResource ui.ConnectHqPlayerView.e87d9f23a3f5}" FontSize="12" Classes="muted" />
               <TextBox Text="{Binding Host, Mode=TwoWay}" IsEnabled="{Binding !IsLocal}" MaxLength="253" PlaceholderText="127.0.0.1" LostFocus="OnEdited" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="6">
-              <TextBlock Text="端口" FontSize="12" Classes="muted" />
+              <TextBlock Text="{DynamicResource ui.ConnectHqPlayerView.e71ac32b544b}" FontSize="12" Classes="muted" />
               <TextBox Text="{Binding PortText, Mode=TwoWay}" MaxLength="5" PlaceholderText="4321" LostFocus="OnEdited" />
             </StackPanel>
           </Grid>
           <TextBlock Text="{Binding Endpoint}" Classes="muted" FontSize="12" />
           <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" />
           <WrapPanel Orientation="Horizontal">
-            <Button Classes="connect-primary" Content="检测协议" Command="{Binding TestCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
-            <Button Classes="connect-tool" Content="送出当前曲目" Command="{Binding HandOffCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
-            <Button Classes="connect-tool" Content="暂停" Command="{Binding PauseCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
-            <Button Classes="connect-tool" Content="停止" Command="{Binding StopRendererCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+            <Button Classes="connect-primary" Content="{DynamicResource ui.ConnectHqPlayerView.dece318fff29}" Command="{Binding TestCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectHqPlayerView.f495800efa67}" Command="{Binding HandOffCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectHqPlayerView.8d12fc0d4eb2}" Command="{Binding PauseCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectHqPlayerView.ca4d973c0b00}" Command="{Binding StopRendererCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,8,8" />
           </WrapPanel>
         </StackPanel>
       </Border>

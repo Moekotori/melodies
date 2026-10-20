@@ -26,12 +26,12 @@
             <Button Name="OverviewButton" Classes="rail" Classes.active="{Binding IsHome}" Command="{Binding OpenCommand}" CommandParameter="home" ToolTip.Tip="{DynamicResource playlists.overview}">
               <Grid ColumnDefinitions="24,*" ColumnSpacing="8"><icon:GlyphIcon Kind="queue" Width="15" Height="15" /><TextBlock Grid.Column="1" Text="{DynamicResource playlists.overview}" FontSize="12" VerticalAlignment="Center" /></Grid>
             </Button>
-            <TextBlock Text="{DynamicResource playlists.favorites}" Classes="subtle" FontSize="11" Margin="6,16,0,6" />
+            <TextBlock Text="{DynamicResource playlists.favorites}" Classes="subtle" FontSize="12" Margin="6,16,0,6" />
             <Button Classes="rail" Classes.active="{Binding IsLiked}" Command="{Binding OpenCommand}" CommandParameter="liked" ToolTip.Tip="{DynamicResource playlists.liked}">
-              <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="8"><icon:GlyphIcon Kind="heart" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource playlists.liked}" FontSize="12" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="{Binding LikedTracks}" Classes="subtle" FontSize="11" VerticalAlignment="Center" /></Grid>
+              <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="8"><icon:GlyphIcon Kind="heart" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource playlists.liked}" FontSize="12" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="{Binding LikedTracks}" Classes="subtle" FontSize="12" VerticalAlignment="Center" /></Grid>
             </Button>
             <Button Classes="rail" Classes.active="{Binding IsAlbums}" Command="{Binding OpenCommand}" CommandParameter="albums" ToolTip.Tip="{DynamicResource playlists.albums}">
-              <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="8"><icon:GlyphIcon Kind="album" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource playlists.albums}" FontSize="12" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="{Binding LikedAlbums}" Classes="subtle" FontSize="11" VerticalAlignment="Center" /></Grid>
+              <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="8"><icon:GlyphIcon Kind="album" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource playlists.albums}" FontSize="12" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="{Binding LikedAlbums}" Classes="subtle" FontSize="12" VerticalAlignment="Center" /></Grid>
             </Button>
           </StackPanel>
           <StackPanel Name="CompactNav" Grid.Row="2" IsVisible="False" Spacing="10" HorizontalAlignment="Center">
@@ -41,20 +41,20 @@
             <Button Classes="icon" Click="OnCreate" ToolTip.Tip="{DynamicResource playlists.create}"><icon:GlyphIcon Kind="plus" Width="17" Height="17" /></Button>
           </StackPanel>
           <Grid Grid.Row="3" RowDefinitions="Auto,*,Auto">
-            <TextBlock Name="MineLabel" Text="{DynamicResource playlists.mine}" Classes="subtle" FontSize="11" Margin="6,4,0,8" />
+            <TextBlock Name="MineLabel" Text="{DynamicResource playlists.mine}" Classes="subtle" FontSize="12" Margin="6,4,0,8" />
             <ListBox Name="RailList" Grid.Row="1" ItemsSource="{Binding Playlists}" ItemContainerTheme="{StaticResource PlaylistListItem}" Background="Transparent" BorderThickness="0" Padding="0"
                      SelectionChanged="OnSelectPlaylist" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
               <ListBox.ItemTemplate><DataTemplate x:DataType="lib:PlaylistRow">
                 <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="8" Margin="6,4" Height="28" ToolTip.Tip="{Binding Name}">
                   <icon:GlyphIcon Kind="queue" Width="15" Height="15" />
                   <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Grid.Column="2" Text="{Binding TrackCount}" Classes="subtle" FontSize="11" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Text="{Binding TrackCount}" Classes="subtle" FontSize="12" VerticalAlignment="Center" />
                 </Grid>
               </DataTemplate></ListBox.ItemTemplate>
             </ListBox>
             <StackPanel Name="RailPages" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="4">
               <Button Content="‹" Command="{Binding BrowsePreviousCommand}" IsEnabled="{Binding CanBrowsePrevious}" ToolTip.Tip="{DynamicResource playlists.previous}" />
-              <TextBlock Text="{Binding BrowsePage}" Classes="subtle" FontSize="10" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding BrowsePage}" Classes="subtle" FontSize="12" VerticalAlignment="Center" />
               <Button Content="›" Command="{Binding BrowseNextCommand}" IsEnabled="{Binding CanBrowseNext}" ToolTip.Tip="{DynamicResource playlists.next}" />
             </StackPanel>
           </Grid>
@@ -64,7 +64,7 @@
         </Grid>
       </Border>
       <Grid Name="MainPane" Grid.Column="1" RowDefinitions="Auto,*,Auto" Margin="28,28,28,16" RowSpacing="0">
-        <Grid Name="FeedbackArea" IsVisible="False" Margin="0,0,0,14" RowDefinitions="Auto,Auto" RowSpacing="8">
+        <Grid Name="FeedbackArea" Classes="reveal" IsVisible="False" Margin="0,0,0,14" RowDefinitions="Auto,Auto" RowSpacing="8">
           <Grid IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" ColumnDefinitions="*,Auto">
             <TextBlock Text="{Binding Error}" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource EchoAccentText}" />
             <Button Grid.Column="1" Content="{DynamicResource playlists.retry}" Command="{Binding RefreshCommand}" />
@@ -74,11 +74,11 @@
             <Button Grid.Column="1" Content="{DynamicResource playlists.undo}" Command="{Binding UndoCommand}" IsVisible="{Binding CanUndo}" />
           </Grid>
         </Grid>
-        <Grid Name="HomePane" Grid.Row="1" IsVisible="{Binding IsHome}" RowDefinitions="Auto,*,Auto" RowSpacing="24">
+        <Grid Classes="reveal" Name="HomePane" Grid.Row="1" IsVisible="{Binding IsHome}" RowDefinitions="Auto,*,Auto" RowSpacing="24">
           <Border Margin="0,0,42,0" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,16">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
-              <TextBlock Text="{DynamicResource playlists.collection}" Classes="heading" FontSize="32" FontWeight="Normal" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+              <TextBlock Text="{DynamicResource playlists.collection}" Classes="heading" FontSize="32" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
                 <TextBlock Text="{Binding BrowseSummary}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
                 <Grid Grid.Column="1" ColumnDefinitions="Auto,Auto" VerticalAlignment="Center">
                   <Border Name="WallSearchField" IsVisible="False" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Margin="0,0,8,0">
@@ -92,12 +92,19 @@
                 <Button Name="CreatePlaylistButton" Grid.Column="3" Classes="quiet playlist-new" Click="OnCreate" IsEnabled="{Binding !IsActing}">
                   <StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="plus" Width="15" Height="15" /><TextBlock Text="{DynamicResource playlists.create}" FontSize="12" /></StackPanel>
                 </Button>
+                <Button Name="PlaylistFilesButton" Grid.Column="4" Classes="icon" ToolTip.Tip="{DynamicResource playlists.fileActions}" AutomationProperties.Name="{DynamicResource playlists.fileActions}">
+                  <icon:GlyphIcon Kind="more" Width="17" Height="17" />
+                  <Button.Flyout><Flyout><StackPanel Spacing="4">
+                    <Button Name="ImportPlaylistButton" Classes="quiet" Content="{DynamicResource playlists.import}" Click="OnImportFile" IsEnabled="{Binding CanTransfer}" />
+                    <Button Name="RecoverPlaylistsButton" Classes="quiet" Content="{DynamicResource playlists.recover}" Click="OnRecovery" IsEnabled="{Binding CanAct}" />
+                  </StackPanel></Flyout></Button.Flyout>
+                </Button>
               </Grid>
             </Grid>
           </Border>
           <Grid Grid.Row="1">
             <ContentControl Name="BrowserHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-            <StackPanel IsVisible="{Binding IsBrowseEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="320">
+            <StackPanel Classes="reveal" IsVisible="{Binding IsBrowseEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="320">
               <icon:GlyphIcon Kind="queue" Width="36" Height="36" HorizontalAlignment="Center" />
               <TextBlock Text="{DynamicResource playlists.noPlaylistResults}" Classes="heading" FontSize="20" HorizontalAlignment="Center" />
               <TextBlock Text="{DynamicResource playlists.noPlaylistResultsHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
@@ -110,7 +117,7 @@
             <Button Classes="quiet" Content="›" Command="{Binding BrowseNextCommand}" IsEnabled="{Binding CanBrowseNext}" ToolTip.Tip="{DynamicResource playlists.next}" />
           </StackPanel>
         </Grid>
-        <Grid Name="DetailPane" Grid.Row="1" IsVisible="{Binding !IsHome}" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="20">
+        <Grid Classes="reveal" Name="DetailPane" Grid.Row="1" IsVisible="{Binding !IsHome}" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="20">
           <Grid ColumnDefinitions="*,Auto" Margin="0,0,42,0">
             <Button Name="DetailBackButton" Classes="quiet" Command="{Binding OpenCommand}" CommandParameter="home" HorizontalAlignment="Left">
               <StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="chevron-left" Width="15" Height="15" /><TextBlock Text="{DynamicResource playlists.collection}" FontSize="12" /></StackPanel>
@@ -122,8 +129,8 @@
               <Grid><icon:GlyphIcon Name="HeroIcon" Kind="queue" Width="42" Height="42" Opacity="0.6" HorizontalAlignment="Center" VerticalAlignment="Center" /><Image Name="HeroCover" Stretch="UniformToFill" /></Grid>
             </Border>
             <StackPanel Grid.Column="1" Spacing="10" VerticalAlignment="Center">
-              <TextBlock Name="HeroKind" Text="{Binding SourceLabel}" Classes="subtle" FontSize="11" />
-              <TextBlock Text="{Binding Title}" Classes="heading" FontSize="32" FontWeight="Normal" TextTrimming="CharacterEllipsis" />
+              <TextBlock Name="HeroKind" Text="{Binding SourceLabel}" Classes="subtle" FontSize="12" />
+              <TextBlock Text="{Binding Title}" Classes="heading" FontSize="32" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
               <TextBlock Text="{Binding Description}" Classes="muted" FontSize="12" IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" MaxHeight="36" TextWrapping="Wrap" />
               <TextBlock Text="{Binding Summary}" Classes="muted" FontSize="12" IsVisible="{Binding !IsAlbums}" />
             </StackPanel>
@@ -132,8 +139,9 @@
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
               <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsAlbums}">
                 <Button Name="PlayButton" Content="{Binding PlayLabel}" Classes="primary" Command="{Binding PlayPageCommand}" IsEnabled="{Binding CanPlay}" Padding="22,0" />
-                <Button Classes="icon" Command="{Binding ShuffleCommand}" IsEnabled="{Binding CanPlay}" ToolTip.Tip="{DynamicResource playlists.shuffle}" AutomationProperties.Name="{DynamicResource playlists.shuffle}"><icon:GlyphIcon Kind="shuffle" Width="18" Height="18" /></Button>
-                <Button Classes="icon" Command="{Binding AppendCommand}" IsEnabled="{Binding CanPlay}" ToolTip.Tip="{DynamicResource playlists.append}" AutomationProperties.Name="{DynamicResource playlists.append}"><icon:GlyphIcon Kind="queue" Width="18" Height="18" /></Button>
+                <Button Classes="icon" Command="{Binding ShuffleCommand}" IsEnabled="{Binding CanPlay}" ToolTip.Tip="{Binding ShuffleLabel}" AutomationProperties.Name="{Binding ShuffleLabel}"><icon:GlyphIcon Kind="shuffle" Width="18" Height="18" /></Button>
+                <Button Classes="icon" Command="{Binding AppendCommand}" IsEnabled="{Binding CanPlay}" ToolTip.Tip="{Binding AppendLabel}" AutomationProperties.Name="{Binding AppendLabel}"><icon:GlyphIcon Kind="queue" Width="18" Height="18" /></Button>
+                <Button Name="ExportPlaylistButton" Classes="icon" Click="OnExportFile" IsEnabled="{Binding CanExport}" ToolTip.Tip="{DynamicResource playlists.export}" AutomationProperties.Name="{DynamicResource playlists.export}"><icon:GlyphIcon Kind="download" Width="18" Height="18" /></Button>
                 <Button Name="DetailMoreButton" Classes="icon" IsVisible="{Binding IsManual}" ToolTip.Tip="{DynamicResource playlists.edit}" AutomationProperties.Name="{DynamicResource playlists.edit}">
                   <icon:GlyphIcon Kind="more" Width="18" Height="18" />
                   <Button.Flyout><Flyout Placement="BottomEdgeAlignedLeft"><StackPanel Width="160" Spacing="4">
@@ -157,20 +165,20 @@
             </Grid>
           </Border>
           <Grid Grid.Row="3">
-            <pl:PlaylistTrackList Name="TrackPanel" IsVisible="{Binding !IsAlbums}" />
-            <ContentControl Name="AlbumsHost" Margin="0,0,42,0" IsVisible="{Binding IsAlbums}" />
+            <pl:PlaylistTrackList Classes="reveal" Name="TrackPanel" IsVisible="{Binding !IsAlbums}" />
+            <ContentControl Classes="reveal" Name="AlbumsHost" Margin="0,0,42,0" IsVisible="{Binding IsAlbums}" />
             <TextBlock Name="AlbumNotice" IsVisible="False" Classes="muted" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
           </Grid>
         </Grid>
         <Grid Grid.Row="2" Margin="0,14,42,0" ColumnDefinitions="*,Auto,Auto" IsVisible="{Binding !IsHome}">
-          <TextBlock Text="{Binding TrackPage}" Classes="subtle" FontSize="11" VerticalAlignment="Center" IsVisible="{Binding !IsAlbums}" />
+          <TextBlock Text="{Binding TrackPage}" Classes="subtle" FontSize="12" VerticalAlignment="Center" IsVisible="{Binding !IsAlbums}" />
           <Button Grid.Column="1" Content="{DynamicResource playlists.previous}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" IsVisible="{Binding !IsAlbums}" />
           <Button Grid.Column="2" Content="{DynamicResource playlists.next}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" IsVisible="{Binding !IsAlbums}" />
         </Grid>
       </Grid>
     </Grid>
     <ContentControl Name="AlbumDetailHost" IsVisible="False" Margin="28" />
-    <Border Name="EditorOverlay" IsVisible="False" Background="#60000000" Padding="24" KeyDown="OnEditorKey">
+    <Border Name="EditorOverlay" Classes="reveal-fade" IsVisible="False" Background="#60000000" Padding="24" KeyDown="OnEditorKey">
       <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="8" Padding="24" Width="420" MaxWidth="420" HorizontalAlignment="Center" VerticalAlignment="Center">
         <StackPanel Spacing="14">
           <TextBlock Name="EditorTitle" Classes="heading" FontSize="22" />
@@ -184,6 +192,7 @@
         </StackPanel>
       </Border>
     </Border>
-    <ContentControl Name="PickerHost" IsVisible="False" />
+    <ContentControl Name="PickerHost" Classes="reveal-fade" IsVisible="False" />
+    <ContentControl Name="RecoveryHost" Classes="reveal-fade" IsVisible="False" />
   </Grid>
 </UserControl>

@@ -84,6 +84,16 @@ public sealed partial class PlaylistsViewModel
     public async Task PlayAsync(IReadOnlyList<PlaylistTrackItem>? selected = null, bool append = false, bool next = false, bool shuffle = false)
     {
         if (!CanPlay || shell.Player is not { } player) return;
+        if (selected is not { Count: > 0 } && TotalTracks <= 1000 && library is IPlaylistPlayback playback)
+        {
+            IsActing = true; Error = "";
+            try { await playback.PlayPlaylistAsync(CurrentTrackQuery(), append, next, shuffle, lifetime.Token); }
+            catch (OperationCanceledException) { }
+            catch (LibraryChangedException) { if (!closed) { Error = Text["playlists.changed"]; await LoadTracksAsync(); } }
+            catch (Exception error) { if (!closed) Error = error.Message; }
+            finally { if (!closed) { IsActing = false; UpdatePlaying(); } }
+            return;
+        }
         var rows = (selected is { Count: > 0 } ? selected : Tracks).ToArray();
         if (shuffle) Random.Shared.Shuffle(rows);
         var origin = new QueueOrigin(IsLiked ? "liked" : "playlist", Title, IsLiked ? null : Selection);

@@ -18,7 +18,7 @@
         <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="20" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingsNavigationGroup">
           <StackPanel Spacing="6">
-            <TextBlock Text="{Binding Title}" Classes="settings-nav-group" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource EchoMuted}" Margin="12,0,0,3" />
+            <TextBlock Text="{Binding Title}" Classes="settings-nav-group" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource EchoMuted}" Margin="12,0,0,3" />
             <ItemsControl ItemsSource="{Binding Items}">
               <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="1" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate><DataTemplate x:DataType="models:SettingsCategoryItem">

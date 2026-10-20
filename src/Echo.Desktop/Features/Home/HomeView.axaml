@@ -1,18 +1,22 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:home="using:Echo.Desktop.Features.Home" xmlns:icon="using:Echo.Desktop.Controls" xmlns:motion="using:Echo.Desktop.Motion"
              x:Class="Echo.Desktop.Features.Home.HomeView" x:DataType="home:HomeViewModel">
+ <UserControl.Styles><StyleInclude Source="HomeStyles.axaml" /></UserControl.Styles>
  <Grid>
-  <StackPanel Name="HomeContent" MaxWidth="1200" HorizontalAlignment="Stretch" Spacing="22" Margin="12,12,12,28">
-    <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,20">
-      <Grid Name="HeroGrid" ColumnDefinitions="280,*" ColumnSpacing="26" MinHeight="280">
-        <Border Name="HeroArtwork" Width="280" Height="280" Background="{DynamicResource EchoPlaceholder}" CornerRadius="{DynamicResource EchoCoverRadius}" ClipToBounds="True"><Grid>
+  <StackPanel Name="HomeContent" MaxWidth="1320" HorizontalAlignment="Stretch" Spacing="32" Margin="0,4,0,28">
+   <Grid Name="HomeLayout" RowDefinitions="Auto,Auto" ColumnDefinitions="*,264" ColumnSpacing="28" RowSpacing="28">
+    <StackPanel Name="PrimaryColumn" Spacing="24">
+    <Border Name="HeroSurface" Classes="home-hero">
+      <Grid Name="HeroGrid" ColumnDefinitions="216,*" ColumnSpacing="26" MinHeight="216">
+        <Border Name="HeroArtwork" Width="216" Height="216" Background="{DynamicResource EchoPanelMuted}" CornerRadius="{DynamicResource EchoCoverRadius}" ClipToBounds="True"><Grid>
           <Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" />
           <Image Name="FocusCover" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
         </Grid></Border>
-        <StackPanel Name="HeroCopy" Grid.Column="1" Spacing="12" VerticalAlignment="Top">
-          <TextBlock LineHeight="18" Text="{Binding HeroLabel}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="SemiBold" />
+        <StackPanel Name="HeroCopy" Grid.Column="1" Spacing="14" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Greeting}" Classes="muted" FontSize="14" Margin="0,0,0,-4" />
+          <TextBlock LineHeight="18" Text="{Binding HeroLabel}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="Medium" LetterSpacing="0.6" />
           <StackPanel Spacing="6">
-            <TextBlock Name="HeroTitle" Text="{Binding FocusTitle}" Classes="heading" FontSize="38" LineHeight="44" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FocusTitle}" />
+            <TextBlock Name="HeroTitle" Text="{Binding FocusTitle}" Classes="heading" FontSize="34" LineHeight="40" LetterSpacing="-0.6" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FocusTitle}" />
             <WrapPanel>
               <Button Classes="content-link" MinHeight="19" Padding="0" Command="{Binding OpenArtistCommand}" CommandParameter="{Binding FocusArtist}" IsVisible="{Binding HasFocus}"><TextBlock Text="{Binding FocusArtist}" Classes="muted" FontSize="14" /></Button>
               <TextBlock Text=" · " Classes="muted" VerticalAlignment="Center" IsVisible="{Binding HasFocus}" />
@@ -21,22 +25,24 @@
             </WrapPanel>
           </StackPanel>
           <TextBlock Text="{DynamicResource ui.HomeView.5550d47bf79d}" FontSize="13" Classes="muted" LineHeight="22" TextWrapping="Wrap" IsVisible="{Binding !HasFocus}" />
-          <TextBlock Text="{Binding SourceLabel}" Classes="muted" FontSize="11" IsVisible="{Binding SourceLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Text="{Binding SourceLabel}" Classes="muted" FontSize="12" IsVisible="{Binding SourceLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <WrapPanel Orientation="Horizontal">
-            <Button Name="ContinueButton" Classes="primary" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="7"><icon:GlyphIcon Kind="play" Width="17" Height="17" Stroke="{DynamicResource EchoOnAccent}" /><TextBlock Text="{DynamicResource ui.HomeView.11a6c8e68b59}" /></StackPanel></Button>
-            <Button Classes="quiet" Command="{Binding Shell.NavigateCommand}" CommandParameter="queue" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="queue" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.f9c57473d6a0}" FontSize="13" /></StackPanel></Button>
-            <Button Name="RefreshButton" Classes="quiet" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="refresh" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.aee887434131}" FontSize="13" /></StackPanel></Button>
-            <Button Name="RandomButton" Classes="quiet" Command="{Binding RandomCommand}" IsEnabled="{Binding CanRandom}" Margin="0,8,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="shuffle" Width="17" Height="17" /><TextBlock Classes="muted" Text="{DynamicResource ui.HomeView.41fd818df70c}" FontSize="13" /></StackPanel></Button>
+            <Button Name="ContinueButton" Classes="primary" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}" Margin="0,8,6,0"><StackPanel Orientation="Horizontal" Spacing="7"><icon:EchoIcon Scope="player" Kind="{Binding ContinueIcon}" Width="17" Height="17" BaseBrush="{DynamicResource EchoOnAccent}" AccentBrush="{DynamicResource EchoOnAccent}" /><TextBlock Text="{Binding ContinueLabel}" /></StackPanel></Button>
+            <Button Name="RandomButton" Classes="home-secondary" Command="{Binding RandomCommand}" IsEnabled="{Binding CanRandom}" Margin="0,8,0,0"><StackPanel Orientation="Horizontal" Spacing="6"><icon:GlyphIcon Kind="shuffle" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.HomeView.41fd818df70c}" FontSize="12" /></StackPanel></Button>
           </WrapPanel>
-          <TextBlock Text="{Binding Specifications}" Classes="muted" FontSize="10" />
+          <WrapPanel>
+            <TextBlock Text="{Binding Specifications}" Classes="muted" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <Button Classes="content-link" Command="{Binding Shell.NavigateCommand}" CommandParameter="queue" Margin="0,0,12,0"><TextBlock Text="{DynamicResource ui.HomeView.f9c57473d6a0}" FontSize="12" /></Button>
+            <Button Name="RefreshButton" Classes="icon" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsLoading}" ToolTip.Tip="{DynamicResource ui.HomeView.aee887434131}" Width="24" Height="24" MinHeight="24"><icon:GlyphIcon Kind="refresh" Width="14" Height="14" /></Button>
+          </WrapPanel>
           <home:HomeNowLyrics />
           <icon:LiveSpectrumView Spectrum="{Binding Shell.AppearanceVisuals.LiveSpectrum}" IsVisible="{Binding Shell.AppearanceVisuals.HomeWaveform}" Brush="{DynamicResource EchoAccent}" Height="48" IsHitTestVisible="False" />
-          <TextBlock Text="{Binding Shell.AppearanceVisuals.LiveStatus}" IsVisible="{Binding Shell.AppearanceVisuals.HomeWaveform}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Shell.AppearanceVisuals.LiveStatus}" IsVisible="{Binding Shell.AppearanceVisuals.HomeWaveform}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
         </StackPanel>
       </Grid>
     </Border>
     <home:LibraryOverview Name="LibraryMetrics" />
-    <Grid ColumnDefinitions="*,232" ColumnSpacing="32" Name="DiscoveryGrid">
+    <Grid Name="DiscoveryGrid">
       <StackPanel Spacing="24">
         <StackPanel Spacing="16">
           <Grid ColumnDefinitions="*,Auto">
@@ -67,8 +73,13 @@
           <ContentControl Name="RediscoveryHost" HorizontalContentAlignment="Stretch" />
         </StackPanel>
       </StackPanel>
-      <home:ListeningOverview Name="ListeningSidebar" Grid.Column="1" />
     </Grid>
+    </StackPanel>
+    <StackPanel Name="ListeningColumn" Grid.Column="1" Spacing="28">
+      <Border Classes="home-summary"><home:ListeningOverview Name="ListeningSidebar" /></Border>
+      <home:HomeArtistRanking />
+    </StackPanel>
+   </Grid>
     <home:HomeInsightsView Name="Insights" />
     <StackPanel HorizontalAlignment="Center" Spacing="8">
       <TextBlock Text="{DynamicResource home.loading}" IsVisible="{Binding IsLoading}" Classes="muted" FontSize="12" HorizontalAlignment="Center" />

@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspDynamicsStatus" x:DataType="local:DspViewModel">
+  <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,10,0,20">
+    <Grid ColumnDefinitions="*,150" ColumnSpacing="28">
+      <StackPanel Spacing="8" VerticalAlignment="Center">
+        <TextBlock Text="{Binding ConfirmedStatus}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"/>
+        <TextBlock Text="{Binding RuntimeHeadline}" Classes="dsp-note"/>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Spacing="8" HorizontalAlignment="Right">
+        <TextBlock Text="{Binding GainReductionReadout, StringFormat={}{0} dB}" FontSize="42" FontWeight="Medium"/>
+        <Border Height="4" Background="{DynamicResource EchoDivider}"/>
+        <TextBlock Text="增益降低" Classes="muted" FontSize="11" HorizontalAlignment="Right"/>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

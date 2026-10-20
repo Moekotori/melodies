@@ -4,26 +4,42 @@
              x:Class="Echo.Desktop.Shell.TitleBar" x:DataType="shell:ShellViewModel">
   <UserControl.Styles>
     <StyleInclude Source="TitleBarStyles.axaml" />
-    <StyleInclude Source="TitleBarMenuStyles.axaml" />
   </UserControl.Styles>
-  <Border Name="TitlebarSurface" Background="{DynamicResource EchoTitlebar}" Padding="20,0,6,0"
+  <Border Name="TitlebarSurface" Background="{DynamicResource EchoTitlebar}" Padding="24,0,6,0"
           BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" chrome:WindowDecorationProperties.ElementRole="TitleBar">
-    <Grid ColumnDefinitions="Auto,*,Auto" Background="Transparent">
-      <TextBlock Text="melodies" FontFamily="avares://Echo.Desktop/Resources/Fonts#Outfit"
-                 FontSize="17" FontWeight="Medium" LetterSpacing="0.3" Foreground="{DynamicResource EchoHeading}"
-                 VerticalAlignment="Center" IsHitTestVisible="False" />
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="24,0,14,0" chrome:WindowDecorationProperties.ElementRole="User">
-        <Button Name="GlobalSearchButton" Classes="icon titleAction" IsVisible="{Binding IsTitleSearchVisible}" Command="{Binding OpenSearchCommand}"
+    <Grid ColumnDefinitions="Auto,*,Auto,Auto" Background="Transparent">
+      <TextBlock Name="BrandText" Text="{Binding TitlebarText}" FontFamily="avares://Echo.Desktop/Resources/Fonts#Outfit"
+                 FontSize="16" FontWeight="Medium" LetterSpacing="0.7" Foreground="{DynamicResource EchoHeading}"
+                 MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Focusable="True"
+                 chrome:WindowDecorationProperties.ElementRole="User" PointerPressed="OnBrandPressed">
+        <TextBlock.ContextMenu>
+          <ContextMenu Theme="{StaticResource EchoContextMenu}" ItemContainerTheme="{StaticResource EchoMenuItem}">
+            <MenuItem Name="EditTitleTextItem" Header="{DynamicResource titlebar.editText}" Click="OnEditTitleText" />
+            <MenuItem Header="{DynamicResource titlebar.resetText}" Click="OnResetTitleText" />
+          </ContextMenu>
+        </TextBlock.ContextMenu>
+      </TextBlock>
+      <Grid Grid.Column="1" Margin="28,0,18,0" Background="Transparent">
+        <Button Name="GlobalSearchButton" Classes="titleSearch" IsVisible="{Binding IsTitleSearchVisible}" Command="{Binding OpenSearchCommand}"
+                HorizontalAlignment="Right" VerticalAlignment="Center"
+                chrome:WindowDecorationProperties.ElementRole="User"
                 ToolTip.Tip="{DynamicResource ui.TitleBar.f1c10da84402}" AutomationProperties.Name="{DynamicResource ui.TitleBar.f1c10da84402}">
-          <icon:GlyphIcon Kind="search" Width="16" Height="16" />
+          <Grid ColumnDefinitions="16,*" ColumnSpacing="9">
+            <icon:GlyphIcon Kind="search" Width="15" Height="15" />
+            <TextBlock Grid.Column="1" Text="{DynamicResource ui.TitleBar.f1c10da84402}" FontSize="12"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          </Grid>
         </Button>
+      </Grid>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,18,0"
+                  chrome:WindowDecorationProperties.ElementRole="User">
         <Button Classes="icon titleAction" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="audio" ToolTip.Tip="{DynamicResource ui.TitleBar.24c267e226db}" AutomationProperties.Name="{DynamicResource ui.TitleBar.24c267e226db}"><icon:GlyphIcon Kind="headphones" Width="17" Height="17" /></Button>
-        <Button Classes="icon titleAction" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="lyrics" ToolTip.Tip="{DynamicResource ui.TitleBar.13c2f86425fa}" AutomationProperties.Name="{DynamicResource ui.TitleBar.13c2f86425fa}"><icon:EchoIcon Kind="lyrics" Scope="player" Width="17" Height="17" /></Button>
-        <Button Classes="icon titleAction" Command="{Binding NavigateCommand}" CommandParameter="settings" ToolTip.Tip="{DynamicResource ui.Sidebar.df3d58c7d84b}" AutomationProperties.Name="{DynamicResource ui.Sidebar.df3d58c7d84b}"><icon:GlyphIcon Kind="settings" Width="17" Height="17" /></Button>
+        <Button Name="LyricsGuideButton" Classes="icon titleAction" Command="{Binding OpenQuickSettingsCommand}" CommandParameter="lyrics" ToolTip.Tip="{DynamicResource ui.TitleBar.13c2f86425fa}" AutomationProperties.Name="{DynamicResource ui.TitleBar.13c2f86425fa}"><icon:EchoIcon Kind="lyrics" Scope="player" Width="17" Height="17" /></Button>
+        <Button Name="SettingsGuideButton" Classes="icon titleAction" Command="{Binding NavigateCommand}" CommandParameter="settings" ToolTip.Tip="{DynamicResource ui.Sidebar.df3d58c7d84b}" AutomationProperties.Name="{DynamicResource ui.Sidebar.df3d58c7d84b}"><icon:GlyphIcon Kind="settings" Width="17" Height="17" /></Button>
         <Button Name="MoreButton" Classes="icon titleAction" ToolTip.Tip="{DynamicResource ui.PlayerBar.38844b135cf7}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.38844b135cf7}">
           <icon:EchoIcon Kind="more" Scope="player" Width="19" Height="19" />
           <Button.Flyout>
-            <MenuFlyout Placement="BottomEdgeAlignedRight" VerticalOffset="3" FlyoutPresenterTheme="{StaticResource TitleBarMenuPresenter}" ItemContainerTheme="{StaticResource TitleBarMenuItem}">
+            <MenuFlyout Placement="BottomEdgeAlignedRight" VerticalOffset="5" FlyoutPresenterTheme="{StaticResource EchoMenuFlyoutPresenter}" ItemContainerTheme="{StaticResource EchoMenuItem}">
               <MenuItem Name="AudioDrawerButton" Header="{DynamicResource ui.TitleBar.24c267e226db}" Tag="audio" Click="OnOpenQuickSettings">
                 <MenuItem.Icon><icon:GlyphIcon Kind="headphones" Width="15" Height="15" Stroke="{DynamicResource EchoMuted}" /></MenuItem.Icon>
               </MenuItem>
@@ -39,15 +55,31 @@
               <MenuItem Header="{DynamicResource ui.TitleBar.ed12b1f768c5}" Click="OnFullscreen">
                 <MenuItem.Icon><icon:GlyphIcon Kind="fullscreen" Width="15" Height="15" Stroke="{DynamicResource EchoMuted}" /></MenuItem.Icon>
               </MenuItem>
+              <MenuItem Header="{DynamicResource onboarding.guide.label}" Click="OnOpenOperationGuide">
+                <MenuItem.Icon><icon:GlyphIcon Kind="book" Width="15" Height="15" Stroke="{DynamicResource EchoMuted}" /></MenuItem.Icon>
+              </MenuItem>
+              <Separator />
+              <MenuItem Header="{DynamicResource playbackClose.stop}" Click="OnStopAndClose" />
+              <MenuItem Header="{DynamicResource playbackClose.disconnect}" Click="OnDisconnect" />
             </MenuFlyout>
           </Button.Flyout>
         </Button>
       </StackPanel>
-      <StackPanel Name="WindowButtons" Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-        <Border Width="1" Height="16" Background="{DynamicResource EchoDivider}" Margin="0,0,8,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+      <StackPanel Name="WindowButtons" Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+        <Border Width="1" Height="14" Background="{DynamicResource EchoDivider}" Margin="0,0,8,0" VerticalAlignment="Center" IsHitTestVisible="False" />
         <Button Name="MinimizeButton" Classes="window titleWindow" chrome:WindowDecorationProperties.ElementRole="MinimizeButton" Click="OnMinimize" ToolTip.Tip="{DynamicResource ui.TitleBar.ac29e57a46f4}" AutomationProperties.Name="{DynamicResource ui.TitleBar.ac29e57a46f4}"><icon:GlyphIcon Kind="minus" Width="14" Height="14" /></Button>
         <Button Name="MaximizeButton" Classes="window titleWindow" chrome:WindowDecorationProperties.ElementRole="MaximizeButton" Click="OnMaximize" ToolTip.Tip="{DynamicResource ui.TitleBar.9949b1fb5f67}" AutomationProperties.Name="{DynamicResource ui.TitleBar.9949b1fb5f67}"><icon:GlyphIcon Kind="maximize" Width="13" Height="13" /></Button>
-        <Button Name="CloseButton" Classes="window titleWindow close" chrome:WindowDecorationProperties.ElementRole="CloseButton" Click="OnClose" ToolTip.Tip="{DynamicResource ui.TitleBar.3fd47edce45b}" AutomationProperties.Name="{DynamicResource ui.TitleBar.3fd47edce45b}"><icon:GlyphIcon Kind="close" Width="14" Height="14" /></Button>
+        <Button Name="CloseButton" Classes="window titleWindow close" chrome:WindowDecorationProperties.ElementRole="User" Click="OnClose" ToolTip.Tip="{DynamicResource ui.TitleBar.3fd47edce45b}" AutomationProperties.Name="{DynamicResource ui.TitleBar.3fd47edce45b}">
+          <icon:GlyphIcon Kind="close" Width="14" Height="14" />
+          <Button.ContextMenu>
+            <ContextMenu Theme="{StaticResource EchoContextMenu}" ItemContainerTheme="{StaticResource EchoMenuItem}">
+              <MenuItem Name="DirectCloseItem" Header="{DynamicResource titlebar.closeDirect}" ToggleType="Radio"
+                        IsChecked="{Binding IsDirectClose, Mode=OneWay}" Click="OnSelectDirectClose" />
+              <MenuItem Name="BackgroundCloseItem" Header="{DynamicResource titlebar.closeBackground}" ToggleType="Radio"
+                        IsChecked="{Binding CloseToTray, Mode=OneWay}" Click="OnSelectBackgroundClose" />
+            </ContextMenu>
+          </Button.ContextMenu>
+        </Button>
       </StackPanel>
     </Grid>
   </Border>

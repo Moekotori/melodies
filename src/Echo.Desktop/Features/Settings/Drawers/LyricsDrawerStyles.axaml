@@ -1,0 +1,34 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+  <Styles.Resources>
+    <ControlTheme x:Key="LyricsDrawerTabs" TargetType="TabControl">
+      <Setter Property="ItemsPanel"><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></Setter>
+      <Setter Property="Template"><ControlTemplate>
+        <Grid RowDefinitions="42,*">
+          <Border Margin="22,0" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1"><ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" /></Border>
+          <ContentPresenter Name="PART_SelectedContentHost" Grid.Row="1" Content="{TemplateBinding SelectedContent}" ContentTemplate="{TemplateBinding SelectedContentTemplate}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+        </Grid>
+      </ControlTemplate></Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="LyricsDrawerTab" TargetType="TabItem">
+      <Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="Cursor" Value="Hand" /><Setter Property="Padding" Value="4,12" />
+      <Setter Property="Template"><ControlTemplate><Border Name="Category" Padding="{TemplateBinding Padding}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,0,0,2"><ContentPresenter Content="{TemplateBinding Header}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" /></Border></ControlTemplate></Setter>
+      <Style Selector="^:selected"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontWeight" Value="Medium" /></Style>
+      <Style Selector="^:selected /template/ Border#Category"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /></Style>
+      <Style Selector="^:pointerover"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#Category"><Setter Property="Background" Value="{DynamicResource DrawerHover}" /></Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="TabControl.drawer-tabs.lyrics-tabs"><Setter Property="Theme" Value="{StaticResource LyricsDrawerTabs}" /></Style>
+  <Style Selector="TabControl.lyrics-tabs TabItem"><Setter Property="Theme" Value="{StaticResource LyricsDrawerTab}" /></Style>
+  <Style Selector="Grid.lyrics-group-heading"><Setter Property="MinHeight" Value="32" /><Setter Property="Margin" Value="0,24,0,8" /></Style>
+  <Style Selector="Border.lyrics-group-icon"><Setter Property="Width" Value="30" /><Setter Property="Height" Value="30" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Background" Value="{DynamicResource EchoQueueActive}" /></Style>
+  <Style Selector="Border.lyrics-group-icon icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /><Setter Property="Width" Value="16" /><Setter Property="Height" Value="16" /><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="TextBlock.lyrics-group-title"><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="Border.lyrics-setting"><Setter Property="MinHeight" Value="48" /><Setter Property="Padding" Value="0,10" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="0,0,0,1" /></Style>
+  <Style Selector="TextBlock.lyrics-setting-label"><Setter Property="FontSize" Value="13" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="TextBlock.lyrics-setting-value"><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="ComboBox.lyrics-choice"><Setter Property="MinHeight" Value="36" /><Setter Property="FontSize" Value="12" /><Setter Property="CornerRadius" Value="8" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+  <Style Selector="Button.lyrics-reset"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="0,8" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>
+  <Style Selector="Button.lyrics-reset:pointerover"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="NumericUpDown.lyrics-number"><Setter Property="CornerRadius" Value="8" /><Setter Property="MinHeight" Value="34" /><Setter Property="FontSize" Value="12" /></Style>
+</Styles>

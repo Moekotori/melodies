@@ -16,8 +16,8 @@
           <Image Name="CoverImage" Stretch="UniformToFill" Source="{DynamicResource EchoPlaceholderImage}" />
         </Border>
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" PointerPressed="Drag">
-          <TextBlock Text="{Binding Player.Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-          <TextBlock Name="LyricLine" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Player.Title}" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+          <TextBlock Name="LyricLine" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
           <Button Name="PreviousButton" IsVisible="False" Classes="mini" Command="{Binding Player.PreviousCommand}" IsEnabled="{Binding Player.CanControl}" ToolTip.Tip="{DynamicResource floating.previous}"><icon:EchoIcon Width="18" Height="18" Kind="previous" Scope="player" /></Button>
@@ -29,21 +29,21 @@
       <Grid Name="ExpandedControls" Grid.Row="1" IsVisible="False" RowDefinitions="Auto,Auto" RowSpacing="7">
         <Slider Name="SeekSlider" Classes="player-rail" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position, Mode=OneWay}" IsEnabled="{Binding Player.CanSeek}" Height="24" AutomationProperties.Name="{DynamicResource floating.seek}" />
         <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-          <TextBlock Text="{Binding Player.PositionText}" Classes="muted" FontSize="10" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Player.PositionText}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
           <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="2">
             <Button Name="QueueButton" Classes="mini" Click="ToggleQueue" ToolTip.Tip="{DynamicResource floating.queue}"><icon:GlyphIcon Width="18" Height="18" Kind="queue" /></Button>
             <Button Classes="mini" ToolTip.Tip="{Binding Player.VolumeText}"><icon:EchoIcon Width="18" Height="18" Kind="volume" Scope="player" /><Button.Flyout><Flyout><Slider Name="VolumeSlider" Width="150" Minimum="0" Maximum="1" Value="{Binding Player.Volume, Mode=OneWay}" AutomationProperties.Name="{DynamicResource floating.volume}" /></Flyout></Button.Flyout></Button>
             <Button Classes="mini" Command="{Binding Floating.RestoreMainCommand}" ToolTip.Tip="{DynamicResource floating.restore}"><icon:GlyphIcon Width="18" Height="18" Kind="maximize" /></Button>
             <Button Classes="mini" Command="{Binding Floating.ToggleMiniCommand}" ToolTip.Tip="{DynamicResource floating.close}"><icon:GlyphIcon Width="18" Height="18" Kind="close" /></Button>
           </StackPanel>
-          <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" Classes="muted" FontSize="10" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
         </Grid>
       </Grid>
       <Grid Name="QueuePanel" Grid.Row="2" IsVisible="False" Height="200" RowDefinitions="Auto,*" RowSpacing="8">
-        <TextBlock Text="{DynamicResource floating.queue}" FontSize="12" FontWeight="SemiBold" />
+        <TextBlock Text="{DynamicResource floating.queue}" FontSize="12" FontWeight="Medium" />
         <ListBox Name="QueueList" Grid.Row="1" SelectionChanged="SelectQueue" Background="Transparent">
           <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
-          <ListBox.ItemTemplate><DataTemplate x:DataType="queue:QueueRowViewModel"><Grid ColumnDefinitions="24,*,Auto" Margin="0,4"><TextBlock Text="{Binding Number}" Classes="muted" FontSize="11" /><StackPanel Grid.Column="1"><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="12" /><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="10" /></StackPanel><TextBlock Grid.Column="2" Text="{Binding Duration}" Classes="muted" FontSize="10" /></Grid></DataTemplate></ListBox.ItemTemplate>
+          <ListBox.ItemTemplate><DataTemplate x:DataType="queue:QueueRowViewModel"><Grid ColumnDefinitions="24,*,Auto" Margin="0,4"><TextBlock Text="{Binding Number}" Classes="muted" FontSize="12" /><StackPanel Grid.Column="1"><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="12" /><TextBlock Text="{Binding Artist}" Classes="muted" FontSize="12" /></StackPanel><TextBlock Grid.Column="2" Text="{Binding Duration}" Classes="muted" FontSize="12" /></Grid></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
         <TextBlock Name="QueueEmpty" Grid.Row="1" TextWrapping="Wrap" Classes="muted" FontSize="12" />
       </Grid>

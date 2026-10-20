@@ -26,7 +26,7 @@
       <SolidColorBrush x:Key="EchoPage">#ffffff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPageBase">#ffffff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPageGlow">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoSidebar">#f7f8fa</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSidebar">#eef0f5</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPlayer">#ffffff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoField">#ffffff</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPlaceholder">#f2f4fa</SolidColorBrush>
@@ -57,7 +57,7 @@
       <SolidColorBrush x:Key="EchoPage">#18191c</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPageBase">#18191c</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPageGlow">Transparent</SolidColorBrush>
-      <SolidColorBrush x:Key="EchoSidebar">#1e1f23</SolidColorBrush>
+      <SolidColorBrush x:Key="EchoSidebar">#121316</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPlayer">#202125</SolidColorBrush>
       <SolidColorBrush x:Key="EchoField">#222327</SolidColorBrush>
       <SolidColorBrush x:Key="EchoPlaceholder">#0d1939</SolidColorBrush>

@@ -136,7 +136,6 @@ public sealed partial class PlayerViewModel : ObservableObject
                 ApplyRadioProgramme();
                 if (!IsChangingVolume) Volume = state.Volume;
                 if (!IsChangingPlaybackRate) PlaybackRate = state.PlaybackRate;
-                if (!AudioSettings.IsApplying) AudioSettings.PlaybackRate = state.PlaybackRate;
                 PlayIcon = state.Status is PlaybackStatus.Playing or PlaybackStatus.Loading ? "pause" : "play";
             }
             if ((changes & (PlaybackStateChanges.Clock | PlaybackStateChanges.Playback)) != 0)
@@ -184,7 +183,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     public async Task ChangeVolumeAsync(double value)
     { await RunAsync(() => session.SetVolumeAsync(value)); Volume = session.Snapshot.Volume; }
     public async Task ChangePlaybackRateAsync(double value)
-    { await RunAsync(() => session.SetPlaybackRateAsync(value)); PlaybackRate = session.Snapshot.PlaybackRate; AudioSettings.PlaybackRate = PlaybackRate; }
+    { await RunAsync(() => session.SetPlaybackRateAsync(value)); PlaybackRate = session.Snapshot.PlaybackRate; }
     public Task SelectTrackAsync(QueueTrack track) => RunAsync(() => session.SelectQueueItemAsync(track.ItemId));
     [RelayCommand] private Task ToggleAsync() => RunAsync(() => session.Snapshot.Status is PlaybackStatus.Playing or PlaybackStatus.Loading ? session.PauseAsync() : session.ResumeAsync());
     [RelayCommand] private Task NextAsync() => RunAsync(() => session.NextAsync());

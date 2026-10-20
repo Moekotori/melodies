@@ -7,6 +7,7 @@ internal static class MetadataRules
 {
     public static TrackMetadata Normalize(FileSnapshot file, TrackMetadata value)
     {
+        ValidateCredits(value.Credits);
         if (!double.IsFinite(value.DurationSeconds) || value.DurationSeconds < 0 ||
             value.SampleRate <= 0 || value.BitDepth < 0)
             throw new MetadataReadException("invalid_audio_properties");
@@ -21,6 +22,11 @@ internal static class MetadataRules
         };
     }
 
+    internal static void ValidateCredits(IReadOnlyList<CreditTag>? tags)
+    {
+        try { Echo.Infrastructure.Library.ArtistRoleRules.Validate(tags); }
+        catch (ArgumentException) { throw new MetadataReadException("metadata_credit_limit"); }
+    }
     public static string Limit(string value, int length)
     {
         value = value.Trim().Trim('\0');

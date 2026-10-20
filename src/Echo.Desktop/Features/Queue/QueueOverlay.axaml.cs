@@ -71,22 +71,29 @@ public partial class QueueOverlay : UserControl
         // MotionSurface sets Continue while opening; the modal boundary owns cycling.
         KeyboardNavigation.SetTabNavigation(DrawerSurface, open ? KeyboardNavigationMode.Cycle : KeyboardNavigationMode.None);
         if (open)
+        {
+            var focusRevision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
             Dispatcher.UIThread.Post(() =>
             {
-                if (focusGeneration == generation && DrawerSurface.Child is QueueDrawer drawer)
+                if (focusGeneration == generation && model?.IsQueueDrawerOpen == true
+                    && Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, focusRevision)
+                    && DrawerSurface.Child is QueueDrawer drawer)
                     drawer.FindControl<Button>("CloseDrawerButton")?.Focus(NavigationMethod.Tab);
             });
+        }
         else
         {
             KeyboardNavigation.SetTabNavigation(DrawerSurface, KeyboardNavigationMode.None);
             var previous = returnFocus;
+            var returnRevision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
             Dispatcher.UIThread.Post(() =>
             {
                 if (focusGeneration != generation) return;
                 returnFocus = null;
+                if (!Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, returnRevision)) return;
                 if (model is { IsQuickSettingsOpen: false, IsGlobalSearchOpen: false, IsSidebarDrawerOpen: false }
                     && previous is Control { IsEffectivelyVisible: true } control)
-                    control.Focus(NavigationMethod.Tab);
+                    Echo.Desktop.Bootstrap.FocusPolicy.Restore(this, control);
             });
         }
     }

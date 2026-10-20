@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -39,10 +40,12 @@ public partial class FolderTrackList : UserControl
         var count = Selection().Length; SelectionBar.IsVisible = count > 0;
         SelectionText.Text = Model?.Text.Format("folders.selected", count);
     }
-    private void OnDoubleTap(object? sender, TappedEventArgs args)
+    private void OnTap(object? sender, TappedEventArgs args)
     {
-        if ((args.Source as Visual)?.GetVisualAncestors().OfType<Button>().Any() == true) return;
-        if (TrackList.SelectedItem is AlbumTrackItem row) _ = Model?.ActAsync(start: row.Row);
+        if (args.KeyModifiers != KeyModifiers.None || args.Source is not Visual visual) return;
+        var ancestors = visual.GetSelfAndVisualAncestors().ToList();
+        if (ancestors.OfType<Button>().Any() || ancestors.OfType<ScrollBar>().Any()) return;
+        if (ancestors.OfType<ListBoxItem>().FirstOrDefault()?.DataContext is AlbumTrackItem row) _ = Model?.ActAsync(start: row.Row);
     }
     private void OnKey(object? sender, KeyEventArgs args)
     {

@@ -32,13 +32,41 @@ var SourceBackground = (() => {
     update: () => update
   });
 
-  // ../echo/src/shared/constants/lyricsShaderScenes.ts
+  // ../ECHOSteam/src/shared/constants/lyricsShaderScenes.ts
+  var lyricsCoverShaderSceneModes = [
+    "coverLiquid",
+    "coverPrism",
+    "coverFrost",
+    "coverPond",
+    "coverHolo",
+    "coverVinyl",
+    "coverNeon",
+    "coverPixelCrt",
+    "coverPixelWarp",
+    "coverPixelTiles",
+    "coverPixelShuffle",
+    "coverPixelRain",
+    "coverPixelSkyline"
+  ];
+  var lyricsShaderSceneModes = [
+    "liquidLight",
+    "pulseRidge",
+    "halftone",
+    "contour",
+    "sakura",
+    "bfs",
+    ...lyricsCoverShaderSceneModes
+  ];
+  var lyricsShaderSceneMusicReactive = false;
+  var lyricsAudioReactiveCoverSceneModes = ["coverPixelSkyline"];
+  var isLyricsAudioReactiveCoverSceneMode = (mode2) => typeof mode2 === "string" && lyricsAudioReactiveCoverSceneModes.includes(mode2);
+  var isLyricsShaderSceneMusicReactive = (mode2) => lyricsShaderSceneMusicReactive || isLyricsAudioReactiveCoverSceneMode(mode2);
   var defaultLyricsShaderSceneCustomColor = "#7c9cff";
   var normalizeShaderSceneCustomColor = (value) => typeof value === "string" && /^#[\da-f]{6}$/i.test(value) ? value.toLowerCase() : defaultLyricsShaderSceneCustomColor;
   var defaultLyricsShaderSceneQuality = "balanced";
-  var isLyricsCoverShaderSceneMode = (value) => value === "coverLiquid" || value === "coverPrism" || value === "coverFrost" || value === "coverPond" || value === "coverHolo" || value === "coverVinyl" || value === "coverNeon";
+  var isLyricsCoverShaderSceneMode = (value) => typeof value === "string" && lyricsCoverShaderSceneModes.includes(value);
 
-  // ../echo/src/renderer/components/lyrics/flowingLightModel.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/flowingLightModel.ts
   var hashFlowingLightTrackSeed = (trackKey) => {
     let hash = 2166136261;
     for (let index = 0; index < trackKey.length; index += 1) {
@@ -315,7 +343,7 @@ var SourceBackground = (() => {
     return { drive, ingest, advance };
   };
 
-  // ../echo/src/renderer/components/lyrics/flowingLightEnvelope.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/flowingLightEnvelope.ts
   var createFlowingLightEnvelope = () => {
     const visible = createFlowingLightDrive();
     const velocity = createFlowingLightDrive();
@@ -349,7 +377,7 @@ var SourceBackground = (() => {
     };
   };
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/coverSceneInteraction.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/coverSceneInteraction.ts
   var coverSceneRippleSlots = 4;
   var coverSceneTrailPoints = 12;
   var idleAfterSeconds = 4;
@@ -443,7 +471,7 @@ var SourceBackground = (() => {
   var registerLyricsResourceOwner = () => () => {
   };
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/flatSceneHelpers.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/flatSceneHelpers.ts
   var flatSceneHelpers = `// Rotate a colour about the grey axis by an angle given as (sin, cos); the angles used are constants.
 vec3 hueShiftSC(vec3 c, float s, float co) {
   vec3 k = vec3(0.57735027);
@@ -469,7 +497,7 @@ vec3 finishFlat(vec3 color, vec2 fragCoord) {
 }
 `;
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/bfsScene.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/bfsScene.ts
   var buildBfsSceneSource = (prelude2) => `${prelude2}
 ${flatSceneHelpers}
 const int FONT[10] = int[10](31599, 11415, 29671, 29647, 23497, 31183, 31215, 29257, 31727, 31695);
@@ -851,7 +879,204 @@ void main() {
 }
 `;
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/coverScenes.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/coverPixelScenes.ts
+  var pixelSceneHelpers = `
+float pxLuma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+
+// Grid cell edge in buffer pixels: a fixed number of cells across the short side.
+float pxCell(float n) { return max(4.0, floor(min(u_resolution.x, u_resolution.y) / n)); }
+
+// 4x4 ordered-dither threshold for integer cell coordinates (the Bayer matrix from its bit pattern).
+float pxBayer(vec2 p) {
+  p = mod(p, 4.0);
+  vec2 lo = mod(p, 2.0);
+  vec2 hi = floor(p * 0.5);
+  return (8.0 * abs(lo.x - lo.y) + 4.0 * lo.y + 2.0 * abs(hi.x - hi.y) + hi.y) / 16.0;
+}
+
+// Window uv -> cover uv, cropped to fill the window, with a slow drift (the "camera" never rests).
+vec2 pxCover(vec2 uv, float zoom, float t) {
+  float a = u_resolution.x / u_resolution.y;
+  vec2 f = a > 1.0 ? vec2(uv.x, (uv.y - 0.5) / a + 0.5) : vec2((uv.x - 0.5) * a + 0.5, uv.y);
+  return (f - 0.5) / zoom + vec2(0.5) + 0.035 * vec2(sin(t * 0.05), cos(t * 0.043));
+}
+
+// Built-in beat: a soft hit about once a second, every fourth one a little lighter.
+float pxBeat(float t) {
+  float ph = t * 0.9;
+  return exp(-fract(ph) * 5.0) * (mod(floor(ph), 4.0) > 2.5 ? 0.5 : 0.85);
+}
+
+// Scene motion phase: u_flow runs at 0.6 per second without audio; the scenes were tuned for about 0.9.
+float pxFlow() { return u_flow * 1.45; }
+`;
+  var crt = `
+vec3 scene(vec2 uv, vec2 asp, float t, vec2 rip) {
+  vec2 c = uv * 2.0 - 1.0;
+  c *= 1.0 + 0.07 * dot(c, c);
+  vec2 s = c * 0.5 + 0.5;
+  if (s.x < 0.0 || s.y < 0.0 || s.x > 1.0 || s.y > 1.0) return vec3(0.0);
+  float cols = 160.0;
+  vec2 grid = vec2(cols, floor(cols * u_resolution.y / u_resolution.x));
+  float row = floor(s.y * grid.y);
+  vec2 pc = (floor(s * grid) + 0.5) / grid;
+  float beat = pxBeat(t);
+  vec2 dm = (uv - u_pointer) * asp;
+  float near = exp(-dot(dm, dm) * 18.0);
+  pc.x += (hash21(vec2(row, floor(t * 24.0))) - 0.5) * 0.02 * (beat + near);
+  float ab = 0.002 + 0.010 * beat + 0.012 * near;
+  vec2 cu = pxCover(pc, 1.06, t) + rip;
+  vec3 col = vec3(coverSoft(cu + vec2(ab, 0.0), 0.3).r, coverSoft(cu, 0.3).g, coverSoft(cu - vec2(ab, 0.0), 0.3).b);
+  col = floor(col * 7.0 + 0.5) / 7.0;
+  float scan = 0.55 + 0.45 * sin(fract(s.y * grid.y) * 3.14159);
+  int m = int(mod(uv.x * u_resolution.x, 3.0));
+  vec3 mask = m == 0 ? vec3(1.0, 0.72, 0.72) : m == 1 ? vec3(0.72, 1.0, 0.72) : vec3(0.72, 0.72, 1.0);
+  float roll = 1.0 + 0.14 * smoothstep(0.07, 0.0, abs(fract(s.y + t * 0.07) - 0.5));
+  float vig = smoothstep(1.5, 0.35, length(c));
+  col *= scan * mask * roll * vig * (0.97 + 0.03 * sin(t * 55.0)) * (1.0 + 0.1 * beat);
+  col += coverSoft(pxCover(s, 1.06, t), 4.0) * 0.07;
+  float edge = smoothstep(0.0, 0.012, min(min(s.x, 1.0 - s.x), min(s.y, 1.0 - s.y)));
+  return col * edge;
+}
+`;
+  var warp = `
+vec3 scene(vec2 uv, vec2 asp, float t, vec2 rip) {
+  float P = max(2.0, floor(min(u_resolution.x, u_resolution.y) / 230.0));
+  vec2 p = (floor(uv * u_resolution / P) * P + P * 0.5 - 0.5 * u_resolution) / u_resolution.y;
+  p -= (u_pointer - 0.5) * asp * 0.35;
+  float fl = pxFlow();
+  float beat = pxBeat(t);
+  vec3 col = u_colors[0] * 0.45 + u_colors[1] * 0.22 * smoothstep(1.1, 0.0, length(p));
+  for (int i = 0; i < 7; i++) {
+    float fi = float(i);
+    float z = fract(fi / 7.0 + fl * 0.07);
+    float sc = mix(14.0, 0.8, z);
+    vec2 q = p * sc + fi * 17.3;
+    vec2 id = floor(q);
+    vec2 f = fract(q) - 0.5;
+    if (hash21(id + fi) < 0.5) continue;
+    vec2 o = (vec2(hash21(id + 1.3), hash21(id + 2.7)) - 0.5) * 0.6;
+    vec2 dd = abs(f - o);
+    float sz = (0.02 + 0.07 * z) * (1.0 + beat * 0.7);
+    float s = step(max(dd.x, dd.y), sz);
+    float fade = smoothstep(0.0, 0.35, z) * smoothstep(1.0, 0.82, z);
+    col += coverSoft(vec2(hash21(id + 4.1), hash21(id + 5.9)) + rip, 0.0) * 1.6 * s * fade;
+  }
+  return col;
+}
+`;
+  var tiles = `
+vec3 scene(vec2 uv, vec2 asp, float t, vec2 rip) {
+  vec2 fc = uv * u_resolution;
+  float S = pxCell(13.0);
+  vec2 cell = floor(fc / S);
+  vec2 f = fract(fc / S);
+  vec2 cuv = (cell + 0.5) * S / u_resolution;
+  vec2 dm = (cuv - u_pointer) * asp;
+  float d = length((cuv - 0.5) * asp) + hash21(cell) * 0.06;
+  float ph = pxFlow() * 0.22 - d * 1.4 + 1.1 * exp(-dot(dm, dm) * 14.0);
+  float k = floor(ph);
+  float a = smoothstep(0.0, 0.4, fract(ph)) * 3.14159;
+  float side = mod(k, 2.0);
+  float cs = cos(a);
+  float face = cs > 0.0 ? side : 1.0 - side;
+  float w = abs(cs);
+  float lx = (f.x - 0.5) / max(w, 0.001) + 0.5;
+  bool onTile = lx > 0.05 && lx < 0.95 && f.y > 0.05 && f.y < 0.95;
+  vec2 sub = floor(clamp(vec2(lx, f.y), 0.0, 0.999) * 4.0);
+  vec2 suv = (cell + (sub + 0.5) / 4.0) * S / u_resolution;
+  vec3 front = coverSoft(pxCover(suv, 1.05, t) + rip, 0.5);
+  vec3 back = ramp(clamp(floor(pxLuma(front) * 4.0 + pxBayer(sub)) / 4.0, 0.0, 1.0));
+  vec3 col = (face < 0.5 ? front : back) * (0.5 + 0.5 * w) * (0.8 + 0.25 * pxBeat(t));
+  return onTile ? col : u_colors[0] * 0.25;
+}
+`;
+  var shuffle = `
+vec3 scene(vec2 uv, vec2 asp, float t, vec2 rip) {
+  vec2 fc = uv * u_resolution;
+  float S = pxCell(18.0);
+  vec2 cell = floor(fc / S);
+  vec2 f = fract(fc / S);
+  float cyc = pxFlow() * 0.16;
+  float k = floor(cyc);
+  vec2 dm = ((cell + 0.5) * S / u_resolution - u_pointer) * asp;
+  float scramble = max(1.0 - smoothstep(0.1, 0.7, fract(cyc)), exp(-dot(dm, dm) * 30.0));
+  vec2 rnd = vec2(hash21(cell + k * 3.1), hash21(cell + k * 7.7)) - 0.5;
+  vec2 off = floor(rnd * 7.0 * scramble + 0.5);
+  vec3 c = coverSoft(pxCover((cell + off + 0.5) * S / u_resolution, 1.04, t) + rip, 1.2);
+  bool moved = abs(off.x) + abs(off.y) > 0.5;
+  float edge = step(0.06, f.x) * step(0.06, f.y) * step(f.x, 0.94) * step(f.y, 0.94);
+  vec3 col = c * (moved ? 0.55 : 0.85);
+  col = mix(u_colors[0] * 0.3, col, edge);
+  if (moved && (f.y > 0.88 || f.x < 0.12)) col += u_colors[3] * 0.12;
+  return col * (1.0 + 0.15 * pxBeat(t));
+}
+`;
+  var rain = `
+vec3 scene(vec2 uv, vec2 asp, float t, vec2 rip) {
+  vec2 fc = uv * u_resolution;
+  float S = pxCell(46.0);
+  vec2 cell = floor(fc / S);
+  vec2 f = fract(fc / S);
+  vec2 cuv = (cell + 0.5) * S / u_resolution;
+  vec2 cu = pxCover(cuv, 1.05, t) + rip;
+  vec2 dm = (cuv - u_pointer) * asp;
+  vec3 col = coverSoft(cu, 2.0) * (0.12 + 0.7 * exp(-dot(dm, dm) * 26.0)) + u_colors[0] * 0.3;
+  float beat = pxBeat(t);
+  vec3 bright = coverSoft(cu, 1.0) * 1.6;
+  for (int k = 0; k < 2; k++) {
+    float kk = float(k);
+    if (hash21(vec2(cell.x, kk + 11.0)) < 0.35) continue;
+    float speed = 0.25 + hash21(vec2(cell.x, kk * 7.0)) * 0.75;
+    float scale = 0.8 + kk * 0.5;
+    float tt = fract(cuv.y * scale + pxFlow() * speed * 0.35 + hash21(vec2(cell.x * 1.3, kk + 3.0)));
+    float head = step(tt, S / u_resolution.y * scale);
+    float fall = 1.0 - tt;
+    float fall4 = fall * fall;
+    fall4 *= fall4;
+    col += bright * (fall4 * fall4 * fall * 0.9) + head * mix(bright, vec3(1.0), 0.6) * (0.6 + 0.7 * beat);
+  }
+  return col * (0.75 + 0.25 * step(0.12, f.x) * step(0.12, f.y));
+}
+`;
+  var skyline = `
+// Rolling bass / mid / treble history, newest row last (the renderer feeds it from the audio driver).
+uniform vec3 u_hist[24];
+
+vec3 scene(vec2 uv, vec2 asp, float t, vec2 rip) {
+  vec2 fc = uv * u_resolution;
+  float S = pxCell(34.0);
+  vec2 cell = floor(fc / S);
+  vec2 f = fract(fc / S);
+  vec2 cuv = (cell + 0.5) * S / u_resolution;
+  // Bass in the middle, treble at the edges; columns farther out read slightly older history (at most about 0.25 s), so a hit travels outwards.
+  float xs = abs(cuv.x - 0.5) * 2.0;
+  float lag = xs * 3.0;
+  int lagRow = int(lag);
+  vec3 h = mix(u_hist[23 - lagRow], u_hist[22 - lagRow], fract(lag));
+  float band = xs < 0.4 ? mix(h.x, h.y, xs / 0.4) : mix(h.y, h.z, (xs - 0.4) / 0.6) * (1.0 - 0.4 * (xs - 0.4));
+  // Everything below is a function of the music only: with the music paused the skyline stands still.
+  float character = 0.55 + 0.9 * hash21(vec2(cell.x, 3.7));
+  float rest = 0.05 + 0.05 * hash21(vec2(cell.x, 9.0));
+  float height = clamp(rest + 0.55 * band * character +
+    0.14 * u_beat.x * hash21(vec2(cell.x, 5.3)), 0.0, 0.72);
+  float lit = step(cuv.y, height);
+  float cap = step(abs(cuv.y - (height + 1.5 * S / u_resolution.y)), 0.5 * S / u_resolution.y);
+  vec3 c = coverSoft(pxCover(cuv, 1.05, 0.0) + rip, 1.0);
+  vec3 col = mix(c * 0.1 + u_colors[0] * 0.25, c * 1.15, lit) + cap * mix(c, vec3(1.0), 0.5);
+  return col * mix(0.45, 1.0, step(0.1, f.x) * step(0.1, f.y));
+}
+`;
+  var pixelScenes = {
+    coverPixelCrt: crt,
+    coverPixelWarp: warp,
+    coverPixelTiles: tiles,
+    coverPixelShuffle: shuffle,
+    coverPixelRain: rain,
+    coverPixelSkyline: skyline
+  };
+
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/coverScenes.ts
   var common = `
 uniform sampler2D u_coverA;
 uniform sampler2D u_coverB;
@@ -1141,16 +1366,17 @@ void main() {
   outputColor = vec4(finishFlat(col, fragCoord), 1.0);
 }
 `;
-  var scenes = { coverLiquid: liquid, coverPrism: prism, coverFrost: frost, coverPond: pond, coverHolo: holo, coverVinyl: vinyl, coverNeon: neon };
+  var scenes = { coverLiquid: liquid, coverPrism: prism, coverFrost: frost, coverPond: pond, coverHolo: holo, coverVinyl: vinyl, coverNeon: neon, ...pixelScenes };
   var needsLumaHelpers = (mode2) => mode2 === "coverHolo" || mode2 === "coverVinyl" || mode2 === "coverNeon";
   var buildCoverSceneSource = (prelude2, mode2) => `${prelude2}
 ${flatSceneHelpers}
 ${common}
 ${needsLumaHelpers(mode2) ? lumaHelpers : ""}
+${mode2 in pixelScenes ? pixelSceneHelpers : ""}
 ${scenes[mode2]}
 ${main}`;
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/sakuraScene.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/sakuraScene.ts
   var buildSakuraSceneSource = (prelude2) => `${prelude2}
 ${flatSceneHelpers}
 
@@ -1349,7 +1575,7 @@ void main() {
 }
 `;
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/sceneShaders.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/sceneShaders.ts
   var shaderSceneVertexSource = `#version 300 es
 precision highp float;
 
@@ -1755,10 +1981,16 @@ void main() {
     coverPond: buildCoverSceneSource(prelude, "coverPond"),
     coverHolo: buildCoverSceneSource(prelude, "coverHolo"),
     coverVinyl: buildCoverSceneSource(prelude, "coverVinyl"),
-    coverNeon: buildCoverSceneSource(prelude, "coverNeon")
+    coverNeon: buildCoverSceneSource(prelude, "coverNeon"),
+    coverPixelCrt: buildCoverSceneSource(prelude, "coverPixelCrt"),
+    coverPixelWarp: buildCoverSceneSource(prelude, "coverPixelWarp"),
+    coverPixelTiles: buildCoverSceneSource(prelude, "coverPixelTiles"),
+    coverPixelShuffle: buildCoverSceneSource(prelude, "coverPixelShuffle"),
+    coverPixelRain: buildCoverSceneSource(prelude, "coverPixelRain"),
+    coverPixelSkyline: buildCoverSceneSource(prelude, "coverPixelSkyline")
   };
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/shaderSceneAmbience.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/shaderSceneAmbience.ts
   var band = (seconds, rateA, rateB, phase) => 0.5 + 0.5 * (0.6 * Math.sin(seconds * rateA) + 0.4 * Math.sin(seconds * rateB + phase));
   var sampleShaderSceneAmbience = (seconds) => ({
     bass: 0.12 + 0.36 * band(seconds, 0.9, 0.37, 1.3),
@@ -1779,11 +2011,11 @@ void main() {
     }
   };
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/shaderSceneRenderer.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/shaderSceneRenderer.ts
   var shaderScenePixelBudgets = {
-    smooth: { liquidLight: 1024 * 576, contour: 1280 * 720, pulseRidge: 1280 * 720, halftone: 1280 * 720, sakura: 960 * 540, bfs: 960 * 540, coverLiquid: 1024 * 576, coverPrism: 1024 * 576, coverFrost: 1024 * 576, coverPond: 1024 * 576, coverHolo: 1024 * 576, coverVinyl: 1024 * 576, coverNeon: 1024 * 576 },
-    balanced: { liquidLight: 1280 * 720, contour: 1600 * 900, pulseRidge: 1600 * 900, halftone: 1600 * 900, sakura: 1280 * 720, bfs: 1152 * 648, coverLiquid: 1280 * 720, coverPrism: 1280 * 720, coverFrost: 1280 * 720, coverPond: 1280 * 720, coverHolo: 1280 * 720, coverVinyl: 1280 * 720, coverNeon: 1280 * 720 },
-    sharp: { liquidLight: 1600 * 900, contour: 1920 * 1080, pulseRidge: 1920 * 1080, halftone: 1920 * 1080, sakura: 1600 * 900, bfs: 1600 * 900, coverLiquid: 1600 * 900, coverPrism: 1600 * 900, coverFrost: 1600 * 900, coverPond: 1600 * 900, coverHolo: 1600 * 900, coverVinyl: 1600 * 900, coverNeon: 1600 * 900 }
+    smooth: { liquidLight: 1024 * 576, contour: 1280 * 720, pulseRidge: 1280 * 720, halftone: 1280 * 720, sakura: 960 * 540, bfs: 960 * 540, coverLiquid: 1024 * 576, coverPrism: 1024 * 576, coverFrost: 1024 * 576, coverPond: 1024 * 576, coverHolo: 1024 * 576, coverVinyl: 1024 * 576, coverNeon: 1024 * 576, coverPixelCrt: 1024 * 576, coverPixelWarp: 640 * 360, coverPixelTiles: 640 * 360, coverPixelShuffle: 640 * 360, coverPixelRain: 640 * 360, coverPixelSkyline: 640 * 360 },
+    balanced: { liquidLight: 1280 * 720, contour: 1600 * 900, pulseRidge: 1600 * 900, halftone: 1600 * 900, sakura: 1280 * 720, bfs: 1152 * 648, coverLiquid: 1280 * 720, coverPrism: 1280 * 720, coverFrost: 1280 * 720, coverPond: 1280 * 720, coverHolo: 1280 * 720, coverVinyl: 1280 * 720, coverNeon: 1280 * 720, coverPixelCrt: 1280 * 720, coverPixelWarp: 960 * 540, coverPixelTiles: 960 * 540, coverPixelShuffle: 960 * 540, coverPixelRain: 960 * 540, coverPixelSkyline: 960 * 540 },
+    sharp: { liquidLight: 1600 * 900, contour: 1920 * 1080, pulseRidge: 1920 * 1080, halftone: 1920 * 1080, sakura: 1600 * 900, bfs: 1600 * 900, coverLiquid: 1600 * 900, coverPrism: 1600 * 900, coverFrost: 1600 * 900, coverPond: 1600 * 900, coverHolo: 1600 * 900, coverVinyl: 1600 * 900, coverNeon: 1600 * 900, coverPixelCrt: 1600 * 900, coverPixelWarp: 1280 * 720, coverPixelTiles: 1280 * 720, coverPixelShuffle: 1280 * 720, coverPixelRain: 1280 * 720, coverPixelSkyline: 1280 * 720 }
   };
   var shaderSceneQualityScales = [1, 0.82, 0.68];
   var resolveShaderSceneCanvasSize = (mode2, cssWidth, cssHeight, devicePixelRatio, qualityScale = 1, quality = "balanced") => {
@@ -1814,11 +2046,11 @@ void main() {
         while (carryMs >= historyIntervalMs) {
           carryMs -= historyIntervalMs;
           values.copyWithin(0, 3);
-          const last = values.length - 3;
-          values[last] = bass;
-          values[last + 1] = mid;
-          values[last + 2] = treble;
         }
+        const last = values.length - 3;
+        values[last] = bass;
+        values[last + 1] = mid;
+        values[last + 2] = treble;
       }
     };
   };
@@ -1896,7 +2128,8 @@ void main() {
         coverA: locate("u_coverA"),
         coverB: locate("u_coverB"),
         coverMix: locate("u_coverMix"),
-        hasCover: locate("u_hasCover")
+        hasCover: locate("u_hasCover"),
+        restsOnSilence: isLyricsAudioReactiveCoverSceneMode(nextMode)
       };
     };
     try {
@@ -1911,6 +2144,10 @@ void main() {
       let light2 = initialPalette.lightTheme ? 1 : 0;
       let targetLight = light2;
       let sceneTimeSeconds = 0;
+      let activeUntilSeconds = 5;
+      const wake = (seconds) => {
+        activeUntilSeconds = Math.max(activeUntilSeconds, sceneTimeSeconds + seconds);
+      };
       let cssWidth = 0;
       let cssHeight = 0;
       let pixelRatio = 1;
@@ -1955,6 +2192,7 @@ void main() {
           canvas2.width = size.width;
           canvas2.height = size.height;
           gl.viewport(0, 0, size.width, size.height);
+          wake(5);
         }
       };
       const renderer2 = {
@@ -1993,7 +2231,7 @@ void main() {
           gl.uniform1f(current.flow, drive ? drive.flow : sceneTimeSeconds * shaderSceneAmbientFlowRate);
           gl.uniform1f(current.light, light2);
           gl.uniform3fv(current.colors, currentColors);
-          if (!current.cover) {
+          if (!current.cover || current.audio !== null || current.beat !== null || current.history !== null) {
             const visible = drive ? advanceEnvelope(drive, elapsedMs) : (() => {
               const ambient = sampleShaderSceneAmbience(sceneTimeSeconds);
               return {
@@ -2006,11 +2244,15 @@ void main() {
                 activity: shaderSceneAmbientActivity
               };
             })();
+            if (current.restsOnSilence && visible.energy + visible.bass + visible.mid + visible.treble + visible.beat >= 4e-3) {
+              wake(1.5);
+            }
             gl.uniform4f(current.audio, visible.energy, visible.bass, visible.mid, visible.treble);
             gl.uniform4f(current.beat, visible.beat, visible.pulse, visible.activity, 0);
             if (current.history) {
               if (drive) {
-                history.advance(elapsedMs, visible.bass, visible.mid, visible.treble);
+                const source = current.restsOnSilence ? drive : visible;
+                history.advance(elapsedMs, source.bass, source.mid, source.treble);
               } else {
                 fillShaderSceneAmbientHistory(history.values, sceneTimeSeconds);
               }
@@ -2039,6 +2281,9 @@ void main() {
               gl.activeTexture(gl.TEXTURE0);
               gl.bindTexture(gl.TEXTURE_2D, front);
             }
+          }
+          if (current.restsOnSilence && sceneTimeSeconds > activeUntilSeconds && coverMix >= 1) {
+            return;
           }
           gl.drawArrays(gl.TRIANGLES, 0, 3);
         },
@@ -2072,6 +2317,7 @@ void main() {
         setPalette: (palette, immediate = false) => {
           targetColors.set(createShaderSceneColors(palette));
           targetLight = palette.lightTheme ? 1 : 0;
+          wake(5);
           if (immediate) {
             currentColors.set(targetColors);
             light2 = targetLight;
@@ -2094,6 +2340,7 @@ void main() {
             lateness = 1;
             framesSinceAdjust = 0;
             previousTimestamp = null;
+            wake(5);
             applySize();
             return true;
           } catch {
@@ -2138,6 +2385,7 @@ void main() {
             frontCover = target;
             hasCover = true;
             currentCoverKey = key;
+            wake(5);
             return true;
           } catch {
             releaseCovers();
@@ -2147,7 +2395,10 @@ void main() {
         coverKey: () => currentCoverKey,
         pointerMove: (x, y) => interaction.move(x, y),
         pointerLeave: () => interaction.leave(),
-        pointerPress: (x, y) => interaction.press(x, y),
+        pointerPress: (x, y) => {
+          interaction.press(x, y);
+          wake(6);
+        },
         isContextLost: () => disposed || gl.isContextLost(),
         park: () => {
           if (disposed || gl.isContextLost()) {
@@ -2219,7 +2470,7 @@ void main() {
     releaseUnused: discardShaderSceneSurface
   });
 
-  // ../echo/src/renderer/components/lyrics/shader-scenes/shaderScenePalettes.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/shader-scenes/shaderScenePalettes.ts
   var shaderScenePalettePresets = {
     sakura: ["#1b0e1d", "#5b2a63", "#e4577f", "#ffd6c8"],
     ocean: ["#04101c", "#0c3b5e", "#2192b8", "#b4f2ff"],
@@ -2305,7 +2556,7 @@ void main() {
     };
   };
 
-  // ../echo/src/renderer/components/lyrics/flowingLightRenderer.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/flowingLightRenderer.ts
   var maximumCanvasPixels = 960 * 540 / 2;
   var vertexShaderSource = `#version 300 es
 precision highp float;
@@ -2677,7 +2928,7 @@ void main() {
     releaseUnused: discardFlowingLightSurface
   });
 
-  // ../echo/src/renderer/components/lyrics/lyricsBackdropPalette.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/lyricsBackdropPalette.ts
   var clampChannel = (value) => Math.round(Math.max(0, Math.min(255, value)));
   var clampUnit2 = (value) => Math.max(0, Math.min(1, value));
   var mixRgb = (from, to, amount) => {
@@ -2738,7 +2989,7 @@ void main() {
     };
   };
 
-  // ../echo/src/renderer/components/lyrics/cover-flow/coverFlowColor.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/cover-flow/coverFlowColor.ts
   var clampUnit3 = (value) => Math.max(0, Math.min(1, value));
   var linear = (v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
   var rgbToLab = ([r, g, b]) => {
@@ -2778,7 +3029,7 @@ void main() {
   };
   var mixColor = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
-  // ../echo/src/renderer/components/lyrics/cover-flow/coverFlowShader.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/cover-flow/coverFlowShader.ts
   var coverFlowVertexShader = `
 attribute vec2 a_position;
 varying vec2 v_uv;
@@ -2854,7 +3105,7 @@ void main() {
 }
 `;
 
-  // ../echo/src/renderer/components/lyrics/cover-flow/coverFlowRenderer.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/cover-flow/coverFlowRenderer.ts
   var coverFlowMaxPixels = 196608;
   var coverFlowRenderSize = (width, height) => {
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return { width: 1, height: 1 };
@@ -2962,7 +3213,7 @@ void main() {
     }
   };
 
-  // ../echo/src/renderer/components/lyrics/cover-flow/coverFlowPalette.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/cover-flow/coverFlowPalette.ts
   var coverFlowMaxSamples = 4096;
   var defaultCoverFlowPalette = {
     colors: [[0.24, 0.32, 0.38], [0.23, 0.28, 0.34], [0.32, 0.39, 0.45], [0.54, 0.59, 0.62], [0.13, 0.19, 0.24]],
@@ -3048,7 +3299,7 @@ void main() {
     };
   };
 
-  // ../echo/src/shared/constants/geometricAmbienceSettings.ts
+  // ../ECHOSteam/src/shared/constants/geometricAmbienceSettings.ts
   var defaultGeometricAmbienceSettings = {
     lyricsGeometricCoverColorsEnabled: false,
     lyricsGeometricSpeedPercent: 100,
@@ -3062,7 +3313,7 @@ void main() {
   // image:../../assets/geometric-ambience/geometry.png
   var geometry_default = "geometry.png";
 
-  // ../echo/src/renderer/components/lyrics/geometricAmbienceLayout.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/geometricAmbienceLayout.ts
   var sourceWidth = 1672;
   var sourceHeight = 941;
   var sprites = [[79, 223, 298, 291], [488, 225, 279, 284], [872, 232, 309, 271], [80, 719, 296, 291], [488, 724, 278, 280], [874, 730, 312, 275]];
@@ -3122,7 +3373,7 @@ void main() {
     [0.551, 0.941, 6, 4]
   ];
 
-  // ../echo/src/renderer/components/lyrics/geometricAmbienceRenderer.ts
+  // ../ECHOSteam/src/renderer/components/lyrics/geometricAmbienceRenderer.ts
   var geometricCanvasSize = (width, height) => {
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return [1, 1];
     const ratio = Math.min(1, Math.sqrt(921600 / (width * height)));
@@ -3389,7 +3640,7 @@ void main() {
     elapsed += Math.min(100, Math.max(0, dt));
     if (mode === "coverFlow") renderer.draw(elapsed / 1e3, light);
     else if (mode === "geometricAmbience") renderer.draw(dt, driver.drive);
-    else renderer.draw(ms, dt, mode === "flowingLight" ? driver.drive : null);
+    else renderer.draw(ms, dt, mode === "flowingLight" || isLyricsShaderSceneMusicReactive(mode) ? driver.drive : null);
   }
   function cover(c) {
     if (mode === "coverFlow") {

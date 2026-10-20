@@ -11,7 +11,7 @@
   <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" Margin="0,0,0,14">
     <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
       <StackPanel Spacing="7">
-        <StackPanel Orientation="Horizontal" Spacing="12"><icon:GlyphIcon Kind="history" Width="25" Height="25" Stroke="{DynamicResource EchoAccentText}" VerticalAlignment="Center" /><TextBlock Text="{DynamicResource navigation.history}" FontSize="{StaticResource EchoPageTitleSize}" FontWeight="SemiBold" Classes="heading" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12"><icon:GlyphIcon Kind="history" Width="25" Height="25" Stroke="{DynamicResource EchoAccentText}" VerticalAlignment="Center" /><TextBlock Text="{DynamicResource navigation.history}" Classes="page-title" /></StackPanel>
         <TextBlock Text="{DynamicResource history.caption}" Classes="muted" FontSize="12" />
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top" Margin="0,4,0,0">
@@ -69,21 +69,21 @@
     </StackPanel>
     <Grid Grid.Row="4">
       <Grid IsVisible="{Binding IsRecords}" RowDefinitions="Auto,Auto,*">
-        <TextBlock Text="{Binding CountText}" Classes="subtle" FontSize="11" Margin="0,0,0,15" />
+        <TextBlock Text="{Binding CountText}" Classes="subtle" FontSize="12" Margin="0,0,0,15" />
         <Grid Name="RecordsColumns" Grid.Row="1" ColumnDefinitions="64,3*,2*,150,28" ColumnSpacing="16" Margin="14,0,14,4">
           <TextBlock Text="{DynamicResource history.time}" Classes="history-column" />
           <TextBlock Grid.Column="1" Text="{DynamicResource history.track}" Classes="history-column" />
           <TextBlock Name="AlbumColumn" Grid.Column="2" Text="{DynamicResource history.album}" Classes="history-column" />
           <TextBlock Grid.Column="3" Text="{DynamicResource history.progress}" Classes="history-column" />
         </Grid>
-        <ListBox Name="RecordsList" Grid.Row="2" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected, Mode=TwoWay}" DoubleTapped="OnPlay" KeyDown="OnRecordsKey" PointerPressed="OnRecordPointer" Background="Transparent" BorderThickness="0" IsEnabled="{Binding !IsLoading}">
+        <ListBox Name="RecordsList" Grid.Row="2" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected, Mode=TwoWay}" Tapped="OnPlay" KeyDown="OnRecordsKey" PointerPressed="OnRecordPointer" Background="Transparent" BorderThickness="0" IsEnabled="{Binding !IsLoading}">
           <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
           <ListBox.ItemTemplate><DataTemplate x:DataType="local:HistoryRow"><local:HistoryRecordRow /></DataTemplate></ListBox.ItemTemplate>
           <ListBox.ContextMenu><ContextMenu><MenuItem Header="{DynamicResource history.play}" Click="OnMenuPlay" /><MenuItem Header="{DynamicResource query.nextUp}" Click="OnMenuNext" /><MenuItem Header="{DynamicResource query.add}" Click="OnMenuAdd" /><Separator /><MenuItem Header="{DynamicResource history.copy}" Click="OnCopy" /><MenuItem Header="{DynamicResource history.showFolder}" Click="OnShowFolder" /></ContextMenu></ListBox.ContextMenu>
         </ListBox>
       </Grid>
       <local:HistoryReviewView Name="ReviewView" DataContext="{Binding Review}" IsVisible="{Binding $parent[local:HistoryView].((local:HistoryViewModel)DataContext).IsReview}" />
-      <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+      <StackPanel Classes="reveal" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
         <icon:GlyphIcon Kind="history" Width="32" Height="32" Stroke="{DynamicResource EchoSubtle}" HorizontalAlignment="Center" />
         <TextBlock Text="{DynamicResource history.empty}" FontSize="17" FontWeight="Medium" HorizontalAlignment="Center" />
         <TextBlock Text="{DynamicResource history.emptyHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" MaxWidth="380" TextAlignment="Center" />

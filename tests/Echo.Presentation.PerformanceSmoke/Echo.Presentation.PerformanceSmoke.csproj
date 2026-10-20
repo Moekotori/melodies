@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsAotCompatible>false</IsAotCompatible></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Echo.Core.Client/Echo.Core.Client.csproj" />
+    <ProjectReference Include="../../src/Echo.Platform/Echo.Platform.csproj" />
+    <ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <Compile Include="../../src/Echo.Desktop/Features/Albums/AlbumArtworkCache.cs" Link="Production/AlbumArtworkCache.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Albums/ArtworkColorSample.cs" Link="Production/ArtworkColorSample.cs" />
+    <Compile Include="../../src/Echo.Desktop/Controls/Lyrics/LyricsTextLayoutCache.cs" Link="Production/LyricsTextLayoutCache.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Player/SignalPathViewModel.cs" Link="Production/SignalPathViewModel.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Player/SignalPathPresentationState.cs" Link="Production/SignalPathPresentationState.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Player/SignalPathFacts.cs" Link="Production/SignalPathFacts.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Player/SignalPathNodes.cs" Link="Production/SignalPathNodes.cs" />
+    <Compile Include="../../src/Echo.Desktop/Features/Player/SignalPathSections.cs" Link="Production/SignalPathSections.cs" />
+  </ItemGroup>
+</Project>

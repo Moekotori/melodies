@@ -3,7 +3,7 @@
              x:Class="Echo.Desktop.Features.Radio.RadioStage" x:DataType="local:RadioViewModel"
              Background="{DynamicResource EchoField}">
   <Grid RowDefinitions="Auto,*" Margin="32">
-    <Button HorizontalAlignment="Left" Click="OnBack"><StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="chevron-left" Width="16" Height="16" /><TextBlock Text="返回全部电台" VerticalAlignment="Center" /></StackPanel></Button>
+    <Button HorizontalAlignment="Left" Click="OnBack"><StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="chevron-left" Width="16" Height="16" /><TextBlock Text="{DynamicResource ui.RadioStage.58b1d1c5fe44}" VerticalAlignment="Center" /></StackPanel></Button>
     <StackPanel Grid.Row="1" MaxWidth="760" HorizontalAlignment="Stretch" VerticalAlignment="Center" Spacing="20">
       <TextBlock Text="{Binding Status}" Classes="muted" FontSize="13" HorizontalAlignment="Center" />
       <local:RadioStereoMeters Height="132" Playing="{Binding MetersActive}" TickBrush="{DynamicResource EchoSubtle}" AccentBrush="{DynamicResource EchoAccentText}" />

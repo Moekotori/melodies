@@ -23,7 +23,7 @@ internal static class ArtistProbe
                     var group = index / 5; var name = group < names.Length ? names[group] : $"~ Artist {group:00000}";
                     var file = Path.Combine(media, $"artist-{group:00000}", $"track-{index:00000}.flac");
                     return new ScanEntry(new(file, LibraryPath.Key(file), 100, 123), ScanEntryKind.Metadata,
-                        new($"Song {index % 5 + 1}", group == 0 ? "Aimer feat. Aurora" : name,
+                        new($"Song {index % 5 + 1}", group == 0 ? "Aimer; Aurora" : name,
                             $"Record {group:00000}", name, 180, "FLAC", 48000, 24, TrackNumber: index % 5 + 1, Year: 2020));
                 }).ToArray();
                 await database.CommitScanBatchAsync(job, ++sequence, entries, cancellation);
@@ -49,7 +49,7 @@ internal static class ArtistProbe
                     timer.Restart(); var deep = await database.GetArtistsAsync(new(9600, Sort: sort, Descending: descending), cancellation);
                     Require(deep.Items.Count == 200, "deep artist page"); samples.Add(timer.Elapsed.TotalMilliseconds);
                 }
-            var track = songs.Items.First(t => t.Artist == "Aimer feat. Aurora");
+            var track = songs.Items.First(t => t.Artist == "Aimer; Aurora");
             job = await database.BeginScanAsync(media, false, cancellation);
             var moved = new ScanEntry(new(track.Path, LibraryPath.Key(track.Path), 200, 124), ScanEntryKind.Metadata,
                 new("Moved", "Moved Artist", "Record 00000", "Aimer", 90, "FLAC", 48000, 24), track.Id);

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../Echo.Contracts/Echo.Contracts.csproj" />
+    <ProjectReference Include="../../Echo.Application/Echo.Application.csproj" />
+    <InternalsVisibleTo Include="Echo.NetworkLyrics.Smoke" />
+  </ItemGroup>
+</Project>

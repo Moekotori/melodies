@@ -21,7 +21,8 @@ internal static class MotionSmoke
         Require(page.IsTransitioning, "Navigation failed to start its transition.");
         var entering = page.Children.Last();
         Require(MotionLane.CurrentOpacity(entering) < 1, "Incoming page timeline did not interpolate its opacity.");
-        Require(MotionLane.Current(entering).Value.M32 > 0, "Incoming page timeline did not interpolate its translation.");
+        // Home → songs moves down the sidebar, so the page enters from the right.
+        Require(MotionLane.Current(entering).Value.M31 > 0, "Incoming page timeline did not interpolate its forward slide.");
         Require(!page.Children.First().IsHitTestVisible, "Outgoing page still receives input.");
         model.NavigateCommand.Execute("albums");
         model.NavigateCommand.Execute("settings");
@@ -56,7 +57,8 @@ internal static class MotionSmoke
         model.Motion.SelectedChoice = model.Motion.Choices.First(x => x.Mode == MotionMode.Reduced);
         model.NavigateCommand.Execute("settings");
         Pump(20);
-        Require(page.Children.Last().RenderTransform!.Value.M32 == 0, "Reduced motion still translates the page.");
+        var reduced = page.Children.Last().RenderTransform!.Value;
+        Require(reduced.M31 == 0 && reduced.M32 == 0, "Reduced motion still translates the page.");
         Pump(130);
         Require(window.GetVisualDescendants().OfType<ToggleSwitch>().All(x => x.KnobTransitions.Count == 0),
             "Reduced motion retained switch knob movement.");

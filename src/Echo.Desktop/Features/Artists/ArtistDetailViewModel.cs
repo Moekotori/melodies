@@ -28,19 +28,33 @@ public sealed partial class ArtistDetailViewModel : ObservableObject, IDisposabl
     [ObservableProperty] private int activeTab;
     [ObservableProperty] private int sortIndex;
     [ObservableProperty] private bool descending;
+    [ObservableProperty] private bool tracksExpanded = true;
+    [ObservableProperty] private bool allTracks;
     public ArtistRow Artist { get; }
     public ArtistOverviewViewModel Overview { get; }
     private readonly Localization.LocalizationService? _text;
-    public string Meta => _text?.Format("artist.detail.format.meta", Artist.TrackCount, Artist.AlbumCount, ArtistOverviewViewModel.FormatDuration(Artist.DurationSeconds, _text))
-        ?? $"{Artist.TrackCount:N0} 首曲目  ·  {Artist.AlbumCount:N0} 张专辑  ·  {ArtistOverviewViewModel.FormatDuration(Artist.DurationSeconds)}";
+    public string Meta => _text?.Format("artist.content.meta", Artist.TrackCount, Artist.AlbumCount)
+        ?? $"{Artist.TrackCount:N0} 首歌曲  ·  {Artist.AlbumCount:N0} 张专辑";
     public string DurationLabel => $"{TimeSpan.FromSeconds(Artist.DurationSeconds).TotalMinutes:N0} 分钟";
     public string Duration => DurationLabel;
     public bool IsOverview => ActiveTab == 0;
     public bool IsAlbums => ActiveTab == 1;
-    public bool IsTracks => ActiveTab == 2;
-    public bool ShowTracks => !IsAlbums;
-    public IReadOnlyList<AlbumTrackItem> VisibleTracks => IsOverview ? Tracks.Take(6).ToArray() : Tracks;
-    public double TrackListHeight => IsOverview ? Math.Min(6, Tracks.Count) * 57 : 448;
+    public bool IsTracks => IsOverview && AllTracks;
+    public bool ShowTracks => IsOverview && TracksExpanded;
+    public bool CanExpandTracks => !AllTracks && Artist.TrackCount > 6;
+    public bool HasTrackPages => AllTracks && HasMultiplePages;
+    public IReadOnlyList<AlbumTrackItem> VisibleTracks => AllTracks ? Tracks : Tracks.Take(6).ToArray();
+    public IReadOnlyList<ArtistHighlight> PreviewTracks => Tracks.Take(6).Select(track => new ArtistHighlight(track.Row, track.Row.Album, IsPlaying: track.IsPlaying)).ToArray();
+    public double TrackListHeight => 448;
+    public string TracksHeading => _text?.Format("artist.content.tracksHeading", Artist.Name) ?? $"{Artist.Name} 的歌曲";
+    public string TracksCount => _text?.Format("artist.content.loadedTracks", VisibleTracks.Count, Artist.TrackCount) ?? $"{VisibleTracks.Count}/{Artist.TrackCount}";
+    public string TracksToggle => _text?[TracksExpanded ? "artist.content.collapseTracks" : "artist.content.expandTracks"] ?? "歌曲";
+    private void NotifyTrackContent()
+    { foreach (var name in new[] { nameof(ShowTracks), nameof(VisibleTracks), nameof(IsTracks), nameof(TracksCount), nameof(TracksToggle), nameof(PreviewTracks), nameof(CanExpandTracks), nameof(HasTrackPages) }) OnPropertyChanged(name); }
+    partial void OnTracksExpandedChanged(bool value) => NotifyTrackContent();
+    partial void OnAllTracksChanged(bool value) => NotifyTrackContent();
+    [RelayCommand] private void ToggleTracks() => TracksExpanded = !TracksExpanded;
+    [RelayCommand] private void ExpandAll() { AllTracks = true; TracksExpanded = true; }
     public bool IsEmpty => !IsLoading && Error.Length == 0 && Tracks.Count == 0;
     partial void OnTracksChanging(IReadOnlyList<AlbumTrackItem> value)
     { foreach (var item in Tracks) item.PropertyChanged -= OnTrackState; }
@@ -48,6 +62,7 @@ public sealed partial class ArtistDetailViewModel : ObservableObject, IDisposabl
     {
         foreach (var item in value) item.PropertyChanged += OnTrackState;
         OnPropertyChanged(nameof(VisibleTracks)); OnPropertyChanged(nameof(TrackListHeight)); OnPropertyChanged(nameof(IsEmpty));
+        NotifyTrackContent();
     }
     private void OnTrackState(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
@@ -73,13 +88,19 @@ public sealed partial class ArtistDetailViewModel : ObservableObject, IDisposabl
         _text = text; Overview = new(artist, library, text);
         if (_text is not null) _text.Changed += OnLanguage;
         _playingId = player.Session.Snapshot.Current?.TrackId;
+        Overview.PlayingTrackId = _playingId;
         player.Session.Changed += OnPlayback;
     }
-    private void OnLanguage() => OnPropertyChanged(nameof(Meta));
+    private void OnLanguage() { OnPropertyChanged(nameof(Meta)); OnPropertyChanged(nameof(TracksHeading)); NotifyTrackContent(); }
     private void OnPlayback(PlaybackSnapshot snapshot)
     {
         if (Interlocked.Exchange(ref _playingId, snapshot.Current?.TrackId) == snapshot.Current?.TrackId) return;
-        Dispatcher.UIThread.Post(() => { if (!_closed) foreach (var row in Tracks.Where(row => row.IsPlaying || row.Row.Id == _playingId)) row.IsPlaying = row.Row.Id == _playingId; });
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_closed) return;
+            foreach (var row in Tracks.Where(row => row.IsPlaying || row.Row.Id == _playingId)) row.IsPlaying = row.Row.Id == _playingId;
+            Overview.PlayingTrackId = _playingId; OnPropertyChanged(nameof(PreviewTracks));
+        });
     }
     public async Task LoadAsync(int offset = 0)
     {

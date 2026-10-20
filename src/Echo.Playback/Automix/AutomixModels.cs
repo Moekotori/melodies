@@ -5,6 +5,7 @@ namespace Echo.Playback;
 
 internal sealed class AutomixKey(int tonic, string mode, string camelot, double confidence)
 {
+    public double[] Chroma { get; init; } = [];
     public int Tonic { get; } = tonic;
     public string Mode { get; } = mode;
     public string Camelot { get; } = camelot;
@@ -13,6 +14,7 @@ internal sealed class AutomixKey(int tonic, string mode, string camelot, double 
 
 internal sealed class AutomixWindow
 {
+    public float[]? AlphaSpectral { get; init; }
     public required string Role { get; init; }
     public double StartSeconds { get; init; }
     public double DurationSeconds { get; init; }
@@ -48,6 +50,7 @@ internal sealed class AutomixAnalysis
     public double LeadingSilenceSeconds { get; init; }
     public double TrailingSilenceSeconds { get; init; }
     public double? IntegratedLufs { get; init; }
+    public double? IntroLufs { get; init; }
     public double? OutroLufs { get; init; }
     public double[] EnergyCurve { get; init; } = [];
     public double VocalWindowSeconds { get; init; }
@@ -75,8 +78,9 @@ internal sealed class AutomixSchedule(double highStart, double highEnd, double l
     public double HoldEnd { get; } = holdEnd;
 }
 
-internal sealed class AutomixPlan
+internal sealed record AutomixPlan
 {
+    public AutomixAlphaDsp? AlphaDsp { get; init; }
     public required string PlanId { get; init; }
     public required string Mode { get; init; }
     public required string HandoffProfile { get; init; }
@@ -122,6 +126,17 @@ internal sealed class AutomixPlan
         };
         if (FallbackReason is not null) json["fallbackReason"] = FallbackReason;
         if (Reason is not null) json["reason"] = Reason;
+        if (AlphaDsp is { } alpha)
+        {
+            var dsp = new JsonObject { ["style"] = alpha.Style };
+            if (alpha.EqControls is { } controls)
+            {
+                var values = new JsonArray();
+                foreach (var value in controls) values.Add((JsonNode?)JsonValue.Create(value));
+                dsp["eqControls"] = values;
+            }
+            json["alphaDsp"] = dsp;
+        }
         if (VocalConflict is not null) json["vocalConflictScore"] = VocalConflict;
         if (VocalExit is not null) json["vocalExitStartProgress"] = VocalExit;
         if (VocalEntry is not null) json["vocalEntryStartProgress"] = VocalEntry;

@@ -28,26 +28,26 @@
     </ItemsControl>
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel Spacing="3">
-        <TextBlock Text="主题动效" FontSize="13" />
-        <TextBlock Text="遵循系统和应用的动态效果偏好" Classes="theme-caption" />
+        <TextBlock Text="{DynamicResource ui.ThemeSurfaceSettings.74eded6b11ed}" FontSize="13" />
+        <TextBlock Text="{DynamicResource ui.ThemeSurfaceSettings.17a7108cab51}" Classes="theme-caption" />
       </StackPanel>
-      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding MotionEnabled, Mode=TwoWay}" AutomationProperties.Name="主题动效" />
+      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding MotionEnabled, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource ui.ThemeSurfaceSettings.74eded6b11ed}" />
     </Grid>
     <Border Height="1" Background="{DynamicResource EchoDivider}" />
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel Spacing="3">
-        <TextBlock Text="窗口亚克力" FontSize="13" />
-        <TextBlock Text="让桌面背景透过窗口" Classes="theme-caption" />
+        <TextBlock Text="{DynamicResource ui.ThemeSurfaceSettings.5e5c8a07b508}" FontSize="13" />
+        <TextBlock Text="{DynamicResource ui.ThemeSurfaceSettings.54d7919e7a94}" Classes="theme-caption" />
       </StackPanel>
-      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding AcrylicEnabled, Mode=TwoWay}" AutomationProperties.Name="窗口亚克力" />
+      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding AcrylicEnabled, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource ui.ThemeSurfaceSettings.5e5c8a07b508}" />
     </Grid>
     <Grid ColumnDefinitions="*,Auto">
-      <TextBlock Text="失焦时保持亚克力" FontSize="12" VerticalAlignment="Center" />
-      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding AcrylicKeepUnfocused, Mode=TwoWay}" AutomationProperties.Name="失焦时保持亚克力" />
+      <TextBlock Text="{DynamicResource ui.ThemeSurfaceSettings.79700147aeca}" FontSize="12" VerticalAlignment="Center" />
+      <ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding AcrylicKeepUnfocused, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource ui.ThemeSurfaceSettings.79700147aeca}" />
     </Grid>
     <StackPanel Spacing="8">
-      <TextBlock Text="窗口透明度" FontSize="12" />
-      <Slider Minimum="0" Maximum="100" Value="{Binding AcrylicTransparency, Mode=TwoWay}" AutomationProperties.Name="窗口透明度" />
+      <TextBlock Text="{DynamicResource ui.ThemeSurfaceSettings.6161dc6a019e}" FontSize="12" />
+      <Slider Minimum="0" Maximum="100" Value="{Binding AcrylicTransparency, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource ui.ThemeSurfaceSettings.6161dc6a019e}" />
       <TextBlock Text="{Binding AcrylicStatus}" Classes="theme-caption" TextWrapping="Wrap" />
     </StackPanel>
   </StackPanel>

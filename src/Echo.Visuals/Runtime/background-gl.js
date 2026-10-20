@@ -7,8 +7,10 @@ function __nativeGL(){
  createProgram:()=>({id:++__glNext,uniforms:{},samplers:{}}),attachShader:(p,s)=>{if(s.type===2)p.source=s.source;},
  linkProgram:p=>__background('compile',p.id,p.source),getProgramParameter:()=>true,deleteProgram:p=>{if(p)__background('deleteProgram',p.id)},
  useProgram:p=>{current=p},getUniformLocation:(p,name)=>{name=name.replace(/\[0\]$/,'');return __background('uniform',p.id,name)?{p,name}:null;},
- uniform1f:(u,a)=>{if(u)u.p.uniforms[u.name]=[a]},uniform2f:(u,...v)=>{if(u)u.p.uniforms[u.name]=v},uniform4f:(u,...v)=>{if(u)u.p.uniforms[u.name]=v},
- uniform3fv:(u,v)=>{if(u)u.p.uniforms[u.name]=Array.from(v)},uniform1i:(u,value)=>{if(u)u.p.samplers[u.name]=1000+value},
+ uniform1f:(u,a)=>{if(u){const v=u.p.uniforms[u.name]||(u.p.uniforms[u.name]=[0]);v[0]=a}},
+ uniform2f:(u,a,b)=>{if(u){const v=u.p.uniforms[u.name]||(u.p.uniforms[u.name]=[0,0]);v[0]=a;v[1]=b}},
+ uniform4f:(u,a,b,c,d)=>{if(u){const v=u.p.uniforms[u.name]||(u.p.uniforms[u.name]=[0,0,0,0]);v[0]=a;v[1]=b;v[2]=c;v[3]=d}},
+ uniform3fv:(u,v)=>{if(u){const out=u.p.uniforms[u.name]||(u.p.uniforms[u.name]=new Array(v.length));for(let i=0;i<v.length;i++)out[i]=v[i]}},uniform1i:(u,value)=>{if(u)u.p.samplers[u.name]=1000+value},
  viewport:(x,y,w,h)=>{gl.w=w;gl.h=h},
  drawArrays:()=>{const textures={};for(const [name,slot]of Object.entries(current.samplers))if(bindings[slot])textures[name]=bindings[slot].id;
  __background('draw',current.id,gl.w,gl.h,JSON.stringify(current.uniforms),JSON.stringify(textures));},

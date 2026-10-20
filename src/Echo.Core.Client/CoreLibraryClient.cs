@@ -5,16 +5,20 @@ using Echo.Contracts.Scanning;
 
 namespace Echo.Core.Client;
 
-public sealed partial class CoreLibraryClient : ICoreLibrary, Echo.Contracts.Remote.IRemoteIndexSync, ICoreTaskControl, ICoreBatchImport
+public sealed partial class CoreLibraryClient : ICoreLibrary, Echo.Contracts.Remote.IRemoteIndexSync, ICoreTaskControl, ICoreBatchImport, IArtistImportNotifications
 {
     private readonly CoreWireClient wire;
     private Guid activeTask;
     public event Action<string>? FolderChanged;
+    public event Action<ArtistImportSettings>? ArtistImportChanged;
     internal CoreLibraryClient(CoreWireClient wire)
     {
         this.wire = wire;
         wire.Received += message =>
-        { if (message.Method == "library.folder") FolderChanged?.Invoke(CoreJson.Read<string>(message.Payload)); };
+        {
+            if (message.Method == "library.folder") FolderChanged?.Invoke(CoreJson.Read<string>(message.Payload));
+            if (message.Method == "library.artistImport") ArtistImportChanged?.Invoke(CoreJson.Read<ArtistImportSettings>(message.Payload));
+        };
     }
 
     public async Task<ScanReport> ImportAsync(string folder, IProgress<ScanProgress> progress, CancellationToken cancellation)
@@ -45,6 +49,10 @@ public sealed partial class CoreLibraryClient : ICoreLibrary, Echo.Contracts.Rem
     }
     public Task<CoreTaskSnapshot[]> TasksAsync(CancellationToken token = default)
         => wire.CallAsync<CoreTaskSnapshot[]>("tasks.list", CoreJson.Empty, token);
+    public Task<CoreTaskSnapshot> GetTaskAsync(Guid id, CancellationToken token = default)
+        => wire.CallAsync<CoreTaskSnapshot>("tasks.get", CoreJson.Value(new CoreTaskCancel(id)), token);
+    public Task CancelTaskAsync(Guid id, CancellationToken token = default)
+        => wire.CallAsync("tasks.cancel", CoreJson.Value(new CoreTaskCancel(id)), token);
 
     private async Task<CoreTaskSnapshot> RunAsync(CoreTaskRequest request, IProgress<ScanProgress>? scan,
         IProgress<FolderResourceProgress>? resources, CancellationToken token, IProgress<Echo.Contracts.Remote.RemoteSyncProgress>? remote = null, IProgress<CoreTaskSnapshot>? status = null)

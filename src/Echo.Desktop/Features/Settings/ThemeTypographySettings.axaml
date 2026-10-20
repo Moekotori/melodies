@@ -1,29 +1,122 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:theme="using:Echo.Desktop.Theming" x:Class="Echo.Desktop.Features.Settings.ThemeTypographySettings" x:DataType="theme:ThemeViewModel">
-  <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /></UserControl.Styles>
-  <StackPanel Spacing="16">
-    <TextBlock Text="{DynamicResource appearance.native.a1e96724c160}" Classes="theme-section" />
-    <Grid ColumnDefinitions="76,*,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="12">
-      <TextBlock Text="{DynamicResource appearance.native.4c325915a6a2}" FontSize="12" VerticalAlignment="Center" />
-      <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableFonts}" Text="{Binding Font, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.4c325915a6a2}" />
-      <Button Grid.Column="2" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="main" Click="ImportFont" Classes="theme-quiet" />
-      <Button Grid.Column="3" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="main" Click="ClearFont" Classes="theme-quiet" />
-      <TextBlock Grid.Row="1" Text="{DynamicResource appearance.native.98259098f2f7}" FontSize="12" VerticalAlignment="Center" />
-      <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding AvailableFonts}" Text="{Binding ChineseFont, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.98259098f2f7}" />
-      <Button Grid.Row="1" Grid.Column="2" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="chinese" Click="ImportFont" Classes="theme-quiet" />
-      <Button Grid.Row="1" Grid.Column="3" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="chinese" Click="ClearFont" Classes="theme-quiet" />
-      <TextBlock Grid.Row="2" Text="{DynamicResource appearance.native.d9585f3c183f}" FontSize="12" VerticalAlignment="Center" />
-      <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding AvailableFonts}" Text="{Binding FallbackFont, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.d9585f3c183f}" />
-      <Button Grid.Row="2" Grid.Column="2" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="fallback" Click="ImportFont" Classes="theme-quiet" />
-      <Button Grid.Row="2" Grid.Column="3" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="fallback" Click="ClearFont" Classes="theme-quiet" />
+  <UserControl.Styles>
+    <StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" />
+    <Style Selector="Border.font-card"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="22,20" /></Style>
+    <Style Selector="TextBlock.font-label"><Setter Property="FontSize" Value="13" /><Setter Property="Foreground" Value="{DynamicResource EchoText}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="TextBlock.font-value"><Setter Property="FontSize" Value="12" /><Setter Property="FontFeatures" Value="tnum" /><Setter Property="HorizontalAlignment" Value="Right" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="Button.font-swatch"><Setter Property="Width" Value="22" /><Setter Property="Height" Value="22" /><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="11" /><Setter Property="Background" Value="Transparent" /></Style>
+    <Style Selector="Button.font-swatch Border"><Setter Property="CornerRadius" Value="11" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    <Style Selector="Button.font-swatch:pointerover Border"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="2" /></Style>
+    <Style Selector="Border.font-current"><Setter Property="Width" Value="34" /><Setter Property="Height" Value="34" /><Setter Property="CornerRadius" Value="6" /><Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" /><Setter Property="BorderThickness" Value="1" /></Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="20">
+    <Border Classes="font-card" Padding="28,24">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{DynamicResource appearance.fonts.preview}" Classes="theme-caption" />
+          <TextBlock Text="{DynamicResource appearance.fonts.previewTitle}" Classes="heading" FontSize="24" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{DynamicResource appearance.fonts.previewBody}" FontSize="14" TextWrapping="Wrap" />
+          <TextBlock Text="{DynamicResource appearance.fonts.previewMeta}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Top" HorizontalAlignment="Right">
+          <TextBlock Text="{DynamicResource appearance.fonts.colorTone}" Classes="theme-caption" HorizontalAlignment="Right" />
+          <theme:ThemeChoiceList Classes="theme-choices" ItemsSource="{Binding Tones}" SelectedItem="{Binding EditTone, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.fonts.colorTone}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
+      <Border Classes="font-card">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="4"><TextBlock Text="{DynamicResource appearance.fonts.primary}" Classes="theme-section" /><TextBlock Text="{DynamicResource appearance.fonts.primaryHint}" Classes="theme-caption" /></StackPanel>
+          <Grid ColumnDefinitions="44,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="16">
+            <TextBlock Text="{DynamicResource appearance.fonts.family}" Classes="font-label" />
+            <Grid Grid.Column="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+              <ComboBox ItemsSource="{Binding AvailableFonts}" Text="{Binding Font, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.4c325915a6a2}" />
+              <Button Grid.Column="1" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="main" Click="ImportFont" Classes="theme-action" />
+              <Button Grid.Column="2" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="main" Click="ClearFont" Classes="theme-quiet" ToolTip.Tip="{DynamicResource appearance.fonts.systemFontTip}" />
+            </Grid>
+            <TextBlock Grid.Row="1" Text="{DynamicResource appearance.fonts.color}" Classes="font-label" VerticalAlignment="Top" Margin="0,8,0,0" />
+            <StackPanel Grid.Row="1" Grid.Column="1" Spacing="10">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <Border Classes="font-current" Background="{DynamicResource EchoText}" />
+                <TextBox Grid.Column="1" Classes="theme-input" Text="{Binding PageTextColor, Mode=TwoWay}" PlaceholderText="{DynamicResource appearance.native.d7fa90d22bb7}" MaxLength="40" AutomationProperties.Name="{DynamicResource appearance.fonts.primaryColor}" />
+                <Button Grid.Column="2" Content="{DynamicResource appearance.native.d7fa90d22bb7}" Command="{Binding ResetPageTextCommand}" IsEnabled="{Binding HasPageTextOverride}" Classes="theme-quiet" />
+              </Grid>
+              <ItemsControl ItemsSource="{Binding TextSwatches}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="theme:TextSwatch">
+                  <Button Classes="font-swatch" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).PickPrimaryColorCommand}" CommandParameter="{Binding Hex}" ToolTip.Tip="{Binding Hex}" AutomationProperties.Name="{Binding Hex}"><Border Background="{Binding Brush}" /></Button>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+            <TextBlock Grid.Row="2" Text="{DynamicResource appearance.fonts.weight}" Classes="font-label" />
+            <theme:ThemeChoiceList Grid.Row="2" Grid.Column="1" Classes="theme-choices" HorizontalAlignment="Left" ItemsSource="{Binding WeightChoices}" SelectedItem="{Binding SelectedPrimaryWeight, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.fonts.primaryWeight}" />
+            <TextBlock Grid.Row="3" Text="{DynamicResource appearance.fonts.size}" Classes="font-label" />
+            <Grid Grid.Row="3" Grid.Column="1" ColumnDefinitions="*,48" ColumnSpacing="10">
+              <Slider Minimum="80" Maximum="140" SmallChange="5" LargeChange="10" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding PrimarySize, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.fonts.primarySize}" />
+              <TextBlock Grid.Column="1" Text="{Binding PrimarySize, StringFormat={}{0:0}%}" Classes="font-value" />
+            </Grid>
+          </Grid>
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="1" Classes="font-card">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="4"><TextBlock Text="{DynamicResource appearance.fonts.secondary}" Classes="theme-section" /><TextBlock Text="{DynamicResource appearance.fonts.secondaryHint}" Classes="theme-caption" /></StackPanel>
+          <Grid ColumnDefinitions="44,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="16">
+            <TextBlock Text="{DynamicResource appearance.fonts.family}" Classes="font-label" />
+            <Grid Grid.Column="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+              <ComboBox ItemsSource="{Binding AvailableFonts}" Text="{Binding SecondaryFont, Mode=TwoWay}" PlaceholderText="{DynamicResource appearance.fonts.followMain}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.fonts.secondaryFont}" />
+              <Button Grid.Column="1" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="secondary" Click="ImportFont" Classes="theme-action" />
+              <Button Grid.Column="2" Content="{DynamicResource appearance.fonts.followMain}" Command="{Binding FollowMainFontCommand}" IsEnabled="{Binding HasSecondaryFont}" Classes="theme-quiet" />
+            </Grid>
+            <TextBlock Grid.Row="1" Text="{DynamicResource appearance.fonts.color}" Classes="font-label" VerticalAlignment="Top" Margin="0,8,0,0" />
+            <StackPanel Grid.Row="1" Grid.Column="1" Spacing="10">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <Border Classes="font-current" Background="{DynamicResource EchoMuted}" />
+                <TextBox Grid.Column="1" Classes="theme-input" Text="{Binding SecondaryColor, Mode=TwoWay}" PlaceholderText="{DynamicResource appearance.native.d7fa90d22bb7}" MaxLength="40" AutomationProperties.Name="{DynamicResource appearance.fonts.secondaryColor}" />
+                <Button Grid.Column="2" Content="{DynamicResource appearance.native.d7fa90d22bb7}" Command="{Binding ResetSecondaryColorCommand}" IsEnabled="{Binding HasSecondaryColorOverride}" Classes="theme-quiet" />
+              </Grid>
+              <ItemsControl ItemsSource="{Binding TextSwatches}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="theme:TextSwatch">
+                  <Button Classes="font-swatch" Command="{Binding $parent[UserControl].((theme:ThemeViewModel)DataContext).PickSecondaryColorCommand}" CommandParameter="{Binding Hex}" ToolTip.Tip="{Binding Hex}" AutomationProperties.Name="{Binding Hex}"><Border Background="{Binding Brush}" /></Button>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+            <TextBlock Grid.Row="2" Text="{DynamicResource appearance.fonts.weight}" Classes="font-label" />
+            <theme:ThemeChoiceList Grid.Row="2" Grid.Column="1" Classes="theme-choices" HorizontalAlignment="Left" ItemsSource="{Binding WeightChoices}" SelectedItem="{Binding SelectedSecondaryWeight, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.fonts.secondaryWeight}" />
+            <TextBlock Grid.Row="3" Text="{DynamicResource appearance.fonts.size}" Classes="font-label" />
+            <Grid Grid.Row="3" Grid.Column="1" ColumnDefinitions="*,48" ColumnSpacing="10">
+              <Slider Minimum="80" Maximum="140" SmallChange="5" LargeChange="10" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding SecondarySize, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.fonts.secondarySize}" />
+              <TextBlock Grid.Column="1" Text="{Binding SecondarySize, StringFormat={}{0:0}%}" Classes="font-value" />
+            </Grid>
+          </Grid>
+        </StackPanel>
+      </Border>
     </Grid>
-    <TextBlock Text="{DynamicResource appearance.native.b6a607ab7ee2}" Classes="theme-caption" TextWrapping="Wrap" />
-    <TextBlock Text="{Binding FontStatus}" Classes="theme-caption" TextWrapping="Wrap" />
-    <Grid ColumnDefinitions="*,160,Auto" ColumnSpacing="12">
-      <StackPanel Spacing="4"><TextBlock Text="{DynamicResource appearance.native.aba8d16cfba8}" FontSize="13" /><TextBlock Text="{DynamicResource appearance.native.4b08d3bfb1a9}" Classes="theme-caption" /></StackPanel>
-      <TextBox Grid.Column="1" Text="{Binding PageTextColor, Mode=TwoWay}" PlaceholderText="{DynamicResource appearance.native.d7fa90d22bb7}" MaxLength="40" AutomationProperties.Name="{DynamicResource appearance.native.aba8d16cfba8}" />
-      <Button Grid.Column="2" Content="{DynamicResource appearance.native.d7fa90d22bb7}" Command="{Binding ResetPageTextCommand}" IsEnabled="{Binding HasPageTextOverride}" Classes="theme-quiet" />
+    <TextBlock Text="{DynamicResource appearance.fonts.weightHint}" Classes="theme-caption" TextWrapping="Wrap" />
+    <Expander Header="{DynamicResource appearance.fonts.fallback}" Classes="wallpaper-more" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="12" Margin="4,2,4,12">
+        <Grid ColumnDefinitions="76,*,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="12">
+          <TextBlock Text="{DynamicResource appearance.native.98259098f2f7}" FontSize="12" VerticalAlignment="Center" />
+          <ComboBox Grid.Column="1" ItemsSource="{Binding AvailableFonts}" Text="{Binding ChineseFont, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.98259098f2f7}" />
+          <Button Grid.Column="2" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="chinese" Click="ImportFont" Classes="theme-quiet" />
+          <Button Grid.Column="3" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="chinese" Click="ClearFont" Classes="theme-quiet" />
+          <TextBlock Grid.Row="1" Text="{DynamicResource appearance.native.d9585f3c183f}" FontSize="12" VerticalAlignment="Center" />
+          <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding AvailableFonts}" Text="{Binding FallbackFont, Mode=TwoWay}" IsEditable="True" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource appearance.native.d9585f3c183f}" />
+          <Button Grid.Row="1" Grid.Column="2" Content="{DynamicResource appearance.native.576d81bb0631}" Tag="fallback" Click="ImportFont" Classes="theme-quiet" />
+          <Button Grid.Row="1" Grid.Column="3" Content="{DynamicResource appearance.native.96a2a0bc3cf6}" Tag="fallback" Click="ClearFont" Classes="theme-quiet" />
+        </Grid>
+        <TextBlock Text="{DynamicResource appearance.fonts.fallbackHint}" Classes="theme-caption" TextWrapping="Wrap" />
+      </StackPanel>
+    </Expander>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <StackPanel Spacing="4" VerticalAlignment="Center">
+        <TextBlock Text="{DynamicResource appearance.native.b6a607ab7ee2}" Classes="theme-caption" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding FontStatus}" Classes="theme-caption" TextWrapping="Wrap" IsVisible="{Binding FontStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Text="{Binding Feedback}" Classes="theme-caption" TextWrapping="Wrap" IsVisible="{Binding Feedback, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+      <Button Grid.Column="1" Content="{DynamicResource appearance.fonts.reset}" Command="{Binding ResetTypographyCommand}" Classes="theme-action" />
     </Grid>
-    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource appearance.native.0e3e9f32bbdf}" FontSize="13" /><ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding RoundedCovers, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.native.0e3e9f32bbdf}" /></Grid>
-    <Grid ColumnDefinitions="*,Auto"><StackPanel Spacing="4"><TextBlock Text="{DynamicResource appearance.native.08af2512c311}" FontSize="13" /><TextBlock Text="{DynamicResource appearance.native.71eed35fa2f7}" Classes="theme-caption" /></StackPanel><ToggleButton Grid.Column="1" Theme="{StaticResource ThemeSwitch}" IsChecked="{Binding ArtistAlbumArtwork, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource appearance.native.08af2512c311}" /></Grid>
   </StackPanel>
 </UserControl>

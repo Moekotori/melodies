@@ -1,4 +1,5 @@
 #include "ffmpeg_metadata.hpp"
+#include "credit_tags.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -140,6 +141,11 @@ bool fillFfmpegAudioMetadata(const std::string& path, NativeMetadataResult& resu
   };
   assign(result.title, "title", "title"); assign(result.artist, "artist", "artist");
   assign(result.album, "album", "album"); assign(result.albumArtist, "albumArtist", "album_artist");
+  std::map<std::string,std::vector<std::string>> creditTags;
+  for (const auto* key : { "artist", "album_artist", "albumartist", "albumperformer", "performer", "personnel", "featuring", "soloist", "ensemble", "composer", "conductor", "lyricist", "writer", "arranger", "producer", "engineer", "mixer", "remixer", "djmixer" }) {
+    const auto value = text(key); if (!value.empty()) creditTags[key].push_back(value);
+  }
+  collectCreditTags(creditTags, result);
   if (!result.trackNo) result.trackNo = tagNumber(text("track"), 99999);
   if (!result.discNo) result.discNo = tagNumber(text("disc"), 99999);
   if (!result.year) result.year = tagNumber(text("date"), 9999);

@@ -1,0 +1,83 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <!-- Keep Semi's scrolling, gesture labels, check states and submenu interaction. -->
+    <ControlTheme x:Key="EchoMenuItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+      <Setter Property="FontFamily" Value="{DynamicResource EchoFont}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+      <Setter Property="MinHeight" Value="36" />
+      <Setter Property="Padding" Value="10,7" />
+      <Setter Property="FocusAdorner" Value="{x:Null}" />
+      <Style Selector="^ /template/ Border#PART_LayoutRoot">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="Transparent" />
+      </Style>
+      <Style Selector="^:pointerover /template/ Border#PART_LayoutRoot, ^:selected /template/ Border#PART_LayoutRoot, ^:focus-visible /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource EchoHover}" />
+      </Style>
+      <Style Selector="^ /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{DynamicResource EchoSubtle}" />
+        <Setter Property="Margin" Value="24,0,0,0" />
+      </Style>
+      <Style Selector="^ /template/ PathIcon#PART_ExpandIcon">
+        <Setter Property="Width" Value="12" /><Setter Property="Height" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+      </Style>
+      <Style Selector="^:not(:disabled) /template/ Popup#PART_Popup > Border">
+        <Setter Property="Background" Value="{DynamicResource EchoField}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" />
+        <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="5" /><Setter Property="MinWidth" Value="196" />
+      </Style>
+      <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.55" /></Style>
+      <Style Selector="^:disabled /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
+      </Style>
+    </ControlTheme>
+    <ControlTheme x:Key="EchoContextMenu" TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
+      <Setter Property="Background" Value="{DynamicResource EchoField}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="5" />
+      <Setter Property="MinWidth" Value="196" />
+      <Setter Property="FontFamily" Value="{DynamicResource EchoFont}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+      <Setter Property="ItemContainerTheme" Value="{StaticResource EchoMenuItem}" />
+    </ControlTheme>
+    <ControlTheme x:Key="EchoMenuFlyoutPresenter" TargetType="MenuFlyoutPresenter" BasedOn="{StaticResource {x:Type MenuFlyoutPresenter}}">
+      <Setter Property="Background" Value="{DynamicResource EchoField}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="5" />
+      <Setter Property="MinWidth" Value="196" />
+      <Setter Property="FontFamily" Value="{DynamicResource EchoFont}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+      <Setter Property="ItemContainerTheme" Value="{StaticResource EchoMenuItem}" />
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="ContextMenu"><Setter Property="Theme" Value="{StaticResource EchoContextMenu}" /></Style>
+  <!-- Flyouts can provide their own presenter theme; style the default properties without replacing it. -->
+  <Style Selector="MenuFlyoutPresenter">
+    <Setter Property="Background" Value="{DynamicResource EchoField}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoBorder}" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="5" /><Setter Property="MinWidth" Value="196" />
+    <Setter Property="FontFamily" Value="{DynamicResource EchoFont}" /><Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+    <Setter Property="ItemContainerTheme" Value="{StaticResource EchoMenuItem}" />
+  </Style>
+  <Style Selector="MenuItem:not(.lyrics-menu)"><Setter Property="Theme" Value="{StaticResource EchoMenuItem}" /></Style>
+  <Style Selector="ContextMenu MenuItem, MenuFlyoutPresenter MenuItem, MenuItem MenuItem">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
+  <Style Selector="ContextMenu Separator, MenuFlyoutPresenter Separator, MenuItem Separator">
+    <Setter Property="Background" Value="{DynamicResource EchoDivider}" />
+    <Setter Property="Height" Value="1" /><Setter Property="MinHeight" Value="1" />
+    <Setter Property="Margin" Value="10,5" />
+  </Style>
+</Styles>

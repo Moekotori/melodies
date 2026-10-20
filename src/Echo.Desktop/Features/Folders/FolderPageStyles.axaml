@@ -12,6 +12,6 @@
   </Style>
   <Style Selector="Button.folder-play"><Setter Property="CornerRadius" Value="20" /><Setter Property="Padding" Value="16,0" /><Setter Property="MinHeight" Value="38" /></Style>
   <Style Selector="WrapPanel#ActionBar Button.folder-secondary"><Setter Property="CornerRadius" Value="20" /></Style>
-  <Style Selector="ListBox#FolderTree ListBoxItem:selected TextBlock.folder-name"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="ListBox#FolderTree ListBoxItem:selected TextBlock.folder-name"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /><Setter Property="FontWeight" Value="Medium" /></Style>
   <Style Selector="ListBox#FolderTree ListBoxItem:selected icon|GlyphIcon"><Setter Property="BaseBrush" Value="{DynamicResource EchoAccentText}" /></Style>
 </Styles>

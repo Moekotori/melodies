@@ -11,6 +11,13 @@ public partial class SignalPathPanel : UserControl
     public SignalPathPanel() => InitializeComponent();
     private void Close(object? sender, RoutedEventArgs e) => CloseRequested?.Invoke();
     private void OpenSettings(object? sender, RoutedEventArgs e) => OutputSettingsRequested?.Invoke();
+    private static readonly string[] Tones = ["good", "proc", "warn", "danger", "muted"];
+
+    // The root carries exactly one tone class; styles key the glow and headline color off it.
+    private void ApplyTone(string tone)
+    {
+        foreach (var name in Tones) Root.Classes.Set(name, name == tone);
+    }
 
     public static MotionFlyout Create(Control target, Func<PlayerViewModel?> player, Action settings)
     {
@@ -23,11 +30,14 @@ public partial class SignalPathPanel : UserControl
         {
             (panel.DataContext as SignalPathViewModel)?.Dispose();
             var top = TopLevel.GetTopLevel(target);
-            panel.Width = Math.Clamp((top?.ClientSize.Width ?? 900) - 48, 280, 400);
-            panel.MaxHeight = Math.Clamp((top?.ClientSize.Height ?? 800) - 140, 240, 540);
-            panel.DiagnosticsExpander.IsExpanded = false;
-            panel.DoctorExpander.IsExpanded = false;
-            panel.DataContext = player() is { } model ? new SignalPathViewModel(model) : null;
+            panel.Width = Math.Clamp((top?.ClientSize.Width ?? 900) - 48, 280, 424);
+            panel.MaxHeight = Math.Clamp((top?.ClientSize.Height ?? 800) - 140, 240, 720);
+            panel.DiagnosticsToggle.IsChecked = false;
+            panel.DoctorToggle.IsChecked = false;
+            var view = player() is { } model ? new SignalPathViewModel(model) : null;
+            panel.DataContext = view;
+            panel.ApplyTone(view?.Tone ?? "muted");
+            if (view is not null) view.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(SignalPathViewModel.Tone)) panel.ApplyTone(view.Tone); };
             panel.ContentScroll.Offset = default;
             panel.CloseButton.Focus();
         };

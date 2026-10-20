@@ -10,7 +10,7 @@ public partial class MainWindow
 {
     private void OnGlobalSearchKey(object? sender, KeyEventArgs args)
     {
-        if (args.Handled || _viewModel is null || _viewModel.Shortcuts.IsRecording) return;
+        if (args.Handled || _viewModel is null || _viewModel.IsSetupOpen || _viewModel.Shortcuts.IsRecording) return;
         if (args.Key != Key.F4 || args.KeyModifiers != KeyModifiers.None) return;
         args.Handled = true;
         // Match the original host: F4 works in text fields and ignores auto-repeat.

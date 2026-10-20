@@ -6,15 +6,16 @@ using Echo.Visuals;
 namespace Echo.Desktop.Controls.Lyrics;
 
 internal sealed record BackgroundSceneRequest(long Revision,BackgroundSceneProject? Project,int Width,int Height,
-    bool Animate,bool Playing,float[] Spectrum,double PointerX=-1,double PointerY=-1,bool Press=false,bool Leave=false,long SpectrumTimestamp=0,int FrameRate=30);
+    bool Animate,bool Playing,float[] Spectrum,double PointerX=-1,double PointerY=-1,bool Press=false,bool Leave=false,long SpectrumTimestamp=0,int FrameRate=60,long Activity=0);
+internal sealed record BackgroundSceneReceipt(long Revision,SourceSceneFrame? Frame,string? Error,string? Diagnostic=null,bool Idle=false,long Activity=0);
 internal sealed class BackgroundSceneWorker:IDisposable
 {
     private readonly Channel<BackgroundSceneRequest> requests=Channel.CreateBounded<BackgroundSceneRequest>(new BoundedChannelOptions(1){SingleReader=true,FullMode=BoundedChannelFullMode.DropOldest});
     private readonly CancellationTokenSource stop=new();
-    private readonly Action<SourceSceneReceipt> deliver;
+    private readonly Action<BackgroundSceneReceipt> deliver;
     private readonly Task running;
     private BackgroundSceneRequest? pendingPress;
-    public BackgroundSceneWorker(Action<SourceSceneReceipt> deliver){this.deliver=deliver;running=Task.Run(Run);}
+    public BackgroundSceneWorker(Action<BackgroundSceneReceipt> deliver){this.deliver=deliver;running=Task.Run(Run);}
     public void Request(BackgroundSceneRequest value){if(value.Press)Interlocked.Exchange(ref pendingPress,value);requests.Writer.TryWrite(value);}
     private async Task Run()
     {
@@ -59,12 +60,13 @@ internal sealed class BackgroundSceneWorker:IDisposable
                     var now=clock.Elapsed.TotalMilliseconds;
                     if(!ReferenceEquals(lastSpectrum,request.Spectrum))
                     {lastSpectrum=request.Spectrum;spectrumJson=JsonSerializer.Serialize(request.Spectrum,BackgroundSceneJson.Default.SingleArray);}
-                    var picture=wallpaper?.Draw()??engine!.Draw(now,request.Animate?Math.Clamp(now-previous,1,250):0,
+                    var picture=wallpaper?.Draw()??engine!.TryDraw(now,request.Animate?Math.Clamp(now-previous,1,250):0,
                         spectrumJson,request.Playing,request.SpectrumTimestamp,request.FrameRate);
                     previous=now;
+                    if(picture is null){deliver(new(revision,null,null,Idle:true,Activity:request.Activity));continue;}
                     if(stop.IsCancellationRequested){picture.Dispose();break;}
                     // Engine/wallpaper returns an owned immutable picture; transfer it directly to the frame.
-                    deliver(new(revision,new(picture,(int)picture.CullRect.Width,(int)picture.CullRect.Height),null));
+                    deliver(new(revision,new(picture,(int)picture.CullRect.Width,(int)picture.CullRect.Height),null,Activity:request.Activity));
                 }
                 catch(OperationCanceledException)when(stop.IsCancellationRequested){break;}
                 catch(Exception error){failed=true;engine?.Dispose();engine=null;wallpaper?.Dispose();wallpaper=null;wallpaperAsset?.Dispose();wallpaperAsset=null;deliver(new(revision,null,"背景绘制失败",error.ToString()));}

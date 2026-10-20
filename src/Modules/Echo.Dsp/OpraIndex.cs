@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Echo.Dsp;
 
-internal sealed class OpraIndex(string path) : IDisposable
+internal sealed partial class OpraIndex(string path) : IDisposable
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(45) };
     private readonly SemaphoreSlim lane = new(1, 1);
@@ -39,7 +39,11 @@ internal sealed class OpraIndex(string path) : IDisposable
             command.CommandText = "SELECT e.data,p.name,coalesce(v.name,'') FROM records e JOIN records p ON e.parent=p.id LEFT JOIN records v ON p.parent=v.id WHERE e.kind='eq' AND e.id=$id";
             command.Parameters.AddWithValue("$id", id); using var reader = command.ExecuteReader();
             if (!reader.Read()) throw new IOException("OPRA 预设不存在，请重新搜索。");
-            return OpraPresetMapping.Create(id, reader.GetString(2) + " / " + reader.GetString(1), JsonNode.Parse(reader.GetString(0))!.AsObject());
+            var data = JsonNode.Parse(reader.GetString(0))!.AsObject();
+            var result = OpraPresetMapping.Create(id, reader.GetString(2) + " / " + reader.GetString(1), data);
+            result["productId"] = data["product_id"]?.DeepClone();
+            result["product"] = reader.GetString(1); result["vendor"] = reader.GetString(2);
+            return result;
         }
         finally { lane.Release(); }
     }

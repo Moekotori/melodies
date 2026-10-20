@@ -16,20 +16,26 @@ internal sealed class SourceSceneFrame(SKPicture picture, int width, int height)
     public SourceSceneFrame Retain() { Interlocked.Increment(ref references); return this; }
     public void Dispose() { if (Interlocked.Decrement(ref references) == 0) Picture.Dispose(); }
 }
-internal sealed class SourceSceneDraw(SourceSceneFrame frame, Rect bounds) : ICustomDrawOperation
+internal sealed class SourceSceneDraw(SourceSceneFrame frame, Rect bounds, BackgroundSceneRaster? raster = null) : ICustomDrawOperation
 {
     private readonly SourceSceneFrame frame = frame.Retain();
+    private readonly BackgroundSceneRaster? raster = raster?.Retain();
     public Rect Bounds { get; } = bounds;
-    public bool Equals(ICustomDrawOperation? other) => other is SourceSceneDraw draw && ReferenceEquals(frame, draw.frame) && Bounds == draw.Bounds;
+    public bool Equals(ICustomDrawOperation? other) => other is SourceSceneDraw draw && ReferenceEquals(frame, draw.frame) && ReferenceEquals(raster, draw.raster) && Bounds == draw.Bounds;
     public bool HitTest(Point point) => Bounds.Contains(point);
     public void Render(ImmediateDrawingContext context)
     {
         var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
         if (feature is null) return;
         using var lease = feature.Lease(); var canvas = lease.SkCanvas;
+        if (raster is not null)
+        {
+            raster.Draw(frame, canvas, lease.GrContext, SKRect.Create((float)Bounds.X, (float)Bounds.Y, (float)Bounds.Width, (float)Bounds.Height), lease.CurrentOpacity);
+            return;
+        }
         canvas.Save(); canvas.Translate((float)Bounds.X, (float)Bounds.Y);
         canvas.Scale((float)(Bounds.Width / frame.Width), (float)(Bounds.Height / frame.Height));
         canvas.DrawPicture(frame.Picture); canvas.Restore();
     }
-    public void Dispose() => frame.Dispose();
+    public void Dispose() { frame.Dispose(); raster?.Dispose(); }
 }

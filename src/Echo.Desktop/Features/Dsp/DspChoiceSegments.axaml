@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspChoiceSegments" x:DataType="local:DspChoiceField">
+  <UserControl.Styles>
+    <Style Selector="ListBox.dsp-segments"><Setter Property="HorizontalAlignment" Value="Stretch"/></Style>
+    <Style Selector="ListBox.dsp-segments ListBoxItem"><Setter Property="Padding" Value="8,8"/><Setter Property="Margin" Value="0"/></Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="9">
+    <TextBlock Text="{Binding Label}" FontSize="12" FontWeight="Medium"/>
+    <Border Classes="dsp-choice-track">
+      <ListBox Classes="dsp-segments" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected, Mode=TwoWay}">
+        <ListBox.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ListBox.ItemsPanel>
+        <ListBox.ItemTemplate><DataTemplate x:DataType="local:DspChoice"><TextBlock Text="{Binding Label}" FontSize="12" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" ToolTip.Tip="{Binding Label}"/></DataTemplate></ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+  </StackPanel>
+</UserControl>

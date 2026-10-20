@@ -9,11 +9,12 @@ public sealed partial class RadioViewModel
     private int draftBitrate;
     private CancellationTokenSource? probeLifetime;
 
-    [RelayCommand]
-    private void ToggleDirectory()
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private async Task ToggleDirectoryAsync()
     {
         DirectoryOpen = !DirectoryOpen;
         if (!DirectoryOpen) Directory.Cancel();
+        else await Directory.OpenAsync();
     }
 
     [RelayCommand]

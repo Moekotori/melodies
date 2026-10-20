@@ -21,6 +21,19 @@ internal static class SignalPathFacts
 }
 
 public sealed record SignalPathFact(string Label, string Value, string Detail = "", bool Highlight = false);
-public sealed record SignalPathNode(string Icon, string Title, string Value, string Detail);
+// Tone is one of good / proc / warn / danger / muted; the template keys its colors off the derived flags.
+public sealed record SignalPathNode(string Icon, string Title, string Value, string Detail,
+    bool IsLast = false, bool IsProcessing = false, string Tone = "good",
+    IReadOnlyList<SignalPathFact>? Facts = null, string Tag = "")
+{
+    public IReadOnlyList<SignalPathFact> Rows => Facts ?? [];
+    public bool HasTag => Tag.Length > 0;
+    public bool HasSummary => Rows.Count > 0;
+    public bool IsGood => Tone == "good";
+    public bool IsProc => Tone == "proc";
+    public bool IsWarn => Tone == "warn";
+    public bool IsDanger => Tone == "danger";
+    public bool IsMuted => Tone == "muted";
+}
 public sealed record SignalPathChip(string Label, string Value, bool Active);
 public sealed record SignalPathInsight(string Title, string Detail, string Advice);

@@ -14,7 +14,7 @@ internal static class SchemaMigrator
         var version = (long)probe.ExecuteScalar()!;
         probe.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'";
         var objects = (long)probe.ExecuteScalar()!;
-        if ((id != ApplicationId && (id != 0 || objects != 0)) || version > 23)
+        if ((id != ApplicationId && (id != 0 || objects != 0)) || version > 28)
             throw new InvalidOperationException("This is not a supported ECHO Avalonia database. Legacy databases require an explicit importer.");
         if (version is > 0 and < 4) ArtistSchema.Backup(connection);
         if (version == 0)
@@ -92,6 +92,21 @@ internal static class SchemaMigrator
         {
             if (version > 0) AlbumMetadataSchema.Backup(connection, 23);
             ScanIndexSchema.Migrate(connection);
+        }
+        if (version < 24)
+        {
+            if (version == 23) AlbumMetadataSchema.Backup(connection, 24);
+            ScanIndexSchema.RepairConflictHandling(connection);
+        }
+        if (version < 27)
+        {
+            if (version > 0) AlbumMetadataSchema.Backup(connection, 27);
+            ArtistGroupingSchema.Migrate(connection, includeAlbumArtists: version < 25);
+        }
+        if (version < 28)
+        {
+            if (version == 27) AlbumMetadataSchema.Backup(connection, 28);
+            ArtistRoleSchema.Migrate(connection);
         }
         probe.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;";
         probe.ExecuteNonQuery();

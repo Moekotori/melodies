@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Echo.Contracts.Library;
@@ -22,6 +23,7 @@ public partial class SongTrackRow : UserControl
     private CancellationTokenSource? request;
     private PlayerViewModel? observing;
     private int generation;
+    private string subtitleArtist = "", subtitleJoined = "", specInline = "";
     public SongTrackRow()
     {
         InitializeComponent(); DataContextChanged += (_, _) => UpdateRow();
@@ -50,15 +52,18 @@ public partial class SongTrackRow : UserControl
     private void UpdateRow()
     {
         if (DataContext is not TrackRow row) { Release(); return; }
-        Subtitle.Text = string.Join(" · ", new[] { row.Artist, row.Album }.Where(value => !string.IsNullOrWhiteSpace(value)));
+        subtitleArtist = row.Artist; subtitleJoined = string.Join(" · ", new[] { row.Artist, row.Album }.Where(value => !string.IsNullOrWhiteSpace(value)));
         FormatText.Text = row.Codec.ToUpperInvariant(); FormatTag.IsVisible = row.Codec.Length > 0;
         var rate = row.SampleRate >= 1000000 ? $"{row.SampleRate / 1000000d:0.##} MHz" : $"{row.SampleRate / 1000d:0.#} kHz";
         SpecText.Text = row.BitDepth > 0 ? $"{row.BitDepth} bit / {rate}" : rate;
         SpecTag.IsVisible = row.SampleRate > 0;
         BpmTag.IsVisible = row.Source?.Bpm is > 0 && double.IsFinite(row.Source.Bpm.Value);
         BpmText.Text = BpmTag.IsVisible ? row.Source!.Bpm!.Value.ToString("0.#", CultureInfo.InvariantCulture) + " BPM" : "";
+        QualityFormatText.Text = FormatText.Text; QualityFormat.IsVisible = FormatTag.IsVisible;
+        QualitySpec.Text = SpecText.Text; QualitySpec.IsVisible = SpecTag.IsVisible;
+        QualityHiRes.IsVisible = row.BitDepth > 16 || row.SampleRate > 48000;
         ArtistColumn.Text = row.Artist; AlbumColumn.Text = row.Album;
-        SpecColumn.Text = string.Join(" · ", new[] { FormatTag.IsVisible ? FormatText.Text : "", SpecTag.IsVisible ? SpecText.Text : "" }.Where(part => part.Length > 0));
+        specInline = string.Join(" · ", new[] { FormatTag.IsVisible ? FormatText.Text : "", SpecTag.IsVisible ? SpecText.Text : "" }.Where(part => part.Length > 0));
         Duration.Text = row.DurationSeconds > 0 && double.IsFinite(row.DurationSeconds)
             ? (string)SongDurationConverter.Instance.Convert(row.DurationSeconds, typeof(string), null, CultureInfo.InvariantCulture) : "--:--";
         Heart.Kind = row.Favorite ? "heart-filled" : "heart"; FavoriteButton.Classes.Set("liked", row.Favorite);
@@ -73,7 +78,7 @@ public partial class SongTrackRow : UserControl
         using var current = new CancellationTokenSource(); request = current; var version = generation;
         try
         {
-            var acquired = await artwork.AcquireAsync(row.Source?.AudioPath ?? row.Path, current.Token, 96);
+            var acquired = await artwork.AcquireAsync(row.Source?.AudioPath ?? row.Path, current.Token, Layout == "split" ? 128 : 192);
             if (current.IsCancellationRequested || generation != version || !this.IsAttachedToVisualTree()) { acquired?.Dispose(); return; }
             lease = acquired;
             if (lease?.Image is { } image)
@@ -97,6 +102,10 @@ public partial class SongTrackRow : UserControl
         return model;
     }
     private void OnPlay(object? sender, RoutedEventArgs e) { e.Handled = true; Select()?.PlayCommand.Execute(null); }
+    private void OnArtistTap(object? sender, TappedEventArgs e)
+    { e.Handled = true; if (DataContext is TrackRow { Artist.Length: > 0 } row) this.FindAncestorOfType<SongsView>()?.OpenArtist(row); }
+    private void OnAlbumTap(object? sender, TappedEventArgs e)
+    { e.Handled = true; if (DataContext is TrackRow { Album.Length: > 0 } row) this.FindAncestorOfType<SongsView>()?.OpenAlbum(row); }
     private void OnFavorite(object? sender, RoutedEventArgs e) { e.Handled = true; Select()?.FavoriteCommand.Execute(null); }
     private void OnMore(object? sender, RoutedEventArgs e)
     {

@@ -3,110 +3,156 @@
              xmlns:drawers="using:Echo.Desktop.Features.Settings.Drawers" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Settings.Drawers.AudioSettingsDrawerView" x:DataType="shell:ShellViewModel">
   <UserControl.Resources><drawers:OutputDevicePresentation x:Key="DevicePresentation" /></UserControl.Resources>
-  <Grid RowDefinitions="*,Auto">
-    <TabControl Name="AudioTabs" Classes="drawer-tabs" Margin="0,14,0,0" SelectionChanged="OnCategoryChanged"
+  <UserControl.Styles>
+    <Style Selector="TextBlock.audio-hint"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="LineHeight" Value="18" /></Style>
+    <Style Selector="StackPanel.audio-field"><Setter Property="Spacing" Value="8" /></Style>
+    <Style Selector="Border.audio-section"><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="0,1,0,0" /><Setter Property="Padding" Value="0,20,0,0" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Name="OutputSummary" Margin="22,18,22,16" Padding="14" CornerRadius="12" Background="{DynamicResource DrawerInset}">
+      <Grid ColumnDefinitions="20,*" ColumnSpacing="12">
+        <icon:GlyphIcon Kind="speaker" Width="20" Height="20" VerticalAlignment="Center" Stroke="{DynamicResource EchoAccentText}" />
+        <StackPanel Grid.Column="1" Spacing="4">
+          <TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.f795eda78d39}" Classes="audio-hint" />
+          <TextBlock Text="{Binding Player.OutputName}" Classes="heading" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.OutputName}" />
+          <TextBlock Text="{Binding Player.Subtitle}" Classes="audio-hint" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <TabControl Name="AudioTabs" Grid.Row="1" Classes="drawer-tabs" SelectionChanged="OnCategoryChanged"
                 HorizontalContentAlignment="Stretch" IsEnabled="{Binding !Player.AudioSettings.IsApplying}">
-      <TabItem Header="{DynamicResource ui.PlaybackSettingsView.6538fe3f7e82}">
-        <ScrollViewer Classes="drawer-scroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <StackPanel Spacing="16" Margin="0,24,0,24">
-            <Grid ColumnDefinitions="18,*,Auto,26" ColumnSpacing="10" Height="36">
-              <icon:GlyphIcon Kind="waves" Width="17" Height="17" VerticalAlignment="Center" />
-              <TextBlock Grid.Column="1" Text="{DynamicResource ui.PlaybackSettingsView.6538fe3f7e82}" Classes="drawer-section" VerticalAlignment="Center" />
-              <TextBlock Grid.Column="2" Text="{Binding Player.AudioSettings.Devices.Count}" Classes="subtle" FontSize="10" VerticalAlignment="Center" />
-              <Button Grid.Column="3" Name="RefreshOutputButton" Classes="drawer-help" Command="{Binding Player.AudioSettings.RefreshCommand}" ToolTip.Tip="{DynamicResource drawer.audio.refreshHint}">
-                <icon:GlyphIcon Kind="refresh" Width="15" Height="15" />
-              </Button>
-            </Grid>
-            <ListBox Name="OutputModeInput" Classes="drawer-modes" ItemsSource="{Binding Player.AudioSettings.Modes}" SelectedItem="{Binding Player.AudioSettings.SelectedMode}">
-              <ListBox.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></ListBox.ItemsPanel>
-              <ListBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputMode"><TextBlock Text="{Binding Converter={StaticResource DevicePresentation}}" FontSize="12" TextTrimming="CharacterEllipsis" /></DataTemplate></ListBox.ItemTemplate>
-            </ListBox>
-            <ListBox Name="OutputDeviceInput" Classes="drawer-devices" MaxHeight="470" ItemsSource="{Binding Player.AudioSettings.Devices}"
-                     SelectedItem="{Binding Player.AudioSettings.SelectedDevice}" IsEnabled="{Binding !Player.AudioSettings.IsRefreshing}"
-                     PointerReleased="OnDeviceReleased" KeyDown="OnDeviceKeyDown">
-              <ListBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputDevice">
-                <Grid ColumnDefinitions="28,*,Auto,16" ColumnSpacing="10">
-                  <icon:GlyphIcon Kind="{Binding Converter={StaticResource DevicePresentation}, ConverterParameter=icon}" Width="21" Height="21" VerticalAlignment="Center" />
-                  <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Converter={StaticResource DevicePresentation}}" Classes="heading" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Converter={StaticResource DevicePresentation}, ConverterParameter=detail}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
-                  <Border Grid.Column="2" Background="{DynamicResource EchoPanelMuted}" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Converter={StaticResource DevicePresentation}, ConverterParameter=badge}" Classes="muted" FontSize="9" FontWeight="SemiBold" />
-                  </Border>
-                  <icon:GlyphIcon Grid.Column="3" Kind="check" Width="15" Height="15" VerticalAlignment="Center" Stroke="{DynamicResource EchoAccentText}"
-                                  IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
-                </Grid>
-              </DataTemplate></ListBox.ItemTemplate>
-            </ListBox>
-            <TextBlock Text="{Binding Player.AudioSettings.Message}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
-            <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,18,0,0" IsVisible="{Binding Player.HasTrack}">
-              <StackPanel Spacing="8"><TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.f795eda78d39}" Classes="drawer-section" /><TextBlock Text="{Binding Player.OutputName}" FontSize="13" FontWeight="SemiBold" /><TextBlock Text="{Binding Player.SignalPath}" Classes="muted" FontSize="11" TextWrapping="Wrap" /></StackPanel>
-            </Border>
-          </StackPanel>
-        </ScrollViewer>
+      <TabItem Header="{DynamicResource drawer.audio.devices}">
+        <Grid RowDefinitions="Auto,*">
+          <ProgressBar Height="2" IsIndeterminate="True" IsVisible="{Binding Player.AudioSettings.IsRefreshing}" VerticalAlignment="Top" />
+          <ScrollViewer Grid.Row="1" Classes="drawer-scroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14" Margin="0,20,0,24">
+              <Grid ColumnDefinitions="*,32" ColumnSpacing="12">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="{DynamicResource ui.PlaybackSettingsView.6538fe3f7e82}" Classes="drawer-section" />
+                  <TextBlock Text="{DynamicResource drawer.audio.deviceHint}" Classes="audio-hint" />
+                </StackPanel>
+                <Button Grid.Column="1" Name="RefreshOutputButton" Classes="drawer-action" Width="32" Padding="0" VerticalAlignment="Top"
+                        Command="{Binding Player.AudioSettings.RefreshCommand}" ToolTip.Tip="{DynamicResource drawer.audio.refreshHint}" AutomationProperties.Name="{DynamicResource ui.PlaybackSettingsView.dc54091453cc}">
+                  <icon:GlyphIcon Kind="refresh" Width="15" Height="15" />
+                </Button>
+              </Grid>
+              <ListBox Name="OutputModeInput" Classes="drawer-modes" ItemsSource="{Binding Player.AudioSettings.Modes}" SelectedItem="{Binding Player.AudioSettings.SelectedMode}"
+                       AutomationProperties.Name="{DynamicResource ui.PlayerOutputPanel.c25a1af82895}">
+                <ListBox.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+                <ListBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputMode"><TextBlock Text="{Binding Converter={StaticResource DevicePresentation}}" FontSize="12" TextTrimming="CharacterEllipsis" /></DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
+              <ListBox Name="OutputDeviceInput" Classes="drawer-devices" MaxHeight="470" ItemsSource="{Binding Player.AudioSettings.Devices}"
+                       SelectedItem="{Binding Player.AudioSettings.SelectedDevice}" IsEnabled="{Binding !Player.AudioSettings.IsRefreshing}"
+                       PointerReleased="OnDeviceReleased" KeyDown="OnDeviceKeyDown" AutomationProperties.Name="{DynamicResource ui.PlaybackSettingsView.6538fe3f7e82}">
+                <ListBox.ItemTemplate><DataTemplate x:DataType="playback:AudioOutputDevice">
+                  <Grid ColumnDefinitions="24,*,Auto,16" ColumnSpacing="10">
+                    <icon:GlyphIcon Kind="{Binding Converter={StaticResource DevicePresentation}, ConverterParameter=icon}" Width="21" Height="21" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Converter={StaticResource DevicePresentation}}" Classes="heading" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                      <TextBlock Text="{Binding Converter={StaticResource DevicePresentation}, ConverterParameter=detail}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Border Grid.Column="2" Background="{DynamicResource EchoPanelMuted}" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Converter={StaticResource DevicePresentation}, ConverterParameter=badge}" Classes="muted" FontSize="12" FontWeight="Medium" />
+                    </Border>
+                    <icon:GlyphIcon Grid.Column="3" Kind="check" Width="15" Height="15" VerticalAlignment="Center" Stroke="{DynamicResource EchoAccentText}"
+                                    IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
+                  </Grid>
+                </DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
+              <TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.98ab1e5750f7}" Classes="audio-hint" />
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
       </TabItem>
       <TabItem Header="{DynamicResource drawer.audio.outputSettings}">
         <ScrollViewer Classes="drawer-scroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <StackPanel Spacing="0" Margin="0,22,0,24">
-            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="40"><icon:GlyphIcon Kind="gauge" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource drawer.audio.advanced}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
-            <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,14,0,14">
-              <StackPanel Spacing="0">
-                <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="28"><icon:GlyphIcon Kind="headphones" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.AudioSettingsDrawerView.cc8e2aae1c76}" Classes="muted" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" /></Grid>
-                <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
-                  <icon:GlyphIcon Kind="sliders" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.PlayerOutputPanel.61600fa691d5}" FontSize="13" VerticalAlignment="Center" />
-                  <CheckBox Name="EqualizerInput" Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding Player.AudioSettings.EqualizerEnabled}" AutomationProperties.Name="{DynamicResource ui.PlayerOutputPanel.61600fa691d5}" />
-                  <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.equalizer}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
-                </Grid></Border>
-                <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,38,22" ColumnSpacing="10">
-                  <icon:GlyphIcon Kind="headphones" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.PlayerOutputPanel.a2018d18ffbc}" FontSize="13" VerticalAlignment="Center" />
-                  <CheckBox Name="CrossfeedInput" Grid.Column="2" Classes="drawer-switch" IsChecked="{Binding Player.AudioSettings.CrossfeedEnabled}" AutomationProperties.Name="{DynamicResource ui.PlayerOutputPanel.a2018d18ffbc}" />
-                  <Button Grid.Column="3" Classes="drawer-help" ToolTip.Tip="{DynamicResource drawer.help.crossfeed}"><icon:GlyphIcon Kind="help" Width="14" Height="14" /></Button>
-                </Grid></Border>
-                <Border Classes="drawer-row"><Grid ColumnDefinitions="18,*,100" ColumnSpacing="10"><icon:GlyphIcon Kind="gauge" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.PlayerOutputPanel.c114a632b201}" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Name="PlaybackRateInput" Grid.Column="2" Minimum="0.5" Maximum="2" Increment="0.05" FormatString="0.00" Value="{Binding Player.AudioSettings.PlaybackRate}" /></Grid></Border>
-              </StackPanel>
-            </Border>
-            <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,14,0,14">
-              <StackPanel Spacing="0">
-                <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="28"><icon:GlyphIcon Kind="waves" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.PlayerOutputPanel.41d0e52f0a91}" Classes="muted" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" /></Grid>
-                <Border Classes="drawer-row"><Grid ColumnDefinitions="*,180" ColumnSpacing="12"><TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.e39c49c16819}" VerticalAlignment="Center" FontSize="13" /><ComboBox Name="SampleRateInput" Grid.Column="1" ItemsSource="{Binding Player.AudioSettings.Rates}" SelectedItem="{Binding Player.AudioSettings.SampleRate}" HorizontalAlignment="Stretch" /></Grid></Border>
-                <Border Classes="drawer-row"><Grid ColumnDefinitions="*,210" ColumnSpacing="12"><TextBlock Text="{DynamicResource ui.PlayerOutputPanel.41d0e52f0a91}" VerticalAlignment="Center" FontSize="13" /><ComboBox Name="OutputFormatInput" Grid.Column="1" ItemsSource="{Binding Player.AudioSettings.AvailableFormats}" SelectedItem="{Binding Player.AudioSettings.SelectedFormat}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="player:OutputFormatChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid></Border>
-                <StackPanel IsVisible="{Binding Player.AudioSettings.IsDsd}" Spacing="10" Margin="0,12"><TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.91d77e369dff}" FontSize="11" Classes="muted" /><ComboBox ItemsSource="{Binding Player.AudioSettings.DsdRates}" SelectedItem="{Binding Player.AudioSettings.DsdTransportRate}" HorizontalAlignment="Stretch" /></StackPanel>
-              </StackPanel>
-            </Border>
-            <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,14,0,0">
-              <StackPanel Spacing="0">
-                <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="28"><icon:GlyphIcon Kind="gauge" Width="16" Height="16" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource drawer.audio.bufferDevice}" Classes="muted" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" /></Grid>
-                <Border Classes="drawer-row"><Grid ColumnDefinitions="*,150" ColumnSpacing="12"><TextBlock Text="{DynamicResource ui.PlayerOutputPanel.cc143767eee8}" VerticalAlignment="Center" FontSize="13" /><NumericUpDown Name="BufferInput" Grid.Column="1" Minimum="64" Maximum="32768" Increment="64" Value="{Binding Player.AudioSettings.BufferFrames}" /></Grid></Border>
-                <StackPanel IsVisible="{Binding Player.AudioSettings.IsAsio}" Spacing="12" Margin="0,12">
-                  <Grid ColumnDefinitions="*,110"><TextBlock Text="{DynamicResource ui.PlayerOutputPanel.d7eacc320005}" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="2" Maximum="8" Increment="1" Value="{Binding Player.AudioSettings.OutputChannels}" IsEnabled="{Binding !Player.AudioSettings.IsDsd}" /></Grid>
-                  <Grid ColumnDefinitions="*,110"><TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.5be9eec5f016}" FontSize="13" VerticalAlignment="Center" /><NumericUpDown Grid.Column="1" Minimum="1" Maximum="129" Increment="1" Value="{Binding Player.AudioSettings.AsioChannelStart}" /></Grid>
+          <StackPanel Spacing="20" Margin="0,20,0,24">
+            <StackPanel Spacing="5">
+              <TextBlock Text="{DynamicResource drawer.audio.transport}" Classes="drawer-section" />
+              <TextBlock Text="{DynamicResource drawer.audio.transportHint}" Classes="audio-hint" />
+            </StackPanel>
+            <StackPanel Classes="audio-field">
+              <TextBlock Text="{DynamicResource ui.PlayerOutputPanel.41d0e52f0a91}" FontSize="12" />
+              <ComboBox Name="OutputFormatInput" ItemsSource="{Binding Player.AudioSettings.AvailableFormats}" SelectedItem="{Binding Player.AudioSettings.SelectedFormat}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="{DynamicResource ui.PlayerOutputPanel.41d0e52f0a91}">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="player:OutputFormatChoice"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+            <StackPanel Classes="audio-field" IsVisible="{Binding !Player.AudioSettings.IsDsd}">
+              <TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.e39c49c16819}" FontSize="12" />
+              <ComboBox Name="SampleRateInput" ItemsSource="{Binding Player.AudioSettings.Rates}" SelectedItem="{Binding Player.AudioSettings.SampleRate}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="{DynamicResource ui.AudioSettingsDrawerView.e39c49c16819}" />
+            </StackPanel>
+            <StackPanel Classes="audio-field" IsVisible="{Binding Player.AudioSettings.IsDsd}">
+              <TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.91d77e369dff}" FontSize="12" />
+              <ComboBox Name="DsdRateInput" ItemsSource="{Binding Player.AudioSettings.DsdRates}" SelectedItem="{Binding Player.AudioSettings.DsdTransportRate}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="{DynamicResource ui.AudioSettingsDrawerView.91d77e369dff}" />
+            </StackPanel>
+            <Border Classes="audio-section">
+              <StackPanel Spacing="14">
+                <TextBlock Text="{DynamicResource drawer.audio.bufferDevice}" Classes="drawer-section" />
+                <StackPanel Classes="audio-field">
+                  <TextBlock Text="{DynamicResource ui.PlayerOutputPanel.cc143767eee8}" FontSize="12" />
+                  <NumericUpDown Name="BufferInput" Minimum="64" Maximum="32768" Increment="64" Value="{Binding Player.AudioSettings.BufferFrames}"
+                                 AutomationProperties.Name="{DynamicResource ui.PlayerOutputPanel.cc143767eee8}" />
+                  <TextBlock Text="{DynamicResource drawer.audio.bufferHint}" Classes="audio-hint" />
+                </StackPanel>
+                <StackPanel IsVisible="{Binding Player.AudioSettings.IsAsio}" Spacing="14">
+                  <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <StackPanel Classes="audio-field">
+                      <TextBlock Text="{DynamicResource ui.PlayerOutputPanel.d7eacc320005}" FontSize="12" TextWrapping="Wrap" />
+                      <NumericUpDown Minimum="2" Maximum="8" Increment="1" Value="{Binding Player.AudioSettings.OutputChannels}" IsEnabled="{Binding !Player.AudioSettings.IsDsd}"
+                                     AutomationProperties.Name="{DynamicResource ui.PlayerOutputPanel.d7eacc320005}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Classes="audio-field">
+                      <TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.5be9eec5f016}" FontSize="12" TextWrapping="Wrap" />
+                      <NumericUpDown Minimum="1" Maximum="129" Increment="1" Value="{Binding Player.AudioSettings.AsioChannelStart}"
+                                     AutomationProperties.Name="{DynamicResource ui.AudioSettingsDrawerView.5be9eec5f016}" />
+                    </StackPanel>
+                  </Grid>
                   <Button Content="{DynamicResource ui.AudioSettingsDrawerView.cb64a5815678}" Classes="drawer-action" Command="{Binding Player.AudioSettings.ProbeDsdCommand}" HorizontalAlignment="Left" />
-                  <TextBlock Text="{Binding Player.AudioSettings.DsdCapabilities}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Player.AudioSettings.DsdCapabilities}" Classes="audio-hint" />
                 </StackPanel>
               </StackPanel>
             </Border>
+            <TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.34e03cbea84f}" Classes="audio-hint" />
           </StackPanel>
         </ScrollViewer>
       </TabItem>
       <TabItem Header="{DynamicResource drawer.audio.diagnostics}">
         <ScrollViewer Classes="drawer-scroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <StackPanel Spacing="18" Margin="0,22,0,24">
-            <Grid ColumnDefinitions="18,*" ColumnSpacing="10" Height="36"><icon:GlyphIcon Kind="waves" Width="17" Height="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.PlayerBar.a8cc3c4658a5}" Classes="drawer-section" VerticalAlignment="Center" /></Grid>
-            <SelectableTextBlock Text="{Binding Player.SignalPath}" FontSize="13" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding Player.Error}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding Player.AudioSettings.Message}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-            <Button Name="CopyDiagnosticsButton" Content="{DynamicResource ui.AudioSettingsDrawerView.bbce140b7682}" Classes="drawer-action" Click="OnCopyDiagnostics" HorizontalAlignment="Left" />
-            <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,18,0,0"><StackPanel Spacing="14"><TextBlock Text="{DynamicResource drawer.audio.recovery}" Classes="drawer-section" /><Button Content="{DynamicResource ui.PlayerBar.f867a4c836db}" Classes="drawer-action" Command="{Binding Player.RecoverCommand}" HorizontalAlignment="Left" /><Button Name="ResetOutputButton" Content="{DynamicResource ui.AudioSettingsDrawerView.2365e710a56d}" Classes="drawer-action" Command="{Binding Player.AudioSettings.ResetCommand}" HorizontalAlignment="Left" /></StackPanel></Border>
+          <StackPanel Spacing="20" Margin="0,20,0,24">
+            <StackPanel Spacing="12">
+              <TextBlock Text="{DynamicResource ui.PlayerBar.a8cc3c4658a5}" Classes="drawer-section" />
+              <Border Background="{DynamicResource DrawerInset}" CornerRadius="12" Padding="14">
+                <SelectableTextBlock Name="SignalPathReadout" Text="{Binding Player.SignalPath}" FontSize="12" TextWrapping="Wrap" />
+              </Border>
+              <TextBlock Text="{Binding Player.Error}" Classes="audio-hint" />
+              <Button Name="CopyDiagnosticsButton" Content="{DynamicResource ui.AudioSettingsDrawerView.bbce140b7682}" Classes="drawer-action" Click="OnCopyDiagnostics" HorizontalAlignment="Left" />
+            </StackPanel>
+            <Border Classes="audio-section">
+              <StackPanel Spacing="12">
+                <TextBlock Text="{DynamicResource drawer.audio.recovery}" Classes="drawer-section" />
+                <TextBlock Text="{DynamicResource ui.AudioSettingsDrawerView.61a20107e895}" Classes="audio-hint" />
+                <Button Content="{DynamicResource ui.PlayerBar.f867a4c836db}" Classes="drawer-action" Command="{Binding Player.RecoverCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" />
+                <Button Name="ResetOutputButton" Content="{DynamicResource drawer.audio.resetOutput}" Classes="drawer-action" Command="{Binding Player.AudioSettings.ResetCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" />
+              </StackPanel>
+            </Border>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
     </TabControl>
-    <Border Name="ApplyFooter" Grid.Row="1" IsVisible="False" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="22,12">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-        <TextBlock Name="AudioFeedback" Text="{Binding Player.AudioSettings.Message}" Classes="muted" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" />
-        <Button Name="ApplyAudioButton" Grid.Column="1" Content="{DynamicResource ui.PlayerOutputPanel.a1a42cd9b16e}" Classes="drawer-action drawer-primary" Command="{Binding Player.AudioSettings.ApplyCommand}" IsEnabled="{Binding !Player.AudioSettings.IsRefreshing}" />
-      </Grid>
+    <Border Grid.Row="2" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="22,14">
+      <StackPanel Spacing="12">
+        <TextBlock Name="AudioFeedback" Text="{Binding Player.AudioSettings.Message}" Classes="audio-hint" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <Button Name="OpenDspButton" Classes="drawer-action" Click="OnOpenDsp" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal" Spacing="8"><icon:GlyphIcon Kind="sliders" Width="15" Height="15" /><TextBlock Text="{DynamicResource drawer.audio.openDsp}" /></StackPanel>
+          </Button>
+          <Button Name="ApplyAudioButton" Grid.Column="1" Content="{DynamicResource ui.PlayerOutputPanel.a1a42cd9b16e}" Classes="drawer-action drawer-primary"
+                  Command="{Binding Player.AudioSettings.ApplyCommand}" IsEnabled="{Binding !Player.AudioSettings.IsRefreshing}" IsVisible="False" />
+        </Grid>
+      </StackPanel>
     </Border>
   </Grid>
 </UserControl>

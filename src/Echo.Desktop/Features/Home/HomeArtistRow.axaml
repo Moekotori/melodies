@@ -3,7 +3,7 @@
  <Button Classes="quiet" Click="OnOpen" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0,10" CornerRadius="0">
   <Grid ColumnDefinitions="26,*,Auto" ColumnSpacing="10">
    <TextBlock Name="Rank" Classes="muted" FontSize="12" VerticalAlignment="Center" />
-   <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{Binding Name}" Classes="heading" FontSize="14" TextTrimming="CharacterEllipsis" /><TextBlock Name="Count" Classes="muted" FontSize="11" /></StackPanel>
+   <StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{Binding Name}" Classes="heading" FontSize="14" TextTrimming="CharacterEllipsis" /><TextBlock Name="Count" Classes="muted" FontSize="12" /></StackPanel>
    <icon:GlyphIcon Grid.Column="2" Kind="chevron-right" Width="14" Height="14" VerticalAlignment="Center" />
   </Grid>
  </Button>

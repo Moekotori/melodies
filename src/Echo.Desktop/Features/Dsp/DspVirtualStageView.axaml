@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspVirtualStageView" x:DataType="local:DspViewModel">
+  <ScrollViewer Name="SpatialScroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <local:DspWorkbenchSplit Name="SpatialWorkbench" StretchContent="True" MinHeight="{Binding #SpatialScroller.Viewport.Height}">
+        <Border Classes="dsp-plot">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+            <TextBlock Text="{DynamicResource ui.DspVirtualStageView.b08cc0e5a2ae}" Classes="dsp-note"/>
+            <local:DspDiagramControl Kind="virtualStage" Name="SpatialDiagram" Grid.Row="1" UseThemeSurface="True" MinHeight="260" MaxHeight="760" Margin="0,6,0,6"/>
+            <ItemsControl Grid.Row="2" ItemsSource="{Binding SpatialMetrics}" Margin="0,18,0,0">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:DspColumns MinimumColumnWidth="150" MaximumColumns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:DspMetric"><StackPanel Spacing="8" Margin="0,0,12,12"><TextBlock Text="{Binding Label}" Classes="muted" FontSize="12"/><TextBlock Text="{Binding Value}" FontSize="25" FontWeight="Medium"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+        </Border>
+        <Border Classes="dsp-rule" Padding="0,0,0,0" BorderThickness="0">
+          <StackPanel Spacing="28" VerticalAlignment="Center">
+            <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspVirtualStageView.86ca93c04235}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <WrapPanel>
+              <Button Content="{DynamicResource ui.DspVirtualStageView.dab4ad500f41}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="stage:light" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="{DynamicResource ui.DspVirtualStageView.4f1240839836}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="stage:natural" IsEnabled="{Binding CanEdit}"/>
+              <Button Content="{DynamicResource ui.DspVirtualStageView.0d7ef101f84a}" Classes="dsp-quiet" Command="{Binding WorkbenchPresetCommand}" CommandParameter="stage:strong" IsEnabled="{Binding CanEdit}"/>
+            </WrapPanel>
+            </StackPanel>
+            <StackPanel Spacing="30" IsEnabled="{Binding CanEdit}">
+              <local:DspParameterEditor DataContext="{Binding Fields[strength]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[azimuthDegrees]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[reflection]}"/>
+              <local:DspToggleEditor DataContext="{Binding Switches[speakersBypassed]}"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+    </local:DspWorkbenchSplit>
+  </ScrollViewer>
+</UserControl>

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media.Imaging;
@@ -26,10 +27,14 @@ internal static class DspVisualCapture
         var view = new DspView { DataContext = model };
         var window = new Window { Content = view, Width = 1440, Height = 960, Title = "ECHO · DSP", Background = Avalonia.Media.Brushes.White };
         window.Bind(Window.BackgroundProperty, new DynamicResourceExtension("EchoPage"));
+        // The real shell installs window-local language resources. This isolated control
+        // window must do the same before measuring, or migrated captions render empty.
+        foreach (var entry in Echo.Desktop.Localization.LanguageCatalog.Default.Fallback.Strings)
+            window.Resources[entry.Key] = entry.Value;
         var clock = Stopwatch.StartNew();
         try
         {
-            window.Show(); model.RefreshCommand.Execute(null); Wait();
+            window.Show(); model.RefreshPageCommand.Execute(null); Wait();
             model.Enabled = true; model.PreampDb = -4;
             model.Bands[7].GainDb = 2; model.Bands[17].GainDb = 3; model.Bands[24].GainDb = -2;
             model.ApplyCommand.Execute(null); Wait(); model.SelectedBand = model.Bands[17];
@@ -42,6 +47,20 @@ internal static class DspVisualCapture
             window.KeyRelease(Key.Up, Avalonia.Input.RawInputModifiers.None, PhysicalKey.ArrowUp, null); Settle();
             if (!model.IsDirty || model.SelectedBand.GainDb <= before) throw new IOException("Band keyboard edit is disconnected");
             model.RevertCommand.Execute(null); Settle();
+            // Switching presentation must preserve the curve, current band and native draft.
+            var band = model.SelectedBand;
+            var wasDirty = model.IsDirty;
+            Click(editor.FindControl<ToggleButton>("SimpleMode")!);
+            if (!model.IsEqSimple || model.IsDirty != wasDirty || model.SelectedBand != band)
+                throw new IOException("Simple EQ presentation changed the processing draft");
+            Save("eq-simple-light.png");
+            Click(editor.FindControl<ToggleButton>("ProMode")!);
+            if (!model.IsEqAdvanced || model.SelectedBand != band) throw new IOException("Professional EQ did not retain selection");
+            var advancedNavigation = view.GetVisualDescendants().OfType<ToggleButton>().Single(x => x.IsVisible && x.Classes.Contains("dsp-advanced-toggle"));
+            Click(advancedNavigation);
+            if (!model.AdvancedExpanded || model.SelectedModule.Id != "eq") throw new IOException("Expanding navigation switched processors");
+            Click(advancedNavigation);
+            if (model.AdvancedExpanded || model.SelectedModule.Id != "eq") throw new IOException("Collapsing navigation switched processors");
             var advanced = editor.FindControl<Expander>("AdvancedEq")!;
             advanced.IsExpanded = true; Save("eq-advanced.png"); advanced.IsExpanded = false;
             Application.Current!.RequestedThemeVariant = ThemeVariant.Dark; window.RequestedThemeVariant = ThemeVariant.Dark;
@@ -51,7 +70,13 @@ internal static class DspVisualCapture
             {
                 model.SelectedModule = model.Modules.Single(x => x.Id == id); Wait();
                 if (model.SelectedModule.Id != id) throw new IOException("Navigation changed the selected module");
+                DspModuleInteractionChecks.Run(view, model, window, Wait, Settle, Until);
                 Save(id + "-light.png");
+                Application.Current.RequestedThemeVariant = ThemeVariant.Dark; window.RequestedThemeVariant = ThemeVariant.Dark;
+                Save(id + "-dark.png");
+                Application.Current.RequestedThemeVariant = ThemeVariant.Light; window.RequestedThemeVariant = ThemeVariant.Light;
+                window.Width = 760; window.Height = 900; Save(id + "-compact.png");
+                window.Width = 1440; window.Height = 960; Settle();
                 if (id == "headphone" && File.Exists(opra))
                 {
                     model.HeadphoneQuery = "sennheiser"; model.SearchHeadphonesCommand.Execute(null); Until(() => !model.ResourceBusy);
@@ -74,6 +99,7 @@ internal static class DspVisualCapture
                 }
             }
             model.SelectedModule = model.Modules.Single(x => x.Id == "eq"); Wait();
+            editor = view.GetVisualDescendants().OfType<EqEditorView>().Single();
             model.SelectedBand = model.Bands[17];
             window.Width = 920; window.Height = 780; Save("eq-compact.png");
             var compactInspector = editor.FindControl<EqBandInspectorView>("BandInspector")!;
@@ -84,7 +110,12 @@ internal static class DspVisualCapture
             var shortGain = compactInspector.FindControl<NumericUpDown>("BandGain")!;
             if (shortGain.TranslatePoint(new Point(0, shortGain.Bounds.Height), window) is not { } shortPoint || shortPoint.Y > window.Height - 70)
                 throw new IOException("Short viewport band editor is clipped");
-            Console.WriteLine("PASS all 19 native DSP views / OPRA original-listening / pointer detection listen / keyboard / navigation / light-dark / compact");
+            window.Width = 760; window.Height = 900; Save("eq-portrait.png");
+            var navigation = view.FindControl<ListBox>("ModuleList")!;
+            if (!navigation.Classes.Contains("horizontal") || editor.TranslatePoint(default, window) is not { Y: > 40 })
+                throw new IOException("Portrait navigation did not move above the workbench");
+            Console.WriteLine("PASS all 19 native DSP views / pointer detection listen / keyboard / navigation / light-dark / compact");
+            Console.WriteLine(File.Exists(opra) ? "PASS OPRA original-listening" : "SKIP OPRA original-listening: fixture database unavailable");
         }
         finally { window.Close(); session.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
 
@@ -104,8 +135,14 @@ internal static class DspVisualCapture
             for (var i = 0; i < 5; i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
             AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs();
         }
+        void Click(Control control)
+        {
+            var point = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
+            window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Settle();
+        }
         void Save(string name)
         {
+            window.MouseMove(new Point(window.Width - 4, window.Height - 4));
             Settle();
             if (model.IsEq)
             {

@@ -17,10 +17,11 @@ public partial class AudioSettingsDrawerView : UserControl, IDisposable, IDrawer
     public AudioSettingsDrawerView(ShellViewModel shell)
     {
         _shell = shell; InitializeComponent(); DataContext = shell;
+        SizeChanged += (_, _) => OutputSummary.IsVisible = Bounds.Height >= 460;
         _search = new(this, AudioTabs, [new(0, "输出设备 输出模式 共享 独占 ASIO KS", "OutputDeviceInput"),
             new(1, "采样率 sample rate Hz", "SampleRateInput"), new(1, "缓冲帧数 延迟 buffer", "BufferInput"),
-            new(1, "输出格式 PCM DSD DoP Native", "OutputFormatInput"), new(1, "启用均衡器 EQ", "EqualizerInput"),
-            new(1, "耳机交叉馈送 crossfeed", "CrossfeedInput"), new(1, "播放速度 倍速 speed", "PlaybackRateInput"),
+            new(1, "输出格式 PCM DSD DoP Native", "OutputFormatInput"), new(1, "DSD 传输率", "DsdRateInput"),
+            new(0, "DSP 音效 均衡器 EQ 耳机 交叉馈送 crossfeed 升频", "OpenDspButton"),
             new(2, "复制诊断信息 diagnostic 信号路径", "CopyDiagnosticsButton"), new(2, "恢复默认 reset", "ResetOutputButton")]);
     }
     internal async void Activate()
@@ -37,7 +38,7 @@ public partial class AudioSettingsDrawerView : UserControl, IDisposable, IDrawer
     internal void Deactivate()
     { _active = false; ++_activation; _search.Cancel(); _shell.Player.AudioSettings.CancelPendingRead(); }
     private void OnCategoryChanged(object? sender, SelectionChangedEventArgs e)
-    { if (ApplyFooter is not null) ApplyFooter.IsVisible = AudioTabs.SelectedIndex == 1; }
+    { if (ApplyAudioButton is not null) ApplyAudioButton.IsVisible = AudioTabs.SelectedIndex == 1; }
     private async void OnDeviceReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (e.InitialPressMouseButton == MouseButton.Left && e.Source is Avalonia.Visual visual && visual.GetVisualAncestors().OfType<ListBoxItem>().Any())
@@ -46,6 +47,8 @@ public partial class AudioSettingsDrawerView : UserControl, IDisposable, IDrawer
     private async void OnDeviceKeyDown(object? sender, KeyEventArgs e)
     { if (e.Key == Key.Enter) { e.Handled = true; await _shell.Player.AudioSettings.ApplyCommand.ExecuteAsync(null); } }
     bool IDrawerSearchTarget.FindSetting(string query) => _search.Find(query);
+    private void OnOpenDsp(object? sender, RoutedEventArgs e)
+    { _shell.CloseQuickSettingsCommand.Execute(null); _shell.NavigateCommand.Execute("dsp"); }
     private async void OnCopyDiagnostics(object? sender, RoutedEventArgs e)
     {
         try

@@ -8,7 +8,7 @@ internal sealed class CoreSettingsStore
 {
     private readonly object gate = new();
     private readonly string? path;
-    private Dictionary<string, FeatureSetting> values = new(StringComparer.Ordinal);
+    private Dictionary<string, FeatureSetting> values = new(StringComparer.Ordinal) { ["network-lyrics"] = new(true) };
     public CoreSettingsStore(CoreRuntimeOptions? options)
     {
         if (options?.Persistent != true) return;

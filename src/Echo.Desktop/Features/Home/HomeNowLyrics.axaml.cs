@@ -23,11 +23,13 @@ public partial class HomeNowLyrics : UserControl
         {
             model = DataContext as HomeViewModel;
             if (model?.Shell.Player is { } player) player.PropertyChanged += OnPlayerChanged;
+            if (model is not null) model.Shell.LyricsSelection.ReloadRequested += ReloadSelected;
             Reload();
         };
         DetachedFromVisualTree += (_, _) =>
         {
             if (model?.Shell.Player is { } player) player.PropertyChanged -= OnPlayerChanged;
+            if (model is not null) model.Shell.LyricsSelection.ReloadRequested -= ReloadSelected;
             request?.Cancel(); request?.Dispose(); request = null; document = LyricsDocument.Empty; key = null; model = null;
         };
     }
@@ -36,6 +38,7 @@ public partial class HomeNowLyrics : UserControl
         if (args.PropertyName == "CurrentFilePath") Reload();
         else if (args.PropertyName == "Position" && Stopwatch.GetElapsedTime(lastUpdate).TotalMilliseconds >= 250) UpdateLines();
     }
+    private void ReloadSelected() { key = null; Reload(); }
     private void Reload()
     {
         var current = model?.Shell.Player?.Session.Snapshot.Current;

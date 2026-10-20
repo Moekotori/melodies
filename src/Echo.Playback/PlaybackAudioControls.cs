@@ -58,7 +58,11 @@ public sealed partial class PlaybackSessionCoordinator
         {
             await EnsureStartedAsync().ConfigureAwait(false);
             parameters = await AdaptDspRequestAsync(method, parameters).ConfigureAwait(false);
-            result = await native.CallAsync(method, parameters).ConfigureAwait(false);
+            result = method == "headphoneCorrection.setState"
+                ? await CallHeadphoneAsync(parameters).ConfigureAwait(false)
+                : await native.CallAsync(method, parameters).ConfigureAwait(false);
+            if (method == "headphoneCorrection.getState")
+                result = ReadHeadphoneReceipt(result);
             if (method is "roomCorrection.loadIr" or "roomCorrection.setEnabled" && result.ValueKind == JsonValueKind.Object
                 && result.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String && !string.IsNullOrEmpty(error.GetString()))
             {
@@ -73,6 +77,11 @@ public sealed partial class PlaybackSessionCoordinator
             {
                 ConfirmPlaybackRate(result);
                 parameters = Params(new JsonArray(JsonNode.Parse(result.GetRawText())));
+                if (snapshot.OperationId > 0)
+                {
+                    await SendQueueAsync(queue, snapshot.Current?.ItemId, repeat).ConfigureAwait(false);
+                    await RefreshAlbumGaplessAsync().ConfigureAwait(false);
+                }
             }
             if (retainForRecovery)
             {

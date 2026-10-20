@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.VisualTree;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -33,7 +34,13 @@ public partial class PlaylistTrackList : UserControl
     private PlaylistTrackItem[] Selected => TrackList.SelectedItems?.OfType<PlaylistTrackItem>().ToArray() ?? [];
     private void OnSelection(object? sender, SelectionChangedEventArgs args)
     { SelectionBar.IsVisible = Selected.Length > 0; SelectionText.Text = Model?.Text.Format("playlists.selected", Selected.Length); }
-    private void OnDoubleTap(object? sender, TappedEventArgs args) { if (TrackList.SelectedItem is PlaylistTrackItem row) _ = Model?.PlayAsync([row]); }
+    private void OnTap(object? sender, TappedEventArgs args)
+    {
+        if (args.KeyModifiers != KeyModifiers.None || args.Source is not Visual visual) return;
+        var ancestors = visual.GetSelfAndVisualAncestors().ToList();
+        if (ancestors.OfType<Button>().Any() || ancestors.OfType<ScrollBar>().Any()) return;
+        if (ancestors.OfType<ListBoxItem>().FirstOrDefault()?.DataContext is PlaylistTrackItem row) _ = Model?.PlayAsync([row]);
+    }
     private void OnKey(object? sender, KeyEventArgs args)
     {
         if (args.Key == Key.Enter && Selected.Length > 0) { _ = Model?.PlayAsync(Selected); args.Handled = true; }

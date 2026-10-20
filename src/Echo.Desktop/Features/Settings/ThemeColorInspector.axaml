@@ -3,18 +3,18 @@
   <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /></UserControl.Styles>
   <StackPanel Spacing="8">
     <Grid ColumnDefinitions="*,24"><TextBlock Text="{Binding Label}" FontSize="14" FontWeight="SemiBold" /><Border Grid.Column="1" Background="{Binding Swatch}" Width="24" Height="24" CornerRadius="4" BorderBrush="{DynamicResource EchoBorder}" BorderThickness="1" /></Grid>
-    <theme:ThemeSpectrum Hue="{Binding Hue}" Saturation="{Binding Saturation, Mode=TwoWay}" Brightness="{Binding Brightness, Mode=TwoWay}" Height="140" AutomationProperties.Name="饱和度与明度" />
-    <Slider Theme="{StaticResource ThemeHueSlider}" Minimum="0" Maximum="360" Value="{Binding Hue, Mode=TwoWay}" SmallChange="1" AutomationProperties.Name="色相" />
+    <theme:ThemeSpectrum Hue="{Binding Hue}" Saturation="{Binding Saturation, Mode=TwoWay}" Brightness="{Binding Brightness, Mode=TwoWay}" Height="140" AutomationProperties.Name="{DynamicResource ui.ThemeColorInspector.f0f0e4ce6abc}" />
+    <Slider Theme="{StaticResource ThemeHueSlider}" Minimum="0" Maximum="360" Value="{Binding Hue, Mode=TwoWay}" SmallChange="1" AutomationProperties.Name="{DynamicResource ui.ThemeColorInspector.3ff6d1c07cfc}" />
     <TextBox Classes="theme-input" Text="{Binding Value, Mode=TwoWay}" MaxLength="9" AutomationProperties.Name="{Binding Label}" />
     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
       <StackPanel Spacing="3"><TextBlock Text="R" Classes="theme-caption" /><TextBlock Text="{Binding Red, StringFormat={}{0:0}}" FontSize="12" /></StackPanel>
       <StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="G" Classes="theme-caption" /><TextBlock Text="{Binding Green, StringFormat={}{0:0}}" FontSize="12" /></StackPanel>
       <StackPanel Grid.Column="2" Spacing="3"><TextBlock Text="B" Classes="theme-caption" /><TextBlock Text="{Binding Blue, StringFormat={}{0:0}}" FontSize="12" /></StackPanel>
     </Grid>
-    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="不透明度" Classes="theme-caption" /><TextBlock Grid.Column="1" Text="{Binding OpacityPercent, StringFormat={}{0:0}%}" Classes="theme-caption" /></Grid>
-    <Slider Minimum="0" Maximum="255" Value="{Binding Alpha, Mode=TwoWay}" AutomationProperties.Name="颜色不透明度" />
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource ui.ThemeColorInspector.04405e4a9ffd}" Classes="theme-caption" /><TextBlock Grid.Column="1" Text="{Binding OpacityPercent, StringFormat={}{0:0}%}" Classes="theme-caption" /></Grid>
+    <Slider Minimum="0" Maximum="255" Value="{Binding Alpha, Mode=TwoWay}" AutomationProperties.Name="{DynamicResource ui.ThemeColorInspector.50a042213b82}" />
     <TextBlock Text="{Binding Hint}" Classes="theme-caption" TextWrapping="Wrap" />
-    <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoDanger}" FontSize="11" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-    <Button Content="恢复此项" Command="{Binding ResetCommand}" Classes="theme-quiet" HorizontalAlignment="Left" Padding="0" />
+    <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoDanger}" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <Button Content="{DynamicResource ui.ThemeColorInspector.0e6299b1deb3}" Command="{Binding ResetCommand}" Classes="theme-quiet" HorizontalAlignment="Left" Padding="0" />
   </StackPanel>
 </UserControl>

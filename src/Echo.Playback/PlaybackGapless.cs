@@ -5,18 +5,50 @@ namespace Echo.Playback;
 public sealed partial class PlaybackSessionCoordinator
 {
     private bool albumGapless;
+    private bool gaplessContinuation;
+    private string[] gaplessChain = [];
 
     public Task SetAlbumGaplessEnabledAsync(bool enabled, CancellationToken token = default) => Command(async () =>
     {
+        if (albumGapless == enabled) return;
+        var prior = albumGapless;
         albumGapless = enabled;
-        if (enabled && snapshot.OperationId > 0 && snapshot.Current is { } track
-            && snapshot.Status is PlaybackStatus.Playing or PlaybackStatus.Paused or PlaybackStatus.Loading)
-            await TryPrepareAlbumGaplessAsync(track).ConfigureAwait(false);
+        try
+        {
+            if (initialized && snapshot.OperationId > 0)
+                await SendQueueAsync(queue, snapshot.Current?.ItemId, repeat).ConfigureAwait(false);
+        }
+        catch { albumGapless = prior; throw; }
+        await RefreshAlbumGaplessAsync().ConfigureAwait(false);
     }, token, affectsPlayback: false);
+
+    private bool CanPrepareGapless() => albumGapless && !automixEnabled && !shuffle && segmentLoop is null
+        && repeat != RepeatMode.One && Math.Abs(snapshot.PlaybackRate - 1) <= 1e-6
+        && OutputFormat() == "pcm" && !StageActive("sdm");
+
+    private async Task RefreshAlbumGaplessAsync()
+    {
+        if (snapshot.OperationId <= 0 || snapshot.Current is not { } track
+            || snapshot.Status is not (PlaybackStatus.Playing or PlaybackStatus.Paused or PlaybackStatus.Loading)) return;
+        if (gaplessContinuation)
+        {
+            // Once audible, the continuation FIFO contains the current song too. Never cancel
+            // or replace that FIFO underneath playback: reopen at the confirmed position instead.
+            var at = Array.IndexOf(gaplessChain, track.ItemId);
+            var projected = ProjectNativeQueue(queue, track.ItemId);
+            var current = Array.FindIndex(projected, x => x.ItemId == track.ItemId);
+            if (CanPrepareGapless() && at >= 0 && current >= 0
+                && GaplessSuccessors(projected, current, repeat == RepeatMode.All)
+                    .Take(gaplessChain.Length - at - 1).Select(x => x.ItemId).SequenceEqual(gaplessChain.Skip(at + 1))) return;
+            await OpenAsync(track, snapshot.PositionSeconds, snapshot.Status == PlaybackStatus.Paused).ConfigureAwait(false);
+            return;
+        }
+        await TryPrepareAlbumGaplessAsync(track).ConfigureAwait(false);
+    }
 
     private async Task TryPrepareAlbumGaplessAsync(QueueTrack track)
     {
-        if (!albumGapless || automixEnabled || Math.Abs(snapshot.PlaybackRate - 1) > 1e-6 || OutputFormat() != "pcm" || StageActive("sdm")) return;
+        if (!CanPrepareGapless() || gaplessContinuation || IsDsdPath(track.FilePath)) return;
         var strictRate = StageActive("echoSrc") || deviceConfiguration?.Text("outputMode") is "exclusive" or "asio" or "ks";
         var currentRate = KnownSourceRate(track);
         if (strictRate && currentRate is null) return;
@@ -34,7 +66,8 @@ public sealed partial class PlaybackSessionCoordinator
         if (chain.Count == 0) return;
         try
         {
-            await native.CallAsync("audio.gaplessPrepare", Params(new JsonArray(GaplessRequest(chain)))).ConfigureAwait(false);
+            var receipt = await native.CallAsync("audio.gaplessPrepare", Params(new JsonArray(GaplessRequest(chain)))).ConfigureAwait(false);
+            gaplessChain = receipt.Flag("prepared") ? chain.Select(x => x.ItemId).ToArray() : [];
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception) { /* The host keeps ordinary playback when the next track cannot be primed. */ }

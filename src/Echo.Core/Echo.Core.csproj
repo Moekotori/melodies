@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><InternalsVisibleTo Include="Echo.NetworkLyrics.Smoke" /></ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../Modules/Echo.Lyrics/Echo.Lyrics.csproj" />
+    <ProjectReference Include="../Modules/Echo.Playlists/Echo.Playlists.csproj" />
     <ProjectReference Include="../Modules/Echo.ArtistInformation/Echo.ArtistInformation.csproj" />
     <ProjectReference Include="../Echo.Playback/Echo.Playback.csproj" />
     <ProjectReference Include="../Echo.Application/Echo.Application.csproj" />

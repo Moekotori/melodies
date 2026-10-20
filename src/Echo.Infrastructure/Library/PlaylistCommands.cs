@@ -81,7 +81,7 @@ public sealed partial class LibraryDatabase
             command.Parameters.AddWithValue("$other", other); command.Parameters.AddWithValue("$neighbor", neighbor); command.ExecuteNonQuery();
         }, cancellation);
     }
-    private Task<string> PlaylistWrite(string operationId, string request, string result, Action<SqliteCommand> action, CancellationToken cancellation)
+    private Task<string> PlaylistWrite(string operationId, string request, string result, Action<SqliteCommand> action, CancellationToken cancellation, Func<string>? receiptResult = null)
     {
         ValidatePlaylistId(operationId);
         var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request)));
@@ -98,14 +98,15 @@ public sealed partial class LibraryDatabase
                     return reader.GetString(1);
                 }
             command.Parameters.Clear(); action(command); cancellation.ThrowIfCancellationRequested();
+            var savedResult = receiptResult?.Invoke() ?? result;
             command.Parameters.Clear(); command.Parameters.AddWithValue("$operation", operationId);
-            command.Parameters.AddWithValue("$fingerprint", fingerprint); command.Parameters.AddWithValue("$result", result);
+            command.Parameters.AddWithValue("$fingerprint", fingerprint); command.Parameters.AddWithValue("$result", savedResult);
             command.CommandText = """
                 UPDATE library_state SET revision=revision+1 WHERE id=1;
                 INSERT INTO playlist_receipts(operation_id,fingerprint,result) VALUES($operation,$fingerprint,$result);
                 DELETE FROM playlist_receipts WHERE sequence < (SELECT coalesce(max(sequence),0)-255 FROM playlist_receipts);
                 """;
-            command.ExecuteNonQuery(); transaction.Commit(); return result;
+            command.ExecuteNonQuery(); transaction.Commit(); return savedResult;
         }, true, cancellation);
     }
     private static void TouchPlaylist(SqliteCommand command, string id)

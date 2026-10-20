@@ -1,50 +1,62 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:artists="using:Echo.Desktop.Features.Artists" xmlns:albums="using:Echo.Desktop.Features.Albums" xmlns:icon="using:Echo.Desktop.Controls"
-             xmlns:details="using:Echo.Desktop.Features.LibraryDetails"
+             xmlns:details="using:Echo.Desktop.Features.LibraryDetails" xmlns:library="using:Echo.Contracts.Library"
              x:Class="Echo.Desktop.Features.Artists.ArtistDetailView" x:DataType="artists:ArtistDetailViewModel">
   <UserControl.Styles>
-    <Style Selector="Button.artist-action"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="White" /><Setter Property="Height" Value="44" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Padding" Value="18,0" /></Style>
+    <Style Selector="Button.artist-action"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="Background" Value="#18ffffff" /><Setter Property="Foreground" Value="White" /><Setter Property="Height" Value="38" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="14,0" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="Margin" Value="0,0,8,6" /></Style>
     <Style Selector="Button.artist-action:pointerover"><Setter Property="Background" Value="#30ffffff" /></Style>
     <Style Selector="Button.artist-action.primary:pointerover"><Setter Property="Background" Value="White" /></Style>
     <Style Selector="Button.artist-action:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
-    <Style Selector="Button.artist-action.secondary"><Setter Property="Height" Value="36" /><Setter Property="Padding" Value="10,0" /><Setter Property="FontWeight" Value="Medium" /></Style>
+    <Style Selector="Button.artist-action.secondary"><Setter Property="FontWeight" Value="Medium" /></Style>
     <Style Selector="Button.artist-tab"><Setter Property="CornerRadius" Value="0" /><Setter Property="Padding" Value="0,0,0,10" /><Setter Property="FontSize" Value="15" /></Style>
     <Style Selector="Button.artist-tab"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
     <Style Selector="Button.artist-tab:pointerover"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
     <Style Selector="Button.artist-tab.active"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
+    <Style Selector="Button.artist-source"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="#d9ffffff" /><Setter Property="Padding" Value="0,4" /><Setter Property="MinHeight" Value="24" /><Setter Property="FontSize" Value="12" /></Style>
+    <Style Selector="Button.artist-source:pointerover"><Setter Property="Foreground" Value="White" /></Style>
     <Style Selector="ListBoxItem"><Setter Property="Padding" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
   </UserControl.Styles>
   <ScrollViewer Name="PageScroll" HorizontalScrollBarVisibility="Disabled">
-    <StackPanel Name="PageContent" Spacing="24" Margin="42,20,42,36" MaxWidth="1440" HorizontalAlignment="Stretch">
-      <Button Classes="content-link" Content="{DynamicResource ui.ArtistDetailView.d60cb3eeaa1d}" Click="OnBack" Padding="0" HorizontalAlignment="Left" />
-      <Grid Name="Hero" ColumnDefinitions="*,0" Height="380" ClipToBounds="True">
+    <StackPanel Name="PageContent" Spacing="28" Margin="0,24,0,40" MaxWidth="1120" HorizontalAlignment="Center">
+      <Grid Name="Hero" ColumnDefinitions="*,0" MinHeight="248" ClipToBounds="True">
         <Border Grid.ColumnSpan="2" CornerRadius="12"><Border.Background><LinearGradientBrush StartPoint="0%,100%" EndPoint="100%,0%"><GradientStop Color="#152b39" Offset="0" /><GradientStop Color="#55777d" Offset="0.65" /><GradientStop Color="#b7b6a3" Offset="1" /></LinearGradientBrush></Border.Background></Border>
-        <TextBlock Grid.ColumnSpan="2" Name="HeroMark" FontSize="150" FontWeight="Light" Foreground="#55ffffff" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,50,0" />
-        <Border Grid.ColumnSpan="2" Name="PortraitFrame" CornerRadius="8" ClipToBounds="True"><Image Name="Portrait" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" /></Border>
+        <TextBlock Grid.ColumnSpan="2" Name="HeroMark" FontSize="116" FontWeight="Medium" Foreground="#24ffffff" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,40,0" />
+        <Border Grid.ColumnSpan="2" Name="PortraitFrame" CornerRadius="12" ClipToBounds="True"><Image Name="Portrait" Width="{Binding #Hero.Bounds.Width}" Height="{Binding #Hero.Bounds.Height}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" /></Border>
         <Border Grid.ColumnSpan="2" CornerRadius="12"><Border.Background><LinearGradientBrush StartPoint="0%,100%" EndPoint="100%,0%"><GradientStop Color="#e010202b" Offset="0" /><GradientStop Color="#5010202b" Offset="0.6" /><GradientStop Color="#0010202b" Offset="1" /></LinearGradientBrush></Border.Background></Border>
-        <StackPanel Name="HeroCopy" Grid.ColumnSpan="2" Spacing="12" Margin="32" VerticalAlignment="Bottom">
-          <TextBlock Text="{DynamicResource navigation.artists}" Foreground="#c2ffffff" FontSize="13" />
-          <TextBlock Name="ArtistTitle" Text="{Binding Artist.Name}" ToolTip.Tip="{Binding Artist.Name}" Foreground="White" FontSize="44" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+        <StackPanel Name="HeroCopy" Grid.ColumnSpan="2" Spacing="10" Margin="28,60,28,24" VerticalAlignment="Bottom" HorizontalAlignment="Left" MaxWidth="760">
+          <TextBlock Name="ArtistTitle" Text="{Binding Artist.Name}" ToolTip.Tip="{Binding Artist.Name}" Foreground="White" FontSize="44" FontWeight="Medium" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Overview.Information.Biography.Description}" Foreground="#d9ffffff" FontSize="14" LineHeight="22" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" IsVisible="{Binding Overview.Information.Biography.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
           <TextBlock Text="{Binding Meta}" Foreground="#c7ffffff" FontSize="13" TextWrapping="Wrap" />
           <WrapPanel IsEnabled="{Binding !IsBusy}">
-            <Button Classes="artist-action primary" Background="#f2ffffff" IsEnabled="{Binding CanPlay}" Command="{Binding PlayCommand}" Margin="0,0,12,0"><StackPanel Orientation="Horizontal" Spacing="9"><icon:GlyphIcon Kind="play" Width="17" Height="17" Stroke="#172d39" /><TextBlock Text="{DynamicResource artist.detail.play}" Foreground="#172d39" FontSize="15" FontWeight="SemiBold" /></StackPanel></Button>
-            <Button Classes="artist-action secondary" IsEnabled="{Binding CanPlay}" Command="{Binding ShuffleCommand}" Margin="0,0,8,0"><TextBlock Text="{DynamicResource ui.QueueModes.f34b7ce61098}" Foreground="White" /></Button><Button Classes="artist-action secondary" IsEnabled="{Binding CanPlay}" Command="{Binding AddToQueueCommand}"><TextBlock Text="{DynamicResource ui.AlbumDetailView.fa5f222e10c4}" Foreground="White" /></Button><Button Classes="artist-action secondary" Click="OnCopy"><TextBlock Text="{DynamicResource ui.ArtistDetailView.47661ff9164f}" Foreground="White" /></Button>
+            <Button Classes="artist-action primary" Background="#f2ffffff" IsEnabled="{Binding CanPlay}" Command="{Binding PlayCommand}"><StackPanel Orientation="Horizontal" Spacing="9"><icon:GlyphIcon Kind="play" Width="17" Height="17" Stroke="#172d39" /><TextBlock Text="{DynamicResource artist.detail.play}" Foreground="#172d39" FontSize="14" FontWeight="SemiBold" /></StackPanel></Button>
+            <Button Classes="artist-action secondary" IsEnabled="{Binding CanPlay}" Command="{Binding ShuffleCommand}"><TextBlock Text="{DynamicResource ui.QueueModes.f34b7ce61098}" Foreground="White" /></Button><Button Classes="artist-action secondary" IsEnabled="{Binding CanPlay}" Command="{Binding AddToQueueCommand}"><TextBlock Text="{DynamicResource ui.AlbumDetailView.fa5f222e10c4}" Foreground="White" /></Button>
+            <Button Classes="artist-action secondary" Command="{Binding Overview.RefreshCommand}" Content="{DynamicResource artist.detail.refresh}" />
           </WrapPanel>
+          <ItemsControl ItemsSource="{Binding Overview.MetadataLinks}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistLink"><Button Classes="artist-source" Content="{Binding Label}" Tag="{Binding Url}" Click="OnExternal" Margin="0,0,18,0" /></DataTemplate></ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
+        <Button Grid.ColumnSpan="2" Classes="artist-source" Content="{DynamicResource ui.ArtistDetailView.d60cb3eeaa1d}" Click="OnBack" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="28,18" />
       </Grid>
-      <StackPanel Orientation="Horizontal" Spacing="32" Margin="0,8,0,0"><Button Classes="artist-tab" Classes.active="{Binding IsOverview}" Content="{DynamicResource ui.ArtistDetailView.fea405f9b01d}" Tag="0" Click="OnTab" /><Button Classes="artist-tab" Classes.active="{Binding IsAlbums}" Content="{DynamicResource navigation.albums}" Tag="1" Click="OnTab" /><Button Classes="artist-tab" Classes.active="{Binding IsTracks}" Content="{DynamicResource navigation.songs}" Tag="2" Click="OnTab" /></StackPanel>
+      <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1"><StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Spacing="32"><Button Classes="artist-tab" Classes.active="{Binding IsOverview}" Content="{DynamicResource ui.ArtistDetailView.fea405f9b01d}" Tag="0" Click="OnTab" /><Button Classes="artist-tab" Classes.active="{Binding IsAlbums}" Content="{DynamicResource navigation.albums}" Tag="1" Click="OnTab" /></StackPanel></Border>
       <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       <TextBlock Text="{Binding Status}" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-      <ContentControl IsVisible="{Binding IsOverview}"><artists:ArtistOverviewView Name="OverviewPanel" DataContext="{Binding Overview}" /></ContentControl>
-      <StackPanel IsVisible="{Binding ShowTracks}" Spacing="16" Margin="0,8,0,0">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16"><TextBlock Text="{DynamicResource artist.detail.tracks}" Classes="heading" FontSize="20" VerticalAlignment="Center" /><details:DetailSortButton Name="TrackSort" Grid.Column="1" IsVisible="{Binding IsTracks}" SelectedIndex="{Binding SortIndex, Mode=TwoWay}" Descending="{Binding Descending, Mode=TwoWay}" /><Button Grid.Column="1" Classes="content-link" Content="{DynamicResource artist.detail.allTracks}" IsVisible="{Binding IsOverview}" Tag="2" Click="OnTab" /></Grid>
-        <TextBlock Text="{DynamicResource artist.detail.loadingTracks}" Classes="muted" IsVisible="{Binding IsLoading}" />
-        <StackPanel Spacing="8" IsVisible="{Binding IsEmpty}"><TextBlock Text="{DynamicResource artist.detail.emptyTracks}" FontSize="18" /><TextBlock Text="{DynamicResource artist.detail.emptyHint}" Classes="muted" /></StackPanel>
-        <ListBox Name="TrackList" ItemsSource="{Binding VisibleTracks}" Height="{Binding TrackListHeight}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"><ListBox.ItemTemplate><DataTemplate x:DataType="albums:AlbumTrackItem"><albums:AlbumTrackRow PlayRequested="OnPlay" NextRequested="OnNext" AddRequested="OnAdd" /></DataTemplate></ListBox.ItemTemplate></ListBox>
-        <StackPanel IsVisible="{Binding IsTracks}"><StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" IsVisible="{Binding HasMultiplePages}"><Button Content="{DynamicResource ui.AlbumDetailView.c9b9ae7a6144}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" /><TextBlock Text="{Binding PageText}" Classes="muted" VerticalAlignment="Center" /><Button Content="{DynamicResource ui.AlbumDetailView.8a8542f69648}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" /></StackPanel></StackPanel>
-        <Button Classes="content-link" Content="{DynamicResource artist.detail.refreshTracks}" Command="{Binding RetryCommand}" HorizontalAlignment="Left" />
+      <ContentControl Classes="reveal" IsVisible="{Binding IsOverview}"><artists:ArtistOverviewView Name="OverviewPanel" DataContext="{Binding Overview}" /></ContentControl>
+      <ContentControl IsVisible="{Binding IsOverview}"><artists:ArtistEventsView Name="ConcertsPanel" DataContext="{Binding Overview}" /></ContentControl>
+      <StackPanel Classes="reveal" IsVisible="{Binding IsOverview}" Spacing="16" Margin="0,8,0,0">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16"><TextBlock Text="{Binding TracksHeading}" Classes="heading" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" MaxLines="2" /><StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16"><TextBlock Text="{Binding TracksCount}" Classes="muted" FontSize="12" VerticalAlignment="Center" /><Button Name="TracksToggleButton" Classes="content-link" Content="{Binding TracksToggle}" Command="{Binding ToggleTracksCommand}" /></StackPanel></Grid>
+        <StackPanel IsVisible="{Binding ShowTracks}" Spacing="12">
+          <TextBlock Text="{DynamicResource artist.detail.loadingTracks}" Classes="muted" IsVisible="{Binding IsLoading}" />
+          <TextBlock Text="{DynamicResource artist.detail.emptyTracks}" Classes="muted" IsVisible="{Binding IsEmpty}" />
+          <ItemsControl Name="PreviewTrackList" ItemsSource="{Binding PreviewTracks}" IsVisible="{Binding !AllTracks}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistHighlight"><artists:ArtistTrackCard Track="{Binding Track}" Subtitle="{Binding Detail}" Duration="{Binding Duration}" IsPlaying="{Binding IsPlaying}" PlayRequested="OnOverviewPlay" NextRequested="OnOverviewNext" AddRequested="OnOverviewAdd" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          <Button Name="ExpandTracksButton" Classes="content-link" Content="{DynamicResource artist.content.expandAll}" Command="{Binding ExpandAllCommand}" IsVisible="{Binding CanExpandTracks}" HorizontalAlignment="Left" />
+          <details:DetailSortButton Name="TrackSort" IsVisible="{Binding AllTracks}" SelectedIndex="{Binding SortIndex, Mode=TwoWay}" Descending="{Binding Descending, Mode=TwoWay}" HorizontalAlignment="Right" />
+          <ListBox Name="TrackList" ItemsSource="{Binding VisibleTracks}" Height="{Binding TrackListHeight}" IsVisible="{Binding AllTracks}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"><ListBox.ItemTemplate><DataTemplate x:DataType="albums:AlbumTrackItem"><artists:ArtistTrackCard Track="{Binding Row}" Subtitle="{Binding Row.Album}" Duration="{Binding Duration}" IsPlaying="{Binding IsPlaying}" PlayRequested="OnOverviewPlay" NextRequested="OnOverviewNext" AddRequested="OnOverviewAdd" /></DataTemplate></ListBox.ItemTemplate></ListBox>
+          <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right" IsVisible="{Binding HasTrackPages}"><Button Content="{DynamicResource ui.AlbumDetailView.c9b9ae7a6144}" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" /><TextBlock Text="{Binding PageText}" Classes="muted" VerticalAlignment="Center" /><Button Content="{DynamicResource ui.AlbumDetailView.8a8542f69648}" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" /></StackPanel>
+        </StackPanel>
       </StackPanel>
-      <ContentControl Name="AlbumsHost" Height="480" IsVisible="{Binding IsAlbums}" />
+      <ContentControl Classes="reveal" Name="AlbumsHost" Height="480" IsVisible="{Binding IsAlbums}" />
     </StackPanel>
   </ScrollViewer>
 </UserControl>

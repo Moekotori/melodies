@@ -39,8 +39,8 @@ public sealed partial class LyricsAppearance : ObservableObject
             if (e.PropertyName == nameof(SelectedLook)) OnPropertyChanged(nameof(LookChoice));
             if (e.PropertyName == nameof(Font)) OnPropertyChanged(nameof(FontChoice));
             if (e.PropertyName == nameof(Alignment)) OnPropertyChanged(nameof(AlignmentChoice));
-            if (restoring || e.PropertyName is not (nameof(BackgroundMode) or nameof(BackgroundBlur) or nameof(BackgroundBrightness) or nameof(BackgroundOpacity) or nameof(WallpaperPath) or nameof(SelectedStyle) or nameof(SelectedLook) or nameof(FontSize) or nameof(SecondarySize)
-                or nameof(Translation) or nameof(Romanization) or nameof(WordHighlight) or nameof(Context) or nameof(Alignment) or nameof(Font) or nameof(OffsetMs)
+            if (restoring || e.PropertyName is not (nameof(BackgroundMode) or nameof(BackgroundFrameRate) or nameof(BackgroundBlur) or nameof(BackgroundBrightness) or nameof(BackgroundOpacity) or nameof(WallpaperPath) or nameof(SelectedStyle) or nameof(SelectedLook) or nameof(FontSize) or nameof(SecondarySize)
+                or nameof(Translation) or nameof(Romanization) or nameof(WordHighlight) or nameof(WordHighlightStyle) or nameof(Context) or nameof(Alignment) or nameof(Font) or nameof(OffsetMs)
                 or nameof(MiniPlayer) or nameof(PlayerAutoHide) or nameof(PlayerCompact))) return;
             edits++; store?.Save(Snapshot());
         };
@@ -58,6 +58,7 @@ public sealed partial class LyricsAppearance : ObservableObject
             RestoreBackground(saved);
             FontSize = Valid(saved.FontSize, 18, 72, 36); SecondarySize = Valid(saved.SecondarySize, 10, 32, 18);
             Translation = saved.Translation; Romanization = saved.Romanization; WordHighlight = saved.WordHighlight;
+            WordHighlightStyle = LyricsHighlightCatalog.Normalize(saved.WordHighlightStyle);
             Context = saved.Context; OffsetMs = Valid(saved.OffsetMs, -10000, 10000, 0);
             MiniPlayer = saved.MiniPlayer; PlayerAutoHide = saved.PlayerAutoHide; PlayerCompact = saved.PlayerCompact;
             Alignment = Alignments.Contains(saved.Alignment) ? saved.Alignment : Alignments[0];
@@ -66,6 +67,6 @@ public sealed partial class LyricsAppearance : ObservableObject
         finally { restoring = false; }
     }
     public LyricsPreferences Snapshot() => new(SelectedStyle.Id, SelectedLook.Id, FontSize, SecondarySize,
-        Translation, Romanization, WordHighlight, Alignment, Font, OffsetMs, Context, MiniPlayer, PlayerAutoHide, PlayerCompact, BackgroundMode, BackgroundBlur, BackgroundBrightness, BackgroundOpacity, WallpaperPath);
+        Translation, Romanization, WordHighlight, Alignment, Font, OffsetMs, Context, MiniPlayer, PlayerAutoHide, PlayerCompact, BackgroundMode, BackgroundBlur, BackgroundBrightness, BackgroundOpacity, WallpaperPath, BackgroundFrameRate, LyricsHighlightCatalog.Normalize(WordHighlightStyle));
     private static double Valid(double value, double min, double max, double fallback) => double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
 }

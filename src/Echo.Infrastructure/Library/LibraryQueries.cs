@@ -67,9 +67,13 @@ public sealed partial class LibraryDatabase
                 from += " AND (t.sort_key,t.id)>($sort,$id)";
                 command.Parameters.AddWithValue("$sort", legacy.SortKey); command.Parameters.AddWithValue("$id", legacy.Id);
             }
-            command.CommandText = """
+            // Select bounded identities before loading display metadata. A sort/offset must not
+            // evaluate album lookups and retain full track rows for every skipped candidate.
+            command.CommandText = "WITH page AS MATERIALIZED (SELECT t.rowid AS track_rowid" + from + orderSql +
+                " LIMIT $limit OFFSET $offset) " + """
                 SELECT t.id,t.path,t.title,t.artist,coalesce((SELECT display_title FROM album_identity WHERE group_key=t.album_key),t.album),t.duration,t.codec,t.sample_rate,t.bit_depth,t.sort_key,t.track_no,t.disc_no,t.favorite,t.source_json,t.genre
-                """ + from + orderSql + " LIMIT $limit OFFSET $offset";
+                FROM page p JOIN tracks t ON t.rowid=p.track_rowid
+                """ + orderSql;
             command.Parameters.AddWithValue("$limit", query.Limit + 1); command.Parameters.AddWithValue("$offset", offset);
             var rows = new List<TrackRow>(query.Limit + 1);
             using (var reader = command.ExecuteReader())

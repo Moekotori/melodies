@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:theme="using:Echo.Desktop.Theming" x:Class="Echo.Desktop.Features.Settings.ThemePresetGallery" x:DataType="theme:ThemeViewModel">
   <UserControl.Styles><StyleInclude Source="/Features/Settings/ThemeEditorStyles.axaml" /></UserControl.Styles>
   <StackPanel Spacing="12" Width="380">
-    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="主题" FontSize="16" FontWeight="SemiBold" /><TextBlock Grid.Column="1" Text="49 种配色" Classes="theme-caption" /></Grid>
-    <TextBox Name="PresetSearch" Classes="theme-input" Text="{Binding PresetQuery, Mode=TwoWay}" PlaceholderText="搜索主题" AutomationProperties.Name="搜索主题" />
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource ui.ThemePresetGallery.788db1cfec2a}" FontSize="16" FontWeight="SemiBold" /><TextBlock Grid.Column="1" Text="{DynamicResource ui.ThemePresetGallery.dfce7f8749dd}" Classes="theme-caption" /></Grid>
+    <TextBox Name="PresetSearch" Classes="theme-input" Text="{Binding PresetQuery, Mode=TwoWay}" PlaceholderText="{DynamicResource ui.ThemePresetGallery.7be6f5e53f8d}" AutomationProperties.Name="{DynamicResource ui.ThemePresetGallery.7be6f5e53f8d}" />
     <ScrollViewer MaxHeight="340" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
       <ItemsControl ItemsSource="{Binding GalleryPresets}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate><DataTemplate x:DataType="theme:ThemePresetCard">

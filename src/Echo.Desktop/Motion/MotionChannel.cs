@@ -5,8 +5,13 @@ namespace Echo.Desktop.Motion;
 internal readonly record struct MotionChannel(double From, double To, Easing Curve)
 {
     // SplineEasing caches its solver state; render and UI estimation must not share it.
-    public Easing RenderCurve => Curve is SplineEasing spline
-        ? new SplineEasing(spline.X1, spline.Y1, spline.X2, spline.Y2) : Curve;
+    public Easing RenderCurve => Copy(Curve);
+    internal static Easing Copy(Easing curve) => curve switch
+    {
+        SplineEasing spline => new SplineEasing(spline.X1, spline.Y1, spline.X2, spline.Y2),
+        LeadEasing lead => lead.Copy(),
+        _ => curve
+    };
     public static MotionChannel Create(double from, double to, TimeSpan duration, Easing curve,
         double velocity, bool bounded = false)
     {

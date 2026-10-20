@@ -31,11 +31,11 @@ public sealed record CoreFailure(string Code, string Message, bool OutcomeUnknow
 public sealed record CorePlaybackFrame(long Serial, PlaybackStateSnapshot State, bool VolumeLocked,
     string PlaybackRateMode, bool CanUndo, bool GeneratedDsdAllowed, SegmentLoopState? SegmentLoop,
     SleepTimerState Sleep, string? PersistenceError, string? MediaError, bool HasQueue = true, Echo.Contracts.Tasks.BackgroundAdmissionSnapshot? Admission = null, string? ZoneName = null);
-public sealed record CoreTaskRequest(string Path, FolderScanOptions? Options = null, FolderTrackQuery? Resources = null, ScanRequest? Scan = null, string? Scanner = null, string? RemoteSourceId = null, string? Maintenance = null, Guid Id = default, IReadOnlyList<string>? Paths = null, string? BackupPath = null);
+public sealed record CoreTaskRequest(string Path, FolderScanOptions? Options = null, FolderTrackQuery? Resources = null, ScanRequest? Scan = null, string? Scanner = null, string? RemoteSourceId = null, string? Maintenance = null, Guid Id = default, IReadOnlyList<string>? Paths = null, string? BackupPath = null, ArtistImportSettings? ArtistImport = null);
 public sealed record CoreTaskStart(Guid Id);
 public sealed record CoreTaskCancel(Guid Id);
 public sealed record CoreTaskSnapshot(Guid Id, string Kind, string Status, ScanProgress? ScanProgress = null,
-    FolderResourceProgress? ResourceProgress = null, ScanReport? Report = null, string? Error = null, Echo.Contracts.Remote.RemoteSyncProgress? RemoteProgress = null, Echo.Contracts.Remote.RemoteSyncResult? RemoteResult = null, int InputIndex = 0, int InputCount = 0);
+    FolderResourceProgress? ResourceProgress = null, ScanReport? Report = null, string? Error = null, Echo.Contracts.Remote.RemoteSyncProgress? RemoteProgress = null, Echo.Contracts.Remote.RemoteSyncResult? RemoteResult = null, int InputIndex = 0, int InputCount = 0, ArtistImportProgress? ArtistImportProgress = null);
 public sealed record CoreProgress(string Kind, Guid Id, JsonElement Value);
 public sealed record CoreSettingsRequest(string Key, FeatureSetting Value);
 public sealed record CoreRemoteRequest(string Action, string Id = "", string Path = "", int Page = 0,

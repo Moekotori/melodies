@@ -144,6 +144,7 @@ public sealed partial class SongsViewModel : ObservableObject, IDisposable
         finally { if (version == generation) { request = null; IsLoading = false; Notify(); } }
     }
     [RelayCommand] private Task PlayAsync() => ActAsync(false, false);
+    [RelayCommand] private Task PlayAllAsync() { if (Items.Count == 0) return Task.CompletedTask; Selected = Items[0]; return ActAsync(false, false); }
     [RelayCommand] private Task AddAsync() => ActAsync(true, false);
     [RelayCommand] private Task PlayNextAsync() => ActAsync(true, true);
     private async Task ActAsync(bool append, bool next)

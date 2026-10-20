@@ -8,6 +8,7 @@
   <icon:MeasuredWaveform Name="TopWaveform" Envelope="{Binding AppearanceVisuals.Envelope}" Position="{Binding Player.Position}" IsVisible="{Binding AppearanceVisuals.TopWaveform}" Brush="{DynamicResource EchoAccent}" Height="20" VerticalAlignment="Top" Margin="0,-20,0,0" IsHitTestVisible="False" />
   <Border Name="BarSurface" Background="{DynamicResource EchoPlayer}" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource EchoBorder}" Padding="14,6,28,6">
     <Grid ColumnDefinitions="*,691.2,*" ColumnSpacing="16" Name="PlayerLayout" Background="{DynamicResource EchoPlayerGlow}">
+      <Border Name="NowPlayingHost" Background="Transparent" ClipToBounds="True">
       <Grid Name="NowPlaying" ColumnDefinitions="84,*" ColumnSpacing="14" VerticalAlignment="Center" ClipToBounds="True">
         <Button Name="CoverButton" Classes="player-cover" Width="84" Height="84" Padding="0"
                 Command="{Binding OpenNowPlayingCommand}" ToolTip.Tip="{Binding Player.NowPlayingViewLabel}" AutomationProperties.Name="{Binding Player.NowPlayingViewLabel}">
@@ -24,10 +25,11 @@
             <Border Classes="player-chip"><Grid><TextBlock Text="{Binding Player.Subtitle}" IsVisible="{Binding Player.HasTrack}" /><TextBlock Text="{DynamicResource ui.PlayerBar.b073db9c0bd6}" IsVisible="{Binding !Player.HasTrack}" /></Grid></Border>
             <Button Classes="player-chip format" IsVisible="{Binding Player.Details.HasFormat}" Click="OpenSignalPath" Padding="6,1" MinHeight="0" ToolTip.Tip="{DynamicResource ui.PlayerBar.a8cc3c4658a5}"><TextBlock Text="{Binding Player.Details.Format}" /></Button>
           </StackPanel>
-          <TextBlock Text="{Binding Player.Error}" IsVisible="{Binding Player.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" FontSize="10" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.Error}" />
-          <TextBlock Text="{Binding Player.Details.Message}" IsVisible="{Binding Player.Details.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" FontSize="10" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.Details.Message}" />
+          <TextBlock Text="{Binding Player.Error}" IsVisible="{Binding Player.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.Error}" />
+          <TextBlock Text="{Binding Player.Details.Message}" IsVisible="{Binding Player.Details.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Player.Details.Message}" />
         </StackPanel>
       </Grid>
+      </Border>
       <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
         <StackPanel Name="Transport" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
           <Button Name="SignalPathButton" Classes="transport" ToolTip.Tip="{DynamicResource ui.PlayerBar.a8cc3c4658a5}" AutomationProperties.Name="{DynamicResource ui.PlayerBar.a8cc3c4658a5}">
@@ -46,14 +48,14 @@
           <Button Name="LyricsButton" Classes="transport" Command="{Binding OpenNowPlayingCommand}" ToolTip.Tip="{Binding Player.NowPlayingViewLabel}" AutomationProperties.Name="{Binding Player.NowPlayingViewLabel}"><icon:EchoIcon Scope="player" Kind="lyrics" Width="20" Height="20" /></Button>
         </StackPanel>
         <Grid ColumnDefinitions="48,*,48" ColumnSpacing="10" Height="24" IsVisible="{Binding !Player.IsLiveStream}">
-          <TextBlock Name="ElapsedText" Text="{Binding Player.PositionText}" FontSize="12" Classes="muted" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center" />
+          <TextBlock Name="ElapsedText" Text="{Binding Player.PositionText}" FontSize="12" Classes="muted" FontWeight="Medium" VerticalAlignment="Center" HorizontalAlignment="Center" />
           <icon:PlayerWaveformSlider Name="SeekSlider" EnergyEnvelope="{Binding AppearanceVisuals.EnergyEnvelope}" Grid.Column="1" Minimum="0" Maximum="{Binding Player.Duration}" Value="{Binding Player.Position, Mode=OneWay}"
                   Seed="{Binding Player.CurrentFilePath}" IsEnabled="{Binding Player.CanSeek}" SmallChange="5" LargeChange="10" AutomationProperties.Name="{DynamicResource ui.PlayerBar.fc16e2a0fca6}" />
-          <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" FontSize="12" Classes="muted" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="{Binding Player.DurationText}" FontSize="12" Classes="muted" FontWeight="Medium" VerticalAlignment="Center" HorizontalAlignment="Center" />
         </Grid>
         <StackPanel IsVisible="{Binding Player.IsLiveStream}" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" Margin="0,6,0,0">
           <Ellipse Width="5" Height="5" Fill="{DynamicResource EchoAccentText}" VerticalAlignment="Center" />
-          <TextBlock Text="直播" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource ui.PlayerBar.e472b37cf9ad}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" FontWeight="Medium" />
           <TextBlock Text="{Binding Player.LiveStatus}" Classes="muted" FontSize="12" />
           <TextBlock Text="{Binding Player.PositionText}" Classes="muted" FontSize="12" />
         </StackPanel>

@@ -8,7 +8,8 @@ internal static class NativeDspModules
             new("dspLimiterCeilingDb", "峰值上限", -6, -0.1, 0.1, "dBTP"),
             new("dspLimiterReleaseMs", "释放时间", 10, 400, 1, "ms")) {
             Toggles = [new("limiterAutoCeiling", "自动峰值上限")] };
-        yield return new("multiband", "多段压缩", "分别控制低、中、高频段的动态。", "高级", "multiband.getState", "multiband.setState", MultibandParameters());
+        yield return new("multiband", "多段压缩", "分别控制低、中、高频段的动态。", "高级", "multiband.getState", "multiband.setState", MultibandParameters())
+        { Toggles = [new("bands.0.enabled", "启用低频段"), new("bands.1.enabled", "启用中频段"), new("bands.2.enabled", "启用高频段")] };
         yield return new("deesser", "齿音抑制", "控制高频齿音与尖锐瞬态。", "高级", "deesser.getState", "deesser.setState",
             new("frequencyHz", "检测频率", 2000, 12000, 1, "Hz"), new("q", "检测 Q", 0.5, 12, 0.1, ""),
             new("thresholdDb", "阈值", -48, 0, 0.1, "dB"), new("ratio", "压缩比", 1, 20, 0.1, ":1"),
@@ -17,7 +18,7 @@ internal static class NativeDspModules
             new("mix", "干湿比例", 0, 1, 0.01, ""));
         yield return new("virtualStage", "虚拟声场", "以声源方向与房间反射营造耳机空间感。", "高级", "virtualStage.getState", "virtualStage.setState",
             new("strength", "空间强度", 0, 1, 0.01, ""), new("azimuthDegrees", "声源角度", 15, 75, 1, "°"),
-            new("reflection", "房间反射", 0, 1, 0.01, "")) { Toggles = [new("speakersBypassed", "旁路直达声处理")] };
+            new("reflection", "房间反射", 0, 1, 0.01, "")) { Toggles = [new("speakersBypassed", "音箱输出旁路")] };
     }
 
     private static DspParameterDefinition[] MultibandParameters()

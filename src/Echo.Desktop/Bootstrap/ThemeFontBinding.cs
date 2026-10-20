@@ -10,7 +10,7 @@ using SkiaSharp;
 
 namespace Echo.Desktop.Bootstrap;
 
-// The window owns one registered collection with at most three active files and 64 MiB font bytes.
+// The window owns one registered collection with at most four active files and 64 MiB font bytes.
 internal sealed class ThemeFontBinding : IDisposable
 {
     private sealed class Collection : FontCollectionBase { public override Uri Key { get; } = new("fonts:echo-import/" + Guid.NewGuid().ToString("N")); }
@@ -31,15 +31,20 @@ internal sealed class ThemeFontBinding : IDisposable
     }
     public void Apply(AppearancePreferences appearance)
     {
-        if (_requested?.MainFontFile == appearance.MainFontFile && _requested?.ChineseFontFile == appearance.ChineseFontFile && _requested?.FallbackFontFile == appearance.FallbackFontFile) return;
+        if (_requested?.MainFontFile == appearance.MainFontFile && _requested?.ChineseFontFile == appearance.ChineseFontFile && _requested?.FallbackFontFile == appearance.FallbackFontFile
+            && _requested?.Typography?.SecondaryFontFile == appearance.Typography?.SecondaryFontFile) return;
         _requested = appearance; _requests.Writer.TryWrite(appearance);
     }
-    public FontFamily Family(ThemePreferences p)
+    public FontFamily Family(ThemePreferences p) => Chain(p, p.Font, p.Appearance?.MainFontFile, _loaded?.MainFontFile);
+    // An empty secondary font follows the main font; both share the Chinese and fallback slots.
+    public FontFamily SecondaryFamily(ThemePreferences p) => p.Appearance?.Typography is { SecondaryFont.Length: > 0 } type
+        ? Chain(p, type.SecondaryFont, type.SecondaryFontFile, _loaded?.Typography?.SecondaryFontFile) : Family(p);
+    private string Slot(string name, ImportedFont? file, ImportedFont? loaded) => _collection is not null && file is not null && file == loaded && name == file.Family
+        ? _collection.Key.AbsoluteUri + "#" + file.Family : name == "Outfit" ? "avares://Echo.Desktop/Resources/Fonts#Outfit" : name;
+    private FontFamily Chain(ThemePreferences p, string first, ImportedFont? file, ImportedFont? loaded)
     {
-        string Slot(string name, ImportedFont? file, ImportedFont? loaded) => _collection is not null && file is not null && file == loaded && name == file.Family
-            ? _collection.Key.AbsoluteUri + "#" + file.Family : name == "Outfit" ? "avares://Echo.Desktop/Resources/Fonts#Outfit" : name;
         var a = p.Appearance ?? new();
-        return new FontFamily(string.Join(", ", Slot(p.Font, a.MainFontFile, _loaded?.MainFontFile), Slot(p.ChineseFont, a.ChineseFontFile, _loaded?.ChineseFontFile), Slot(p.FallbackFont, a.FallbackFontFile, _loaded?.FallbackFontFile), "Segoe UI", "PingFang SC", "DejaVu Sans"));
+        return new FontFamily(string.Join(", ", Slot(first, file, loaded), Slot(p.ChineseFont, a.ChineseFontFile, _loaded?.ChineseFontFile), Slot(p.FallbackFont, a.FallbackFontFile, _loaded?.FallbackFontFile), "Segoe UI", "PingFang SC", "DejaVu Sans"));
     }
     private async Task ImportAsync(string slot, string path, CancellationToken token)
     {
@@ -67,10 +72,10 @@ internal sealed class ThemeFontBinding : IDisposable
                 try
                 {
                     next = new(); long bytes = 0;
-                    foreach (var file in new[] { request.MainFontFile, request.ChineseFontFile, request.FallbackFontFile }.OfType<ImportedFont>().Distinct())
+                    foreach (var file in new[] { request.MainFontFile, request.ChineseFontFile, request.FallbackFontFile, request.Typography?.SecondaryFontFile }.OfType<ImportedFont>().Distinct())
                     {
                         var data = await ImportedFontStore.ReadAsync(file.Path, _stop.Token); bytes += data.Length;
-                        if (bytes > 64 * 1024 * 1024) throw new InvalidDataException("当前三套字体合计最大 64 MiB");
+                        if (bytes > 64 * 1024 * 1024) throw new InvalidDataException("导入字体合计最大 64 MiB");
                         using var stream = new MemoryStream(data);
                         if (!next.TryAddGlyphTypeface(stream, out _)) throw new InvalidDataException("字体已损坏或格式不受支持，请重新导入");
                     }

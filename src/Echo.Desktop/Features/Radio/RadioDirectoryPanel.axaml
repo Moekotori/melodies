@@ -4,35 +4,36 @@
   <Border Background="{DynamicResource EchoPanelMuted}" CornerRadius="6" Padding="20">
     <DockPanel>
       <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-        <TextBlock Text="全球电台" FontSize="20" Classes="heading" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Classes="icon" Command="{Binding Directory.CloseCommand}" ToolTip.Tip="关闭全球电台"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
+        <TextBlock Text="{DynamicResource ui.RadioDirectoryPanel.4c3d22499c74}" FontSize="20" Classes="heading" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Classes="icon" Command="{Binding Directory.CloseCommand}" ToolTip.Tip="{DynamicResource ui.RadioDirectoryPanel.368c899b7c4f}"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
       </Grid>
-      <TextBlock DockPanel.Dock="Top" Text="目录由 Radio Browser 社区提供。点击搜索会向其发送搜索条件和连接信息；收听时直接连接电台。免费目录不代表电台内容获得商业使用授权。" TextWrapping="Wrap" Classes="muted" FontSize="12" Margin="0,0,0,14" />
-      <Grid DockPanel.Dock="Top" ColumnDefinitions="2*,*,*,*,Auto" ColumnSpacing="8" Margin="0,0,0,12">
-        <TextBox Text="{Binding Directory.QueryName}" PlaceholderText="电台名称" MaxLength="128" />
-        <TextBox Grid.Column="1" Text="{Binding Directory.QueryCountry}" PlaceholderText="国家代码" MaxLength="2" />
-        <TextBox Grid.Column="2" Text="{Binding Directory.QueryLanguage}" PlaceholderText="语言" MaxLength="64" />
-        <TextBox Grid.Column="3" Text="{Binding Directory.QueryTag}" PlaceholderText="类型" MaxLength="64" />
-        <Button Grid.Column="4" Classes="primary" Command="{Binding Directory.SearchCommand}" IsEnabled="{Binding !Directory.Loading}" Content="搜索" />
+      <TextBlock DockPanel.Dock="Top" Text="{DynamicResource ui.RadioDirectoryPanel.708649776b4c}" TextWrapping="Wrap" Classes="muted" FontSize="12" Margin="0,0,0,14" />
+      <Grid Name="Filters" DockPanel.Dock="Top" ColumnDefinitions="2*,*,*,*,Auto" ColumnSpacing="8" RowSpacing="8" Margin="0,0,0,12">
+        <TextBox Name="NameFilter" Text="{Binding Directory.QueryName}" PlaceholderText="{DynamicResource ui.RadioDirectoryPanel.267eaf6f0cd5}" MaxLength="128" />
+        <TextBox Name="CountryFilter" Grid.Column="1" Text="{Binding Directory.QueryCountry}" PlaceholderText="{DynamicResource ui.RadioDirectoryPanel.71ea33b29571}" MaxLength="2" />
+        <TextBox Name="LanguageFilter" Grid.Column="2" Text="{Binding Directory.QueryLanguage}" PlaceholderText="{DynamicResource ui.RadioDirectoryPanel.9f6fee1aba17}" MaxLength="64" />
+        <TextBox Name="TagFilter" Grid.Column="3" Text="{Binding Directory.QueryTag}" PlaceholderText="{DynamicResource ui.RadioDirectoryPanel.ba40014ff496}" MaxLength="64" />
+        <Button Name="SearchButton" Grid.Column="4" Classes="primary" Command="{Binding Directory.SearchCommand}" IsEnabled="{Binding !Directory.Loading}" Content="{DynamicResource ui.RadioDirectoryPanel.44ce7ae909bb}" />
       </Grid>
       <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0" IsVisible="{Binding Directory.PageText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-        <Button Classes="icon" Command="{Binding Directory.PreviousCommand}" IsEnabled="{Binding Directory.HasPrevious}" ToolTip.Tip="上一页"><icon:GlyphIcon Kind="chevron-left" Width="16" Height="16" /></Button>
+        <Button Name="PreviousButton" Classes="icon" Command="{Binding Directory.PreviousCommand}" IsEnabled="{Binding Directory.CanPrevious}" ToolTip.Tip="{DynamicResource ui.RadioDirectoryPanel.c9b9ae7a6144}"><icon:GlyphIcon Kind="chevron-left" Width="16" Height="16" /></Button>
         <TextBlock Grid.Column="1" Text="{Binding Directory.PageText}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="muted" FontSize="12" />
-        <Button Grid.Column="2" Classes="icon" Command="{Binding Directory.NextCommand}" IsEnabled="{Binding Directory.HasNext}" ToolTip.Tip="下一页"><icon:GlyphIcon Kind="chevron-right" Width="16" Height="16" /></Button>
+        <Button Name="NextButton" Grid.Column="2" Classes="icon" Command="{Binding Directory.NextCommand}" IsEnabled="{Binding Directory.CanNext}" ToolTip.Tip="{DynamicResource ui.RadioDirectoryPanel.8a8542f69648}"><icon:GlyphIcon Kind="chevron-right" Width="16" Height="16" /></Button>
       </Grid>
       <TextBlock DockPanel.Dock="Bottom" Text="{Binding Directory.LimitMessage}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Directory.LimitMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       <Grid>
         <TextBlock Text="{Binding Directory.Status}" Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !Directory.HasResults}" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <ItemsControl ItemsSource="{Binding Directory.Results}">
+          <ItemsControl ItemsSource="{Binding Directory.Results}" IsEnabled="{Binding !Directory.Playing}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="local:RadioDirectoryRow">
-                <Grid ColumnDefinitions="*,Auto" MinHeight="52" Margin="0,0,0,8">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" MinHeight="56" Margin="0,0,0,8">
                   <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                     <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Detail}" FontSize="11" Classes="muted" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Detail}" FontSize="12" Classes="muted" TextTrimming="CharacterEllipsis" />
                   </StackPanel>
-                  <Button Grid.Column="1" Content="{Binding Action}" IsEnabled="{Binding !Saved}" Click="OnAdd" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Name="ListenResultButton" Classes="icon" Click="OnPlay" VerticalAlignment="Center" ToolTip.Tip="{DynamicResource ui.RadioStationRow.b9788942be1d}"><icon:GlyphIcon Kind="play" Width="18" Height="18" /></Button>
+                  <Button Grid.Column="2" Name="SaveResultButton" Content="{Binding Action}" IsEnabled="{Binding !Saved}" Click="OnAdd" VerticalAlignment="Center" />
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

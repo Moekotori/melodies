@@ -1,4 +1,5 @@
 import {createShaderSceneRenderer} from 'SOURCE/shader-scenes/shaderSceneRenderer';
+import {isLyricsShaderSceneMusicReactive} from 'SOURCE/../../../shared/constants/lyricsShaderScenes';
 import {resolveShaderScenePalette} from 'SOURCE/shader-scenes/shaderScenePalettes';
 import {createFlowingLightRenderer} from 'SOURCE/flowingLightRenderer';
 import {createFlowingLightDrive,createFlowingLightDriver} from 'SOURCE/flowingLightModel';
@@ -36,7 +37,7 @@ export function draw(ms:number,dt:number,spectrum:number[],playing:boolean,telem
  driver.advance(dt);elapsed+=Math.min(100,Math.max(0,dt));
  if(mode==='coverFlow')renderer.draw(elapsed/1000,light);
  else if(mode==='geometricAmbience')renderer.draw(dt,driver.drive);
- else renderer.draw(ms,dt,mode==='flowingLight'?driver.drive:null);
+ else renderer.draw(ms,dt,mode==='flowingLight'||isLyricsShaderSceneMusicReactive(mode)?driver.drive:null);
 }
 export function cover(c:any){
  if(mode==='coverFlow'){const probe=document.createElement('canvas');probe.width=64;probe.height=64;const g=probe.getContext('2d');g.drawImage(c,0,0,64,64);const p=extractCoverFlowPalette(g.getImageData(0,0,64,64).data);renderer.setPalette(p,coverRevision===0);coverRevision++;probe.dispose();}

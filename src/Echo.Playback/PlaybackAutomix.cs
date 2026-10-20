@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace Echo.Playback;
 
@@ -22,17 +21,19 @@ public sealed partial class PlaybackSessionCoordinator
     {
         automixEnabled = enabled;
         CancelAutomixAnalysis();
+        if (initialized && snapshot.OperationId > 0)
+            await SendQueueAsync(queue, snapshot.Current?.ItemId, repeat).ConfigureAwait(false);
         if (!enabled)
         {
             if (armedPlanId is { } plan)
             {
                 armedPlanId = null;
-                try { await native.CallAsync("automix.cancel", Params(new JsonArray(new JsonObject { ["planId"] = plan }))).ConfigureAwait(false); }
-                catch (OperationCanceledException) { throw; }
-                catch (Exception) { }
+                await AutomixNativePreparation.CancelAsync(native, plan).ConfigureAwait(false);
             }
+            await RefreshAlbumGaplessAsync().ConfigureAwait(false);
             return;
         }
+        await RefreshAlbumGaplessAsync().ConfigureAwait(false);
         await TryArmAutomixAsync().ConfigureAwait(false);
     }, token, affectsPlayback: false);
 
@@ -50,9 +51,9 @@ public sealed partial class PlaybackSessionCoordinator
         if (next is null || !PlainLocal(next) || IsDsdPath(current.FilePath) || IsDsdPath(next.FilePath)) return;
         var key = string.Create(CultureInfo.InvariantCulture, $"{revision}:{current.ItemId}:{next.ItemId}:{snapshot.OperationId}");
         if (automixArmedKey == key) return;
-        durations[current.ItemId] = snapshot.DurationSeconds;
+        RememberDuration(current.ItemId, snapshot.DurationSeconds);
         var nextDuration = durations.TryGetValue(next.ItemId, out var known) ? known : await ReadDurationAsync(next).ConfigureAwait(false);
-        if (nextDuration is > 0) durations[next.ItemId] = nextDuration.Value;
+        if (nextDuration is > 0) RememberDuration(next.ItemId, nextDuration.Value);
         var cachedCurrent = AutomixAnalyzer.TryGet(current.FilePath);
         var cachedNext = AutomixAnalyzer.TryGet(next.FilePath);
         var ready = cachedCurrent is not null && cachedNext is not null;
@@ -100,13 +101,15 @@ public sealed partial class PlaybackSessionCoordinator
 
     private async Task FinishAutomixAsync(int generation, string key, string fromId, string toId, AutomixAnalysis currentAnalysis, AutomixAnalysis nextAnalysis)
     {
-        if (generation != automixGeneration || automixArmedKey == key || !automixEnabled || snapshot.Status != PlaybackStatus.Playing) return;
+        if (generation != automixGeneration || automixArmedKey == key || !automixEnabled || snapshot.Status != PlaybackStatus.Playing
+            || segmentLoop is not null || Math.Abs(snapshot.PlaybackRate - 1) > 1e-6 || OutputFormat() != "pcm" || StageActive("sdm")) return;
         if (snapshot.Current is not { } current || current.ItemId != fromId) return;
         if (!key.EndsWith(string.Create(CultureInfo.InvariantCulture, $":{snapshot.OperationId}"), StringComparison.Ordinal)) return;
         var prepared = await PrepareNativeQueueAsync(ProjectNativeQueue(queue, fromId), fromId, repeat).ConfigureAwait(false);
         var index = Array.FindIndex(prepared.Items, item => item.ItemId == fromId);
         var next = index < 0 ? null : GaplessSuccessors(prepared.Items, index, prepared.Repeat == "all").FirstOrDefault();
-        if (next is null || next.ItemId != toId || !PlainLocal(next)) return;
+        if (prepared.Repeat == "one" || next is null || next.ItemId != toId || !PlainLocal(next)
+            || key != string.Create(CultureInfo.InvariantCulture, $"{revision}:{current.ItemId}:{next.ItemId}:{snapshot.OperationId}")) return;
         automixArmedKey = key;
         automixPendingKey = null;
         await SendAutomixAsync(current, next, currentAnalysis, nextAnalysis).ConfigureAwait(false);
@@ -123,18 +126,22 @@ public sealed partial class PlaybackSessionCoordinator
             CurrentIsDsd = IsDsdPath(current.FilePath), NextIsDsd = IsDsdPath(next.FilePath),
         });
         if (plan.Mode == "gapless_fallback") { armedPlanId = null; return; }
-        var request = new JsonObject
-        {
-            ["plan"] = plan.ToJson(),
-            ["nextSource"] = new JsonObject { ["kind"] = "local", ["uri"] = next.FilePath },
-        };
         try
         {
-            var result = await native.CallAsync("automix.prepare", Params(new JsonArray(request))).ConfigureAwait(false);
-            armedPlanId = result.Flag("acknowledged") && result.Text("state") == "armed" ? result.Text("planId") : null;
+            armedPlanId = await AutomixNativePreparation.PrepareAsync(native, plan, next.FilePath).ConfigureAwait(false) ? plan.PlanId : null;
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception) { armedPlanId = null; }
+        catch (Exception error)
+        {
+            armedPlanId = null;
+            Publish(snapshot with { Error = error.Message });
+        }
+    }
+
+    private void RememberDuration(string itemId, double seconds)
+    {
+        if (durations.Count >= 64 && !durations.ContainsKey(itemId)) durations.Remove(durations.Keys.First());
+        durations[itemId] = seconds;
     }
 
     private void CancelAutomixAnalysis()
@@ -175,8 +182,9 @@ public sealed partial class PlaybackSessionCoordinator
         var duration = durations.TryGetValue(next.ItemId, out var known) ? known : 0;
         Publish(snapshot with { Current = next, OperationId = operation, Status = PlaybackStatus.Playing,
             PositionSeconds = positionBase, DurationSeconds = duration, SampleRate = snapshot.SampleRate });
-        if (previous is not null && (previous.QueuedNext || previous.RemoveAfterPlay) && previous.ItemId != next.ItemId)
+        if (RefreshShuffleOrder() || previous is not null && (previous.QueuedNext || previous.RemoveAfterPlay) && previous.ItemId != next.ItemId)
             await SendQueueAsync(queue, next.ItemId, repeat).ConfigureAwait(false);
+        PublishQueue();
         await TryArmAutomixAsync().ConfigureAwait(false);
     }
 

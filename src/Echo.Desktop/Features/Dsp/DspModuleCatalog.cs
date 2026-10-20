@@ -8,7 +8,9 @@ public sealed partial class DspModule : ObservableObject
     public string Title { get; }
     public string Description { get; }
     public string Group { get; }
-    public bool HasGroupHeading => Id is "replayGain" or "src" or "eq" or "room" or "compressor";
+    public bool HasGroupHeading => Id is "replayGain" or "src" or "eq" or "room";
+    public bool HasAdvancedHeading => Id == "compressor";
+    public bool NavigationItemVisible => HasAdvancedHeading || NavigationVisible;
     public string? ReadMethod { get; }
     public string? WriteMethod { get; }
     public IReadOnlyList<DspParameterDefinition> Parameters { get; }
@@ -16,10 +18,10 @@ public sealed partial class DspModule : ObservableObject
     public IReadOnlyList<DspChoiceDefinition> Choices { get; init; } = [];
     public bool ConfiguresOutput => Id is "src" or "sdm";
     public bool DraftOnly => ConfiguresOutput || Id == "rack";
-    [ObservableProperty] private bool navigationVisible;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(NavigationItemVisible))] private bool navigationVisible;
     public bool EditsEqualizer => Id is "eq" or "headphone";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(IsActive)), NotifyPropertyChangedFor(nameof(Detail))] private string status = "未读取";
-    public bool IsActive => Status == "已启用";
+    public bool IsActive => Id != "safety" && Status is "已启用" or "歌曲增益" or "专辑增益";
     public bool ShowsDetail => Id is not ("listening" or "rack");
     public string Detail => !ShowsDetail ? "" : Status == "旁路" ? "已旁路" : Status;
     public bool HasBadge => Id == "sdm";

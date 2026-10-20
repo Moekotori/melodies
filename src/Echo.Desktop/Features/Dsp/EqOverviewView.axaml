@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.EqOverviewView" x:DataType="local:DspViewModel">
+  <StackPanel Spacing="10" Margin="0,0,0,10" IsVisible="{Binding IsReady}">
+    <WrapPanel IsVisible="{Binding IsEqSimple}" IsEnabled="{Binding CanEdit}">
+      <Button Content="低频增强" Classes="dsp-quiet eq-tone" Command="{Binding QuickToneCommand}" CommandParameter="bass" Margin="0,0,8,4" />
+      <Button Content="人声清晰" Classes="dsp-quiet eq-tone" Command="{Binding QuickToneCommand}" CommandParameter="vocal" Margin="0,0,8,4" />
+      <Button Content="空气感" Classes="dsp-quiet eq-tone" Command="{Binding QuickToneCommand}" CommandParameter="air" Margin="0,0,8,4" />
+      <Button Content="温暖" Classes="dsp-quiet eq-tone" Command="{Binding QuickToneCommand}" CommandParameter="warm" Margin="0,0,8,4" />
+      <Button Content="平直" Classes="dsp-quiet eq-tone" Command="{Binding QuickToneCommand}" CommandParameter="flat" Margin="0,0,8,4" />
+    </WrapPanel>
+    <Border Background="Transparent" BorderBrush="{DynamicResource EqSurfaceBorder}" BorderThickness="0,0,0,1" Padding="2,0,2,12" ToolTip.Tip="仅估算 EQ 的频率响应与动态向上增益，不代表输出实测峰值；其他 DSP、相位变化和采样间峰值仍可能需要额外余量。">
+      <StackPanel Spacing="4">
+        <WrapPanel>
+          <TextBlock Text="{Binding EqHeadroomLabel}" FontSize="12" FontWeight="SemiBold" Margin="0,0,16,3" />
+          <TextBlock Text="{Binding EqHeadroomAdvice}" FontSize="12" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" Margin="0,0,0,3" />
+        </WrapPanel>
+        <WrapPanel>
+          <TextBlock Text="{Binding EqModelDescription}" Classes="muted" FontSize="12" Margin="0,0,16,0" />
+          <TextBlock Text="{Binding EqChannelLegend}" IsVisible="{Binding EqHasChannelLegend}" Classes="muted" FontSize="12" />
+        </WrapPanel>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

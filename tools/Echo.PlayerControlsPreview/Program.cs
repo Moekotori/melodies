@@ -40,7 +40,7 @@ try
     Until(() => player.PlaybackRate == session.Snapshot.PlaybackRate && player.Volume == .23);
     Capture("controls-light.png");
     Click("SpeedUpButton"); Until(() => Math.Abs(session.Snapshot.PlaybackRate - 1.30) < .001);
-    Require(player.AudioSettings.PlaybackRate == player.PlaybackRate, "settings and popup share confirmed rate");
+    Require(session.Snapshot.PlaybackRate == player.PlaybackRate, "popup displays confirmed session rate");
     var speed = panel.FindControl<Slider>("SpeedSlider")!;
     var start = speed.TranslatePoint(new Point(speed.Bounds.Width * .45, speed.Bounds.Height / 2), window)!.Value;
     var end = speed.TranslatePoint(new Point(speed.Bounds.Width * .7, speed.Bounds.Height / 2), window)!.Value;

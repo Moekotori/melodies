@@ -12,11 +12,16 @@ internal sealed partial class CoreDispatch
         or "library.GetHomeAsync" or "library.GetStatsAsync" or "library.GetTracksAsync" or "library.GetAlbumsAsync"
         or "library.GetAlbumTracksAsync"
         or "library.GetArtistsAsync" or "library.GetArtistAlbumsAsync" or "library.GetArtistTracksAsync"
+        or "library.GetArtistImportSettingsAsync" or "library.GetPeopleAsync" or "library.GetTrackCreditsAsync" or "library.GetPersonCreditsAsync"
         or "library.GetGenresAsync" or "library.GetGenreTracksAsync" or "library.GetGenreAlbumsAsync"
         or "library.GetFoldersAsync" or "library.GetFolderTracksAsync" or "library.GetRandomTracksAsync"
         or "library.FindTrackByPathAsync" or "library.GetTrackAlbumAsync"
         or "library.GetTrackTagsAsync" or "library.GetAlbumMetadataAsync" or "library.GetHistoryEpochAsync"
         or "library.GetPlaylistsAsync" or "library.GetPlaylistTracksAsync" or "library.GetHistoryAsync"
+        or "library.PlayPlaylistAsync"
+        or "library.ImportPlaylistFileAsync" or "library.ExportPlaylistFileAsync"
+        or "library.CreatePlaylistAsync" or "library.UpdatePlaylistAsync" or "library.ArchivePlaylistAsync"
+        or "library.AddPlaylistTracksAsync" or "library.RemovePlaylistItemsAsync" or "library.MovePlaylistItemAsync"
         or "library.SetTrackFavoriteAsync" or "library.SetAlbumStateAsync"
         or "playback.PauseAsync" or "playback.ResumeAsync" or "playback.StopAsync" or "playback.SeekAsync"
         or "playback.NextAsync" or "playback.PreviousAsync" or "playback.SetVolumeAsync"
@@ -49,7 +54,9 @@ internal sealed partial class CoreDispatch
                 Changed?.Invoke(); return CoreJson.Empty;
             case "resource.read":
                 var resource = CoreJson.Read<CoreReadResource>(payload);
-                if (resource.ExplicitPath is not null || resource.Kind is not ("artwork" or "lyrics" or "description")) throw new UnauthorizedAccessException();
+                if (resource.ExplicitPath is not null || resource.Kind is not ("artwork" or "artist-artwork" or "lyrics" or "description")) throw new UnauthorizedAccessException();
+                if (resource.Kind == "artist-artwork" && resource.Path.StartsWith("online:", StringComparison.Ordinal))
+                    return await ReadResourceAsync(resource, token).ConfigureAwait(false);
                 _ = await IndexedTrackAsync(resource.Path, "resource", token).ConfigureAwait(false);
                 return await ReadResourceAsync(resource, token).ConfigureAwait(false);
         }

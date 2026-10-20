@@ -4,6 +4,7 @@
 shader, flowing-light, geometric-ambience and cover-flow renderers. No live
 renderer is initialized by the picker. Captures use a fixed dark palette and
 ECHO's existing `echo-album-placeholder-mascot-dark.png` for cover scenes.
+The six `coverPixel*` previews were captured on 2026-10-19 the same way, from the compiled scene sources.
 The theme swatch and blurred-cover swatches represent the plain theme and
 cover sources; default follows the selected lyrics style in the application.
 

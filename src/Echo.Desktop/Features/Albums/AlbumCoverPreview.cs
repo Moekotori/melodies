@@ -30,7 +30,7 @@ public partial class AlbumDetailView
         if (!CoverPreview.IsVisible) return;
         CoverPreview.IsVisible = false; PreviewImage.Source = null;
         _previewLease?.Dispose(); _previewLease = null;
-        if (!_closed) _coverReturnFocus?.Focus();
+        if (!_closed) Echo.Desktop.Bootstrap.FocusPolicy.Restore(CoverPreview, _coverReturnFocus);
         _coverReturnFocus = null;
     }
 }

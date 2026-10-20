@@ -10,7 +10,7 @@ public partial class EqBandInspectorView : UserControl
     private void ArrangeFields()
     {
         var compact = Bounds.Width < 690;
-        InspectorLayout.ColumnDefinitions = new(compact ? "*,*,*" : "122,*,*,*,*");
+        InspectorLayout.ColumnDefinitions = new(compact ? "*,*,*" : "112,*,*,*,*");
         InspectorLayout.RowDefinitions = new(compact ? "Auto,Auto" : "Auto");
         BandIdentity.Orientation = compact ? Avalonia.Layout.Orientation.Horizontal : Avalonia.Layout.Orientation.Vertical;
         Grid.SetColumnSpan(BandIdentity, compact ? 2 : 1);

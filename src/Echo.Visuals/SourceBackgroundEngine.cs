@@ -74,9 +74,11 @@ public sealed class SourceBackgroundEngine : IDisposable
         script.Invoke("__backgroundCover", canvases.Import(bitmap), 512, 512);
     }
     public SKPicture Draw(double nowMs, double elapsedMs, string spectrum = "[]", bool playing = false,double telemetryTimestamp=0,int targetFrameRate=30)
+        => TryDraw(nowMs,elapsedMs,spectrum,playing,telemetryTimestamp,targetFrameRate) ?? throw new InvalidOperationException("Background is settled; use TryDraw for an optional frame.");
+    public SKPicture? TryDraw(double nowMs, double elapsedMs, string spectrum = "[]", bool playing = false,double telemetryTimestamp=0,int targetFrameRate=30)
     {
         if (spectrum.Length > 4096) throw new InvalidDataException("Background spectrum budget exceeded.");
-        targetFrameRate=Math.Clamp(targetFrameRate,1,60);
+        targetFrameRate=Math.Clamp(targetFrameRate,10,240);
         if(frameRate!=targetFrameRate){script.Invoke("__backgroundFrameRate",targetFrameRate);frameRate=targetFrameRate;}
         script.Invoke("__backgroundDraw", nowMs, Math.Clamp(elapsedMs, 0, 250), spectrum, playing,telemetryTimestamp);
         if (!geometric) return gpu.TakePicture();

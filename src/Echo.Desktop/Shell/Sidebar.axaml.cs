@@ -90,9 +90,10 @@ public partial class Sidebar : UserControl
     }
     private void RestoreGripFocus(NavigationItem item)
     {
+        var revision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            if (Model?.IsSidebarEditing == true && this.IsAttachedToVisualTree())
+            if (Model?.IsSidebarEditing == true && Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, revision))
                 this.GetVisualDescendants().OfType<Button>().FirstOrDefault(x => x.Classes.Contains("sidebar-handle") && x.DataContext == item)?.Focus();
         });
     }

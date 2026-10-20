@@ -10,13 +10,16 @@ namespace Echo.Desktop.Features.Albums;
 public sealed class AlbumArtworkCache : IAsyncDisposable
 {
     private const long Budget = 32 * 1024 * 1024;
+    private const int RequestCapacity = 64;
     private readonly IAlbumArtwork _source;
     private readonly IBackgroundWorkAdmission? _admission;
-    private readonly Channel<Request> _requests = Channel.CreateBounded<Request>(64);
+    private readonly Channel<Request> _requests = Channel.CreateBounded<Request>(RequestCapacity);
     private readonly Dictionary<string, Entry> _cache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Pending> _pending = new(StringComparer.Ordinal);
     private readonly Task _worker;
     private readonly CancellationTokenSource _stop = new();
     private long _clock;
+    private int _waiters;
     private bool _closed;
     public long Bytes { get; private set; }
     public int Count => _cache.Count;
@@ -27,26 +30,74 @@ public sealed class AlbumArtworkCache : IAsyncDisposable
     public Task<Lease?> AcquireAsync(string path, CancellationToken cancellation) => AcquireAsync(path, false, 320, cancellation);
     public Task<Lease?> AcquireAsync(string path, CancellationToken cancellation, int maxEdge) => AcquireAsync(path, false, Math.Clamp(maxEdge, 64, 1024), cancellation);
     public Task<Lease?> AcquireArtistAsync(string path, CancellationToken cancellation) => AcquireAsync(path, true, 320, cancellation);
+    public Task<Lease?> AcquireArtistAsync(string path, CancellationToken cancellation, int maxEdge) => AcquireAsync(path, true, Math.Clamp(maxEdge, 64, 1024), cancellation);
     private async Task<Lease?> AcquireAsync(string path, bool artist, int maxEdge, CancellationToken cancellation)
     {
         var key = artist ? "artist:" + path : path;
         if (maxEdge != 320) key += "\0" + maxEdge;
         if (_closed || cancellation.IsCancellationRequested) return null;
         if (_cache.TryGetValue(key, out var cached)) return Rent(key, cached);
-        var completion = new TaskCompletionSource<Decoded>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (!_requests.Writer.TryWrite(new(path, artist, maxEdge, cancellation, completion))) return null;
-        var decoded = await completion.Task; var bitmap = decoded.Image;
-        if (_closed || cancellation.IsCancellationRequested) { bitmap?.Dispose(); return null; }
-        if (_cache.TryGetValue(key, out cached)) { bitmap?.Dispose(); return Rent(key, cached); }
-        var bytes = bitmap is null ? 0 : (long)bitmap.PixelSize.Width * bitmap.PixelSize.Height * 4;
-        Trim(bytes);
-        if (Bytes + bytes > Budget) { bitmap?.Dispose(); return null; }
-        cached = new(bitmap, bytes, decoded.Colors);
-        _cache.Add(key, cached);
-        Bytes += bytes;
-        var lease = Rent(key, cached);
-        Trim();
-        return lease;
+        if (_waiters >= RequestCapacity) return null;
+        _waiters++;
+        if (!_pending.TryGetValue(key, out var pending))
+        {
+            pending = new() { Waiters = 1 };
+            _pending.Add(key, pending);
+            pending.Work = LoadAsync(key, path, artist, maxEdge, pending);
+        }
+        else pending.Waiters++;
+        try
+        {
+            var entry = await pending.Work.WaitAsync(cancellation);
+            return _closed || cancellation.IsCancellationRequested || entry is null ? null : Rent(key, entry);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return null; }
+        finally
+        {
+            _waiters--;
+            if (--pending.Waiters == 0)
+            {
+                if (_pending.TryGetValue(key, out var current) && ReferenceEquals(current, pending)) _pending.Remove(key);
+                if (!pending.Finished) pending.Cancellation.Cancel();
+                ReleasePending(key, pending);
+            }
+        }
+    }
+
+    private async Task<Entry?> LoadAsync(string key, string path, bool artist, int maxEdge, Pending pending)
+    {
+        try
+        {
+            var completion = new TaskCompletionSource<Decoded>(TaskCreationOptions.RunContinuationsAsynchronously);
+            if (!_requests.Writer.TryWrite(new(path, artist, maxEdge, pending.Cancellation.Token, completion))) return null;
+            var decoded = await completion.Task;
+            var bitmap = decoded.Image;
+            if (_closed || pending.Cancellation.IsCancellationRequested) { bitmap?.Dispose(); return null; }
+            if (_cache.TryGetValue(key, out var cached)) bitmap?.Dispose();
+            else
+            {
+                var bytes = bitmap is null ? 0 : (long)bitmap.PixelSize.Width * bitmap.PixelSize.Height * 4;
+                Trim(bytes);
+                if (Bytes + bytes > Budget) { bitmap?.Dispose(); return null; }
+                cached = new(bitmap, bytes, decoded.Colors);
+                _cache.Add(key, cached); Bytes += bytes;
+            }
+            // Pin until every waiter has rented or cancelled; trimming must not retire their result.
+            cached.References++; pending.Entry = cached;
+            Trim();
+            return cached;
+        }
+        finally
+        {
+            pending.Finished = true; pending.Cancellation.Dispose();
+            if (pending.Waiters == 0) ReleasePending(key, pending);
+        }
+    }
+
+    private void ReleasePending(string key, Pending pending)
+    {
+        if (pending.Entry is null) return;
+        pending.Entry = null; Release(key);
     }
 
     private Lease Rent(string path, Entry entry)
@@ -126,6 +177,14 @@ public sealed class AlbumArtworkCache : IAsyncDisposable
 
     private sealed record Request(string Path, bool Artist, int MaxEdge, CancellationToken Cancellation, TaskCompletionSource<Decoded> Completion);
     private readonly record struct Decoded(Bitmap? Image, ArtworkColorSample? Colors);
+    private sealed class Pending
+    {
+        public readonly CancellationTokenSource Cancellation = new();
+        public Task<Entry?> Work = null!;
+        public Entry? Entry;
+        public int Waiters;
+        public bool Finished;
+    }
     private sealed class Entry(Bitmap? image, long bytes, ArtworkColorSample? colors)
     { public Bitmap? Image { get; } = image; public ArtworkColorSample? Colors { get; } = colors; public long Bytes { get; } = bytes; public int References; public long Access; }
 

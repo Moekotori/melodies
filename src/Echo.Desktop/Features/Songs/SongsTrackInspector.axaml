@@ -14,7 +14,7 @@
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <TextBlock Name="EmptyText" Text="{DynamicResource songs.inspector.empty}" Classes="muted" FontSize="13" TextWrapping="Wrap" />
-        <StackPanel Name="Details" IsVisible="False" Spacing="0">
+        <StackPanel Name="Details" Classes="reveal" IsVisible="False" Spacing="0">
           <Border Width="280" Height="280" HorizontalAlignment="Left" Background="{DynamicResource EchoPlaceholder}" CornerRadius="8" ClipToBounds="True">
             <Image Name="Cover" Stretch="UniformToFill" />
           </Border>

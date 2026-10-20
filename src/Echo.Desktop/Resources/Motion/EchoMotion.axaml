@@ -5,6 +5,14 @@
     <Setter Property="RenderTransform" Value="scale(1)" />
     <Setter Property="RenderTransformOrigin" Value="50%,50%" />
   </Style>
+  <!-- Bound panes (tabs, modes, empty/welcome states) enter when they turn visible. -->
+  <Style Selector=":is(Control).reveal-fade">
+    <Setter Property="motion:MotionReveal.Enabled" Value="True" />
+    <Setter Property="motion:MotionReveal.Lift" Value="0" />
+  </Style>
+  <Style Selector=":is(Control).reveal">
+    <Setter Property="motion:MotionReveal.Enabled" Value="True" />
+  </Style>
   <Style Selector="ToggleSwitch /template/ Border, ToggleSwitch /template/ ContentPresenter">
     <Setter Property="motion:MotionFeedback.Enabled" Value="True" />
   </Style>

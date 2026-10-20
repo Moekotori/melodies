@@ -30,10 +30,16 @@ public sealed partial class PlaybackSessionCoordinator
             shuffleOrder = CreateShuffleOrder(items, current);
             try { await SendQueueAsync(items, current, repeat).ConfigureAwait(false); }
             catch { shuffleOrder = oldOrder; throw; }
+            var previous = snapshot.Current;
             SetQueueItems(items); history = []; undo = null;
-            if (startItemId is not null) await OpenAsync(items.First(x => x.ItemId == startItemId)).ConfigureAwait(false);
+            if (startItemId is not null)
+            {
+                await OpenAsync(items.First(x => x.ItemId == startItemId)).ConfigureAwait(false);
+                if (previous is not null && previous.ItemId != startItemId) RememberShuffleTrack(previous.TrackId);
+                if (RefreshShuffleOrder()) await SendQueueAsync(queue, startItemId, repeat).ConfigureAwait(false);
+            }
             else if (items.Length == 0 || current is null && snapshot.Current is not null) await StopNowAsync().ConfigureAwait(false);
-            else Publish(snapshot);
+            else { await RefreshAlbumGaplessAsync().ConfigureAwait(false); Publish(snapshot); }
             PublishQueue();
         }, token);
     }
@@ -123,7 +129,11 @@ public sealed partial class PlaybackSessionCoordinator
     }
 
     private string[] CreateShuffleOrder(QueueTrack[] items, string? current)
-        => QueuePlaybackPlan.Order(items, current, QueuePlaybackPlan.RecentTrackIds(history));
+    {
+        var recent = new HashSet<string>(RecentShuffleTracks(), StringComparer.Ordinal);
+        if (items.FirstOrDefault(x => x.ItemId == current) is { } active) recent.Add(active.TrackId);
+        return QueuePlaybackPlan.Order(items, current, recent);
+    }
 
     private QueueTrack? ResolveNext(bool automatic = false)
     {
@@ -131,7 +141,7 @@ public sealed partial class PlaybackSessionCoordinator
         if (queue.Length == 0) return null;
         var current = snapshot.Current?.ItemId;
         var projected = ProjectNativeQueue(queue, current);
-        var steps = QueuePlaybackPlan.Upcoming(projected, current, repeat == RepeatMode.All, shuffle, QueuePlaybackPlan.RecentTrackIds(history), 1);
+        var steps = QueuePlaybackPlan.Upcoming(projected, current, repeat == RepeatMode.All, shuffle, RecentShuffleTracks(), 1);
         return steps.Length == 0 ? null : FindProjected(projected, steps[0].ItemId);
     }
 
@@ -147,7 +157,7 @@ public sealed partial class PlaybackSessionCoordinator
         var current = snapshot.Current?.ItemId;
         var projected = ProjectNativeQueue(queue, current);
         var steps = queue.Length == 0 || repeat == RepeatMode.One ? []
-            : QueuePlaybackPlan.Upcoming(projected, current, repeat == RepeatMode.All, shuffle, QueuePlaybackPlan.RecentTrackIds(history));
+            : QueuePlaybackPlan.Upcoming(projected, current, repeat == RepeatMode.All, shuffle, RecentShuffleTracks());
         var state = new QueueSnapshot(++queueVersion, Queue, Array.AsReadOnly(history), current,
             steps.Length == 0 ? null : FindProjected(projected, steps[0].ItemId), QueueMode)
         { Plan = steps };

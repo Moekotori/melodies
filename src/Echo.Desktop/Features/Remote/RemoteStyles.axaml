@@ -1,10 +1,11 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls"
+        xmlns:local="using:Echo.Desktop.Features.Remote" xmlns:motion="using:Echo.Desktop.Motion">
   <Styles.Resources>
     <ControlTheme x:Key="RemoteFileItem" TargetType="ListBoxItem">
       <Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="12,0" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Template"><ControlTemplate>
-        <Border Name="RowSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+        <Border Name="RowSurface" motion:MotionFeedback.Enabled="True" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" Padding="{TemplateBinding Padding}">
           <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
         </Border>
       </ControlTemplate></Setter>
@@ -15,6 +16,24 @@
   </Styles.Resources>
   <Style Selector="TextBlock.remote-caption"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
   <Style Selector="TextBlock.remote-label"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="Medium" /></Style>
+  <Style Selector="Button.remote-provider">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="14" /><Setter Property="Padding" Value="18,20" /><Setter Property="MinHeight" Value="108" />
+  </Style>
+  <Style Selector="Button.remote-provider:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+  <Style Selector="Button.remote-provider.active"><Setter Property="Background" Value="{DynamicResource EchoSelected}" /></Style>
+  <Style Selector="Button.remote-provider TextBlock.provider-name"><Setter Property="FontSize" Value="20" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+  <Style Selector="Button.remote-provider:pointerover TextBlock.provider-name, Button.remote-provider.active TextBlock.provider-name"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>
+  <Style Selector="local|RemoteProviderPicker.rail Button.remote-provider, local|RemoteProviderPicker.compact Button.remote-provider"><Setter Property="Padding" Value="14,12" /><Setter Property="MinHeight" Value="76" /></Style>
+  <Style Selector="local|RemoteProviderPicker.rail TextBlock.provider-name, local|RemoteProviderPicker.compact TextBlock.provider-name"><Setter Property="FontSize" Value="15" /></Style>
+  <Style Selector="local|RemoteProviderPicker.rail TextBlock.provider-description, local|RemoteProviderPicker.compact TextBlock.provider-description"><Setter Property="FontSize" Value="12" /></Style>
+  <Style Selector="icon|GlyphIcon.provider-arrow">
+    <Setter Property="motion:MotionFeedback.Enabled" Value="True" /><Setter Property="Opacity" Value="0" /><Setter Property="RenderTransform" Value="translate(-5px, 0px)" />
+  </Style>
+  <Style Selector="Button.remote-provider:pointerover icon|GlyphIcon.provider-arrow, Button.remote-provider:focus-visible icon|GlyphIcon.provider-arrow, Button.remote-provider.active icon|GlyphIcon.provider-arrow">
+    <Setter Property="Opacity" Value="1" /><Setter Property="RenderTransform" Value="translate(0px, 0px)" />
+  </Style>
   <Style Selector="Button.remote-tool"><Setter Property="Height" Value="34" /><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="13,0" /><Setter Property="CornerRadius" Value="5" /><Setter Property="FontSize" Value="12" /></Style>
   <Style Selector="Button.remote-icon"><Setter Property="Width" Value="32" /><Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="32" /><Setter Property="Padding" Value="0" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Background" Value="Transparent" /><Setter Property="CornerRadius" Value="4" /></Style>
   <Style Selector="Button.remote-icon icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoMuted}" /></Style>
@@ -25,7 +44,7 @@
   <Style Selector="Button.remote-filter"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="11,0" /><Setter Property="Height" Value="30" /><Setter Property="MinHeight" Value="30" /><Setter Property="CornerRadius" Value="4" /><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
   <Style Selector="Button.remote-filter.active"><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="Medium" /></Style>
   <Style Selector="ListBox.remote-files"><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="ItemContainerTheme" Value="{StaticResource RemoteFileItem}" /></Style>
-  <Style Selector="StackPanel.remote-row-actions"><Setter Property="Opacity" Value="0" /><Setter Property="IsHitTestVisible" Value="False" /></Style>
+  <Style Selector="StackPanel.remote-row-actions"><Setter Property="motion:MotionFeedback.Enabled" Value="True" /><Setter Property="Opacity" Value="0" /><Setter Property="IsHitTestVisible" Value="False" /></Style>
   <Style Selector="ListBoxItem:pointerover StackPanel.remote-row-actions"><Setter Property="Opacity" Value="1" /><Setter Property="IsHitTestVisible" Value="True" /></Style>
   <Style Selector="ListBoxItem:selected StackPanel.remote-row-actions"><Setter Property="Opacity" Value="1" /><Setter Property="IsHitTestVisible" Value="True" /></Style>
   <Style Selector="ListBoxItem:focus-within StackPanel.remote-row-actions"><Setter Property="Opacity" Value="1" /><Setter Property="IsHitTestVisible" Value="True" /></Style>

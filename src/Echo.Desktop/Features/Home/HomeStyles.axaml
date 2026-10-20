@@ -1,0 +1,5 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Border.home-hero"><Setter Property="Background" Value="{DynamicResource EchoPanelMuted}" /><Setter Property="CornerRadius" Value="20" /><Setter Property="Padding" Value="24" /></Style>
+  <Style Selector="Border.home-summary"><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="16" /><Setter Property="Padding" Value="18" /></Style>
+  <Style Selector="Button.home-secondary"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="MinHeight" Value="38" /><Setter Property="Padding" Value="12,0" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Background" Value="{DynamicResource EchoField}" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /></Style>
+</Styles>

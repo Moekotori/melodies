@@ -14,13 +14,14 @@ public sealed partial class DspViewModel
     public IReadOnlyList<DspChoice> CompressionBands { get; } = [new("0", "低频"), new("1", "中频"), new("2", "高频")];
     [ObservableProperty] private DspChoice compressionBand = new("0", "低频");
     public IEnumerable<DspParameter> ShownParameters => Parameters.Where(x => !IsMultiband || !x.Definition.Key.StartsWith("bands.") || x.Definition.Key.StartsWith("bands." + CompressionBand.Key + "."));
-    partial void OnCompressionBandChanged(DspChoice value) => UpdateModulePresentation();
+    partial void OnCompressionBandChanged(DspChoice value) { BindBandFields(); UpdateModulePresentation(); }
     public double DynamicsThreshold => Parameter((IsMultiband ? "bands." + CompressionBand.Key + "." : "") + "thresholdDb");
     public double DynamicsRatio => Math.Max(1, Parameter((IsMultiband ? "bands." + CompressionBand.Key + "." : "") + "ratio"));
     public double DynamicsMakeup => Parameter((IsMultiband ? "bands." + CompressionBand.Key + "." : "") + "makeupDb");
     public double DynamicsKnee => Parameter((IsMultiband ? "bands." + CompressionBand.Key + "." : "") + "kneeDb");
     private void UpdateModulePresentation()
     {
+        NotifyWorkbench();
         foreach (var name in new[] { nameof(IsMultiband), nameof(IsDeesser), nameof(IsMatrix), nameof(ShowsDynamics), nameof(ShowsNativeFacts), nameof(ShownParameters), nameof(DynamicsThreshold), nameof(DynamicsRatio), nameof(DynamicsMakeup), nameof(DynamicsKnee) }) OnPropertyChanged(name);
         UpdateNativeFacts();
     }

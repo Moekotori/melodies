@@ -52,6 +52,6 @@ public sealed partial class LibraryDatabase : ILibraryStore, ITrackLibrary, Echo
             await Task.WhenAll(_interactiveReader.DisposeAsync().AsTask(),
                 _scanReader.DisposeAsync().AsTask(), _writer.DisposeAsync().AsTask()).ConfigureAwait(false);
         }
-        finally { _ownership.Dispose(); }
+        finally { _homeSummary = null; _folderSummaries.Clear(); _ownership.Dispose(); }
     }
 }

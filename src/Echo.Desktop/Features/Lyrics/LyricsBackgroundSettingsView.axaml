@@ -1,17 +1,38 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:backgrounds="using:Echo.Desktop.Controls.Lyrics"
+ xmlns:lyrics="using:Echo.Desktop.Features.Lyrics" xmlns:backgrounds="using:Echo.Desktop.Controls.Lyrics" xmlns:icon="using:Echo.Desktop.Controls"
  x:Class="Echo.Desktop.Features.Lyrics.LyricsBackgroundSettingsView" x:DataType="lyrics:LyricsAppearance">
- <StackPanel Spacing="12" IsEnabled="{Binding CanSelectBackground}">
-            <TextBlock Text="{DynamicResource drawer.lyrics.background}" Classes="drawer-section" Margin="0,12,0,0" />
-            <ComboBox Name="BackgroundInput" ItemsSource="{Binding BackgroundChoices}" SelectedItem="{Binding BackgroundChoice}" HorizontalAlignment="Stretch"><ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice"><StackPanel Orientation="Horizontal" Spacing="12"><backgrounds:LyricsBackgroundThumbnail Mode="{Binding Id}" Width="64" Height="36" /><TextBlock Text="{Binding Label}" VerticalAlignment="Center" /></StackPanel></DataTemplate></ComboBox.ItemTemplate></ComboBox>
-            <StackPanel Spacing="8" IsVisible="{Binding IsCustomWallpaper}"><Button Content="{DynamicResource drawer.lyrics.wallpaper}" Classes="drawer-action" Click="OnPickWallpaper" HorizontalAlignment="Left" /><TextBlock Text="{Binding WallpaperName}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" /></StackPanel>
-            <StackPanel Spacing="12" IsVisible="{Binding IsImageBackground}">
-              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource drawer.lyrics.backgroundBlur}" FontSize="13" /><TextBlock Grid.Column="1" Text="{Binding BackgroundBlur,StringFormat='{}{0:0}px'}" Classes="muted" /></Grid>
-              <Slider Minimum="0" Maximum="80" Value="{Binding BackgroundBlur}" TickFrequency="1" IsSnapToTickEnabled="True" />
-              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource drawer.lyrics.backgroundBrightness}" FontSize="13" /><TextBlock Grid.Column="1" Text="{Binding BackgroundBrightness,StringFormat='{}{0:0}%'}" Classes="muted" /></Grid>
-              <Slider Minimum="20" Maximum="160" Value="{Binding BackgroundBrightness}" TickFrequency="1" IsSnapToTickEnabled="True" />
-              <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource drawer.lyrics.backgroundOpacity}" FontSize="13" /><TextBlock Grid.Column="1" Text="{Binding BackgroundOpacity,StringFormat='{}{0:0}%'}" Classes="muted" /></Grid>
-              <Slider Minimum="0" Maximum="100" Value="{Binding BackgroundOpacity}" TickFrequency="1" IsSnapToTickEnabled="True" />
-            </StackPanel>
- </StackPanel>
+  <UserControl.Styles><StyleInclude Source="../Settings/Drawers/LyricsDrawerStyles.axaml" /></UserControl.Styles>
+  <StackPanel Spacing="0" IsEnabled="{Binding CanSelectBackground}">
+    <Grid ColumnDefinitions="30,*" ColumnSpacing="10" MinHeight="32" Margin="0,0,0,12">
+      <Border Classes="lyrics-group-icon"><icon:GlyphIcon Kind="image" /></Border>
+      <TextBlock Grid.Column="1" Text="{DynamicResource drawer.lyrics.background}" Classes="lyrics-group-title" />
+    </Grid>
+    <ComboBox Name="BackgroundInput" Classes="lyrics-choice" ItemsSource="{Binding BackgroundChoices}" SelectedItem="{Binding BackgroundChoice}" MinHeight="64" Padding="10,6">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="lyrics:LyricsChoice">
+        <Grid ColumnDefinitions="76,*" ColumnSpacing="12" MinHeight="46">
+          <Border CornerRadius="6" ClipToBounds="True" VerticalAlignment="Center"><backgrounds:LyricsBackgroundThumbnail Mode="{Binding Id}" Width="76" Height="43" /></Border>
+          <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        </Grid>
+      </DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <Border Classes="lyrics-setting" IsVisible="{Binding IsAnimatedBackground}" Margin="0,12,0,0">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,94,Auto" ColumnSpacing="8">
+          <TextBlock Text="{DynamicResource drawer.lyrics.backgroundFrameRate}" Classes="lyrics-setting-label" />
+          <NumericUpDown Name="BackgroundFrameRateInput" Classes="lyrics-number" Grid.Column="1" Minimum="10" Maximum="240" Increment="1" FormatString="0" Value="{Binding BackgroundFrameRate}" />
+          <TextBlock Grid.Column="2" Text="FPS" Classes="lyrics-setting-value" />
+        </Grid>
+        <Slider Minimum="10" Maximum="240" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding BackgroundFrameRate}" AutomationProperties.Name="{DynamicResource drawer.lyrics.backgroundFrameRate}" />
+      </StackPanel>
+    </Border>
+    <StackPanel Spacing="8" IsVisible="{Binding IsCustomWallpaper}" Margin="0,14,0,0">
+      <Button Content="{DynamicResource drawer.lyrics.wallpaper}" Classes="drawer-action" Click="OnPickWallpaper" HorizontalAlignment="Left" />
+      <TextBlock Text="{Binding WallpaperName}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+    </StackPanel>
+    <StackPanel Spacing="0" IsVisible="{Binding IsImageBackground}" Margin="0,8,0,0">
+      <Border Classes="lyrics-setting"><StackPanel Spacing="6"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource drawer.lyrics.backgroundBlur}" Classes="lyrics-setting-label" /><TextBlock Grid.Column="1" Text="{Binding BackgroundBlur,StringFormat='{}{0:0}px'}" Classes="lyrics-setting-value" /></Grid><Slider Minimum="0" Maximum="80" Value="{Binding BackgroundBlur}" TickFrequency="1" IsSnapToTickEnabled="True" /></StackPanel></Border>
+      <Border Classes="lyrics-setting"><StackPanel Spacing="6"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource drawer.lyrics.backgroundBrightness}" Classes="lyrics-setting-label" /><TextBlock Grid.Column="1" Text="{Binding BackgroundBrightness,StringFormat='{}{0:0}%'}" Classes="lyrics-setting-value" /></Grid><Slider Minimum="20" Maximum="160" Value="{Binding BackgroundBrightness}" TickFrequency="1" IsSnapToTickEnabled="True" /></StackPanel></Border>
+      <Border Classes="lyrics-setting"><StackPanel Spacing="6"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource drawer.lyrics.backgroundOpacity}" Classes="lyrics-setting-label" /><TextBlock Grid.Column="1" Text="{Binding BackgroundOpacity,StringFormat='{}{0:0}%'}" Classes="lyrics-setting-value" /></Grid><Slider Minimum="0" Maximum="100" Value="{Binding BackgroundOpacity}" TickFrequency="1" IsSnapToTickEnabled="True" /></StackPanel></Border>
+    </StackPanel>
+  </StackPanel>
 </UserControl>

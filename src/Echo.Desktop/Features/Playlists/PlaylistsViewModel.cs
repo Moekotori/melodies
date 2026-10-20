@@ -59,7 +59,10 @@ public sealed partial class PlaylistsViewModel : ObservableObject, IDisposable
     public string BrowseSummary => Text.Format("playlists.count", TotalPlaylists);
     public string BrowsePage => Text.Format("playlists.page", browseOffset / 200 + 1);
     public string TrackPage => Text.Format("playlists.page", trackOffset / 200 + 1);
-    public string PlayLabel => Text[TotalTracks > Tracks.Count ? "playlists.playPage" : "playlists.play"];
+    private bool PlaysCurrentPage => TotalTracks > 1000 || library is not IPlaylistPlayback && TotalTracks > Tracks.Count;
+    public string PlayLabel => Text[PlaysCurrentPage ? "playlists.playPage" : "playlists.play"];
+    public string ShuffleLabel => Text[PlaysCurrentPage ? "playlists.shufflePage" : "playlists.shuffle"];
+    public string AppendLabel => Text[PlaysCurrentPage ? "playlists.appendPage" : "playlists.append"];
     public string? CoverPath => IsManual ? SelectedPlaylist?.SamplePath : Tracks.FirstOrDefault()?.Row.Path;
     public event Action? SelectionChanged;
     public PlaylistsViewModel(ShellViewModel shell)
@@ -98,8 +101,8 @@ public sealed partial class PlaylistsViewModel : ObservableObject, IDisposable
     private void Notify()
     {
         foreach (var name in new[] { nameof(IsHome), nameof(IsLiked), nameof(IsAlbums), nameof(IsManual), nameof(Title), nameof(Description),
-            nameof(Summary), nameof(SourceLabel), nameof(BrowseSummary), nameof(CanAct), nameof(CanPlay), nameof(CanMove), nameof(CanUndo), nameof(CanPrevious),
-            nameof(CanNext), nameof(HasBrowsePages), nameof(IsFirstBrowsePage), nameof(CanBrowsePrevious), nameof(CanBrowseNext), nameof(IsEmpty), nameof(IsBrowseEmpty), nameof(BrowsePage), nameof(TrackPage), nameof(PlayLabel), nameof(CoverPath) }) OnPropertyChanged(name);
+            nameof(Summary), nameof(SourceLabel), nameof(BrowseSummary), nameof(CanAct), nameof(CanPlay), nameof(CanMove), nameof(CanUndo), nameof(CanPrevious), nameof(CanTransfer), nameof(CanExport),
+            nameof(CanNext), nameof(HasBrowsePages), nameof(IsFirstBrowsePage), nameof(CanBrowsePrevious), nameof(CanBrowseNext), nameof(IsEmpty), nameof(IsBrowseEmpty), nameof(BrowsePage), nameof(TrackPage), nameof(PlayLabel), nameof(ShuffleLabel), nameof(AppendLabel), nameof(CoverPath) }) OnPropertyChanged(name);
     }
     public async Task LoadBrowserAsync(int offset = 0, bool debounce = false, long? expected = null)
     {

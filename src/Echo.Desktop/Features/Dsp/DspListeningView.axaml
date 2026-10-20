@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspListeningView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,0,24">
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspListeningView.eeaa9cbbbeaf}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <TextBlock Text="{Binding OutputName}" Classes="dsp-note"/>
+          <TextBlock Text="{Binding ActiveListeningName}" Classes="dsp-rate-number"/>
+          <TextBlock Text="{DynamicResource ui.DspListeningView.8530b2848bce}" Classes="dsp-note" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspListeningView.f11c23a16f76}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+            <TextBox Text="{Binding ListeningName, Mode=TwoWay}" MaxLength="40" PlaceholderText="{DynamicResource ui.DspListeningView.ba6745ee22a7}"/>
+            <Button Grid.Column="1" Content="{DynamicResource ui.DspListeningView.de847c231898}" Command="{Binding SaveListeningCommand}" IsEnabled="{Binding CanSaveListening}"/>
+          </Grid>
+          <TextBlock Text="{DynamicResource ui.DspListeningView.bb6160118af9}" IsVisible="{Binding !HasProfiles}" Classes="dsp-note"/>
+          <ListBox Name="SceneList" Classes="dsp-scenes" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile, Mode=TwoWay}" MaxHeight="420">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="local:DspListeningProfile">
+                <Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="16" Margin="8,12">
+                  <icons:GlyphIcon Kind="headphones" Width="20" Height="20"/>
+                  <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="17"/>
+                  <TextBlock Grid.Column="2" Text="{DynamicResource ui.DspListeningView.a8b4134d4181}" Classes="muted" FontSize="12"/>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <WrapPanel>
+            <Button Content="{DynamicResource ui.DspListeningView.a668aa8aaf34}" Command="{Binding ApplyListeningCommand}" IsEnabled="{Binding CanManageProfile}"/>
+            <Button Content="{DynamicResource ui.DspListeningView.2ce754fc213a}" Classes="dsp-quiet" Command="{Binding DeleteListeningCommand}" IsEnabled="{Binding CanManageProfile}"/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+      <StackPanel Spacing="7">
+        <TextBlock Text="{DynamicResource ui.DspListeningView.807ae08bdd55}" Classes="dsp-section-title"/>
+        <TextBlock Text="{DynamicResource ui.DspListeningView.742e936b73c7}" Classes="dsp-note" TextWrapping="Wrap"/>
+      </StackPanel>
+      <TextBlock Text="{DynamicResource ui.DspListeningView.d9e5b3602d03}" IsVisible="{Binding ListeningChainPending}" Classes="dsp-note"/>
+      <StackPanel Name="ChainHost" Spacing="16">
+        <local:DspRackView/>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="{DynamicResource ui.DspListeningView.3a7425f3c291}" Command="{Binding RevertCommand}" IsEnabled="{Binding CanRevert}"/>
+          <Button Content="{DynamicResource ui.DspListeningView.7c4b914a9623}" Command="{Binding ApplyCommand}" IsEnabled="{Binding CanApply}"/>
+          <TextBlock Text="{Binding Message}" Classes="dsp-note" VerticalAlignment="Center"/>
+        </StackPanel>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -18,6 +18,14 @@ internal static partial class BackgroundShaderCompatibility
             var name=Regex.Match(function,@"native_(\w+)\(").Groups[1].Value;
             source=Regex.Replace(source,@"\b"+name+@"\[([^\]]+)\]", "native_"+name+"($1)");
         }
+        if(source.Contains("u_hist[23 - lagRow]",StringComparison.Ordinal))
+        {
+            // SkSL requires constant uniform-array indices. Newest rows are most common,
+            // so test them first; this preserves the original history interpolation.
+            functions.Add("vec3 native_skylineHistory(int i){"+string.Join("",Enumerable.Range(1,23).Reverse().Select(i=>$"if(i=={i})return u_hist[{i}];"))+"return u_hist[0];}");
+            source=source.Replace("u_hist[23 - lagRow]","native_skylineHistory(23-lagRow)")
+                .Replace("u_hist[22 - lagRow]","native_skylineHistory(22-lagRow)");
+        }
         source=source.Replace("for (int row = firstRow; row < 24; row++) {", "for (int row = 0; row < 24; row++) { if(row < firstRow)continue;")
             .Replace("clamp(int(ceil(fraction * 23.0)), 0, 24)","int(clamp(ceil(fraction * 23.0),0.0,24.0))")
             .Replace("for (int j = 0; j < span; j++) {","for (int j = 0; j < 2; j++) { if(j >= span)continue;")

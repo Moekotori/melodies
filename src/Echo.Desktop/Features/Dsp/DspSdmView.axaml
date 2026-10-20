@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspSdmView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="28" Margin="0,0,12,24">
+      <local:DspWorkbenchSplit MainWeight="1.3" Gap="56">
+        <StackPanel Spacing="28" Margin="0,12,0,0">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{DynamicResource ui.DspSdmView.8a10bed55714}" Classes="dsp-eyebrow"/>
+            <TextBlock Text="{Binding Options[outputFormat].Selected.Label}" FontSize="56" FontWeight="Light"/>
+            <TextBlock Text="{Binding RequestedRateReadout}" FontSize="20" Foreground="{DynamicResource EchoAccentText}"/>
+            <TextBlock Text="{Binding OutputFacts}" Classes="dsp-note"/>
+          </StackPanel>
+          <local:DspConversionPath/>
+        </StackPanel>
+        <StackPanel Spacing="20" Margin="0,12,0,0">
+          <TextBlock Text="{DynamicResource ui.DspSdmView.b83122771c0f}" Classes="dsp-eyebrow"/>
+          <local:DspRuntimeReadout/>
+        </StackPanel>
+      </local:DspWorkbenchSplit>
+      <Border Classes="dsp-rule" BorderThickness="0,1,0,1" Padding="0,22,0,22">
+        <StackPanel Spacing="22" IsEnabled="{Binding CanEdit}">
+          <local:DspColumns MinimumColumnWidth="220" MaximumColumns="4">
+            <local:DspChoiceSegments DataContext="{Binding Options[outputFormat]}" Margin="0,0,22,18"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[carrierRate]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[qualityProfile]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[extraLoop]}"/>
+          </local:DspColumns>
+          <local:DspColumns MinimumColumnWidth="220" MaximumColumns="4">
+            <local:DspChoiceEditor DataContext="{Binding Options[soundProfile]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[firTier]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[computeBackend]}"/>
+            <local:DspChoiceEditor DataContext="{Binding Options[preModulatorProfile]}"/>
+          </local:DspColumns>
+          <Expander Header="{DynamicResource ui.DspSdmView.1080c21b37da}" HorizontalAlignment="Stretch">
+            <local:DspColumns MinimumColumnWidth="260" MaximumColumns="2" Margin="0,18,0,0">
+              <local:DspChoiceEditor DataContext="{Binding Options[filter1x]}"/>
+              <local:DspChoiceEditor DataContext="{Binding Options[filterNx]}"/>
+            </local:DspColumns>
+          </Expander>
+        </StackPanel>
+      </Border>
+      <local:DspWorkbenchSplit MainWeight="1.8" Gap="48">
+        <StackPanel Spacing="14">
+          <TextBlock Text="噪声整形预览" Classes="dsp-eyebrow"/>
+          <TextBlock Text="{Binding Options[qualityProfile].Selected.Label}" FontSize="20" FontWeight="Medium"/>
+          <local:DspDiagramControl Kind="sdmNoise" UseThemeSurface="True" Height="240"/>
+          <TextBlock Text="{DynamicResource ui.DspSdmView.42ac7bf2166e}" Classes="dsp-note"/>
+        </StackPanel>
+        <StackPanel Spacing="22">
+          <TextBlock Text="{DynamicResource ui.DspSdmView.8b360fad0106}" Classes="dsp-eyebrow"/>
+          <StackPanel Spacing="7"><TextBlock Text="{DynamicResource ui.DspSdmView.ebf70f9d1321}" Classes="muted" FontSize="12"/><TextBlock Text="{Binding Options[qualityProfile].Selected.Label}" FontSize="22"/></StackPanel>
+          <StackPanel Spacing="7"><TextBlock Text="{DynamicResource ui.DspSdmView.70aedc4ad8d5}" Classes="muted" FontSize="12"/><TextBlock Text="{Binding Options[extraLoop].Selected.Label}" FontSize="16"/></StackPanel>
+          <Border Classes="dsp-rule" Padding="0,18,0,0"><StackPanel Spacing="7"><TextBlock Text="{DynamicResource ui.DspSdmView.94d9021599a8}" Classes="dsp-eyebrow"/><TextBlock Text="{Binding FilterPlanReadout}" Classes="dsp-note"/></StackPanel></Border>
+        </StackPanel>
+      </local:DspWorkbenchSplit>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

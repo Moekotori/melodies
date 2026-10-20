@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspChannelView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,0,24">
+      <StackPanel Spacing="7">
+        <TextBlock Text="{DynamicResource ui.DspChannelView.ccf6a916f2b3}" Classes="dsp-section-title"/>
+      </StackPanel>
+      <WrapPanel>
+        <Button Content="{DynamicResource ui.DspChannelView.b2c799a1bb6a}" Classes="dsp-quiet" Command="{Binding SwapChannelsCommand}" IsEnabled="{Binding CanEdit}"/>
+        <Button Content="{DynamicResource ui.DspChannelView.f22038df7e5d}" Classes="dsp-quiet" Command="{Binding ResetChannelCommand}" IsEnabled="{Binding CanEdit}"/>
+      </WrapPanel>
+      <Border Classes="dsp-rule" Padding="0,18,0,18" BorderThickness="0,1,0,1">
+        <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="32">
+          <StackPanel Spacing="10"><TextBlock Text="L · 左声道" FontSize="15" FontWeight="Medium"/><Border Background="{DynamicResource EchoDivider}" Height="4"/><TextBlock Text="{Binding Fields[leftGainDb].Value, StringFormat=配置 {0:0.0} dB}" Classes="dsp-note"/></StackPanel>
+          <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center"><TextBlock Text="左右平衡" Classes="muted" FontSize="12"/><TextBlock Text="{Binding Fields[balance].Value, StringFormat={}{0:+0.00;-0.00;0.00}}" FontSize="28" HorizontalAlignment="Center"/></StackPanel>
+          <StackPanel Grid.Column="2" Spacing="10"><TextBlock Text="R · 右声道" FontSize="15" FontWeight="Medium" HorizontalAlignment="Right"/><Border Background="{DynamicResource EchoDivider}" Height="4"/><TextBlock Text="{Binding Fields[rightGainDb].Value, StringFormat=配置 {0:0.0} dB}" Classes="dsp-note" HorizontalAlignment="Right"/></StackPanel>
+        </Grid>
+      </Border>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspChannelView.9485dc3c1125}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+            <local:DspParameterEditor DataContext="{Binding Fields[balance]}"/>
+            <local:DspColumns MinimumColumnWidth="380" MaximumColumns="2">
+              <local:DspParameterEditor DataContext="{Binding Fields[leftGainDb]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[rightGainDb]}"/>
+            </local:DspColumns>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspChannelView.6c44f6b90479}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+            <local:DspColumns MinimumColumnWidth="380" MaximumColumns="2">
+              <local:DspParameterEditor DataContext="{Binding Fields[leftDelayMs]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[rightDelayMs]}"/>
+            </local:DspColumns>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Expander Header="{DynamicResource ui.DspChannelView.78034c28213b}" HorizontalAlignment="Stretch">
+        <StackPanel Margin="0,18,0,0">
+          <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+            <local:DspColumns MinimumColumnWidth="250" MaximumColumns="2">
+              <local:DspParameterEditor DataContext="{Binding Fields[low.left]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[low.right]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[mid.left]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[mid.right]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[high.left]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[high.right]}"/>
+            </local:DspColumns>
+          </StackPanel>
+        </StackPanel>
+      </Expander>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspChannelView.eca97a879241}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+            <local:DspChoiceEditor DataContext="{Binding Options[monoMode]}"/>
+            <local:DspColumns MinimumColumnWidth="250" MaximumColumns="2">
+              <local:DspToggleEditor DataContext="{Binding Switches[swapLeftRight]}"/>
+              <local:DspToggleEditor DataContext="{Binding Switches[invertLeft]}"/>
+              <local:DspToggleEditor DataContext="{Binding Switches[invertRight]}"/>
+              <local:DspToggleEditor DataContext="{Binding Switches[constantPower]}"/>
+            </local:DspColumns>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

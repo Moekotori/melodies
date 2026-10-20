@@ -146,6 +146,22 @@
       ]
     },
     {
+      "method": "playback.SetShuffleAvoidRecentCountAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "int",
+          "count",
+          null
+        ],
+        [
+          "CancellationToken",
+          "token",
+          "default"
+        ]
+      ]
+    },
+    {
       "method": "playback.SetAlbumGaplessEnabledAsync",
       "result": "Task",
       "parameters": [
@@ -1864,6 +1880,158 @@
         [
           "ArtistInformationRequest",
           "request",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.ImportPlaylistFileAsync",
+      "result": "Task<PlaylistImportResult>",
+      "parameters": [
+        [
+          "string",
+          "operationId",
+          null
+        ],
+        [
+          "string",
+          "fileName",
+          null
+        ],
+        [
+          "byte[]",
+          "content",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.ExportPlaylistFileAsync",
+      "result": "Task<PlaylistFileExport>",
+      "parameters": [
+        [
+          "PlaylistTrackQuery",
+          "query",
+          null
+        ],
+        [
+          "string",
+          "name",
+          null
+        ],
+        [
+          "string",
+          "format",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.PlayPlaylistAsync",
+      "result": "Task",
+      "parameters": [
+        [
+          "PlaylistTrackQuery",
+          "query",
+          null
+        ],
+        [
+          "bool",
+          "append",
+          "false"
+        ],
+        [
+          "bool",
+          "next",
+          "false"
+        ],
+        [
+          "bool",
+          "shuffle",
+          "false"
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetArtistImportSettingsAsync",
+      "result": "Task<ArtistImportSettings>",
+      "parameters": [
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetPeopleAsync",
+      "result": "Task<PersonPage>",
+      "parameters": [
+        [
+          "PersonQuery",
+          "query",
+          null
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetTrackCreditsAsync",
+      "result": "Task<CreditPage>",
+      "parameters": [
+        [
+          "string",
+          "trackId",
+          null
+        ],
+        [
+          "int",
+          "offset",
+          "0"
+        ],
+        [
+          "int",
+          "limit",
+          "100"
+        ],
+        [
+          "CancellationToken",
+          "cancellation",
+          "default"
+        ]
+      ]
+    },
+    {
+      "method": "library.GetPersonCreditsAsync",
+      "result": "Task<CreditAppearancePage>",
+      "parameters": [
+        [
+          "PersonCreditQuery",
+          "query",
           null
         ],
         [

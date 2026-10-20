@@ -20,4 +20,6 @@ struct NativeMetadataResult {
   bool hasVorbisComments = false, hasEmbeddedMetadata = false;
   std::map<std::string, std::string> sources;
   std::optional<NativeMusicGraph> musicGraph;
+  std::map<std::string, std::vector<std::string>> creditTags;
+  bool creditTagsExceeded = false;
 };

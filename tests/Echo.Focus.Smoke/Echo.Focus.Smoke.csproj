@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Semi.Avalonia" />
+    <Compile Include="../../src/Echo.Desktop/Bootstrap/FocusPolicy.cs" Link="FocusPolicy.cs" />
+  </ItemGroup>
+</Project>

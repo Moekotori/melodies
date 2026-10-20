@@ -2,4 +2,5 @@
   <PropertyGroup><OutputType>Exe</OutputType><IsAotCompatible>false</IsAotCompatible></PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/Echo.Desktop/Echo.Desktop.csproj" /><PackageReference Include="Avalonia.Headless" /></ItemGroup>
   <ItemGroup><ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/Echo.Desktop/Controls/Lyrics/BackgroundFrameController.cs" Link="BackgroundFrameController.cs" /></ItemGroup>
 </Project>

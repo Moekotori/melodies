@@ -8,6 +8,7 @@ namespace Echo.Desktop.Controls.Lyrics;
 internal sealed class LyricsWordPainter
 {
     private readonly BlurEffect entranceBlur = new();
+    private readonly LyricsWordStylePainter styles = new();
     private readonly LinearGradientBrush feather = new()
     {
         StartPoint = new(0, 0, RelativeUnit.Relative), EndPoint = new(1, 0, RelativeUnit.Relative),
@@ -15,13 +16,20 @@ internal sealed class LyricsWordPainter
             new(Color.FromArgb(158, 255, 255, 255), .5), new(Color.FromArgb(61, 255, 255, 255), .75), new(Colors.Transparent, 1)]
     };
 
-    public void Paint(DrawingContext dc, LyricsTextLayoutCache.Entry layout, Point point, bool highlight, LyricsLayout style, double position, double entryAge = double.PositiveInfinity)
+    public void Paint(DrawingContext dc, LyricsTextLayoutCache.Entry layout, Point point, bool highlight, LyricsLayout style, double position, double entryAge = double.PositiveInfinity, string highlightStyle = "sweep", bool spatialMotion = true)
     {
+        highlightStyle = LyricsHighlightCatalog.Resolve(highlightStyle, style);
         var upcoming = highlight && layout.Words.Count > 0 ? style switch
         {
             LyricsLayout.Light => .46, LyricsLayout.WordFocus => .44,
             LyricsLayout.CoverRight => .56, LyricsLayout.CoverLeft => .55, _ => .46
         } : 1;
+        if (highlight && layout.Words.Count > 0 && highlightStyle != "sweep")
+        {
+            styles.Paint(dc, layout, point, highlightStyle, position, upcoming, spatialMotion,
+                style == LyricsLayout.KineticChars ? entryAge : double.PositiveInfinity);
+            return;
+        }
         var entering = style == LyricsLayout.KineticChars && entryAge < 1020;
         if (!entering || layout.Words.Count == 0)
         {

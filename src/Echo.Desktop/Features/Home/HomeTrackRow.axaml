@@ -3,7 +3,7 @@
  <Button Name="PlayButton" Classes="quiet" Click="OnPlay" CornerRadius="0" HorizontalContentAlignment="Stretch" Padding="0,12" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1">
   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
    <Grid Width="42" Height="42" ClipToBounds="True"><Image Source="{DynamicResource EchoPlaceholderImage}" Stretch="UniformToFill" /><Image Name="Cover" Stretch="UniformToFill" /></Grid>
-   <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="{Binding Track.Title}" Classes="heading" FontSize="15" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Track.Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" /><TextBlock Name="PlayCount" Classes="muted" FontSize="11" /></StackPanel>
+   <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="{Binding Track.Title}" Classes="heading" FontSize="15" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Track.Artist}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" /><TextBlock Name="PlayCount" Classes="muted" FontSize="12" /></StackPanel>
   </Grid>
  </Button>
 </UserControl>

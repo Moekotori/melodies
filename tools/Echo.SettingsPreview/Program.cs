@@ -11,6 +11,16 @@ using Echo.Desktop.Shell;
 
 // Real product views, isolated presentation state; no library or audio processes.
 var builder = AppBuilder.Configure<SettingsReviewApp>().With(DesktopFonts.CreateOptions());
+if (args.FirstOrDefault() == "--automix")
+{
+    builder.UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
+    AutomixCapture.Run(Path.GetFullPath(args[1])); return;
+}
+if (args.FirstOrDefault() == "--lyrics-drawer")
+{
+    builder.UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
+    LyricsDrawerCapture.Run(Path.GetFullPath(args[1])); return;
+}
 if (args.FirstOrDefault() == "--capture")
 {
     builder.UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();

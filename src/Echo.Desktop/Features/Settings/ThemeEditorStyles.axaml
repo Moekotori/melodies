@@ -20,7 +20,7 @@
         <Setter Property="BoxShadow" Value="0 1 4 0 #18000000" />
       </Style>
       <Style Selector="^:selected">
-        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontWeight" Value="Medium" />
       </Style>
       <Style Selector="^:focus-visible /template/ Border#ChoiceSurface">
         <Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" />

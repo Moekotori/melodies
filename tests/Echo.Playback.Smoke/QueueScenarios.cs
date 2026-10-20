@@ -137,6 +137,7 @@ internal static class QueueScenarios
     {
         var native = new FakeHost();
         await using var session = new PlaybackSessionCoordinator(native);
+        await session.SetShuffleAvoidRecentCountAsync(25);
         var recentA = new QueueTrack("r1", "r1", a);
         var recentB = new QueueTrack("r2", "r2", a);
         var fresh = new QueueTrack("f1", "f1", b);

@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using Echo.Contracts.Radio;
 
@@ -17,7 +16,7 @@ public static class RadioDirectoryParser
 
     public static RadioDirectoryResult Parse(ReadOnlyMemory<byte> json, int offset)
     {
-        using var document = JsonDocument.Parse(Encoding.UTF8.GetString(json.Span), new JsonDocumentOptions { MaxDepth = 8 });
+        using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 8 });
         if (document.RootElement.ValueKind != JsonValueKind.Array
             || document.RootElement.GetArrayLength() > RadioDirectoryLimits.PageSize + 1)
             throw new InvalidDataException("电台目录响应无效。");
@@ -44,7 +43,7 @@ public static class RadioDirectoryParser
     private static RadioDirectoryStation? Read(JsonElement item)
     {
         if (item.ValueKind != JsonValueKind.Object
-            || !item.TryGetProperty("lastcheckok", out var ok) || ok.ValueKind != JsonValueKind.Number || ok.GetInt32() != 1)
+            || !item.TryGetProperty("lastcheckok", out var ok) || ok.ValueKind != JsonValueKind.Number || !ok.TryGetInt32(out var check) || check != 1)
             return null;
         var uuid = Text(item, "stationuuid", 36);
         var name = Text(item, "name", 160);

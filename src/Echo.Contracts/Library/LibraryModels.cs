@@ -5,19 +5,14 @@ public sealed record FileSnapshot(string Path, string PathKey, long SizeBytes, l
 public sealed record TrackMetadata(
     string Title, string Artist, string Album, string AlbumArtist,
     double DurationSeconds, string Codec, int SampleRate, int BitDepth,
-    int? TrackNumber = null, int? DiscNumber = null, int? Year = null, string Genre = "", int? Bitrate = null, double? Bpm = null)
+    int? TrackNumber = null, int? DiscNumber = null, int? Year = null, string Genre = "", int? Bitrate = null, double? Bpm = null,
+    IReadOnlyList<CreditTag>? Credits = null)
 {
     // Version changes invalidate incremental metadata reuse.
-    public const int ParserVersion = 3;
+    public const int ParserVersion = 6;
 
-    // Upgrade only affected physical sources, including CUE/osu backed by WAV.
-    public static int VersionFor(FileSnapshot file)
-    {
-        var extension = System.IO.Path.GetExtension((file.Source?.AudioPath ?? file.Path).AsSpan());
-        return extension.Equals(".wav", StringComparison.OrdinalIgnoreCase) ||
-            extension.Equals(".wave", StringComparison.OrdinalIgnoreCase) ||
-            extension.Equals(".bwf", StringComparison.OrdinalIgnoreCase) ? 4 : ParserVersion;
-    }
+    // Role tags affect managed and native readers, including virtual sources.
+    public static int VersionFor(FileSnapshot file) => ParserVersion;
 }
 public sealed record KnownTrack(string Id, long SizeBytes, long ModifiedTicks, int ParserVersion, bool Missing,
     string Path = "", string? DependencyStamp = null);

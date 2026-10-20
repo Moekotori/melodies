@@ -6,8 +6,19 @@ public sealed record RemoteBreadcrumb(string Label, string Path, bool IsCurrent)
 
 public sealed partial class RemoteViewModel
 {
+    public bool ShowConnection => ProviderPickerOpen || EditorOpen || HasNoSources;
+    public bool ShowBrowser => HasSource && !ShowConnection;
+    public bool IsEditing => editingId is not null;
+    partial void OnEditorOpenChanged(bool value) => RefreshConnectionState();
+    partial void OnProviderPickerOpenChanged(bool value) => RefreshConnectionState();
+    private void RefreshConnectionState()
+    {
+        OnPropertyChanged(nameof(ShowConnection)); OnPropertyChanged(nameof(ShowBrowser));
+        OnPropertyChanged(nameof(IsEditing));
+        OnPropertyChanged(nameof(NeedsSourceSelection));
+    }
     public bool HasSavedSources => Sources.Count > 0;
-    public bool NeedsSourceSelection => HasSavedSources && !HasSource && !IsBusy;
+    public bool NeedsSourceSelection => HasSavedSources && !HasSource && !IsBusy && !ShowConnection;
     public bool AllFiles => !AudioOnly;
     public string SourceAddress => Uri.TryCreate(SelectedSource?.BaseUrl, UriKind.Absolute, out var address) ? address.Host : "";
     public string DirectoryCount => LoadedDirectory ? shell.Text.Format("remote.itemCount", Total) : "";

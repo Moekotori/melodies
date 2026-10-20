@@ -2,23 +2,23 @@
   <StackPanel Spacing="8" Margin="0,8,0,0" IsVisible="{Binding !IsCorrection}">
     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
       <StackPanel Spacing="4">
-        <TextBlock Text="作用声道" Classes="muted" FontSize="11" />
+        <TextBlock Text="{DynamicResource ui.EqBandProcessingView.bcdf98c683c4}" Classes="muted" FontSize="12" />
         <ComboBox ItemsSource="{Binding Scopes}" SelectedItem="{Binding Scope, Mode=TwoWay}" HorizontalAlignment="Stretch">
           <ComboBox.ItemTemplate><DataTemplate x:DataType="local:DspChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
       </StackPanel>
       <StackPanel Grid.Column="1" Spacing="4" IsVisible="{Binding SupportsDynamic}">
-        <TextBlock Text="动态 EQ" Classes="muted" FontSize="11" />
+        <TextBlock Text="{DynamicResource ui.EqBandProcessingView.76a5ee79d922}" Classes="muted" FontSize="12" />
         <ComboBox ItemsSource="{Binding DynamicModes}" SelectedItem="{Binding DynamicMode, Mode=TwoWay}" HorizontalAlignment="Stretch">
           <ComboBox.ItemTemplate><DataTemplate x:DataType="local:DspChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
       </StackPanel>
     </Grid>
     <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10" IsVisible="{Binding DynamicActive}">
-      <StackPanel Spacing="3"><TextBlock Text="阈值 / dB" Classes="muted" FontSize="11" /><NumericUpDown Classes="dsp-value" Minimum="-48" Maximum="0" Increment="0.1" Value="{Binding DynamicThresholdDb, Mode=TwoWay}" FormatString="0.0" /></StackPanel>
-      <StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="压缩比" Classes="muted" FontSize="11" /><NumericUpDown Classes="dsp-value" Minimum="1" Maximum="20" Increment="0.1" Value="{Binding DynamicRatio, Mode=TwoWay}" FormatString="0.0" /></StackPanel>
-      <StackPanel Grid.Column="2" Spacing="3"><TextBlock Text="启动 / ms" Classes="muted" FontSize="11" /><NumericUpDown Classes="dsp-value" Minimum="0.5" Maximum="80" Increment="0.5" Value="{Binding DynamicAttackMs, Mode=TwoWay}" FormatString="0.0" /></StackPanel>
-      <StackPanel Grid.Column="3" Spacing="3"><TextBlock Text="释放 / ms" Classes="muted" FontSize="11" /><NumericUpDown Classes="dsp-value" Minimum="10" Maximum="400" Increment="1" Value="{Binding DynamicReleaseMs, Mode=TwoWay}" FormatString="0" /></StackPanel>
+      <StackPanel Spacing="3"><TextBlock Text="{DynamicResource ui.EqBandProcessingView.66f420aae149}" Classes="muted" FontSize="12" /><NumericUpDown Classes="dsp-value" Minimum="-48" Maximum="0" Increment="0.1" Value="{Binding DynamicThresholdDb, Mode=TwoWay}" FormatString="0.0" /></StackPanel>
+      <StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="{DynamicResource ui.EqBandProcessingView.e01ff51f9263}" Classes="muted" FontSize="12" /><NumericUpDown Classes="dsp-value" Minimum="1" Maximum="20" Increment="0.1" Value="{Binding DynamicRatio, Mode=TwoWay}" FormatString="0.0" /></StackPanel>
+      <StackPanel Grid.Column="2" Spacing="3"><TextBlock Text="{DynamicResource ui.EqBandProcessingView.085e5e0ad6f3}" Classes="muted" FontSize="12" /><NumericUpDown Classes="dsp-value" Minimum="0.5" Maximum="80" Increment="0.5" Value="{Binding DynamicAttackMs, Mode=TwoWay}" FormatString="0.0" /></StackPanel>
+      <StackPanel Grid.Column="3" Spacing="3"><TextBlock Text="{DynamicResource ui.EqBandProcessingView.8c5c10a95237}" Classes="muted" FontSize="12" /><NumericUpDown Classes="dsp-value" Minimum="10" Maximum="400" Increment="1" Value="{Binding DynamicReleaseMs, Mode=TwoWay}" FormatString="0" /></StackPanel>
     </Grid>
   </StackPanel>
 </UserControl>

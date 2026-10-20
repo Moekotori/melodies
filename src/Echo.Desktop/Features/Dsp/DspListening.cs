@@ -25,9 +25,10 @@ public sealed partial class DspViewModel
     public ObservableCollection<DspListeningProfile> Profiles { get; } = [];
     [ObservableProperty] private DspListeningProfile? selectedProfile;
     [ObservableProperty] private string listeningName = "";
+    [ObservableProperty] private string activeListeningName = "当前处理链";
 
     public bool HasProfiles => Profiles.Count > 0;
-    public bool CanManageProfile => CanEdit && SelectedProfile is not null;
+    public bool CanManageProfile => CanSaveListening && SelectedProfile is not null;
     partial void OnSelectedProfileChanged(DspListeningProfile? value) => OnPropertyChanged(nameof(CanManageProfile));
 
     private async Task LoadProfilesAsync()
@@ -48,6 +49,7 @@ public sealed partial class DspViewModel
 
     [RelayCommand] private async Task SaveListeningAsync()
     {
+        if (!CanSaveListening) return;
         if (session is null) { Message = "播放服务尚未连接。"; return; }
         var name = (ListeningName.Trim() is { Length: > 0 } typed ? typed : "我的方案").Length > 40
             ? ListeningName.Trim()[..40] : (ListeningName.Trim() is { Length: > 0 } text ? text : "我的方案");
@@ -72,7 +74,7 @@ public sealed partial class DspViewModel
 
     [RelayCommand] private async Task ApplyListeningAsync()
     {
-        if (session is null || SelectedProfile is not { } profile) return;
+        if (session is null || !CanManageProfile || SelectedProfile is not { } profile) return;
         auditionEpoch++; IsBusy = true; Message = "正在套用方案…";
         var applying = "方案资源";
         try
@@ -105,6 +107,8 @@ public sealed partial class DspViewModel
                 await session.ConfigureOutputAsync(Json(output), lifetime.Token);
             }
             await RefreshAsync();
+            ListeningAppliedRevision++;
+            ActiveListeningName = profile.Name;
             if (!disposed) Message = "方案已套用。";
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }

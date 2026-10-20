@@ -14,7 +14,8 @@ public sealed partial class LibraryDatabase : IPlaylistLibrary
             using var transaction = connection.BeginTransaction(deferred: true);
             using var command = connection.CreateCommand(); command.Transaction = transaction;
             var revision = PlaylistRevision(command, query.Revision);
-            var where = " FROM playlists p WHERE p.archived=0";
+            var where = " FROM playlists p WHERE p.archived=$archived";
+            command.Parameters.AddWithValue("$archived", query.Archived);
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
                 where += " AND instr(echo_fold(p.name),echo_fold($search))>0";

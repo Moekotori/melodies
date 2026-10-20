@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Echo.Playback;
@@ -25,9 +24,6 @@ public sealed partial class PlayerAudioSettingsViewModel(IPlaybackSession sessio
     [ObservableProperty, NotifyPropertyChangedFor(nameof(AvailableFormats))] private bool canUseDsd;
     [ObservableProperty] private bool isRefreshing;
     [ObservableProperty] private bool isApplying;
-    [ObservableProperty] private double playbackRate = 1;
-    [ObservableProperty] private bool equalizerEnabled;
-    [ObservableProperty] private bool crossfeedEnabled;
     [ObservableProperty] private string message = "";
     [ObservableProperty] private string dsdCapabilities = "DSD 支持须以驱动探测结果为准。";
     private int requestVersion;
@@ -85,14 +81,6 @@ public sealed partial class PlayerAudioSettingsViewModel(IPlaybackSession sessio
             if (SelectedFormat is null || !AvailableFormats.Contains(SelectedFormat)) SelectedFormat = Formats[0];
             await LoadDevicesAsync(token, duringRefresh: true);
             if (version != refreshVersion || token.IsCancellationRequested) return;
-            var eq = await session.DspAsync("eq.getState", Json(new JsonArray()), token: token);
-            var crossfeed = await session.DspAsync("crossfeed.getState", Json(new JsonArray()), token: token);
-            var retainedRate = await session.GetRetainedDspRequestAsync("playbackRate.configure", token);
-            if (version != refreshVersion || token.IsCancellationRequested) return;
-            EqualizerEnabled = eq.TryGetProperty("enabled", out var enabled) && enabled.ValueKind == JsonValueKind.True;
-            CrossfeedEnabled = crossfeed.TryGetProperty("enabled", out var crossEnabled) && crossEnabled.ValueKind == JsonValueKind.True;
-            var rateConfig = retainedRate is { ValueKind: JsonValueKind.Array } array && array.GetArrayLength() > 0 ? array[0] : default;
-            PlaybackRate = rateConfig.ValueKind == JsonValueKind.Object && rateConfig.TryGetProperty("rate", out var rate) && rate.TryGetDouble(out var number) ? Math.Clamp(number, 0.5, 2) : 1;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception) { if (version == refreshVersion) Message = "无法读取输出状态，请刷新重试。"; }
@@ -134,7 +122,6 @@ public sealed partial class PlayerAudioSettingsViewModel(IPlaybackSession sessio
         var device = new AudioOutputDevice("", "系统默认输出", "shared", -1, true, 0, []);
         Devices = [device]; SelectedDevice = device;
         SampleRate = 48000; BufferFrames = 1024; OutputChannels = 2; AsioChannelStart = 1; SelectedFormat = Formats[0];
-        EqualizerEnabled = false; CrossfeedEnabled = false; PlaybackRate = 1;
         await ApplyAsync();
     }
 
@@ -155,16 +142,12 @@ public sealed partial class PlayerAudioSettingsViewModel(IPlaybackSession sessio
     {
         if (IsApplying) return;
         if (IsRefreshing || SelectedDevice is null || SelectedMode is null || SelectedFormat is null) { Message = "请先选择当前模式下的输出设备与格式。"; return; }
-        var equalizer = EqualizerEnabled; var crossfeed = CrossfeedEnabled; var rate = PlaybackRate;
         IsApplying = true;
         try
         {
             await session.ConfigureOutputAsync(new AudioOutputConfiguration(SelectedMode.Key, SelectedDevice, OutputChannels,
                 SampleRate, BufferFrames, AsioChannelStart - 1, SelectedFormat.Key, DsdTransportRate)
                 .PreserveProcessingFrom(session.RequestedOutput));
-            await session.DspAsync("eq.setEnabled", Json(new JsonArray(JsonValue.Create(equalizer))), true);
-            await session.DspAsync("crossfeed.setState", Json(new JsonArray(new JsonObject { ["enabled"] = crossfeed })), true);
-            await session.SetPlaybackRateAsync(rate);
             Message = session.Snapshot.OperationId > 0 ? "输出已打开，请在信号路径查看实际格式。" : "配置已保存，播放时打开并验证设备。";
         }
         catch (Exception e) { Message = e is ArgumentException or IOException or NotSupportedException ? e.Message : "输出设置失败，请检查设备后重试。"; }
@@ -173,9 +156,4 @@ public sealed partial class PlayerAudioSettingsViewModel(IPlaybackSession sessio
     private static int Int(JsonElement value, string name, int fallback) => value.TryGetProperty(name, out var v) && v.TryGetInt32(out var n) ? n : fallback;
     private static string RatesText(JsonElement value, string name) => value.TryGetProperty(name, out var rates) && rates.ValueKind == JsonValueKind.Array
         ? rates.GetArrayLength() == 0 ? "不支持 / 未确认" : string.Join(", ", rates.EnumerateArray().Select(x => x.GetInt32().ToString("N0"))) : "未确认";
-    private static JsonElement Json(JsonNode node)
-    {
-        using var buffer = new MemoryStream(); using (var writer = new Utf8JsonWriter(buffer)) node.WriteTo(writer);
-        using var document = JsonDocument.Parse(buffer.ToArray()); return document.RootElement.Clone();
-    }
 }

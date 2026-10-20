@@ -72,10 +72,12 @@ public partial class GlobalSearchOverlay : UserControl
         UpdateBounds();
         if (opening)
         {
+            var focusRevision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
             // A newly visible overlay needs its first layout before TextBox can accept focus.
             Dispatcher.UIThread.Post(() =>
             {
-                if (version != generation || shell?.IsGlobalSearchOpen != true) return;
+                if (version != generation || shell?.IsGlobalSearchOpen != true
+                    || !Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, focusRevision)) return;
                 SearchPanel.UpdateLayout(); FocusSearch();
             }, DispatcherPriority.Loaded);
         }
@@ -97,8 +99,7 @@ public partial class GlobalSearchOverlay : UserControl
     }
     private void RestoreFocus()
     {
-        if (returnFocus is Control { IsEffectivelyVisible: true } previous && previous.IsAttachedToVisualTree()) previous.Focus();
-        else window?.FocusManager?.Focus(null);
+        Echo.Desktop.Bootstrap.FocusPolicy.Restore(this, returnFocus);
         returnFocus = null;
     }
     private void UpdateBounds()

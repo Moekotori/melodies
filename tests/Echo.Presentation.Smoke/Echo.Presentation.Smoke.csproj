@@ -8,6 +8,8 @@
     <Compile Include="../../src/Echo.Desktop/Features/Artwork/RemoteCoverLoader.cs" Link="Resources/RemoteCoverLoader.cs" />
     <Compile Include="../../src/Echo.Desktop/Controls/Lyrics/SourceSceneArtwork.cs" Link="Resources/SourceSceneArtwork.cs" />
     <Compile Include="../../src/Echo.Desktop/Controls/Lyrics/JizuraFrameDraw.cs" Link="Resources/JizuraFrameDraw.cs" />
+    <Compile Include="../../src/Echo.Desktop/Controls/Lyrics/SourceSceneFrame.cs" Link="Resources/SourceSceneFrame.cs" />
+    <Compile Include="../../src/Echo.Desktop/Controls/Lyrics/BackgroundSceneRaster.cs" Link="Resources/BackgroundSceneRaster.cs" />
     <Compile Include="../../src/Echo.Desktop/Features/Player/PlayerWindowPresentation.cs" Link="Resources/PlayerWindowPresentation.cs" />
     <Compile Include="../../src/Echo.Desktop/Theming/WallpaperStillImage.cs" Link="Resources/WallpaperStillImage.cs" />
     <Compile Include="../../src/Echo.Desktop/Theming/WallpaperGrade.cs" Link="Resources/WallpaperGrade.cs" />

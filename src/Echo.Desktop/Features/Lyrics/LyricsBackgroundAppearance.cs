@@ -10,12 +10,14 @@ public sealed partial class LyricsAppearance
     [ObservableProperty] private double backgroundBrightness = 100;
     [ObservableProperty] private double backgroundOpacity = 100;
     [ObservableProperty] private string wallpaperPath = "";
+    [ObservableProperty] private int backgroundFrameRate = 60;
     public IReadOnlyList<LyricsChoice> BackgroundChoices { get; private set; } = [];
     public LyricsBackgroundStyle BackgroundStyle => LyricsBackgroundCatalog.Resolve(BackgroundMode);
     public bool CanSelectBackground => SelectedStyle.Layout is not (LyricsLayout.Afterglow or LyricsLayout.SourceScene);
     public string WallpaperDialogTitle=>Text["drawer.lyrics.wallpaper"];
     public bool IsCustomWallpaper => BackgroundMode == "customWallpaper";
     public bool IsImageBackground => BackgroundMode is "cover" or "customWallpaper";
+    public bool IsAnimatedBackground => BackgroundStyle.Scene;
     public string WallpaperName => Path.GetFileName(WallpaperPath);
     public LyricsChoice? BackgroundChoice
     {
@@ -23,7 +25,7 @@ public sealed partial class LyricsAppearance
         set{if(value is not null)BackgroundMode=value.Id;}
     }
     partial void OnBackgroundModeChanged(string value)
-    {foreach(var name in new[]{nameof(BackgroundChoice),nameof(BackgroundStyle),nameof(IsCustomWallpaper),nameof(IsImageBackground)})OnPropertyChanged(name);}
+    {foreach(var name in new[]{nameof(BackgroundChoice),nameof(BackgroundStyle),nameof(IsCustomWallpaper),nameof(IsImageBackground),nameof(IsAnimatedBackground)})OnPropertyChanged(name);}
     partial void OnWallpaperPathChanged(string value)=>OnPropertyChanged(nameof(WallpaperName));
     private void RefreshBackgroundChoices()
     {
@@ -36,5 +38,6 @@ public sealed partial class LyricsAppearance
         BackgroundMode=LyricsBackgroundCatalog.Resolve(saved.BackgroundMode).Id;
         BackgroundBlur=Valid(saved.BackgroundBlur,0,80,18);BackgroundBrightness=Valid(saved.BackgroundBrightness,20,160,100);
         BackgroundOpacity=Valid(saved.BackgroundOpacity,0,100,100);WallpaperPath=saved.WallpaperPath.Length<=1024?saved.WallpaperPath:"";
+        BackgroundFrameRate=Math.Clamp(saved.BackgroundFrameRate,10,240);
     }
 }

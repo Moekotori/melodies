@@ -14,15 +14,14 @@ public sealed class HomeAlbumShelf : UserControl, IDisposable
     {
         if (compact)
         {
-            var rail = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 20 };
-            for (var i = 0; i < Math.Min(7, albums.Count); i += 2)
+            var rail = new UniformGrid { Columns = 2 };
+            foreach (var album in albums.Take(7))
             {
-                var column = new StackPanel { Width = 336, Spacing = 4 };
-                for (var j = i; j < Math.Min(i + 2, albums.Count); j++)
-                { var card = new HomeAlbumCard(albums[j], shell, open, true); cards.Add(card); column.Children.Add(card); }
-                rail.Children.Add(column);
+                var card = new HomeAlbumCard(album, shell, open, true) { Margin = new(0, 0, 16, 14) };
+                cards.Add(card); rail.Children.Add(card);
             }
-            Content = new ScrollViewer { Content = rail, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, Padding = new(0, 0, 0, 8) };
+            SizeChanged += (_, _) => rail.Columns = Bounds.Width < 560 ? 1 : 2;
+            Content = rail;
         }
         else
         {

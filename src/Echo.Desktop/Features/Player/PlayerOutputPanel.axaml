@@ -28,10 +28,7 @@
                 <Button Content="{DynamicResource ui.PlayerOutputPanel.cda57be20b9a}" Command="{Binding Player.AudioSettings.ProbeDsdCommand}" IsVisible="{Binding Player.AudioSettings.IsAsio}" />
                 <TextBlock Text="{Binding Player.AudioSettings.DsdCapabilities}" IsVisible="{Binding Player.AudioSettings.IsAsio}" Classes="muted" TextWrapping="Wrap" />
                 <Border Height="1" Background="{DynamicResource EchoDivider}" />
-                <CheckBox Content="{DynamicResource ui.PlayerOutputPanel.61600fa691d5}" IsChecked="{Binding Player.AudioSettings.EqualizerEnabled}" />
-                <CheckBox Content="{DynamicResource ui.PlayerOutputPanel.a2018d18ffbc}" IsChecked="{Binding Player.AudioSettings.CrossfeedEnabled}" />
-                <TextBlock Text="{DynamicResource ui.PlayerOutputPanel.c114a632b201}" Classes="muted" />
-                <NumericUpDown Minimum="0.5" Maximum="2" Increment="0.05" Value="{Binding Player.AudioSettings.PlaybackRate}" />
+                <Button Content="{DynamicResource drawer.audio.openDsp}" Command="{Binding NavigateCommand}" CommandParameter="dsp" />
                 <Button Content="{DynamicResource ui.PlayerOutputPanel.a1a42cd9b16e}" Command="{Binding Player.AudioSettings.ApplyCommand}" />
                 <TextBlock Text="{Binding Player.AudioSettings.Message}" TextWrapping="Wrap" Classes="muted" />
               </StackPanel>

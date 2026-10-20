@@ -68,7 +68,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         if (result.CategoryId == "appearance") Shell.Theme.EditorSection = result.RowId switch
         {
             "rainbow-mode" => "材质与动效",
-            "wallpaper" or "appearance-typography" or "font-chinese" or "font-fallback" or "page-text-color" or "album-cover-shape" or "artist-wall-artwork" => "背景与字体",
+            "wallpaper" or "album-cover-shape" or "artist-wall-artwork" => "背景与封面",
             _ => "配色"
         };
         SectionVersion++;
@@ -92,7 +92,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             if (_lyrics is not null) _lyrics.PropertyChanged -= OnLyricsChanged;
             _lyrics = Shell.LyricsAppearance; _lyrics.PropertyChanged += OnLyricsChanged;
         }
-        var migrated = new[] { "theme", "theme-schedule", "invert-mode", "theme-preset", "theme-custom", "wallpaper", "appearance-typography", "font-chinese", "font-fallback", "appearance-reset", "page-text-color", "album-cover-shape", "artist-wall-artwork", "rainbow-mode" };
+        var migrated = new[] { "theme", "theme-schedule", "invert-mode", "theme-preset", "theme-custom", "wallpaper", "appearance-typography", "font-chinese", "font-fallback", "font-secondary", "font-secondary-color", "font-weight", "font-size", "appearance-reset", "page-text-color", "album-cover-shape", "artist-wall-artwork", "rainbow-mode" };
         var prepared = ActiveCategory.Definition.Sections.Select(section => (
             Section: section,
             Tab: section.Tab.Length == 0 ? section.Title : section.Tab,
@@ -114,15 +114,17 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         var supported = _runtime?.CanHandle(definition.Id) == true || definition.Id is "ultra-light-mode" or "close-to-tray" or "language" or "ui-scale" or "sidebar-auto-hide" or "sidebar-icon-only" or "settings-hide-sidebar" or "remember-window-size"
             or "audio-visual-spectrum" or "sidebar-layout" or "player-top-waveform" or "player-energy-progress" or "songs-waveform-scrollbar" or "home-waveform-visualizer" or "theme" or "disable-all-animations" or "appearance-reset" or "smtc" or "about-community"
             or "lyrics-font-size" or "lyrics-secondary-size" or "lyrics-translation" or "lyrics-romanization"
-            or "lyrics-context" or "lyrics-word-highlight" or "lyrics-font" or "lyrics-page-style";
+            or "lyrics-context" or "lyrics-word-highlight" or "lyrics-highlight-style" or "lyrics-font" or "lyrics-page-style";
         if (definition.Id == "theme" && OperatingSystem.IsMacOS() && definition.Options is { } themeOptions && definition.Value != "亚克力")
             definition = definition with { Options = themeOptions.Where(option => option != "亚克力").ToArray() };
         if (definition.Id == "language") definition = definition with { Options = Shell.Text.Languages.Select(language => language.Code).ToArray(), Value = Shell.Text.Preference };
         if (definition.Id == "lyrics-font") definition = definition with { Options = Shell.LyricsAppearance.Fonts.ToArray(), Value = Shell.LyricsAppearance.Font };
+        if (definition.Id == "lyrics-highlight-style") definition = definition with { Options = LyricsHighlightCatalog.Ids.ToArray(), Value = Shell.LyricsAppearance.WordHighlightStyle };
         if (definition.Id == "lyrics-page-style") definition = definition with { Options = Shell.LyricsAppearance.Styles.Select(style => style.Label).ToArray(), Value = Shell.LyricsAppearance.SelectedStyle.Label };
         var row = new SettingRowViewModel(definition, supported, Changed, label => Invoke(definition.Id, label),
             definition.Id == "theme" ? label => label is "浅色" or "深色" : null, Shell.Text,
-            definition.Id == "language" ? code => Shell.Text.Languages.First(language => language.Code == code).Label : null);
+            definition.Id == "language" ? code => Shell.Text.Languages.First(language => language.Code == code).Label
+                : definition.Id == "lyrics-highlight-style" ? id => Shell.Text["lyrics.highlight." + id] : null);
         Synchronize(row); return row;
     }
     private void Changed(SettingRowViewModel row)
@@ -146,6 +148,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             case "lyrics-translation": Shell.LyricsAppearance.Translation = row.BoolValue; break;
             case "lyrics-romanization": Shell.LyricsAppearance.Romanization = row.BoolValue; break;
             case "lyrics-word-highlight": Shell.LyricsAppearance.WordHighlight = row.BoolValue; break;
+            case "lyrics-highlight-style": Shell.LyricsAppearance.WordHighlightStyle = row.SelectedValue; break;
             case "lyrics-context": Shell.LyricsAppearance.Context = row.BoolValue; break;
             case "lyrics-font": Shell.LyricsAppearance.Font = row.SelectedValue; break;
             case "lyrics-page-style": Shell.LyricsAppearance.SelectedStyle = Shell.LyricsAppearance.Styles.FirstOrDefault(style => style.Label == row.SelectedValue) ?? Shell.LyricsAppearance.Styles[0]; break;
@@ -190,6 +193,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             case "lyrics-translation": row.Synchronize(toggle: Shell.LyricsAppearance.Translation); break;
             case "lyrics-romanization": row.Synchronize(toggle: Shell.LyricsAppearance.Romanization); break;
             case "lyrics-word-highlight": row.Synchronize(toggle: Shell.LyricsAppearance.WordHighlight); break;
+            case "lyrics-highlight-style": row.Synchronize(selection: Shell.LyricsAppearance.WordHighlightStyle); break;
             case "lyrics-context": row.Synchronize(toggle: Shell.LyricsAppearance.Context); break;
             case "lyrics-font": row.Synchronize(selection: Shell.LyricsAppearance.Font); break;
             case "lyrics-page-style": row.Synchronize(selection: Shell.LyricsAppearance.SelectedStyle.Label); break;

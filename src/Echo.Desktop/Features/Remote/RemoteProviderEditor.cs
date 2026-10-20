@@ -58,9 +58,11 @@ public sealed partial class RemoteViewModel
     [RelayCommand] private void ChooseProvider(string? id)
     {
         if (IsBusy || id is null || !RemoteProviders.All.Contains(id)) return;
+        if (EditorOpen && !IsEditing && id == DraftProvider) { CloseEditor(); return; }
         editingId = null; DraftProvider = id; DraftAuth = AuthChoices[0]; DraftName = ""; DraftUrl = ""; DraftUser = ""; DraftPassword = "";
         DraftUserId = ""; DraftRootPath = "/"; DraftSyncIndex = id != "onedrive"; DraftClientId = shell.OneDriveClientId; draftAuthorization = null;
         ProviderPickerOpen = false; EditorError = ""; RefreshProviderState(); EditorOpen = true;
+        RefreshConnectionState();
     }
     [RelayCommand] private void CloseProviderPicker() => ProviderPickerOpen = false;
     private void RestoreProvider(RemoteConnection source)

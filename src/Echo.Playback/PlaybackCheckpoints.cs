@@ -15,7 +15,7 @@ public sealed partial class PlaybackSessionCoordinator
             var safeHistory = history.Where(x => x.Source?.Headers is not { Count: > 0 }).ToArray();
             var checkpoint = new PlaybackCheckpoint(2, safe, safeCurrent?.ItemId,
                 repeat.ToString(), snapshot.PositionSeconds, snapshot.Volume, deviceConfiguration, new Dictionary<string, JsonElement>(dspCommands),
-                shuffle, safeHistory, shuffleOrder, safe.Any(x => x.ItemId == safeCurrent?.ItemId) ? null : safeCurrent);
+                shuffle, safeHistory, shuffleOrder, safe.Any(x => x.ItemId == safeCurrent?.ItemId) ? null : safeCurrent, shuffleHistory.ToArray());
             json = JsonSerializer.Serialize(checkpoint, PlaybackJsonContext.Default.PlaybackCheckpoint);
             if (json.Length > 512 * 1024) throw new IOException("播放状态超过保存上限");
             return Task.CompletedTask;
@@ -30,6 +30,7 @@ public sealed partial class PlaybackSessionCoordinator
         var state = JsonSerializer.Deserialize(json, PlaybackJsonContext.Default.PlaybackCheckpoint) ?? throw new IOException("无效的播放状态");
         if (state.SchemaVersion is not (1 or 2) || state.Items.Count > 1000 || state.Dsp.Count > 128
             || state.History is { Count: > 500 } || state.ShuffleOrder is { Count: > 1000 }
+            || state.ShuffleHistory is { Count: > 100 } || state.ShuffleHistory?.Sum(id => (long)(id?.Length ?? 32769)) > 32768
             || !double.IsFinite(state.PositionSeconds) || state.PositionSeconds < 0 || !double.IsFinite(state.Volume) || state.Volume is < 0 or > 1
             || !Enum.TryParse<RepeatMode>(state.RepeatMode, out var mode) || !Enum.IsDefined(mode)
             || state.Items.Select(x => x.ItemId).Distinct().Count() != state.Items.Count)
@@ -41,6 +42,7 @@ public sealed partial class PlaybackSessionCoordinator
         shuffle = state.Shuffle;
         history = state.History?.Where(x => x.Source?.Headers is not { Count: > 0 }).ToArray() ?? [];
         TrimHistory();
+        foreach (var id in state.ShuffleHistory ?? history.Select(x => x.TrackId).TakeLast(100).ToArray()) RememberShuffleTrack(id);
         shuffleOrder = state.ShuffleOrder?.Where(id => queue.Any(x => x.ItemId == id)).Distinct().ToArray() ?? CreateShuffleOrder(queue, state.CurrentItemId);
         foreach (var entry in state.Dsp)
         {

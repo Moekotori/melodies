@@ -41,7 +41,7 @@ public sealed partial class DspViewModel
         {
             var filter = FindRackFilter(id);
             var label = filter is null ? RackLabel(id) : "滤波器 · " + (filter["name"]?.ToString() is { Length: > 0 } name ? name : RackLabel(filter["kind"]?.ToString() ?? id));
-            RackRows.Add(new(id, label, false)); RackStages.Add(label);
+            RackRows.Add(new(id, label, false) { Position = RackRows.Count + 1, RoleLabel = filter is null ? "处理模块" : "滤波器实例" }); RackStages.Add(label);
         }
     }
 

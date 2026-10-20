@@ -1,4 +1,12 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Keyboard focus ring for every interactive control. The adorner is drawn by Avalonia only for keyboard/programmatic navigation, so mouse use stays clean and no template is touched. -->
+  <Style Selector="Button, ToggleButton, RepeatButton, CheckBox, RadioButton, ToggleSwitch, ComboBox, Slider, ListBoxItem, TabItem, TreeViewItem, MenuItem, Expander">
+    <Setter Property="FocusAdorner">
+      <FocusAdornerTemplate>
+        <Border IsHitTestVisible="False" Margin="-2" CornerRadius="8" BorderThickness="2" BorderBrush="{DynamicResource EchoAccent}" />
+      </FocusAdornerTemplate>
+    </Setter>
+  </Style>
   <Style Selector="Window.always-focus Button:focus">
     <Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="2" />
   </Style>

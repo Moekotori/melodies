@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" x:Class="Echo.Desktop.Features.Dsp.DspConversionPath" x:DataType="local:DspViewModel">
+  <ItemsControl ItemsSource="{Binding PlannedStages}">
+    <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:DspColumns MinimumColumnWidth="125" MaximumColumns="4"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:DspMetric">
+      <StackPanel Spacing="6" Margin="0,0,18,8">
+        <Border Height="2" Background="{DynamicResource EchoAccent}" Margin="0,0,0,7"/>
+        <TextBlock Text="{Binding Label}" Classes="muted" FontSize="12"/>
+        <TextBlock Text="{Binding Value}" FontSize="14" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
+      </StackPanel>
+    </DataTemplate></ItemsControl.ItemTemplate>
+  </ItemsControl>
+</UserControl>

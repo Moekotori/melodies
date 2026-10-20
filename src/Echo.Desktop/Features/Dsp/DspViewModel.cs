@@ -38,7 +38,7 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string presetName = "";
     public string OutputName { get; }
     public string OutputRate { get; }
-    public int SampleRate { get; }
+    public int SampleRate => session?.Snapshot.SampleRate is > 0 and var rate ? rate : 48000;
     public bool IsEq => SelectedModule.Id == "eq";
     public bool IsHeadphone => SelectedModule.Id == "headphone";
     public bool IsReplayGain => SelectedModule.Id == "replayGain";
@@ -60,14 +60,13 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     public string ApplyLabel => IsRack ? "应用处理链" : "应用调整";
     public string DraftLabel => IsListening ? "听音方案由 Core 保存" : IsRack ? (IsDirty ? "处理链尚未应用" : "与已确认的处理链一致") : IsOutput
         ? (IsDirty ? "应用后才会重配输出，播放会短暂中断" : "与当前输出配置一致")
-        : IsDirty ? "试听中 · 应用后记入撤销" : "与已确认的状态一致";
+        : IsDirty ? (IsEq ? EqAuditionStatus : "试听中 · 应用后记入撤销") : "与已确认的状态一致";
     public string PendingDescription => "这个模块还没有接到原生处理链。";
     public IRelayCommand OpenOutputCommand { get; }
     public DspViewModel(IPlaybackSession? session, string outputName, IRelayCommand openOutput, Echo.Core.Contracts.IDspResourceClient? resources = null)
     {
         this.resources = resources ?? new Echo.Core.Client.DspResourceClient();
         this.session = session; OutputName = outputName; OpenOutputCommand = openOutput;
-        SampleRate = session?.Snapshot.SampleRate is > 0 and var rate ? rate : 48000;
         var outputRate = session?.Snapshot.Output is { ValueKind: JsonValueKind.Object } output
             && output.TryGetProperty("sampleRate", out var outputValue) && outputValue.TryGetInt32(out var actualRate) ? actualRate : 0;
         OutputRate = outputRate > 0 ? $"{outputRate / 1000d:0.#} kHz" : "输出采样率未确认";
@@ -83,12 +82,24 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
     }
     private void Changed(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName is nameof(StrengthPercent) or nameof(TiltDb)) InvalidateEqResponse();
+        else if (args.PropertyName is nameof(PreampDb) or nameof(Enabled)) { NotifyEqInsights(); if (IsHeadphone) { OnPropertyChanged(nameof(HeadphonePreampValue)); OnPropertyChanged(nameof(HeadphonePreampDb)); } }
         if (!projecting && args.PropertyName is nameof(Enabled) or nameof(PreampDb) or nameof(StrengthPercent) or nameof(TiltDb) or nameof(ReplayMode) or nameof(PreventClipping))
         { IsDirty = true; if (!IsOutput) NoteEdit(); }
         if (args.PropertyName is nameof(IsReady) or nameof(IsBusy) or nameof(IsDirty) or nameof(SelectedBand))
-        { OnPropertyChanged(nameof(CanManageProfile)); OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(CanUseResources)); OnPropertyChanged(nameof(CanLoadHeadphone)); OnPropertyChanged(nameof(CanApply)); OnPropertyChanged(nameof(CanRevert)); OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanResetBand)); OnPropertyChanged(nameof(CanDeletePreset)); OnPropertyChanged(nameof(CanMoveRackUp)); OnPropertyChanged(nameof(CanMoveRackDown)); OnPropertyChanged(nameof(CanRemoveRackFilter)); OnPropertyChanged(nameof(DraftLabel)); }
+        { NotifyHeadphoneBrowser(); OnPropertyChanged(nameof(CanResetHeadphonePreamp)); }
+        if (args.PropertyName is nameof(IsReady) or nameof(IsBusy) or nameof(IsDirty) or nameof(SelectedBand))
+        { OnPropertyChanged(nameof(CanManageProfile)); OnPropertyChanged(nameof(CanSaveListening)); OnPropertyChanged(nameof(CanEdit)); OnPropertyChanged(nameof(CanUseResources)); OnPropertyChanged(nameof(CanLoadHeadphone)); OnPropertyChanged(nameof(CanApply)); OnPropertyChanged(nameof(CanRevert)); OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanResetBand)); OnPropertyChanged(nameof(CanDeletePreset)); OnPropertyChanged(nameof(CanMoveRackUp)); OnPropertyChanged(nameof(CanMoveRackDown)); OnPropertyChanged(nameof(CanRemoveRackFilter)); OnPropertyChanged(nameof(DraftLabel)); }
     }
-    private void DraftChanged(object? sender, PropertyChangedEventArgs args) { UpdateModulePresentation(); if (!projecting && sender is DspChoiceField field) UpdateOutputPreset(field); OnPropertyChanged(nameof(CurveScopeLabel)); if (!projecting) { IsDirty = true; if (!IsOutput) NoteEdit(); } }
+    private void DraftChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (sender is DspParameter && args.PropertyName != nameof(DspParameter.Value)) return;
+        if (sender is EqBandViewModel) { if (!IsEqParameter(args.PropertyName)) return; InvalidateEqResponse(); }
+        UpdateModulePresentation();
+        if (!projecting && sender is DspChoiceField field) UpdateOutputPreset(field);
+        OnPropertyChanged(nameof(CurveScopeLabel));
+        if (!projecting) { IsDirty = true; if (!IsOutput) NoteEdit(); }
+    }
 
     [RelayCommand] private async Task RefreshAsync()
     {
@@ -112,6 +123,11 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception e) { if (!disposed && version == generation) { Message = e.Message; module.Status = "读取失败"; } }
         finally { if (!disposed && version == generation) IsBusy = false; }
+        if (!disposed && version == generation && IsHeadphone && IsReady)
+        {
+            try { await InitializeHeadphonesAsync(); }
+            catch (Exception e) { if (!disposed && version == generation) Message = "耳机目录读取失败：" + e.Message; }
+        }
     }
 
     [RelayCommand] private async Task ApplyAsync()
@@ -149,7 +165,7 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         PreampDb = 0; TiltDb = 0; StrengthPercent = 100; IsDirty = true;
     }
     [RelayCommand] private void AutoPreamp()
-    { if (CanEdit && IsEq) PreampDb = Math.Clamp(-EqResponse.Maximum(Bands, SampleRate, StrengthPercent, TiltDb), -12, 0); }
+    { if (CanEdit && IsEq) PreampDb = EqSuggestedPreamp; }
 
     private void Project(JsonObject state, bool updateConfirmed = true)
     {
@@ -189,9 +205,10 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
                 SelectedModule.Status = ConfirmedStatus;
             }
             if (SelectedModule.EditsEqualizer) presetAttribution = state["attribution"]?.DeepClone();
-            IsDirty = false; UpdateModulePresentation();
+            if (IsHeadphone) ProjectHeadphoneProfile(state);
+            IsDirty = false; BindWorkbenchFields(); UpdateModulePresentation();
         }
-        finally { projecting = false; }
+        finally { projecting = false; InvalidateEqResponse(); }
     }
     private JsonObject CaptureDraft()
     {
@@ -207,6 +224,7 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
             state["preampDb"] = PreampDb; state["strengthPercent"] = StrengthPercent; state["tiltDb"] = TiltDb;
             state["presetId"] = "custom"; state["presetName"] = PresetName;
             state["attribution"] = presetAttribution?.DeepClone();
+            if (IsHeadphone) state["correctionProfile"] = activeHeadphoneProfile?.DeepClone();
             state["bands"] = new JsonArray(Bands.Select(b => (JsonNode)b.ToState()).ToArray());
         }
         return state;
@@ -227,6 +245,7 @@ public sealed partial class DspViewModel : ObservableObject, IDisposable
         if (IsDirty && !IsBusy && !SelectedModule.DraftOnly && confirmed is not null && session is not null && SelectedModule.WriteMethod is not null)
         { var module = SelectedModule; var state = CaptureDraft(); _ = CommitModuleAsync(module, state); }
         if (IsDeesser || DeesserListening) _ = SetDeesserListenAsync(false);
+        _ = SetHeadroomListenAsync(false);
         if (session is not null) session.Changed -= NativeSnapshotChanged;
         disposed = true; generation++; auditionEpoch++; lifetime.Cancel();
         PropertyChanged -= Changed; ClearEditors(); undo.Clear(); ClearComparison(); confirmed = null; lifetime.Dispose();

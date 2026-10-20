@@ -1,29 +1,17 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:icon="using:Echo.Desktop.Controls">
   <Styles.Resources>
-    <ControlTheme x:Key="LyricsMenuPresenter" TargetType="MenuFlyoutPresenter">
-      <Setter Property="MinWidth" Value="200" /><Setter Property="Padding" Value="5" />
-      <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate></Setter>
-      <Setter Property="Template"><ControlTemplate>
-        <Border Background="{DynamicResource LyricsChromeMenu}" CornerRadius="10" Padding="{TemplateBinding Padding}">
-          <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
-        </Border>
-      </ControlTemplate></Setter>
+    <ControlTheme x:Key="LyricsMenuPresenter" TargetType="MenuFlyoutPresenter" BasedOn="{StaticResource EchoMenuFlyoutPresenter}">
+      <Style Selector="^:not(:disabled)">
+        <Setter Property="Background" Value="{DynamicResource LyricsChromeMenu}" />
+        <Setter Property="Foreground" Value="{DynamicResource LyricsChromeInk}" />
+        <Setter Property="ItemContainerTheme" Value="{StaticResource LyricsMenuItem}" />
+      </Style>
     </ControlTheme>
-    <ControlTheme x:Key="LyricsMenuItem" TargetType="MenuItem">
+    <ControlTheme x:Key="LyricsMenuItem" TargetType="MenuItem" BasedOn="{StaticResource EchoMenuItem}">
       <Setter Property="Foreground" Value="{DynamicResource LyricsChromeInk}" />
-      <Setter Property="FontSize" Value="13" /><Setter Property="MinHeight" Value="36" />
-      <Setter Property="Template"><ControlTemplate>
-        <Border Name="MenuRow" Background="Transparent" CornerRadius="6" Padding="10,0">
-          <Grid ColumnDefinitions="18,*" ColumnSpacing="10">
-            <ContentPresenter Content="{TemplateBinding Icon}" VerticalAlignment="Center" />
-            <ContentPresenter Grid.Column="1" Content="{TemplateBinding Header}" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}" />
-          </Grid>
-        </Border>
-      </ControlTemplate></Setter>
-      <Style Selector="^:selected /template/ Border#MenuRow"><Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" /></Style>
-      <Style Selector="^:pointerover /template/ Border#MenuRow"><Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" /></Style>
-      <Style Selector="^:focus-visible /template/ Border#MenuRow"><Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" /></Style>
-      <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
+      <Style Selector="^:selected /template/ Border#PART_LayoutRoot, ^:pointerover /template/ Border#PART_LayoutRoot, ^:focus-visible /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource LyricsChromeHover}" />
+      </Style>
     </ControlTheme>
   </Styles.Resources>
   <Style Selector="Border.lyrics-tool-group">

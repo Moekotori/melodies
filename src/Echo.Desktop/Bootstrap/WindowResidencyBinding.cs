@@ -118,7 +118,8 @@ internal sealed class WindowResidencyBinding : IDisposable
         menu.Items.Add(_ultralight);
         Add("ultralight.hide", _window.HideToTrayFromMenu);
         menu.Items.Add(new NativeMenuItemSeparator());
-        Add("ultralight.exit", _window.RequestExit);
+        Add("playbackClose.stop", () => _ = _window.StopPlaybackAndExitAsync());
+        Add("playbackClose.disconnect", _window.RequestExit);
         _tray.Menu = menu;
     }
 

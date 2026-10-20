@@ -4,79 +4,86 @@
   <UserControl.Styles>
     <Style Selector="TextBlock.section"><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
     <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /><Setter Property="FontSize" Value="12" /></Style>
-    <Style Selector="Button.highlight"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="12,10" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Background" Value="Transparent" /></Style>
+    <Style Selector="TextBlock.value"><Setter Property="FontSize" Value="22" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
+    <Style Selector="Button.highlight"><Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="10,9" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Background" Value="Transparent" /></Style>
     <Style Selector="Button.highlight:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
     <Style Selector="Button.highlight:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource EchoAccent}" /><Setter Property="BorderThickness" Value="1" /></Style>
-    <Style Selector="UniformGrid > StackPanel"><Setter Property="Margin" Value="0,0,12,14" /></Style>
+    <Style Selector="Button.album-link"><Setter Property="HorizontalAlignment" Value="Left" /><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
+    <Style Selector="Button.social-account"><Setter Property="Background" Value="{DynamicResource EchoHover}" /><Setter Property="Padding" Value="12,10" /><Setter Property="MinWidth" Value="152" /></Style>
+    <Style Selector="UniformGrid > StackPanel"><Setter Property="Margin" Value="0,0,12,16" /></Style>
   </UserControl.Styles>
-  <StackPanel Spacing="30">
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-      <StackPanel Spacing="5"><TextBlock Text="{DynamicResource artist.detail.heading}" Classes="section" /><TextBlock Text="{Binding ListeningStatus}" Classes="label" TextWrapping="Wrap" /></StackPanel>
-      <Button Grid.Column="1" Classes="content-link" Content="{DynamicResource artist.detail.refresh}" Command="{Binding RefreshCommand}" VerticalAlignment="Top" />
-    </Grid>
-    <TextBlock Text="{Binding LocalErrorText}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding LocalError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-    <UniformGrid Columns="4" Name="ListeningFacts">
-      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource artist.detail.plays}" Classes="label" /><TextBlock Text="{Binding Plays}" FontSize="26" Foreground="{DynamicResource EchoHeading}" /></StackPanel>
-      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource artist.detail.listened}" Classes="label" /><TextBlock Text="{Binding Listened}" FontSize="22" Foreground="{DynamicResource EchoHeading}" /></StackPanel>
-      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource artist.detail.favorites}" Classes="label" /><TextBlock Text="{Binding FavoriteText}" FontSize="26" Foreground="{DynamicResource EchoHeading}" /></StackPanel>
-      <StackPanel Spacing="8"><TextBlock Text="{DynamicResource artist.detail.years}" Classes="label" /><TextBlock Text="{Binding Years}" FontSize="20" Foreground="{DynamicResource EchoHeading}" /></StackPanel>
-    </UniformGrid>
-    <Border Height="1" Background="{DynamicResource EchoDivider}" />
-    <Grid Name="Introduction" ColumnDefinitions="*,250" RowDefinitions="Auto,Auto" ColumnSpacing="40" RowSpacing="20">
+  <StackPanel Spacing="32">
+    <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1" Padding="0,0,0,20">
+      <StackPanel Spacing="14">
+        <TextBlock Text="{DynamicResource artist.content.localLibrary}" Classes="label" />
+        <ItemsControl Name="LibraryFactsList" ItemsSource="{Binding LibraryFacts}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistFact">
+          <StackPanel Spacing="6" Margin="0,0,20,14"><TextBlock Text="{Binding Label}" Classes="label" /><TextBlock Text="{Binding Value}" FontSize="16" FontWeight="Medium" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" /></StackPanel>
+        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+          <ItemsControl ItemsSource="{Binding Genres}" IsVisible="{Binding HasGenres}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Border Background="{DynamicResource EchoHover}" CornerRadius="5" Padding="9,5" Margin="0,0,8,4"><TextBlock Text="{Binding}" FontSize="12" /></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          <TextBlock Grid.Column="1" Text="{Binding RoleSummary}" Classes="label" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="240" />
+        </Grid>
+        <TextBlock Text="{Binding CareerSummary}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding CareerSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <StackPanel Spacing="6" IsVisible="{Binding MembersSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><TextBlock Text="{DynamicResource artist.content.membersLabel}" Classes="label" /><TextBlock Text="{Binding MembersSummary}" TextWrapping="Wrap" FontSize="12" /></StackPanel>
+      </StackPanel>
+    </Border>
+    <Grid Name="Introduction" ColumnDefinitions="*,360" RowDefinitions="Auto,Auto" ColumnSpacing="32" RowSpacing="24">
       <StackPanel Spacing="14" Name="BiographyPanel">
-        <TextBlock Text="{DynamicResource artist.detail.about}" Classes="section" />
+        <TextBlock Text="{Binding AboutLabel}" Classes="section" ToolTip.Tip="{DynamicResource artist.content.informationNotice}" />
         <SelectableTextBlock Name="BiographyText" Text="{Binding Biography}" FontSize="14" LineHeight="25" TextWrapping="Wrap" MaxHeight="{Binding BiographyHeight}" ClipToBounds="True" />
-        <Button Classes="content-link" Content="{Binding BiographyAction}" Command="{Binding ToggleBiographyCommand}" IsVisible="{Binding HasBiography}" HorizontalAlignment="Left" Padding="0" />
-        <TextBlock Text="{Binding Attribution}" Classes="label" TextWrapping="Wrap" />
+        <Button Name="BiographyToggle" Classes="content-link" Content="{Binding BiographyAction}" Command="{Binding ToggleBiographyCommand}" IsVisible="False" HorizontalAlignment="Left" Padding="0" />
+        <TextBlock Text="{Binding Attribution}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding HasBiography}" />
         <TextBlock Text="{Binding OnlineNoticeText}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding OnlineNotice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <StackPanel Spacing="10" IsVisible="{Binding HasSocialAccounts}">
+          <TextBlock Text="{DynamicResource artist.content.socialAccounts}" Classes="label" />
+          <ItemsControl Name="SocialAccountsList" ItemsSource="{Binding SocialAccounts}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistSocialAccount">
+            <Button Classes="highlight social-account" Tag="{Binding Url}" Click="OnExternal" ToolTip.Tip="{Binding Url}" Margin="0,0,8,8" MaxWidth="260"><StackPanel Spacing="5"><TextBlock Text="{Binding Platform}" FontSize="12" Foreground="{DynamicResource EchoMuted}" /><TextBlock Text="{Binding Account}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /></StackPanel></Button>
+          </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        </StackPanel>
       </StackPanel>
-      <StackPanel Name="OnlineFacts" Grid.Column="1" Spacing="16">
-        <TextBlock Text="{DynamicResource artist.detail.profile}" Classes="section" IsVisible="{Binding HasFacts}" />
-        <ItemsControl ItemsSource="{Binding Facts}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistFact">
-          <StackPanel Spacing="5" Margin="0,0,0,14"><TextBlock Text="{Binding Label}" Classes="label" /><SelectableTextBlock Text="{Binding Value}" FontSize="14" TextWrapping="Wrap" /></StackPanel>
-        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-        <ItemsControl ItemsSource="{Binding Information.Links}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistLink">
-          <Button Classes="content-link" Content="{Binding Label}" Tag="{Binding Url}" Click="OnExternal" HorizontalAlignment="Left" Padding="0,4" />
-        </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-        <TextBlock Text="{Binding Updated}" Classes="label" TextWrapping="Wrap" />
-      </StackPanel>
+      <Border Name="OnlineFacts" Grid.Column="1" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1,0,0,0" Padding="24,0,0,0"><artists:ArtistFactsView /></Border>
     </Grid>
-    <StackPanel Spacing="12" IsVisible="{Binding HasTopTracks}">
-      <TextBlock Text="{DynamicResource artist.detail.topTracks}" Classes="section" />
-      <ItemsControl ItemsSource="{Binding TopTracks}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistHighlight">
-        <Button Classes="highlight" Tag="{Binding Track}" Click="OnTrack"><Grid ColumnDefinitions="*,Auto" ColumnSpacing="16"><StackPanel Spacing="5"><TextBlock Text="{Binding Track.Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Detail}" Classes="label" /></StackPanel><icon:GlyphIcon Grid.Column="1" Kind="play" Width="16" Height="16" VerticalAlignment="Center" /></Grid></Button>
-      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-    </StackPanel>
-    <StackPanel Spacing="12" IsVisible="{Binding HasDiscover}">
-      <TextBlock Text="{Binding DiscoverLabel}" Classes="section" />
-      <ItemsControl ItemsSource="{Binding Insights.DiscoverAlbums}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:AlbumRow">
-        <Button Classes="highlight" Tag="{Binding}" Click="OnAlbum"><Grid ColumnDefinitions="40,*,Auto" ColumnSpacing="12"><icon:GlyphIcon Kind="disc" Width="25" Height="25" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Artist}" Classes="label" TextTrimming="CharacterEllipsis" /></StackPanel><TextBlock Grid.Column="2" Text="{Binding Year}" Classes="label" VerticalAlignment="Center" /></Grid></Button>
-      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-    </StackPanel>
+    <Border BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,1,0,0" Padding="0,24,0,0">
+      <StackPanel Spacing="20">
+        <TextBlock Text="{DynamicResource artist.content.listeningHeading}" Classes="section" />
+        <TextBlock Text="{Binding LocalErrorText}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" IsVisible="{Binding LocalError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Text="{DynamicResource artist.content.noListening}" Classes="label" IsVisible="{Binding !HasListening}" />
+        <Grid Name="ListeningBody" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="36" RowSpacing="20" IsVisible="{Binding HasListening}">
+          <UniformGrid Columns="3" Rows="1" Name="ListeningFacts" VerticalAlignment="Top">
+            <StackPanel Spacing="6"><TextBlock Text="{DynamicResource artist.content.totalPlays}" Classes="label" /><TextBlock Text="{Binding Plays}" Classes="value" /></StackPanel>
+            <StackPanel Spacing="6"><TextBlock Text="{DynamicResource artist.content.listened}" Classes="label" /><TextBlock Text="{Binding Listened}" Classes="value" /></StackPanel>
+            <StackPanel Spacing="6"><TextBlock Text="{DynamicResource artist.content.lastPlayed}" Classes="label" /><TextBlock Text="{Binding LastPlayed}" FontSize="14" FontWeight="Medium" TextWrapping="Wrap" /></StackPanel>
+          </UniformGrid>
+          <StackPanel Name="TopTracksPanel" Grid.Column="1" Spacing="8" IsVisible="{Binding HasTopTracks}">
+            <TextBlock Text="{DynamicResource artist.content.topTracks}" Classes="label" />
+            <ItemsControl ItemsSource="{Binding TopTracks}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistHighlight">
+              <Button Classes="highlight" Tag="{Binding Track}" Click="OnTrack"><Grid ColumnDefinitions="24,*,Auto" ColumnSpacing="12"><TextBlock Text="{Binding Rank}" Classes="label" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="{Binding Track.Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Detail}" Classes="label" /></StackPanel><icon:GlyphIcon Grid.Column="2" Kind="play" Width="16" Height="16" VerticalAlignment="Center" /></Grid></Button>
+            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          </StackPanel>
+        </Grid>
+        <StackPanel Spacing="8" IsVisible="{Binding HasDiscover}">
+          <TextBlock Text="{Binding DiscoverLabel}" Classes="label" />
+          <ItemsControl ItemsSource="{Binding Insights.DiscoverAlbums}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:AlbumRow">
+            <Button Classes="highlight album-link" Tag="{Binding}" Click="OnAlbum" MaxWidth="360" Margin="0,0,12,4"><StackPanel Orientation="Horizontal" Spacing="5"><TextBlock Text="{Binding Year}" /><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" /></StackPanel></Button>
+          </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+        </StackPanel>
+      </StackPanel>
+    </Border>
     <StackPanel Spacing="14" IsVisible="{Binding HasRelations}">
-      <TextBlock Text="{DynamicResource artist.detail.collaborators}" Classes="section" />
-      <ItemsControl ItemsSource="{Binding Insights.RelatedArtists}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistRelation">
-        <Button Classes="highlight" Tag="{Binding Artist}" Click="OnArtist" Width="220" Margin="0,0,12,8"><Grid ColumnDefinitions="38,*" ColumnSpacing="10"><icon:GlyphIcon Kind="artists" Width="24" Height="24" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="{Binding Artist.Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding SharedTracks}" Classes="label" /></StackPanel></Grid></Button>
-      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-    </StackPanel>
-    <StackPanel Spacing="12" IsVisible="{Binding HasCollaborations}">
-      <TextBlock Text="{DynamicResource artist.detail.collaborations}" Classes="section" />
-      <ItemsControl ItemsSource="{Binding Collaborations}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistHighlight">
-        <Button Classes="highlight" Tag="{Binding Track}" Click="OnTrack"><StackPanel Spacing="5"><TextBlock Text="{Binding Track.Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Detail}" Classes="label" TextTrimming="CharacterEllipsis" /></StackPanel></Button>
+      <TextBlock Text="{DynamicResource artist.content.relationships}" Classes="section" />
+      <ItemsControl ItemsSource="{Binding RelatedArtists}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistRelatedItem">
+        <Button Classes="highlight" Tag="{Binding Artist}" Click="OnArtist" Width="260" Margin="0,0,12,8"><Grid ColumnDefinitions="38,*" ColumnSpacing="10"><Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource EchoHover}" VerticalAlignment="Center"><TextBlock Text="{Binding Monogram}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource EchoHeading}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="{Binding Artist.Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Detail}" Classes="label" /></StackPanel></Grid></Button>
       </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
     </StackPanel>
     <StackPanel Spacing="12" IsVisible="{Binding HasOnlineRelations}">
-      <TextBlock Text="{DynamicResource artist.detail.relations}" Classes="section" />
+      <TextBlock Text="{DynamicResource artist.content.onlineRelated}" Classes="section" ToolTip.Tip="MusicBrainz" />
       <ItemsControl ItemsSource="{Binding Relations}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistOnlineRelation">
-        <Button Classes="highlight" Tag="{Binding Url}" Click="OnExternal" Margin="0,0,12,8"><StackPanel Spacing="5"><TextBlock Text="{Binding Name}" FontWeight="Medium" /><TextBlock Text="{Binding Role}" Classes="label" /></StackPanel></Button>
+        <Button Classes="highlight" Tag="{Binding}" Click="OnRelation" Margin="0,0,12,8"><StackPanel Spacing="5"><TextBlock Text="{Binding Name}" FontWeight="Medium" /><TextBlock Text="{Binding Role}" Classes="label" /><TextBlock Text="{DynamicResource artist.content.inLibrary}" Classes="label" IsVisible="{Binding LocalArtist, Converter={x:Static ObjectConverters.IsNotNull}}" /></StackPanel></Button>
       </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
     </StackPanel>
-    <StackPanel Spacing="12">
-      <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource artist.detail.events}" Classes="section" /><TextBlock Grid.Column="1" Text="MusicBrainz" Classes="label" VerticalAlignment="Center" /></Grid>
-      <TextBlock Text="{Binding EventsStatus}" Classes="label" TextWrapping="Wrap" IsVisible="{Binding !HasEvents}" />
-      <ItemsControl ItemsSource="{Binding Information.Events}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="library:ArtistEvent">
-        <Button Classes="highlight" Tag="{Binding Url}" Click="OnExternal"><Grid ColumnDefinitions="110,*" ColumnSpacing="18"><TextBlock Text="{Binding Date}" VerticalAlignment="Center" /><StackPanel Grid.Column="1" Spacing="5"><TextBlock Text="{Binding Name}" FontWeight="Medium" TextWrapping="Wrap" /><TextBlock Text="{Binding Venue}" Classes="label" /></StackPanel></Grid></Button>
-      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    <StackPanel Spacing="12" IsVisible="{Binding HasCollaborations}">
+      <TextBlock Text="{DynamicResource artist.content.collaborationTracks}" Classes="section" />
+      <ItemsControl Name="CollaborationsList" ItemsSource="{Binding Collaborations}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="artists:ArtistHighlight"><artists:ArtistTrackCard Track="{Binding Track}" Subtitle="{Binding Detail}" Duration="{Binding Duration}" IsPlaying="{Binding IsPlaying}" PlayRequested="OnCardPlay" NextRequested="OnCardNext" AddRequested="OnCardAdd" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
     </StackPanel>
   </StackPanel>
 </UserControl>

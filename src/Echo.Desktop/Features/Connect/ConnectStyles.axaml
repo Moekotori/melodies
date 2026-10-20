@@ -9,7 +9,7 @@
   </Style>
   <Style Selector="Button.connect-tab:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
   <Style Selector="Button.connect-tab.active"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
-  <Style Selector="Button.connect-tab.active TextBlock"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Button.connect-tab.active TextBlock"><Setter Property="FontWeight" Value="Medium" /></Style>
   <Style Selector="Button.connect-tool">
     <Setter Property="Height" Value="34" />
     <Setter Property="MinWidth" Value="34" />
@@ -79,8 +79,8 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
   </Style>
   <Style Selector="TextBlock.connect-kicker">
-    <Setter Property="FontSize" Value="11" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
     <Setter Property="Foreground" Value="{DynamicResource EchoMuted}" />
   </Style>
   <Style Selector="TextBlock.connect-note.live"><Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" /></Style>

@@ -31,10 +31,12 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
         if (_closed) return;
         _resolve?.Cancel();
         if (_history.Count == 16) _history.RemoveAt(0);
-        _history.Add(target); Show(target);
+        // The first detail rides its host pane's own entrance; later ones push inside this host.
+        _history.Add(target); Show(target, Content is null ? null : MotionDirection.Forward);
     }
-    private void Show(object target)
+    private void Show(object target, MotionDirection? direction)
     {
+        void Swap(Control view) => Present(view, direction ?? MotionDirection.None, direction is not null);
         if (target is AlbumRow album)
         {
             var view = new AlbumDetailView(album, shell.AlbumLibrary!, shell.AlbumArtwork!, shell.Player, shell.DetailResources, shell.Text, shell.AlbumInformation);
@@ -47,17 +49,17 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
                     if (_history[i] is AlbumRow old && old.Id == id) _history[i] = old with { Favorite = favorite, Rating = rating };
                 PersonalStateChanged?.Invoke(id, favorite, rating);
             };
-            Content = view;
+            Swap(view);
         }
         else if (target is GenreRow genre)
         {
             var view = new GenreDetailView(genre, shell); view.Back += GoBack; view.OpenAlbum += OpenAlbum;
-            Content = view; view.SetWindowVisible(_visible);
+            Swap(view); view.SetWindowVisible(_visible);
         }
         else if (target is ArtistRow artist)
         {
             var view = new ArtistDetailView(artist, shell); view.Back += GoBack; view.OpenAlbum += OpenAlbum; view.OpenArtist += OpenArtist;
-            Content = view; view.SetWindowVisible(_visible);
+            Swap(view); view.SetWindowVisible(_visible);
         }
     }
     private async Task ResolveArtistAsync(string name)
@@ -96,9 +98,11 @@ public sealed class DetailNavigator : MotionPresenter, IDisposable
     {
         _resolve?.Cancel();
         if (_history.Count > 0) _history.RemoveAt(_history.Count - 1);
-        if (_history.Count > 0) Show(_history[^1]);
-        else { Content = null; Back?.Invoke(); }
+        // The last detail stays drawn while the host pane leaves; the owner calls Release after.
+        if (_history.Count > 0) Show(_history[^1], MotionDirection.Back);
+        else Back?.Invoke();
     }
+    public void Release() { _resolve?.Cancel(); Content = null; Settle(); }
     protected override void OnKeyDown(KeyEventArgs args)
     {
         base.OnKeyDown(args);

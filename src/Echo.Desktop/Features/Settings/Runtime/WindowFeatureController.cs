@@ -22,7 +22,6 @@ public sealed class WindowFeatureController : IDisposable
         _window = window; _shell = shell; _dialogs = dialogs;
         runtime.RegisterChange("close-to-tray", (value, _) =>
         {
-            if (value.Enabled && !window.EnsureTrayRecovery()) throw new InvalidOperationException(shell.Text["ultralight.trayUnavailable"]);
             shell.CloseToTray = value.Enabled; return Task.CompletedTask;
         });
         runtime.RegisterChange("ultra-light-mode", (value, _) => { shell.UltraLightEnabled = value.Enabled; return Task.CompletedTask; });
@@ -37,8 +36,8 @@ public sealed class WindowFeatureController : IDisposable
         runtime.RegisterChange("accessibility-eye-comfort", (value, _) => { SetComfort(value.Enabled); return Task.CompletedTask; });
         runtime.RegisterChange("accessibility-high-contrast", (value, _) => { SetContrast(value.Enabled); return Task.CompletedTask; });
         runtime.RegisterChange("accessibility-focus", (value, _) => { _window.Classes.Set("always-focus", value.Enabled); return Task.CompletedTask; });
-        runtime.RegisterAction("first-run-wizard", (_, _) => _dialogs.ShowAsync("melodies 新手教程",
-            "1. 在专辑或文件夹页添加音乐文件夹，等待本次导入的明确结果。\n\n2. 打开专辑，双击曲目开始播放；底栏可以暂停、切歌与调整音量。\n\n3. 使用播放队列整理接下来要听的歌曲。\n\n4. 点击封面进入歌词，使用歌词设置调整字体、译文与逐字高亮。\n\n5. 输出设备、声音异常与信号路径可在音频设置中检查。\n\n6. Ctrl+K 搜索设置；Esc 返回上一页。"));
+        runtime.RegisterAction("first-run-wizard", (_, _) => { shell.OpenTutorialCommand.Execute(null); return Task.CompletedTask; });
+        runtime.RegisterAction("operation-guide", (_, _) => { shell.OpenOperationGuideCommand.Execute(null); return Task.CompletedTask; });
         shell.FeaturePreferences.Changed += OnPreferencesChanged;
         shell.Theme.Changed += RefreshAccessibility;
     }

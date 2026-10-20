@@ -6,11 +6,11 @@
       <connect:ConnectServiceCardView DataContext="{Binding Renderer}" />
       <Border Classes="connect-card" IsVisible="{Binding Listening}">
         <StackPanel Spacing="12">
-          <TextBlock Text="手机可访问的描述地址" Classes="connect-kicker" />
+          <TextBlock Text="{DynamicResource ui.ConnectReceiveView.345813b7f25e}" Classes="connect-kicker" />
           <TextBox Text="{Binding ListenAddress}" IsReadOnly="True" />
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Classes="connect-tool" Content="复制地址" Click="OnCopyAddress" />
-            <Button Classes="connect-tool" Content="停止正在接收的音频" Command="{Binding StopIncomingCommand}" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectReceiveView.4c6de01bbe86}" Click="OnCopyAddress" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectReceiveView.d357163d70ec}" Command="{Binding StopIncomingCommand}" />
           </StackPanel>
         </StackPanel>
       </Border>

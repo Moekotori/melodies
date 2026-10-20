@@ -5,7 +5,7 @@
     <Style Selector="Button.libraryOption"><Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="32" /><Setter Property="Padding" Value="9,0,7,0" /><Setter Property="CornerRadius" Value="8" /></Style>
     <Style Selector="Button.libraryOption TextBlock"><Setter Property="FontSize" Value="12" /><Setter Property="TextTrimming" Value="CharacterEllipsis" /></Style>
     <Style Selector="Button.libraryDirection"><Setter Property="Height" Value="32" /><Setter Property="MinHeight" Value="32" /></Style>
-    <Style Selector="TextBlock.libraryGroup"><Setter Property="FontSize" Value="10" /><Setter Property="Margin" Value="8,5,0,3" /></Style>
+    <Style Selector="TextBlock.libraryGroup"><Setter Property="FontSize" Value="12" /><Setter Property="Margin" Value="8,5,0,3" /></Style>
 
     <Style Selector="Button.libraryDirection"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="CornerRadius" Value="6" /></Style>
     <Style Selector="Button.libraryDirection:pointerover"><Setter Property="Background" Value="{DynamicResource EchoHover}" /></Style>
@@ -16,7 +16,7 @@
       <Grid Width="238" RowDefinitions="Auto,*">
         <Border Padding="7,7,7,9" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="0,0,0,1">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <StackPanel Spacing="2"><TextBlock Text="{DynamicResource query.multiSort}" FontWeight="SemiBold" FontSize="12" /><TextBlock Text="{DynamicResource query.multiSortHint}" Classes="muted" FontSize="10" /></StackPanel>
+            <StackPanel Spacing="2"><TextBlock Text="{DynamicResource query.multiSort}" FontWeight="Medium" FontSize="12" /><TextBlock Text="{DynamicResource query.multiSortHint}" Classes="muted" FontSize="12" /></StackPanel>
             <ToggleButton Name="MultiSwitch" Grid.Column="1" IsChecked="{Binding IsMultiSortEnabled, Mode=TwoWay}" Theme="{StaticResource LibraryQueryMultiSwitch}" VerticalAlignment="Center" AutomationProperties.Name="{DynamicResource query.multiSort}" />
           </Grid>
         </Border>
@@ -30,7 +30,7 @@
                   <Button Grid.ColumnSpan="2" Classes="libraryOption" Classes.selected="{Binding IsSelected}" Click="OnSelect">
                     <Grid ColumnDefinitions="*,16" ColumnSpacing="10" Margin="0,0,32,0"><TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
                       <icon:GlyphIcon Grid.Column="1" Kind="check" Width="14" Height="14" IsVisible="{Binding ShowCheck}" Stroke="{DynamicResource EchoAccentText}" />
-                      <Border Grid.Column="1" IsVisible="{Binding ShowPriority}" Width="16" Height="16" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource EchoAccent}" VerticalAlignment="Center"><TextBlock Text="{Binding Priority}" FontSize="9" Foreground="{DynamicResource EchoAccentText}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                      <Border Grid.Column="1" IsVisible="{Binding ShowPriority}" Width="16" Height="16" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource EchoAccent}" VerticalAlignment="Center"><TextBlock Text="{Binding Priority}" FontSize="12" Foreground="{DynamicResource EchoAccentText}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
                     </Grid>
                   </Button>
                   <Button Grid.Column="1" Classes="libraryDirection" IsVisible="{Binding CanDirection}" Click="OnDirection" ToolTip.Tip="{DynamicResource query.reverseDirection}" AutomationProperties.Name="{DynamicResource query.reverseDirection}"><icon:SortDirectionIcon Width="12" Height="14" Descending="{Binding Descending}" IsActive="{Binding IsSelected}" ActiveBrush="{DynamicResource EchoAccent}" IdleBrush="{DynamicResource EchoMuted}" /></Button>

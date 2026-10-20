@@ -16,6 +16,7 @@ public partial class ConnectView : UserControl, IDisposable
 {
     private readonly ShellViewModel shell;
     private readonly Dictionary<string, Control> pages;
+    private string? shownWorkspace;
     private int disposed;
 
     public ConnectViewModel Model { get; }
@@ -59,10 +60,21 @@ public partial class ConnectView : UserControl, IDisposable
         if (e.PropertyName == nameof(ConnectViewModel.Selected)) ShowWorkspace();
     }
 
+    // Workspaces are retained; the rail order decides which side the next one enters from.
     private void ShowWorkspace()
     {
-        if (pages.TryGetValue(Model.Selected.Mode.Key, out var page)) WorkspaceHost.Content = page;
+        var key = Model.Selected.Mode.Key;
+        var direction = shownWorkspace is null || shownWorkspace == key ? Motion.MotionDirection.None
+            : Order(key) > Order(shownWorkspace) ? Motion.MotionDirection.Forward : Motion.MotionDirection.Back;
+        shownWorkspace = key;
+        if (pages.TryGetValue(key, out var page)) WorkspaceHost.Present(page, direction);
         if (Model.Selected.Mode.Key == "output") Model.Output.EnsureLoaded();
+    }
+
+    private int Order(string key)
+    {
+        for (var i = 0; i < Model.Items.Count; i++) if (Model.Items[i].Mode.Key == key) return i;
+        return -1;
     }
 
     private void OnRailKeyDown(object? sender, KeyEventArgs e)

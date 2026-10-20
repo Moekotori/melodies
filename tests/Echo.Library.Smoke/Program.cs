@@ -2,6 +2,37 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 if (args.Length == 0 && ScannerFaultHost.TryRun()) return;
+if (args.Length > 0 && args[0] == "stress-scan")
+{
+    using var stressBudget = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+    await StressScanProbe.RunAsync(Path.GetFullPath(args[1]), stressBudget.Token); return;
+}
+if (args.Length > 0 && args[0] == "stress-read")
+{
+    using var stressBudget = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+    await StressPageProbe.RunAsync(Path.GetFullPath(args[1]), args.Length > 2 ? args[2] : "stress", stressBudget.Token); return;
+}
+if (args.Length > 0 && args[0] == "stress-seed")
+{
+    using var stressBudget = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+    await StressLibraryFixture.CreateAsync(Path.GetFullPath(args[1]), stressBudget.Token); return;
+}
+if (args.Length > 0 && args[0] == "artist-roles") { await ArtistRolesProbe.RunAsync(Path.GetFullPath(args[1])); return; }
+if (args.Length > 0 && args[0] == "page-performance")
+{
+    using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(55));
+    await PagePerformanceProbe.RunAsync(Path.GetFullPath(args[1]), budget.Token); return;
+}
+if (args.Length > 0 && args[0] == "artist-grouping")
+{
+    await ArtistCreditSplitSmoke.RunAsync(Path.Combine(Path.GetFullPath(args[1]), "credits"));
+    await ArtistGroupingSmoke.RunAsync(Path.GetFullPath(args[1])); return;
+}
+if (args.Length > 0 && args[0] == "scan-batch-check")
+{
+    using var batchBudget = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+    await ScanBatchOptimizationProbe.RunAsync(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]), batchBudget.Token); return;
+}
 if (args.Length > 0 && args[0] == "scan-throughput")
 {
     using var throughputBudget = new CancellationTokenSource(TimeSpan.FromSeconds(55));

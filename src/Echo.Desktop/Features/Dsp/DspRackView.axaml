@@ -1,24 +1,25 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspRackView" x:DataType="local:DspViewModel">
   <StackPanel Spacing="20">
-    <TextBlock Text="处理链的所有调整均保留为草稿，应用后生效。固定保护阶段保持在最后。" TextWrapping="Wrap" Classes="muted" FontSize="12" />
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16"><TextBlock Text="{DynamicResource ui.DspRackView.9cf2defcdd1f}" Classes="dsp-note"/><TextBlock Grid.Column="1" Text="{Binding DraftLabel}" Classes="dsp-note"/></Grid>
     <Grid Name="RackLayout" ColumnDefinitions="280,*" ColumnSpacing="28" RowSpacing="24">
       <StackPanel Spacing="12">
-        <TextBlock Text="处理顺序" FontSize="12" FontWeight="SemiBold" />
-        <ListBox Classes="dsp-rack" ItemsSource="{Binding RackRows}" SelectedItem="{Binding SelectedRack, Mode=TwoWay}" Height="400" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <TextBlock Text="{DynamicResource ui.DspRackView.2b1058e01be3}" Classes="dsp-section-title" />
+        <ListBox Name="RackOrderList" Classes="dsp-rack" ItemsSource="{Binding RackRows}" SelectedItem="{Binding SelectedRack, Mode=TwoWay}" MaxHeight="560" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="local:DspRackRow">
-              <Grid ColumnDefinitions="20,*" ColumnSpacing="10" Margin="0,4">
-                <icons:GlyphIcon Kind="sequence" Width="15" Height="15" VerticalAlignment="Center" Opacity="0.55" />
-                <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="12" TextTrimming="CharacterEllipsis" />
+              <Grid ColumnDefinitions="32,20,*" ColumnSpacing="10" Margin="0,10">
+                <TextBlock Text="{Binding PositionLabel}" FontSize="12" Classes="muted" VerticalAlignment="Center"/>
+                <icons:GlyphIcon Grid.Column="1" Kind="sequence" Width="15" Height="15" VerticalAlignment="Center" Opacity="0.65" />
+                <StackPanel Grid.Column="2" Spacing="4"><TextBlock Text="{Binding Label}" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding RoleLabel}" FontSize="12" Classes="muted"/></StackPanel>
               </Grid>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
         <WrapPanel>
-          <Button Content="上移" Classes="dsp-quiet" Command="{Binding MoveRackUpCommand}" IsEnabled="{Binding CanMoveRackUp}" />
-          <Button Content="下移" Classes="dsp-quiet" Command="{Binding MoveRackDownCommand}" IsEnabled="{Binding CanMoveRackDown}" />
-          <Button Content="复制" Classes="dsp-quiet" Command="{Binding DuplicateRackFilterCommand}" IsEnabled="{Binding CanRemoveRackFilter}" />
-          <Button Content="删除" Classes="dsp-quiet" Command="{Binding RemoveRackFilterCommand}" IsEnabled="{Binding CanRemoveRackFilter}" />
+          <Button Content="{DynamicResource ui.DspRackView.f853a70b1204}" Classes="dsp-quiet" Command="{Binding MoveRackUpCommand}" IsEnabled="{Binding CanMoveRackUp}" />
+          <Button Content="{DynamicResource ui.DspRackView.e75e8b4e5c97}" Classes="dsp-quiet" Command="{Binding MoveRackDownCommand}" IsEnabled="{Binding CanMoveRackDown}" />
+          <Button Content="{DynamicResource ui.DspRackView.63d90d977348}" Classes="dsp-quiet" Command="{Binding DuplicateRackFilterCommand}" IsEnabled="{Binding CanRemoveRackFilter}" />
+          <Button Content="{DynamicResource ui.DspRackView.2f9daa828907}" Classes="dsp-quiet" Command="{Binding RemoveRackFilterCommand}" IsEnabled="{Binding CanRemoveRackFilter}" />
         </WrapPanel>
       </StackPanel>
       <StackPanel Name="RackDetails" Grid.Column="1" Spacing="16">
@@ -32,7 +33,7 @@
         <ComboBox ItemsSource="{Binding RackFilterKinds}" SelectedItem="{Binding RackFilterKind, Mode=TwoWay}" MinWidth="200" Margin="0,0,10,8">
           <ComboBox.ItemTemplate><DataTemplate x:DataType="local:DspChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
-        <Button Content="添加滤波器" Command="{Binding AddRackFilterCommand}" />
+        <Button Content="{DynamicResource ui.DspRackView.c4d88220ec61}" Command="{Binding AddRackFilterCommand}" />
       </WrapPanel>
     </Border>
   </StackPanel>

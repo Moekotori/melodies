@@ -2,7 +2,7 @@ namespace Echo.Contracts.Lyrics;
 
 public sealed record LyricWord(string Text, double StartMs, double EndMs);
 public sealed record LyricLine(string Text, double StartMs, double EndMs,
-    IReadOnlyList<LyricWord> Words, string? Translation = null, string? Romanization = null);
+    IReadOnlyList<LyricWord> Words, string? Translation = null, string? Romanization = null, bool EstimatedTiming = false);
 public sealed record LyricsDocument(IReadOnlyList<LyricLine> Lines, bool IsSynced, double OffsetMs = 0)
 {
     public static LyricsDocument Empty { get; } = new([], false);
@@ -31,7 +31,7 @@ public sealed record LyricsPreferences(string Style = "default", string Look = "
     string Alignment = "left", string Font = "", double OffsetMs = 0, bool Context = true,
     bool MiniPlayer = true, bool PlayerAutoHide = true, bool PlayerCompact = true,
     string BackgroundMode = "page", double BackgroundBlur = 18, double BackgroundBrightness = 100,
-    double BackgroundOpacity = 100, string WallpaperPath = "");
+    double BackgroundOpacity = 100, string WallpaperPath = "", int BackgroundFrameRate = 60, string WordHighlightStyle = "sweep");
 public interface ILyricsPreferencesStore
 {
     Task<LyricsPreferences> ReadAsync(CancellationToken cancellation);

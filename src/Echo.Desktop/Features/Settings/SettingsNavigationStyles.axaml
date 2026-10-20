@@ -24,7 +24,7 @@
   </Styles.Resources>
   <Style Selector="Button.settings-nav-item"><Setter Property="Theme" Value="{StaticResource SettingsNavigationItemTheme}" /></Style>
   <Style Selector="Button.settings-nav-item icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoMuted}" /></Style>
-  <Style Selector="Button.settings-nav-item.active TextBlock.settings-nav-title"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Button.settings-nav-item.active TextBlock.settings-nav-title"><Setter Property="FontWeight" Value="Medium" /></Style>
   <Style Selector="Button.settings-nav-item.active icon|GlyphIcon"><Setter Property="Stroke" Value="{DynamicResource EchoAccentText}" /></Style>
   <Style Selector=":is(UserControl).compact TextBlock.settings-nav-title"><Setter Property="IsVisible" Value="False" /></Style>
   <Style Selector=":is(UserControl).compact TextBlock.settings-nav-group"><Setter Property="IsVisible" Value="False" /></Style>

@@ -9,6 +9,7 @@ namespace Echo.Desktop.Features.Settings;
 public partial class SettingsView : UserControl
 {
     private SettingsViewModel? _model;
+    private string? _shownCategory;
     public SettingsView() => InitializeComponent();
     public SettingsView(SettingsViewModel model) : this()
     {
@@ -39,7 +40,7 @@ public partial class SettingsView : UserControl
             SettingsSearchBox.HorizontalAlignment = compact ? Avalonia.Layout.HorizontalAlignment.Right : Avalonia.Layout.HorizontalAlignment.Stretch;
             SettingsHeader.Margin = new Avalonia.Thickness(0, 0, 8, compact ? 64 : 0);
             SettingsSearchBox.Margin = new Avalonia.Thickness(0, compact ? 74 : 54, 8, 0);
-            SettingsLayout.RowDefinitions[0].Height = new GridLength(compact ? 132 : 64);
+            SettingsLayout.RowDefinitions[0].Height = new GridLength(compact ? 160 : 92);
             SearchResultsPopup.Margin = new Avalonia.Thickness(0, compact ? -10 : 30, 8, 0);
             Grid.SetColumn(SearchResultsPopup, compact ? 1 : 0);
             Grid.SetColumnSpan(SearchResultsPopup, compact ? 1 : 2);
@@ -58,11 +59,27 @@ public partial class SettingsView : UserControl
         {
             content = new SettingsSectionView(_model, showHeading: false);
         }
-        SectionHost.Content = new ScrollViewer
+        SectionHost.Present(new ScrollViewer
         {
             Content = content, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-        };
+        }, CategoryDirection(_model.ActiveCategory.Id));
+    }
+    // Categories further down the rail enter from below; tab or language refreshes only fade.
+    private Motion.MotionDirection CategoryDirection(string id)
+    {
+        var previous = _shownCategory;
+        _shownCategory = id;
+        if (_model is null || previous is null || previous == id) return Motion.MotionDirection.None;
+        int Order(string key)
+        {
+            var index = 0;
+            foreach (var group in _model.NavigationGroups)
+                foreach (var item in group.Items) { if (item.Id == key) return index; index++; }
+            return -1;
+        }
+        var from = Order(previous); var to = Order(id);
+        return from < 0 || to < 0 ? Motion.MotionDirection.None : to > from ? Motion.MotionDirection.Forward : Motion.MotionDirection.Back;
     }
     private void OnSettingsKeyDown(object? sender, KeyEventArgs e)
     {

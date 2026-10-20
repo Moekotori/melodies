@@ -10,7 +10,7 @@
     <Border Height="1" Background="{DynamicResource EchoDivider}" />
     <floating:DesktopLyricsSettingsView DataContext="{Binding Floating}" />
     <Button Content="{DynamicResource floating.reset}" Command="{Binding Floating.ResetPositionCommand}" />
-    <TextBlock Text="{DynamicResource floating.unlockHint}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
+    <TextBlock Text="{DynamicResource floating.unlockHint}" FontSize="12" Classes="muted" TextWrapping="Wrap" />
     <TextBlock Text="{Binding Floating.Diagnostic}" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding Floating.Diagnostic, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
   </StackPanel>
 </UserControl>

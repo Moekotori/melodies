@@ -1,5 +1,49 @@
 # DSP 对齐状态
 
+## 其余模块专用界面（2026-10-20）
+
+移除 `DspGenericView`。`DspModuleHost` 为当前模块按需创建专用编辑器；离开时撤销绘图订阅和按住试听。模块页复用小型参数、选择器、开关与运行读数组件，不再把不同 DSP 能力堆在同一份通用表单里。原生请求仍由原有 Playback lane 串行协调，资源仍经 Core 保存；没有新增生产数据库、独立音频连接或 DSP 计算。
+
+| ECHO 参考工作台 | Avalonia 专用页面与组织 |
+| --- | --- |
+| DspListeningChrome / DspListeningWorkbench | DspListeningView：当前声音、方案列表、保存/套用/删除、独立机架草稿区；机架待应用时禁止保存/套用方案 |
+| DspRackPanel / DspRackRow | DspRackWorkbench / DspRackView：处理链编号、模块与实例、固定阶段、重排、添加/复制/删除、选中实例编辑 |
+| ReplayGainControlSurface | DspReplayGainView：响度与增益来源、前级、防削波、曲目/专辑与实际应用读数 |
+| HeadroomControlSurface | DspHeadroomView：增益读数、预设、按住对比 0 dB、输出峰值与限幅确认 |
+| EchoSrcControlSurface | DspSrcView：输入/请求链路、倍率、计算后端、抖动/位深、1x/Nx 滤波器与特性图、宿主运行指标 |
+| EchoSdmControlSurface | DspSdmView：DSD 输出/传输率、质量/环路、听音组合、计算/FIR/前调制、插槽预览与实时预算 |
+| HeadphoneCorrectionPanel | DspHeadphoneView：分页 OPRA 资源、作者与来源、校正曲线、原始/听感模式、前级、参数及本机预设/导入导出 |
+| RoomCorrectionControlSurface | DspRoomView：脉冲资源、校正增益/快捷值、卷积路由、声道/采样率/taps/延迟确认 |
+| ChannelControlSurface | DspChannelView：左右输出示意、平衡/增益、延时、分频补偿、单声道/反相/交换 |
+| SafetyControlSurface | DspSafetyView：输出保护、限幅开关、实际衰减与信号检查 |
+| CompressorPanel | DspCompressorView：传输曲线、检测、阈值/比率/补偿/拐点、快慢/混合与高级侧链 |
+| MultibandPanel | DspMultibandView：三段选择及独立启停、交叉分频、整机混合与分段动态/响应时间 |
+| DeEsserPanel | DspDeesserView：检测频率/Q、按住监听、衰减、快慢/混合与参数曲线 |
+| LimiterPanel | DspLimiterView：保护状态、衰减/峰值、自动或手动上限及释放；自动模式禁用手动上限编辑 |
+| CrossfeedWorkbench | DspCrossfeedView：Mid/Side 响应、拖动截止、经典/BS2B、对应参数及原版预设 |
+| VirtualStageWorkbench | DspVirtualStageView：虚拟声源/角度/听音位置、强度与反射、原版三组预设 |
+| StereoFieldWorkbench | DspStereoFieldView：M/S 参数图、拖动宽度、中置/侧向增益与原版宽度预设 |
+| ChannelMatrixWorkbench | DspMatrixView：输入/输出路由、正负系数、四组系数与直通/交换/单声道/Mid-Side |
+
+### 当前契约的显示边界
+
+曲线和声场图是参数模型，滤波器图沿用原版的特性示意；均不作为音频实测。输出峰值与限幅/SRC/SDM 的运行值只读现有宿主快照。当前连接没有提供动态模块实时衰减轨迹、目标 LUFS/批量响度分析、整链旁路与自动响度匹配的业务契约；相关界面保持未提供/空读数，不用估计或其他模块的数据冒充。没有音源时不把默认 48 kHz 显示为实际输入率。
+
+听音页的嵌入机架只保存当前页面的有限草稿，与父页共用同一播放客户端和资源客户端；不创建服务 owner。离页丢弃机架草稿。按住 Headroom/齿音试听在松开、失焦、切页和释放时恢复，迟到回复不重新启用试听。
+
+验证入口：`tools/Echo.DspPreview`。使用独立测试资源目录与独立原生宿主，覆盖模块专用控件绑定、键盘参数编辑与原生回读、多段嵌套布尔参数、试听释放、Core 方案保存/删除与嵌入机架提交，以及各模块明暗与窄窗口截图。当前默认构建输出被并行 .NET 进程占用，使用 `obj/DspAll/`、`bin/DspAll/` 独立输出；未停止或替换用户运行中的应用。截图在忽略目录 `artifacts/dsp-all-modules-preview/`。真实音频设备、跨机器与其他桌面平台不包含在界面验收内。
+
+整套专用页面曾随 Desktop 构建通过。最后整桌面复核遇到并行文件的暂态错误：歌曲行字符串错误随后已变更，之后信号路径面板缺少 `DiagnosticsExpander` / `DoctorExpander`。没有修改这些文件。最终将当前全部 DSP C#/XAML 与相同交互检查复制到忽略目录 `misc/dsp-final-check/`，仅替换验证命名空间以避免与最后一次已构建壳程序集中的类型重名；当前 DSP 源码隔离构建 0 警告/0 错误，使用原生产控件逻辑及真实独立宿主复核。这个结果不等于最新整个工作区已完成构建。
+
+## 界面同步（2026-10-20）
+
+本轮界面对照只读的 Electron ECHO 检出 `542e7c66c`：`DspSidebar.tsx`、`dsp-sidebar.css`、`dsp.css` 最终覆盖规则与 `eq-dsp-workbench.css`。保留现有 19 个模块及 Core／Playback／独立原生宿主的控制边界，修改集中在 Desktop 展示层。
+
+- 模块侧栏沿用品牌、分类、状态摘要和底部输出；高级处理入口在导航滚动区中展开。选中用局部底色和图标反馈。窄于 860 的工作区切换为顶部横向导航，调整窗口时保持当前模块可见。
+- EQ 使用独立工具栏、预设、简洁／专业视图、启停和刷新；曲线填充剩余高度，专业模式的数值台、频段条和前级操作接在曲线下方。视图切换不改变频段、选中项或草稿；A/B、撤销、还原和应用沿用现有实现。
+- 页面进入及显式刷新通过已有播放会话串行读取模块摘要，回复随读随释放，不常驻全模块 JSON，不新增轮询、音频连接或实时分析。缺少运行数据继续显示未确认，不把配置开启当作实际音频处理或 bit-perfect 证明。
+- `Echo.DspPreview` 使用生产 Avalonia 控件与独立测试宿主检查 19 个入口、明暗主题、紧凑窗口、模式切换、折叠导航、键盘编辑和齿音监听。截图输出在忽略目录 `artifacts/dsp-migration-preview/`。真实设备播放、听感及 macOS／Linux 运行不属于本轮界面验证。
+
 参考 echosteam 已提交版本 `a44881fcc21a5d374d3bbd42aba1263b7ec71a28`。参考仓库 `/Users/moekotori/echo` 只读，未修改；原生数据面来源与固定版本校验见 [AUDIO_ENGINE_PARITY.md](AUDIO_ENGINE_PARITY.md)。
 
 ## 页面和宿主契约
@@ -51,3 +95,20 @@ Desktop 构建按实际 Core 输出目录复制入口、程序集和 `runtimes` 
 - 隔离资源目录与独立 named pipe 检查真实 Core DSP endpoint：保存后查询、REW 严格导入及错误回执、双采样率 ZIP、CFG 路由、FIR 分级及 DC 增益。使用真实 OPRA 数据库完成一次下载、品牌查询及原始/听感参数转换；后续复查复用该证据缓存。
 - FIR 两组系数直接与只读 echosteam TypeScript 实现比较：线性 `echo-hb` 255 taps、最小相位 `echo-gauss-hires-mp` 1023 taps，最大绝对差分别约 `8.35e-9`、`5.33e-9`；不据此推断全部配置的性能或听感。
 - 不运行全量测试、长时间播放、整库扫描或性能大矩阵。真实设备听感、DoP/Native DSD/CUDA、Windows/Linux 设备、AOT 发布及整棵进程树占用对照仍需对应环境验证。
+
+## 页面保真修正（2026-10-20）
+
+这一轮仅修改 Control 展示与输入映射，沿用现有 Core 资源客户端、播放会话和原生回执。没有新增数据库访问、音频连接、后台定时器或 DSP 实现。
+
+- SRC / SDM 对照 `EchoSrcControlSurface`、`EchoSdmControlSurface` 与对应 flat CSS，恢复大读数、四段计划、运行侧栏、横向控制台及主图 / 详情比例。SRC 实际输出率独立于请求倍率；SDM 使用噪声整形图区域，不再拿 FIR 曲线替代 NTF。
+- Headroom 对照 `HeadroomControlSurface`，恢复大增益读数、线性幅度、带刻度推子、预设条、余量建议侧栏和电平预算。
+- 四个空间页对照 `spatial-editor-workbench.css` 使用 1.35:1 主图 / 控制台，图表随主题变化并增加参数摘要。小于 760 像素时纵向排列；不再使用等宽、等高的通用表单布局。
+- 多段压缩 / 去齿音恢复状态与衰减读数、可交互分频图 / 检测带、三个控制分组和衰减轨迹区域。分频图点选频段、检测带拖动与数值编辑共用同一草稿和应用路径。
+- 房间校正恢复宽资源列与窄余量侧栏，未载入 IR 时收起增益及余量侧栏；声道工具恢复轻量的左右摘要条；输出安全调整状态与操作区比例。
+- 强度、声场宽度、干湿比和链接比例按 ECHO 显示百分比。只转换编辑数值，底层契约仍使用原有 0..1 / 0..2 参数，避免把 100 写成音频增益。
+
+当前连接没有目标 LUFS / 曲库响度分析、动态模块衰减历史和 SDM 调制器系数契约：对应设置禁用并说明原因；图表保留空读数，不绘制虚构测量或用其他模块的数据代替。源页面的完整行为仍受这些接口边界限制，不宣称逐像素及全部功能等同。
+
+截图与检查记录：`artifacts/dsp-fidelity-preview/`、`artifacts/dsp-fidelity-ui.log`。通过独立 Avalonia 渲染与真实原生宿主回读检查；不代表真实音频设备、跨机器或 AOT 发布验收。
+
+本轮最终 DSP 源码独立编译 0 警告、0 错误；19 页的渲染、主题、窄窗口及原生参数回读通过。新增去齿音检测带拖动、多段分频图点选检查，并修复透明绘图区空白处不能命中鼠标的问题。OPRA fixture 数据库在本轮不存在，该项未重跑。最新整桌面构建被并行艺术家页 `ArtistDetailView.axaml:46` 的 `IsOverview` 绑定错误阻塞；未修改艺术家页。

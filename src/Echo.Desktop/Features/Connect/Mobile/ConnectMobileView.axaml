@@ -6,19 +6,19 @@
       <connect:ConnectServiceCardView DataContext="{Binding Card}" />
       <Border Classes="connect-card">
         <StackPanel Spacing="14">
-          <TextBlock Text="这一次的配对" Classes="connect-kicker" />
+          <TextBlock Text="{DynamicResource ui.ConnectMobileView.015d281061be}" Classes="connect-kicker" />
           <Border Classes="connect-code">
             <TextBlock Text="{Binding CodeDisplay}" FontSize="34" FontWeight="SemiBold" LetterSpacing="4" HorizontalAlignment="Center" />
           </Border>
-          <TextBlock Text="地址" Classes="muted" FontSize="12" />
+          <TextBlock Text="{DynamicResource ui.ConnectMobileView.37aac5b4e639}" Classes="muted" FontSize="12" />
           <TextBox Text="{Binding Address}" IsReadOnly="True" />
-          <TextBlock Text="令牌" Classes="muted" FontSize="12" />
+          <TextBlock Text="{DynamicResource ui.ConnectMobileView.735da237b6da}" Classes="muted" FontSize="12" />
           <TextBox Text="{Binding TokenText}" IsReadOnly="True" />
           <WrapPanel Orientation="Horizontal">
-            <Button Classes="connect-tool" Content="复制地址" Click="OnCopyAddress" Margin="0,0,8,8" />
-            <Button Classes="connect-tool" Content="复制配对码" Click="OnCopyCode" Margin="0,0,8,8" />
-            <Button Classes="connect-tool" Content="换一个配对码" Command="{Binding RotateCommand}" Margin="0,0,8,8" />
-            <Button Classes="connect-tool" Content="显示或隐藏令牌" Command="{Binding RevealCommand}" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectMobileView.4c6de01bbe86}" Click="OnCopyAddress" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectMobileView.43e714e6d1a6}" Click="OnCopyCode" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectMobileView.3d6881cd1cd3}" Command="{Binding RotateCommand}" Margin="0,0,8,8" />
+            <Button Classes="connect-tool" Content="{DynamicResource ui.ConnectMobileView.ebb5d5ea0964}" Command="{Binding RevealCommand}" Margin="0,0,8,8" />
           </WrapPanel>
         </StackPanel>
       </Border>

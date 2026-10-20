@@ -2,7 +2,7 @@
              xmlns:icon="using:Echo.Desktop.Controls" xmlns:lib="using:Echo.Contracts.Library" x:Class="Echo.Desktop.Features.Playlists.PlaylistTile" x:DataType="lib:PlaylistRow">
   <Button Name="OpenButton" Classes="playlist-wall-entry" Click="OnOpen">
     <StackPanel Spacing="12" Margin="0,0,0,28">
-      <Border Name="CardFrame" CornerRadius="2" ClipToBounds="True" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1">
+      <Border Name="CardFrame" CornerRadius="{DynamicResource EchoCoverRadius}" ClipToBounds="True" Background="{DynamicResource EchoPanelMuted}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1">
         <Grid>
           <Border Width="84" Height="84" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center">
             <icon:GlyphIcon Kind="queue" Width="32" Height="32" Opacity="0.45" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -11,7 +11,7 @@
         </Grid>
       </Border>
       <StackPanel Spacing="3">
-        <TextBlock Text="{Binding Name}" Classes="heading" FontSize="14" FontWeight="Normal" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding Name}" Classes="heading" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
         <TextBlock Name="CardCount" Classes="muted" FontSize="12" />
       </StackPanel>
     </StackPanel>

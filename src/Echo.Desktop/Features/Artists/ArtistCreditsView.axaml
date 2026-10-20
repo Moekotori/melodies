@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Echo.Desktop.Features.Artists" xmlns:library="using:Echo.Contracts.Library"
+             x:Class="Echo.Desktop.Features.Artists.ArtistCreditsView" x:DataType="local:ArtistCreditsViewModel">
+  <UserControl.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="14" Background="{DynamicResource EchoPage}">
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="18">
+      <Button Content="{DynamicResource credits.back}" Click="OnBack" />
+      <TextBlock Grid.Column="1" Text="{DynamicResource credits.people.title}" Classes="page-title" />
+      <Button Grid.Column="2" Content="{DynamicResource credits.refresh}" Command="{Binding RefreshCommand}" />
+    </Grid>
+    <Expander Grid.Row="1" Header="{DynamicResource credits.import.title}" HorizontalAlignment="Stretch"><ContentControl Name="ImportHost" Margin="14" /></Expander>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <TextBox Name="PeopleSearch" Text="{Binding Search,Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource credits.people.search}" />
+      <ComboBox Grid.Column="1" SelectedIndex="{Binding CategoryIndex,Mode=TwoWay}" MinWidth="160">
+        <ComboBoxItem Content="{DynamicResource credits.category.all}"/><ComboBoxItem Content="{DynamicResource credits.category.main}"/>
+        <ComboBoxItem Content="{DynamicResource credits.category.performer}"/><ComboBoxItem Content="{DynamicResource credits.category.ensemble}"/>
+        <ComboBoxItem Content="{DynamicResource credits.category.composer}"/><ComboBoxItem Content="{DynamicResource credits.category.conductor}"/>
+        <ComboBoxItem Content="{DynamicResource credits.category.production}"/><ComboBoxItem Content="{DynamicResource credits.category.unknown}"/>
+      </ComboBox>
+    </Grid>
+    <Grid Grid.Row="3" ColumnDefinitions="240,*" ColumnSpacing="22" RowDefinitions="*,Auto">
+      <Grid RowDefinitions="*,Auto" RowSpacing="10">
+        <ListBox Name="PeopleList" ItemsSource="{Binding People}" SelectedItem="{Binding SelectedPerson,Mode=TwoWay}" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="library:CreditPerson"><StackPanel Margin="0,8" Spacing="4"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding Roles}" Classes="muted" FontSize="12" TextWrapping="Wrap"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8"><Button Content="‹" Command="{Binding PeoplePreviousCommand}"/><TextBlock Text="{Binding PeoplePage}" VerticalAlignment="Center" Classes="muted"/><Button Content="›" Command="{Binding PeopleNextCommand}"/></StackPanel>
+      </Grid>
+      <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto,Auto,Auto,Auto" RowSpacing="10">
+        <TextBlock Text="{Binding PersonName}" Classes="heading" FontSize="22"/>
+        <TextBlock Grid.Row="1" Text="{DynamicResource credits.people.select}" IsVisible="{Binding !HasPerson}" Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        <ListBox Grid.Row="1" Name="AppearanceList" ItemsSource="{Binding Appearances}" SelectedItem="{Binding SelectedAppearance,Mode=TwoWay}" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="library:CreditAppearance"><Grid ColumnDefinitions="*,Auto" Margin="0,8" ColumnSpacing="12"><StackPanel Spacing="4"><TextBlock Text="{Binding Track.Title}" TextWrapping="Wrap"/><TextBlock Text="{Binding Track.Album}" FontSize="12" Classes="muted" TextWrapping="Wrap"/></StackPanel><TextBlock Grid.Column="1" Text="{Binding Role}" Classes="muted" VerticalAlignment="Center"/></Grid></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10"><Button Content="‹" Command="{Binding AppearancesPreviousCommand}"/><TextBlock Text="{Binding AppearancePage}" Classes="muted" VerticalAlignment="Center"/><Button Content="›" Command="{Binding AppearancesNextCommand}"/></StackPanel>
+        <TextBlock Grid.Row="3" Text="{Binding TrackTitle}" Classes="heading"/>
+        <ListBox Grid.Row="4" Name="TrackCreditsList" MaxHeight="180" ItemsSource="{Binding TrackCredits}" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate><DataTemplate x:DataType="library:PersonCredit"><Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="14" Margin="0,5"><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Grid.Column="1" Text="{Binding Role}" Classes="muted"/><TextBlock Grid.Column="2" Text="{Binding Scope}" Classes="muted" FontSize="12"/></Grid></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="10"><Button Content="‹" Command="{Binding TrackPreviousCommand}"/><TextBlock Text="{Binding TrackPage}" Classes="muted" VerticalAlignment="Center"/><Button Content="›" Command="{Binding TrackNextCommand}"/></StackPanel>
+      </Grid>
+      <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" Margin="0,10,0,0"/>
+    </Grid>
+  </Grid>
+</UserControl>

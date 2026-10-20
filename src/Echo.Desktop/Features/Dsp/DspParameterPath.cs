@@ -14,6 +14,10 @@ internal static class DspParameterPath
     }
 
     public static void Write(JsonObject state, string key, double value)
+        => WriteValue(state, key, JsonValue.Create(value));
+    public static void Write(JsonObject state, string key, bool value)
+        => WriteValue(state, key, JsonValue.Create(value));
+    private static void WriteValue(JsonObject state, string key, JsonValue value)
     {
         var position = key.LastIndexOf('.');
         if (position < 0) { state[key] = value; return; }

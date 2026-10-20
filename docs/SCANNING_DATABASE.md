@@ -72,7 +72,19 @@ MP3、AIFF、Ogg/Opus、M4A 等能力取决于配置的既有 C++ scanner 协议
 
 ## 数据迁移边界
 
-本数据库有独立 application_id 与版本化迁移，虚拟来源从 schema 7 开始保存，目前大库优化升级到 schema 18。遇到旧 ECHO 或其他格式直接拒绝原地写入。新旧程序不同时自主写一份生产库。CUE/osu 来源已经保存，不代表已迁移旧 Core 的全部分析身份、歌单、封面、手动标签和远程同步。多 TB 约束、目录落盘去重及本轮验证见 [LARGE_LIBRARY_SCANNING.md](LARGE_LIBRARY_SCANNING.md)。
+本数据库有独立 application_id 与版本化迁移，虚拟来源从 schema 7 开始保存，目前为 schema 28。schema 23/24 增加扫描批次专辑维护、成员查询索引及冲突处理修复；schema 25 对齐 ECHO 的艺术家浏览规则：歌曲艺术家拆分明确合作署名，专辑艺术家保留完整署名，缺失专辑艺术家时使用既有专辑归属。schema 27 参考 Roon 的文件标签分隔原则，默认按分号与 NUL 拆分，不从名字中的逗号、斜杠或合作词推断人物；既有 v25/v26 库重建歌曲艺术家及含 NUL 的专辑署名索引，更早版本一次性重建两种分组。升级已有库先做一致性备份，再按每批 200 首重建派生索引并更新 revision，不改媒体标签、曲目 ID、专辑 ID 或收藏及历史。遇到旧 ECHO 或其他格式直接拒绝原地写入。新旧程序不同时自主写一份生产库。CUE/osu 来源已经保存，不代表已迁移旧 Core 的全部分析身份、歌单、封面、手动标签和远程同步。多 TB 约束、目录落盘去重及验证见 [LARGE_LIBRARY_SCANNING.md](LARGE_LIBRARY_SCANNING.md)，本轮配对性能结果见 [SCANNING_PERFORMANCE.md](SCANNING_PERFORMANCE.md)。
+
+歌曲艺术家采用保守的文件标签规则：分号和 NUL 是边界；重复 ARTIST 值保持独立参与者，当前 FLAC 读取器以分号连接这些值。逗号、斜杠、&、+、乘号、feat/with/x 与括号内容默认保留，避免把 MAN WITH A MISSION、Brother x Sister、Tyler,the Creator 或 AC/DC 拆错。本项目仍规范化全角字符、空白与不可见字符，同一曲目按既有身份键去重，保留首次展示名；超过 64 个不同参与者保留完整署名，不截断。FLAC 同时识别 ALBUMARTIST、ALBUM_ARTIST 和 ALBUM ARTIST，读取版本提升后在下次扫描时重新读取旧记录。原始文件不写回。识别与派生索引属于 Core，Control 不另做拆分。
+
+参考：[Roon 导入设置](https://help.roonlabs.com/portal/en/kb/articles/import-settings)、[文件标签最佳实践](https://help.roonlabs.com/portal/en/kb/articles/file-tag-best-practice)、[元数据模型](https://help.roonlabs.com/portal/en/kb/articles/metadata-model)。Roon 文档支持自定义及多字符分隔符，并将展示署名、主要艺人和其他角色关系分别建模。schema 28 已接通以下文件标签规则与本地人员关系；没有引入 Roon 的在线身份库，也不宣称复刻其私有实现。
+
+- 自定义分隔符属于 Core 曲库设置，最多 16 个、每个 1–16 字符，允许多字符并优先匹配较长项；NUL 始终生效，独立的重复 ARTIST 标签不依赖分隔符。默认仅分号，不猜测 feat/with/x/逗号/斜杠。
+- 通过艺术家页面“人员与角色”或“设置 → 维护与恢复 → 曲库维护”修改。任务由 Core 接受并持有，以 200 首分页处理；同一 writer 事务更新设置、歌曲艺术家和人员角色索引，取消或失败回滚，提交后只增加一次 revision。控制端关闭不会取消已接受任务，操作回执防止不明结果被重复执行。专辑艺术家完整署名、曲目身份与个人状态保持。
+- ARTIST、ALBUMARTIST、COMPOSER、CONDUCTOR、ENSEMBLE、PERFORMER、SOLOIST、FEATURING、制作类标签及 PERSONNEL 导入人员关系。PERSONNEL 按最后一个 ` - ` 分开名称与角色，同一人允许多角色；主要表演者、表演者、团体、创作者、指挥、制作人员分别归类，未识别角色保留原文与 Unknown 分类。曲目与专辑范围分别保存。人员以本地规范化名称关联，尚无同名异人消歧或在线身份合并。
+- 原始署名标签落盘，改变分隔符无需重读媒体。已有库升级只回填可确认的主要艺人关系；角色需要下次扫描或显式重新读取标签（parser v6）。托管 FLAC 与原生 Vorbis/ID3 路径保留原始多值；FFmpeg 回退只能提供容器实际暴露的字段，不保证恢复已丢失的重复标签。
+- 查询通过静态类型化 Core 契约，人员、人员参与曲目、曲目署名各页最多 100 条，角色摘要最多 16 种；Control 不打开业务数据库。每曲最多 64 个原始标签、单值 2048 字符、合计 16 Ki 字符、派生关系最多 256 条；角色文本纳入扫描批次与来源 memo 内存预算。
+
+2026-10-20 聚焦验证：真实 SQLite/原生与托管 FLAC 标签夹具、自定义多字符与 NUL 边界、重复标签、角色反查、取消回滚、版本冲突、收藏保留、重扫替换和重开持久化通过。Debug 热缓存下 250 首同构夹具的两次分隔符重建约 117 / 307 ms（后者同时有构建负载），整进程累计托管分配约 8.0 / 8.1 MB；这是功能短测条件，不代表生产曲库或长期驻留表现。Core IPC 验证双控制端、断开与重连、回执、提交后失效通知和角色 DTO；Avalonia Headless 检查人员导航、真实 Core 应用/重置、展开收起、深浅主题及 760px 截图。超限标签的单文件失败后正常文件继续导入、CUE 覆盖主演且保留其他角色均通过。未进行跨机器、三平台、Native AOT 发布或音频设备验证。
 
 迁移器后续按开发文档实现，保留旧 ID、用户数据和备份。不要把新数据库结构直接覆盖到旧数据库。
 

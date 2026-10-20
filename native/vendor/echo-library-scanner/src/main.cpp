@@ -20,6 +20,7 @@
 #include "music_graph.hpp"
 #include "metadata_file_tail.hpp"
 #include "ffmpeg_metadata.hpp"
+#include "credit_tags.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -257,6 +258,20 @@ static std::string normalizeMetadataWhitespace(const std::string& value) {
 static std::optional<std::string> cleanMetadataText(const std::string& value) {
   const std::string normalized = normalizeMetadataWhitespace(value);
   return isSafeMetadataText(normalized) ? std::optional<std::string>(normalized) : std::nullopt;
+}
+
+static std::optional<std::string> cleanCreditText(const std::string& value) {
+  std::string result;
+  std::size_t start = 0;
+  do {
+    const auto end = value.find('\0', start);
+    const auto part = normalizeMetadataWhitespace(value.substr(start, end == std::string::npos ? end : end - start));
+    if (std::any_of(part.begin(), part.end(), [](unsigned char c) { return (c <= 0x1f && c != '\t') || c == 0x7f; })) return std::nullopt;
+    if (!part.empty()) { if (!result.empty()) result.push_back('\0'); result += part; }
+    if (end == std::string::npos) break;
+    start = end + 1;
+  } while (start <= value.size());
+  return result.empty() ? std::nullopt : std::optional<std::string>(result);
 }
 
 static std::optional<std::string> parseStringField(const std::string& input, const std::string& fieldName) {
@@ -634,7 +649,7 @@ static std::string utf16ToUtf8(const unsigned char* bytes, std::size_t size, boo
   return output;
 }
 
-static std::optional<std::string> decodeId3TextFrame(const std::vector<unsigned char>& frame) {
+static std::optional<std::string> decodeId3TextFrame(const std::vector<unsigned char>& frame, bool credit = false) {
   if (frame.empty()) {
     return std::nullopt;
   }
@@ -674,6 +689,7 @@ static std::optional<std::string> decodeId3TextFrame(const std::vector<unsigned 
   }
 
   const std::size_t nullIndex = decoded.find('\0');
+  if (credit) return cleanCreditText(decoded);
   if (nullIndex != std::string::npos) {
     decoded.resize(nullIndex);
   }
@@ -754,10 +770,11 @@ static bool parseId3UserTextFrame(
   if (valueOffset >= frame.size()) {
     return true;
   }
-  const auto value = cleanMetadataText(std::string(
+  const auto rawValue = std::string(
     reinterpret_cast<const char*>(frame.data() + valueOffset),
     frame.size() - valueOffset
-  ));
+  );
+  const auto value = isCreditTag(description) ? cleanCreditText(rawValue) : cleanMetadataText(rawValue);
   if (!value) {
     return true;
   }
@@ -771,6 +788,8 @@ static bool parseId3UserTextFrame(
   const auto supported = supportedDescriptions.find(description);
   if (supported != supportedDescriptions.end()) {
     tags[supported->second].push_back(*value);
+  } else if (isCreditTag(description)) {
+    tags[description].push_back(*value);
   }
   return true;
 }
@@ -1521,7 +1540,7 @@ static std::map<std::string, std::vector<std::string>> parseVorbisCommentBlock(c
     }
 
     std::string key = asciiLower(raw.substr(0, equalsIndex));
-    auto value = cleanMetadataText(raw.substr(equalsIndex + 1));
+    auto value = isCreditTag(key) ? cleanCreditText(raw.substr(equalsIndex + 1)) : cleanMetadataText(raw.substr(equalsIndex + 1));
     if (!value) {
       continue;
     }
@@ -1550,6 +1569,7 @@ static void applyVorbisTags(
   const std::string& filePath,
   NativeMetadataResult& result
 ) {
+  collectCreditTags(tags, result);
   const std::string title = firstTagValue(tags, "title");
   const std::string artist = joinedTagValue(tags, "artist");
   const std::string album = firstTagValue(tags, "album");
@@ -2220,11 +2240,17 @@ static std::optional<NativeMetadataResult> readMp3Id3Metadata(const std::string&
       if (frameId == "TIT2") {
         addTextTag(tags, "title", decodeId3TextFrame(frame));
       } else if (frameId == "TPE1") {
-        addTextTag(tags, "artist", decodeId3TextFrame(frame));
+        addTextTag(tags, "artist", decodeId3TextFrame(frame, true));
       } else if (frameId == "TALB") {
         addTextTag(tags, "album", decodeId3TextFrame(frame));
       } else if (frameId == "TPE2") {
-        addTextTag(tags, "albumartist", decodeId3TextFrame(frame));
+        addTextTag(tags, "albumartist", decodeId3TextFrame(frame, true));
+      } else if (frameId == "TCOM") {
+        addTextTag(tags, "composer", decodeId3TextFrame(frame, true));
+      } else if (frameId == "TPE3") {
+        addTextTag(tags, "conductor", decodeId3TextFrame(frame, true));
+      } else if (frameId == "TEXT") {
+        addTextTag(tags, "lyricist", decodeId3TextFrame(frame, true));
       } else if (frameId == "TRCK") {
         addTextTag(tags, "tracknumber", decodeId3TextFrame(frame));
       } else if (frameId == "TPOS") {
@@ -2897,6 +2923,14 @@ static bool writeNativeMetadataResponse(
       << ",\"embeddedCoverByteLength\":" << result.embeddedCover.size()
       << ",\"embeddedCoverMimeType\":\"" << jsonEscape(result.embeddedCoverMimeType) << "\"";
   }
+  std::cout << ",\"creditTagsExceeded\":" << (result.creditTagsExceeded ? "true" : "false") << ",\"creditTags\":[";
+  bool wroteCredit = false;
+  for (const auto& [key, values] : result.creditTags) for (const auto& value : values) {
+    if (wroteCredit) std::cout << ',';
+    wroteCredit = true;
+    std::cout << "{\"tag\":\"" << jsonEscape(key) << "\",\"value\":\"" << jsonEscape(value) << "\"}";
+  }
+  std::cout << ']';
   if (result.musicGraph) writeNativeMusicGraph(*result.musicGraph);
   std::cout << ",\"warnings\":[],\"errors\":[],\"status\":\"ok\"}}" << std::endl;
   return true;

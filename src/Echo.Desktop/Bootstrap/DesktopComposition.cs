@@ -75,6 +75,11 @@ public static class DesktopComposition
         var window = new MainWindow { DataContext = shell };
         var corePreferences = core is null ? null : new CorePreferencesBinding(shell, core.Settings);
         var settingsRuntime = new SettingsFeatureRuntime(shell.FeaturePreferences);
+        if (core is not null) settingsRuntime.RegisterChange("network-lyrics", async (value, token) =>
+        {
+            await core.Settings.ConfirmAsync("network-lyrics", value, token);
+            shell.LyricsSelection.RequestReload();
+        });
         playback.SleepTimer.SetQuitHandler(() =>
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(window.RequestExit);
@@ -91,6 +96,7 @@ public static class DesktopComposition
             settingsDialogs, value => window.Clipboard?.SetValueAsync(DataFormat.Text, value) ?? throw new NotSupportedException("当前平台无法写入剪贴板。"),
             value => shell.Settings.Feedback = value);
         var windowFeatures = new WindowFeatureController(window, shell, settingsRuntime, settingsDialogs);
+        window.AttachOnboarding(shell);
         var taskbar = OperatingSystem.IsWindows() ? new WindowTaskbarBinding(window, shell, settingsRuntime, settingsDialogs) : null;
         var macosShell = OperatingSystem.IsMacOS() ? new MacOsShellBinding(window, shell, playback) : null;
         _ = new DiagnosticsModule(settingsRuntime, settingsDialogs, window, shell,
@@ -130,6 +136,7 @@ public static class DesktopComposition
             if (corePreferences is not null) await corePreferences.RestoreAsync();
             await userLanguages.ReloadAsync();
             try { await playbackSettings.StartupAsync(restore: core?.IsRemote != true); } catch (Exception error) { if (!window.IsExitRequested) shell.Settings.Feedback = error.Message; }
+            if (restorePlayback) window.StartOnboardingIfNeeded();
         };
         window.Opened += (_, _) => { _ = shortcuts.RestoreAsync(); };
         var closing = false;
@@ -142,6 +149,7 @@ public static class DesktopComposition
             if (closing) return;
             closing = true;
             window.BeginExit();
+            window.ReleaseOnboarding();
             playback.SleepTimer.SetQuitHandler(null);
             shell.ReleaseSongImport();
             player.ReleaseRadioMetadata();

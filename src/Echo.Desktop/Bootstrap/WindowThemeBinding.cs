@@ -83,15 +83,16 @@ internal sealed class WindowThemeBinding : IDisposable
             _motion.ThemeIntensityScale = tone.Numbers["motionIntensityPercent"] / 100;
             var appearance = preferences.Appearance ?? new();
             _fonts.Apply(appearance); _wallpaper.Apply(preferences, tone, _motion.UseSpatialMotion);
-            var font = _fonts.Family(preferences);
-            var stamp = PaletteStamp.Capture(preferences, appearance, dark, availableAcrylic, _wallpaper.HasImage, system?.AccentColor1, font.ToString());
+            TextRoleTypography.Apply(appearance.Typography);
+            var font = _fonts.Family(preferences); var secondaryFont = _fonts.SecondaryFamily(preferences);
+            var stamp = PaletteStamp.Capture(preferences, appearance, dark, availableAcrylic, _wallpaper.HasImage, system?.AccentColor1, font.ToString(), secondaryFont.ToString());
             // Brightness, blur and wallpaper framing do not change brushes. Skip the dictionary rebuild while a slider is moving.
             if (_palette != stamp)
             {
                 foreach (var toneDark in new[] { false, true })
                 {
                     var resources = ThemeResourcePalette.Create(_theme.Tone(toneDark), preferences, toneDark, system?.AccentColor1, availableAcrylic, _wallpaper.HasImage);
-                    resources["EchoFont"] = font;
+                    resources["EchoFont"] = font; resources["EchoSecondaryFont"] = secondaryFont;
                     _window.Resources.ThemeDictionaries[toneDark ? ThemeVariant.Dark : ThemeVariant.Light] = resources;
                 }
                 _palette = stamp;
@@ -114,16 +115,20 @@ internal sealed class WindowThemeBinding : IDisposable
     private readonly record struct PaletteStamp(bool Dark, bool Acrylic, bool Image, byte AccentA, byte AccentR, byte AccentG, byte AccentB, bool HasAccent,
         string Mode, string Font, string ChineseFont, string FallbackFont, bool AcrylicEnabled, double AcrylicTransparency, bool HasWallpaper,
         bool WallpaperEnabled, double UiOpacity, bool Unified, bool Protection, string? PageLight, string? PageDark, string Cover, bool Portrait,
-        ThemeTone? Light, ThemeTone? DarkTone, ImportedFont? MainFont, ImportedFont? ChineseFile, ImportedFont? FallbackFile, string Family)
+        ThemeTone? Light, ThemeTone? DarkTone, ImportedFont? MainFont, ImportedFont? ChineseFile, ImportedFont? FallbackFile, string Family,
+        string SecondaryFamily, string? SecondaryLight, string? SecondaryDark)
     {
-        public static PaletteStamp Capture(ThemePreferences preferences, AppearancePreferences appearance, bool dark, bool acrylic, bool image, Color? accent, string family)
+        // Size and weight are coerced on TextBlocks and deliberately left out, so their sliders never rebuild brushes.
+        public static PaletteStamp Capture(ThemePreferences preferences, AppearancePreferences appearance, bool dark, bool acrylic, bool image, Color? accent,
+            string family, string secondaryFamily)
         {
             var color = accent.GetValueOrDefault();
             return new(dark, acrylic, image, color.A, color.R, color.G, color.B, accent is not null, preferences.Mode, preferences.Font,
                 preferences.ChineseFont, preferences.FallbackFont, preferences.AcrylicEnabled, preferences.AcrylicTransparency, preferences.Wallpaper.Length > 0,
                 appearance.WallpaperEnabled, appearance.WallpaperUiOpacity, appearance.WallpaperUnifiedOpacity, appearance.WallpaperVisualProtection,
                 appearance.PageTextLight, appearance.PageTextDark, appearance.CoverShape, appearance.PortraitWallpaper.Length > 0, preferences.Light, preferences.Dark,
-                appearance.MainFontFile, appearance.ChineseFontFile, appearance.FallbackFontFile, family);
+                appearance.MainFontFile, appearance.ChineseFontFile, appearance.FallbackFontFile, family,
+                secondaryFamily, appearance.Typography?.SecondaryLight, appearance.Typography?.SecondaryDark);
         }
     }
 }

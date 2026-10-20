@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspLimiterView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,0,24">
+      <local:DspColumns MinimumColumnWidth="380" MaximumColumns="2">
+        <Border Classes="dsp-section">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspLimiterView.7cc58ce08321}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <TextBlock Text="{Binding RuntimeHeadline}" FontSize="24" FontWeight="Medium" TextWrapping="Wrap"/>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Text="{Binding GainReductionReadout}" Classes="dsp-hero-number"/>
+              <TextBlock Text="{DynamicResource ui.DspLimiterView.befa1db93471}" Classes="muted" VerticalAlignment="Bottom" Margin="0,0,0,10"/>
+            </StackPanel>
+            <TextBlock Text="{Binding PeakReadout, StringFormat=输出峰值 {0} dBFS}" Classes="dsp-note"/>
+            <ProgressBar Minimum="0" Maximum="100" Value="{Binding PeakMeterPercent}" Height="7"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="dsp-section">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspLimiterView.14922cc0be23}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+              <local:DspToggleEditor DataContext="{Binding Switches[limiterAutoCeiling]}"/>
+              <Border IsEnabled="{Binding CanEditLimiterCeiling}"><local:DspParameterEditor DataContext="{Binding Fields[dspLimiterCeilingDb]}"/></Border>
+              <local:DspParameterEditor DataContext="{Binding Fields[dspLimiterReleaseMs]}"/>
+            </StackPanel>
+            <TextBlock Text="{DynamicResource ui.DspLimiterView.1453dbe6c390}" Classes="dsp-note" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+      </local:DspColumns>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspLimiterView.28961415998a}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <local:DspRuntimeReadout/>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

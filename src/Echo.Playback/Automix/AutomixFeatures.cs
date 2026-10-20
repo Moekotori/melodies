@@ -44,7 +44,7 @@ internal static class AutomixFeatures
         }
         AutomixKey? key = found && confidence >= 0.08
             ? new(best.Tonic, best.Mode!, best.Mode == "major" ? CamelotMajor[best.Tonic] : CamelotMinor[best.Tonic],
-                AutomixMath.RoundMillis(confidence))
+                AutomixMath.RoundMillis(confidence)) { Chroma = chroma }
             : null;
         return new(tempo, key, rms);
 

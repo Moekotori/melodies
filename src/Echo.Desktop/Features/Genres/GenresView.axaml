@@ -20,13 +20,13 @@
   <Grid>
     <Grid Name="Wall" RowDefinitions="Auto,Auto,Auto,*">
       <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
-        <StackPanel Orientation="Horizontal" Spacing="16"><TextBlock Text="{DynamicResource navigation.genres}" Classes="heading" FontSize="{StaticResource EchoPageTitleSize}" FontStyle="Normal" /><TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="16"><TextBlock Text="{DynamicResource navigation.genres}" Classes="page-title" FontStyle="Normal" /><TextBlock Text="{Binding CountText}" Classes="muted" FontSize="13" VerticalAlignment="Center" /></StackPanel>
         <Button Grid.Column="1" Classes="icon" Click="OnRefresh" ToolTip.Tip="{DynamicResource genres.refresh}"><icon:GlyphIcon Kind="refresh" Width="18" Height="18" /></Button>
       </Grid>
       <Grid Grid.Row="1" Name="Toolbar" ColumnDefinitions="*,Auto" ColumnSpacing="24" Margin="0,0,0,20">
         <Grid Name="SearchArea" ColumnDefinitions="Auto,*,Auto" MinWidth="120" MaxWidth="520" Width="520" HorizontalAlignment="Left">
           <icon:GlyphIcon Kind="search" Width="18" Height="18" Margin="12,0" ZIndex="1" />
-          <TextBox Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource genres.search}" Padding="40,10,52,10" CornerRadius="6" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoBorder}" KeyDown="OnSearchKey" />
+          <TextBox Classes="page-search" Name="SearchField" Grid.ColumnSpan="3" Text="{Binding Search, Mode=TwoWay}" MaxLength="128" PlaceholderText="{DynamicResource genres.search}" Padding="40,10,52,10" KeyDown="OnSearchKey" />
           <Button Grid.Column="2" Classes="icon" Content="×" Click="OnClearSearch" ToolTip.Tip="{DynamicResource genres.clear}" Margin="8,0" IsVisible="{Binding Search, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </Grid>
         <Border Grid.Column="1" Name="FilterFrame" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="8" ClipToBounds="True" Height="40">
@@ -40,7 +40,7 @@
               <Button.Flyout>
                 <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterTheme="{StaticResource GenreFilterFlyoutTheme}">
                   <StackPanel Width="244" Spacing="6">
-                    <TextBlock Text="{DynamicResource genres.source}" Classes="muted" FontSize="11" Margin="10,4,0,2" />
+                    <TextBlock Text="{DynamicResource genres.source}" Classes="muted" FontSize="12" Margin="10,4,0,2" />
                     <Button Name="LocalSourceOption" Classes="genre-option selected" Click="OnLocalSource">
                       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="9"><icon:GlyphIcon Kind="folder" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource genres.local}" FontSize="13" /><icon:GlyphIcon Grid.Column="2" Kind="check" Width="15" Height="15" Stroke="{DynamicResource EchoAccentText}" /></Grid>
                     </Button>
@@ -48,7 +48,7 @@
                       <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9"><icon:GlyphIcon Kind="remote" Scope="sidebar" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{DynamicResource genres.remote}" FontSize="13" /></Grid>
                     </Button>
                     <Border Height="1" Background="{DynamicResource EchoDivider}" Margin="10,5" />
-                    <TextBlock Text="{DynamicResource query.sort}" Classes="muted" FontSize="11" Margin="10,0,0,2" />
+                    <TextBlock Text="{DynamicResource query.sort}" Classes="muted" FontSize="12" Margin="10,0,0,2" />
                     <Button Name="NameSortOption" Classes="genre-option" Classes.selected="{Binding IsNameSort}" Tag="0" Click="OnSelectSort"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource genres.sortName}" FontSize="13" /><icon:GlyphIcon Grid.Column="1" Kind="check" Width="15" Height="15" IsVisible="{Binding IsNameSort}" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
                     <Button Name="TrackSortOption" Classes="genre-option" Classes.selected="{Binding IsTrackSort}" Tag="1" Click="OnSelectSort"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource genres.sortTracks}" FontSize="13" /><icon:GlyphIcon Grid.Column="1" Kind="check" Width="15" Height="15" IsVisible="{Binding IsTrackSort}" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
                     <Button Name="AlbumSortOption" Classes="genre-option" Classes.selected="{Binding IsAlbumSort}" Tag="2" Click="OnSelectSort"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{DynamicResource genres.sortAlbums}" FontSize="13" /><icon:GlyphIcon Grid.Column="1" Kind="check" Width="15" Height="15" IsVisible="{Binding IsAlbumSort}" Stroke="{DynamicResource EchoAccentText}" /></Grid></Button>
@@ -66,7 +66,7 @@
       <TextBlock Grid.Row="2" Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" TextWrapping="Wrap" Margin="0,0,0,8" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       <Grid Grid.Row="3">
         <ContentControl Name="ViewportHost" />
-        <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12"><TextBlock Text="{DynamicResource genres.empty}" Classes="heading" FontSize="18" HorizontalAlignment="Center" /><TextBlock Text="{DynamicResource genres.emptyHint}" Classes="muted" FontSize="13" TextWrapping="Wrap" /><Button Content="{DynamicResource genres.clear}" Click="OnClearSearch" HorizontalAlignment="Center" /></StackPanel>
+        <StackPanel Classes="reveal" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12"><TextBlock Text="{DynamicResource genres.empty}" Classes="heading" FontSize="18" HorizontalAlignment="Center" /><TextBlock Text="{DynamicResource genres.emptyHint}" Classes="muted" FontSize="13" TextWrapping="Wrap" /><Button Content="{DynamicResource genres.clear}" Click="OnClearSearch" HorizontalAlignment="Center" /></StackPanel>
       </Grid>
     </Grid>
     <ContentControl Name="DetailHost" IsVisible="False" />

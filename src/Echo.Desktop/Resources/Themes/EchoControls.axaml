@@ -26,6 +26,7 @@
   <Style Selector="TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoText}" /></Style>
   <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
   <Style Selector="TextBlock.subtle"><Setter Property="Foreground" Value="{DynamicResource EchoSubtle}" /></Style>
+  <Style Selector="TextBlock.muted, TextBlock.subtle"><Setter Property="FontFamily" Value="{DynamicResource EchoSecondaryFont}" /></Style>
   <Style Selector="TextBlock.heading"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
   <Style Selector="Button">
     <Setter Property="Foreground" Value="{DynamicResource EchoButtonText}" />
@@ -55,7 +56,7 @@
   <Style Selector="Button.nav.active /template/ Border#PART_ButtonBorder">
     <Setter Property="BorderThickness" Value="0" /><Setter Property="BorderBrush" Value="Transparent" /><Setter Property="BoxShadow" Value="none" />
   </Style>
-  <Style Selector="Button.primary"><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Theme" Value="{DynamicResource SolidButton}" /><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Foreground" Value="{DynamicResource EchoOnAccent}" /><Setter Property="MinHeight" Value="38" /><Setter Property="Padding" Value="18,0" /></Style>
+  <Style Selector="Button.primary"><Setter Property="FontWeight" Value="Medium" /><Setter Property="Theme" Value="{DynamicResource SolidButton}" /><Setter Property="Background" Value="{DynamicResource EchoAccent}" /><Setter Property="Foreground" Value="{DynamicResource EchoOnAccent}" /><Setter Property="MinHeight" Value="38" /><Setter Property="Padding" Value="18,0" /></Style>
   <Style Selector="Button.primary TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoOnAccent}" /></Style>
   <Style Selector="Button.primary:disabled"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
   <Style Selector="Button.primary:disabled TextBlock"><Setter Property="Foreground" Value="{DynamicResource EchoMuted}" /></Style>
@@ -78,5 +79,5 @@
     <Setter Property="BorderBrush" Value="Transparent" /><Setter Property="BorderThickness" Value="0,0,0,2" />
   </Style>
   <Style Selector="Button.tab:pointerover"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /></Style>
-  <Style Selector="Button.tab.active"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="BorderBrush" Value="{DynamicResource EchoHeading}" /></Style>
+  <Style Selector="Button.tab.active"><Setter Property="Foreground" Value="{DynamicResource EchoHeading}" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="BorderBrush" Value="{DynamicResource EchoHeading}" /></Style>
 </Styles>

@@ -1,9 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:Echo.Desktop.Features.Remote" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Features.Remote.RemoteConnectionEditor" x:DataType="local:RemoteViewModel">
-  <Border Background="#50000000" IsVisible="{Binding EditorOpen}">
-    <Border Background="{DynamicResource EchoField}" MaxWidth="520" Margin="24" Padding="30" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Center" KeyboardNavigation.TabNavigation="Cycle">
-      <ScrollViewer MaxHeight="580"><StackPanel Spacing="22">
+    <Border MaxWidth="620" Padding="0,4,0,24" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="22">
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="7"><TextBlock Text="{Binding EditorTitle}" FontSize="23" FontWeight="SemiBold" /><TextBlock Text="{DynamicResource remote.editorSubtitle}" Classes="remote-caption" /></StackPanel>
           <Button Grid.Column="1" Classes="remote-icon" Command="{Binding CloseEditorCommand}" VerticalAlignment="Top" ToolTip.Tip="{DynamicResource remote.cancel}"><icon:GlyphIcon Kind="close" Width="16" Height="16" /></Button>
@@ -35,7 +34,6 @@
           </Grid>
         </Border>
         <ProgressBar Height="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
-      </StackPanel></ScrollViewer>
+      </StackPanel>
     </Border>
-  </Border>
 </UserControl>

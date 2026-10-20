@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:pl="using:Echo.Desktop.Features.Playlists" xmlns:lib="using:Echo.Contracts.Library"
+             x:Class="Echo.Desktop.Features.Playlists.PlaylistRecoveryView" x:DataType="pl:PlaylistRecoveryViewModel"
+             KeyDown="OnKey" Focusable="True">
+  <Border Background="#60000000" Padding="24">
+    <Border Background="{DynamicResource EchoField}" BorderBrush="{DynamicResource EchoDivider}" BorderThickness="1" CornerRadius="8" Padding="24" MaxWidth="560" MaxHeight="560" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+      <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="{DynamicResource playlists.recover}" Classes="heading" FontSize="22" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="{DynamicResource playlists.close}" Click="OnClose" />
+        </Grid>
+        <StackPanel Grid.Row="1" Spacing="6">
+          <TextBlock Text="{Binding EmptyLabel}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Error}" Foreground="{DynamicResource EchoAccentText}" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+        <ListBox Grid.Row="2" ItemsSource="{Binding Items}" IsEnabled="{Binding !IsBusy}" Background="Transparent" BorderThickness="0" MaxHeight="340" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="lib:PlaylistRow">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="6" MinHeight="38">
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding TrackCount}" Classes="subtle" FontSize="12" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="{DynamicResource playlists.restore}" Click="OnRestore" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+          <Button Content="‹" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" />
+          <TextBlock Text="{Binding Page}" Classes="muted" VerticalAlignment="Center" />
+          <Button Content="›" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Border>
+</UserControl>

@@ -26,6 +26,8 @@ public sealed partial class SettingRowViewModel : ObservableObject
     public string Help => _text.Translate(Definition.Help);
     public string Badge => _text.Translate(Definition.Badge);
     public bool HasHelp => Help.Length > 0;
+    public bool IsUnavailable => !IsEnabled;
+    public string UnavailableBadge => _text.Translate("暂未接入");
     public bool HasBadge => Badge.Length > 0;
     public bool IsToggle => Definition.Kind == SettingKind.Toggle;
     public bool IsChoice => Definition.Kind == SettingKind.Choice;

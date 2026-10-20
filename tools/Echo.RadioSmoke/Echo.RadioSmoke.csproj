@@ -6,4 +6,5 @@
   </ItemGroup>
   <ItemGroup><ProjectReference Include="../../src/Echo.Playback/Echo.Playback.csproj" /></ItemGroup>
   <ItemGroup><ProjectReference Include="../../src/Echo.Audio.Client/Echo.Audio.Client.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../src/Echo.Core.Client/Echo.Core.Client.csproj" /></ItemGroup>
 </Project>

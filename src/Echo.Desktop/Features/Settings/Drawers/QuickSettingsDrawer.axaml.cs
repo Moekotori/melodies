@@ -85,9 +85,11 @@ public partial class QuickSettingsDrawer : UserControl
         else if (DrawerContent.Content is AudioSettingsDrawerView audio) audio.Deactivate();
         IsVisible = true; IsHitTestVisible = opening; DrawerPanel.IsEnabled = true;
         KeyboardNavigation.SetTabNavigation(DrawerPanel, opening ? KeyboardNavigationMode.Cycle : KeyboardNavigationMode.None);
+        var inputRevision = Echo.Desktop.Bootstrap.FocusPolicy.InputRevision(this);
         if (opening) Dispatcher.UIThread.Post(() =>
         {
-            if (_focusGeneration == focusGeneration && _model?.IsQuickSettingsOpen == true)
+            if (_focusGeneration == focusGeneration && _model?.IsQuickSettingsOpen == true
+                && Echo.Desktop.Bootstrap.FocusPolicy.IsCurrent(this, inputRevision))
                 CloseDrawerButton.Focus(_lastInputWasPointer ? NavigationMethod.Pointer : NavigationMethod.Tab);
         }, DispatcherPriority.Loaded);
         else RestoreFocus();
@@ -110,8 +112,7 @@ public partial class QuickSettingsDrawer : UserControl
     }
     private void RestoreFocus()
     {
-        if (_returnFocus is Control { IsEffectivelyVisible: true } previous) previous.Focus(NavigationMethod.Tab);
-        else _window?.FocusManager?.Focus(null);
+        Echo.Desktop.Bootstrap.FocusPolicy.Restore(this, _returnFocus);
         _returnFocus = null;
     }
     private void OnScrimPressed(object? sender, PointerPressedEventArgs e)

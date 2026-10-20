@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Echo.Desktop.Shell.PlaybackCloseDialog"
+        Title="{DynamicResource playbackClose.title}" Width="460" SizeToContent="Height"
+        CanResize="False" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource EchoPage}" Icon="/Resources/Icons/echo-app.ico">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light"><SolidColorBrush x:Key="PlaybackCloseOnAccent">White</SolidColorBrush></ResourceDictionary>
+        <ResourceDictionary x:Key="Dark"><SolidColorBrush x:Key="PlaybackCloseOnAccent">#181d26</SolidColorBrush></ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+  <StackPanel Margin="28" Spacing="18">
+    <StackPanel Spacing="8">
+      <TextBlock Text="{DynamicResource playbackClose.title}" FontSize="23" FontWeight="SemiBold"
+                 Foreground="{DynamicResource EchoHeading}" TextWrapping="Wrap" />
+      <TextBlock Text="{DynamicResource playbackClose.description}" FontSize="13" LineHeight="22"
+                 Foreground="{DynamicResource EchoMuted}" TextWrapping="Wrap" />
+    </StackPanel>
+    <StackPanel Spacing="10">
+      <Button Name="BackgroundButton" Classes="primary"
+              HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="42" Click="OnBackground">
+        <TextBlock Text="{DynamicResource playbackClose.background}" Foreground="{DynamicResource PlaybackCloseOnAccent}" />
+      </Button>
+      <Button Name="StopAndCloseButton" HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="Center" MinHeight="42" Click="OnStop">
+        <TextBlock Text="{DynamicResource playbackClose.stop}" Foreground="{DynamicResource EchoText}" />
+      </Button>
+      <Button HorizontalAlignment="Center" IsCancel="True" Click="OnCancel">
+        <TextBlock Text="{DynamicResource playbackClose.cancel}" Foreground="{DynamicResource EchoMuted}" />
+      </Button>
+    </StackPanel>
+  </StackPanel>
+</Window>

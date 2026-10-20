@@ -8,7 +8,7 @@ public sealed partial class EqBandViewModel
     public IReadOnlyList<DspChoice> Scopes { get; } = [new("stereo", "立体声"), new("left", "左声道"), new("right", "右声道"), new("mid", "中置"), new("side", "侧向")];
     public IReadOnlyList<DspChoice> DynamicModes { get; } = [new("off", "关闭"), new("down", "向下压缩"), new("up", "向上扩展")];
     [ObservableProperty] private DspChoice scope = new("stereo", "立体声");
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(DynamicActive))] private DspChoice dynamicMode = new("off", "关闭");
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(DynamicActive)), NotifyPropertyChangedFor(nameof(IsShaped))] private DspChoice dynamicMode = new("off", "关闭");
     [ObservableProperty] private double dynamicThresholdDb = -24;
     [ObservableProperty] private double dynamicRatio = 2;
     [ObservableProperty] private double dynamicAttackMs = 5;

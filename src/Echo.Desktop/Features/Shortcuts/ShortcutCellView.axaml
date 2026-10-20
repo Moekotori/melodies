@@ -6,6 +6,6 @@
       <ToggleButton Grid.Column="1" Content="{Binding EnabledLabel}" IsChecked="{Binding Enabled, Mode=OneWay}" IsEnabled="{Binding CanEdit}" Command="{Binding ToggleCommand}" Classes="shortcut-toggle" AutomationProperties.Name="{Binding AccessibleName}" />
       <Button Grid.Column="2" Content="×" Command="{Binding ClearCommand}" IsEnabled="{Binding CanClear}" Classes="shortcut-clear" ToolTip.Tip="{DynamicResource shortcuts.clear}" AutomationProperties.Name="{DynamicResource shortcuts.clear}" />
     </Grid>
-    <TextBlock Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" FontSize="10" Classes="muted" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" FontSize="12" Classes="muted" TextWrapping="Wrap" />
   </StackPanel>
 </UserControl>

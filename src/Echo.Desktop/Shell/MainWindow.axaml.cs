@@ -46,13 +46,27 @@ public partial class MainWindow : Window
         CreateSurface();
         AddHandler(KeyDownEvent, OnGlobalSearchKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         DataContextChanged += OnDataContextChanged;
-        Closed += (_, _) => { _residency?.Dispose(); ReleaseLyricsPage(); _layoutMotion.Dispose(); DetachViewModel(); };
+        Closed += (_, _) => { _residency?.Dispose(); SettleLyricsStage(); ReleaseLyricsPage(); _layoutMotion.Dispose(); DetachViewModel(); };
         Closing += (_, args) =>
         {
             if (!IsExitRequested && args.CloseReason is not (WindowCloseReason.OSShutdown or WindowCloseReason.ApplicationShutdown))
             {
-                if (OperatingSystem.IsMacOS()) { args.Cancel = true; Hide(); }
+                if (_viewModel?.HasCloseBehaviorPreference == true)
+                {
+                    if (_viewModel.CloseToTray) { args.Cancel = true; MinimizeToBackground(); }
+                    else
+                    {
+                        args.Cancel = true;
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = StopPlaybackAndExitAsync());
+                    }
+                }
+                else if (OperatingSystem.IsMacOS()) { args.Cancel = true; Hide(); }
                 else if (_residency?.TryHideToTray() == true) args.Cancel = true;
+                else if (NeedsPlaybackCloseChoice)
+                {
+                    args.Cancel = true;
+                    ShowPlaybackCloseChoice();
+                }
             }
             if (_surface is not null) PageHost.Settle();
         };
@@ -100,7 +114,7 @@ public partial class MainWindow : Window
         if (args.PropertyName is nameof(ShellViewModel.IsDark) or nameof(ShellViewModel.IsSidebarExpanded))
             ApplyShellAppearance();
         if (args.PropertyName is nameof(ShellViewModel.UiScalePercent) or nameof(ShellViewModel.SidebarReservedWidth)) ApplyShellAppearance();
-        if (args.PropertyName == nameof(ShellViewModel.NavigationVersion)) ShowPage();
+        if (args.PropertyName == nameof(ShellViewModel.NavigationVersion)) NavigatePage();
         if (args.PropertyName == nameof(ShellViewModel.ConnectLaunch) && PageHost.Content is Echo.Desktop.Features.Connect.ConnectView connect)
             connect.ApplyLaunchRequest();
     }
@@ -146,6 +160,7 @@ public partial class MainWindow : Window
     private void OnWindowKeyDown(object? sender, KeyEventArgs args)
     {
         if (args.Handled) return;
+        if (_viewModel?.IsSetupOpen == true) return;
         if (TryShortcut(args)) { args.Handled = true; return; }
         if (args.Key == Key.Escape && _viewModel?.IsQueueDrawerOpen == true)
         { _viewModel.CloseQueueDrawerCommand.Execute(null); args.Handled = true; return; }
@@ -155,9 +170,11 @@ public partial class MainWindow : Window
         if (args.Key == Key.F11) WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
     }
 
-    private void ShowPage()
+    private void ShowPage(MotionDirection direction = MotionDirection.None)
     {
         if (_viewModel is null || _surface is null) return;
+        ++_pageRequest;
+        _shownRoute = _viewModel.ActiveRouteId;
         if (ShowStandaloneLyrics()) return;
         ApplyShellAppearance();
         ReleaseLibraryPage(retiring: true);
@@ -165,7 +182,7 @@ public partial class MainWindow : Window
         {
             ReleaseLyricsPage();
             _previousRoute = "settings";
-            PageHost.Content = new SettingsView(_viewModel.Settings);
+            PageHost.Present(new SettingsView(_viewModel.Settings), direction);
             return;
         }
         ReleaseLyricsPage();
@@ -188,22 +205,22 @@ public partial class MainWindow : Window
             "playlists" when _viewModel.PlaylistLibrary is not null => _playlistsPage = new PlaylistsView(_viewModel),
             _ => new PendingPage(_viewModel.ActivePageTitle, _viewModel.ActiveRouteId)
         };
-        page.Margin = page is HomeView ? new Thickness(42, 24, 42, 0) : (Thickness)this.FindResource("EchoPageInset")!;
+        page.Margin = page switch
+        {
+            Echo.Desktop.Features.Dsp.DspView or Echo.Desktop.Features.Remote.RemoteView or Echo.Desktop.Features.Radio.RadioView
+                or Echo.Desktop.Features.Podcasts.PodcastView or Echo.Desktop.Features.Connect.ConnectView or PlaylistsView => default,
+            SongsView => new Thickness(42, 24, 0, 0),
+            HomeView or AlbumsView or ArtistsView or GenresView or LibrarySearchView or FoldersView or Echo.Desktop.Features.History.HistoryView
+                => new Thickness(42, 24, 42, 0),
+            _ => (Thickness)this.FindResource("EchoPageInset")!
+        };
         if (_viewModel.ActiveRouteId != "lyrics") _previousRoute = _viewModel.ActiveRouteId;
-        if (page is Echo.Desktop.Features.Dsp.DspView) { page.Margin = default; PageHost.Content = page; return; }
-        if (page is Echo.Desktop.Features.Remote.RemoteView) { page.Margin = default; PageHost.Content = page; return; }
-        if (page is Echo.Desktop.Features.Radio.RadioView or Echo.Desktop.Features.Podcasts.PodcastView) { page.Margin = default; PageHost.Content = page; return; }
-        if (page is Echo.Desktop.Features.Connect.ConnectView) { page.Margin = default; PageHost.Content = page; return; }
-        if (page is PlaylistsView) { page.Margin = new Thickness(0); PageHost.Content = page; return; }
-        if (page is SongsView) { page.Margin = new Thickness(42, 24, 0, 0); PageHost.Content = page; return; }
-        if (page is AlbumsView or ArtistsView or GenresView or LibrarySearchView or FoldersView or Echo.Desktop.Features.History.HistoryView)
-        { page.Margin = new Thickness(42, 24, 42, 0); PageHost.Content = page; return; }
-        if (page is QueueView) { PageHost.Content = page; return; }
-        PageHost.Content = new ScrollViewer
+        // Only the home dashboard and placeholder pages scroll as a whole; the rest own their viewport.
+        PageHost.Present(page is not (HomeView or PendingPage) ? page : new ScrollViewer
         {
             Content = page, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
-        };
+        }, direction);
     }
     public void ReleaseLibraryPage(bool retiring = false)
     {

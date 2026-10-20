@@ -2,7 +2,10 @@
              xmlns:shell="using:Echo.Desktop.Shell" xmlns:icon="using:Echo.Desktop.Controls"
              x:Class="Echo.Desktop.Shell.SidebarHost" x:DataType="shell:ShellViewModel">
   <UserControl.Styles>
-    <Style Selector="Border.navigationSurface"><Setter Property="Background" Value="{DynamicResource EchoSidebar}" /></Style>
+    <Style Selector="Border.navigationSurface">
+      <Setter Property="Background" Value="{DynamicResource EchoSidebar}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource EchoDivider}" /><Setter Property="BorderThickness" Value="0,0,1,0" />
+    </Style>
     <Style Selector="Border.navigationSurface.drawer">
       <Setter Property="Background" Value="{DynamicResource DrawerSurface}" />
       <Setter Property="BorderBrush" Value="{DynamicResource DrawerStroke}" /><Setter Property="BorderThickness" Value="0,1,1,1" />
@@ -11,7 +14,7 @@
     <Style Selector="Border.navigationSurface.drawer Button.nav"><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="10,0" /></Style>
     <Style Selector="Border.navigationSurface.drawer Button.nav.active"><Setter Property="Background" Value="{DynamicResource EchoQueueActive}" /></Style>
     <Style Selector="Border.navigationSurface.drawer Button.nav:pointerover"><Setter Property="Background" Value="{DynamicResource DrawerHover}" /></Style>
-    <Style Selector="Border.navigationSurface.drawer TextBlock.sidebar-caption"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Margin" Value="10,6,10,2" /></Style>
+    <Style Selector="Border.navigationSurface.drawer TextBlock.sidebar-caption"><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="Margin" Value="10,6,10,2" /></Style>
   </UserControl.Styles>
   <Grid ClipToBounds="True">
     <Grid Name="DrawerSlide" HorizontalAlignment="Left" VerticalAlignment="Stretch">

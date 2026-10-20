@@ -7,7 +7,7 @@ public interface ICoreSettings
 }
 public static class CoreFeatureKeys
 {
-    public static bool Contains(string id) => id is "fixed-volume" or "gapless-playback" or "automix" or "speed-mode" or "scan-performance"
-        or "auto-play-on-startup" or "prevent-sleep-while-playing" or "obs-browser-source" or "stage-api"
+    public static bool Contains(string id) => id is "fixed-volume" or "gapless-playback" or "shuffle-credibility" or "automix" or "speed-mode" or "scan-performance"
+        or "auto-play-on-startup" or "prevent-sleep-while-playing" or "obs-browser-source" or "stage-api" or "network-lyrics"
         or "automatic-backup-enabled" or "automatic-backup-hours" or "automatic-backup-retention" or "backup-directory";
 }

@@ -19,21 +19,19 @@ public sealed partial class LibraryDatabase : IHomeLibrary
             using var interrupt = new ReadCancellation(connection, cancellation);
             using var transaction = connection.BeginTransaction(deferred: true);
             using var command = connection.CreateCommand(); command.Transaction = transaction;
-            connection.CreateFunction<string, string>("echo_home_folder", path => Path.GetDirectoryName(path) ?? "", isDeterministic: true);
-            command.CommandText = """
-                SELECT (SELECT count(*) FROM artists WHERE grouping=0),
-                  (SELECT count(*) FROM albums),(SELECT count(*) FROM tracks WHERE missing=0),
-                  (SELECT count(DISTINCT echo_home_folder(path)) FROM tracks WHERE missing=0)
-                """;
-            HomeLibrarySummary summary;
-            using (var reader = command.ExecuteReader())
-            { reader.Read(); summary = new(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3)); }
+            var summary = ReadHomeSummary(command);
             var recent = ReadHomeAlbums(command, " ORDER BY a.added DESC,a.id LIMIT 8", cancellation);
             var offset = summary.Albums <= 7 ? 0 : Random.Shared.NextInt64(summary.Albums - 6);
             command.Parameters.AddWithValue("$offset", offset);
             var recommendations = ReadHomeAlbums(command, " ORDER BY i.title_key,i.stable_id LIMIT 7 OFFSET $offset", cancellation);
             command.Parameters.Clear();
-            var played = ReadHomeAlbums(command, " WHERE a.id IN(SELECT t.album_key FROM (SELECT * FROM listening_events WHERE history_epoch=(SELECT epoch FROM history_state WHERE id=1)) e JOIN tracks t ON t.id=e.track_id WHERE t.missing=0 AND e.history_epoch=(SELECT epoch FROM history_state WHERE id=1) GROUP BY t.album_key ORDER BY max(e.started) DESC LIMIT 8) ORDER BY (SELECT max(e.started) FROM (SELECT * FROM listening_events WHERE history_epoch=(SELECT epoch FROM history_state WHERE id=1)) e JOIN tracks t ON t.id=e.track_id WHERE t.album_key=a.id AND e.history_epoch=(SELECT epoch FROM history_state WHERE id=1)) DESC,a.id", cancellation);
+            var played = ReadHomeAlbums(command, """
+                JOIN (SELECT t.album_key,max(e.started) last
+                  FROM listening_events e JOIN tracks t ON t.id=e.track_id AND t.missing=0
+                  WHERE e.history_epoch=(SELECT epoch FROM history_state WHERE id=1)
+                  GROUP BY t.album_key ORDER BY last DESC,t.album_key LIMIT 8) recent ON recent.album_key=a.id
+                ORDER BY recent.last DESC,a.id
+                """, cancellation);
             command.CommandText = "SELECT " + TrackRowMapping.AliasedColumns + " FROM tracks t WHERE t.missing=0 AND t.id=(SELECT e.track_id FROM (SELECT * FROM listening_events WHERE history_epoch=(SELECT epoch FROM history_state WHERE id=1)) e JOIN tracks present ON present.id=e.track_id AND present.missing=0 WHERE e.history_epoch=(SELECT epoch FROM history_state WHERE id=1) ORDER BY e.started DESC,e.id DESC LIMIT 1)";
             TrackRow? last;
             using (var reader = command.ExecuteReader()) last = reader.Read() ? TrackRowMapping.Read(reader) : null;

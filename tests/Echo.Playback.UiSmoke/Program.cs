@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.Media.Imaging;
@@ -77,8 +78,8 @@ performanceButton.Flyout!.ShowAt(performanceButton);
 Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 if (((Flyout)performanceButton.Flyout).Content is Control performanceContent)
 {
-    var diagnostics = performanceContent.GetVisualDescendants().OfType<Expander>().First(x => x.Name == "DiagnosticsExpander");
-    diagnostics.IsExpanded = true;
+    var diagnostics = performanceContent.GetVisualDescendants().OfType<ToggleButton>().First(x => x.Name == "DiagnosticsToggle");
+    diagnostics.IsChecked = true;
     Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
     performanceContent.GetVisualDescendants().OfType<ScrollViewer>().First(x => x.Name == "ContentScroll").ScrollToEnd();
     Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();

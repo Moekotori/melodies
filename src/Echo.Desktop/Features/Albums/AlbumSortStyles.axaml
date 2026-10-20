@@ -1,0 +1,63 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Border.albumSortRow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="7" />
+  </Style>
+  <Style Selector="Border.albumSortRow:pointerover">
+    <Setter Property="Background" Value="{DynamicResource EchoHover}" />
+  </Style>
+  <Style Selector="Border.albumSortRow.selected, Border.albumSortRow.selected:pointerover">
+    <Setter Property="Background" Value="{DynamicResource LibraryPopupSelected}" />
+  </Style>
+  <Style Selector="Button.libraryOption">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+  </Style>
+  <Style Selector="Button.libraryOption TextBlock">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoText}" />
+  </Style>
+  <Style Selector="Button.libraryOption.selected, Button.libraryOption:pointerover">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.libraryOption.selected TextBlock">
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoAccentText}" />
+  </Style>
+  <Style Selector="Button.libraryDirection">
+    <Setter Property="Theme" Value="{StaticResource EchoButtonTheme}" />
+    <Setter Property="Width" Value="28" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Margin" Value="0,1,3,1" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Opacity" Value="0.65" />
+  </Style>
+  <Style Selector="Button.libraryDirection:pointerover, Button.libraryDirection:focus-visible">
+    <Setter Property="Background" Value="{DynamicResource EchoField}" />
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Button.libraryOption:focus-visible, Button.libraryDirection:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource EchoFocus}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="TextBlock.albumSortGroup">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="LineHeight" Value="14" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource EchoSubtle}" />
+    <Setter Property="Margin" Value="10,8,10,4" />
+  </Style>
+</Styles>

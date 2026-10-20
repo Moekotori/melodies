@@ -72,7 +72,7 @@ internal static class AlbumSchema
         """ + Refresh(row, deferred);
 
     private static string Refresh(string row, bool deferred) =>
-        (deferred ? $"INSERT OR IGNORE INTO scan_album_dirty SELECT {row}.album_key WHERE echo_scan_deferred();\n" : "") +
+        (deferred ? $"INSERT INTO scan_album_dirty SELECT {row}.album_key WHERE echo_scan_deferred() ON CONFLICT(album_id) DO NOTHING;\n" : "") +
         AlbumDisplay.Refresh($"id={row}.album_key" + (deferred ? " AND NOT echo_scan_deferred()" : ""));
 
     internal static string TrackTriggers => BuildTriggers(false);

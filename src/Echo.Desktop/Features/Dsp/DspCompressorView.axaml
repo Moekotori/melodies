@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:Echo.Desktop.Features.Dsp" xmlns:icons="using:Echo.Desktop.Controls" x:Class="Echo.Desktop.Features.Dsp.DspCompressorView" x:DataType="local:DspViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="24" Margin="0,0,0,24">
+      <local:DspColumns MinimumColumnWidth="380" MaximumColumns="2">
+        <Border Classes="dsp-monitor">
+          <StackPanel Spacing="14">
+            <TextBlock Text="{DynamicResource ui.DspCompressorView.31d783530927}" Classes="dsp-monitor-caption"/>
+            <local:DynamicsCurveControl Height="245" Threshold="{Binding DynamicsThreshold}" Ratio="{Binding DynamicsRatio}" Makeup="{Binding DynamicsMakeup}" Knee="{Binding DynamicsKnee}"/>
+            <TextBlock Text="{DynamicResource ui.DspCompressorView.b221084064f3}" Classes="dsp-monitor-caption"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="dsp-section">
+          <StackPanel Spacing="18">
+            <StackPanel Spacing="7">
+              <TextBlock Text="{DynamicResource ui.DspCompressorView.a9930ad2a708}" Classes="dsp-section-title"/>
+            </StackPanel>
+            <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+              <local:DspChoiceEditor DataContext="{Binding Options[detectorMode]}"/>
+              <local:DspColumns MinimumColumnWidth="180" MaximumColumns="2">
+                <local:DspParameterEditor DataContext="{Binding Fields[thresholdDb]}"/>
+                <local:DspParameterEditor DataContext="{Binding Fields[ratio]}"/>
+                <local:DspParameterEditor DataContext="{Binding Fields[makeupDb]}"/>
+                <local:DspParameterEditor DataContext="{Binding Fields[kneeDb]}"/>
+              </local:DspColumns>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </local:DspColumns>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspCompressorView.c2e80f04c803}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+            <local:DspColumns MinimumColumnWidth="230" MaximumColumns="2">
+              <local:DspParameterEditor DataContext="{Binding Fields[attackMs]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[releaseMs]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[mix]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[rangeDb]}"/>
+            </local:DspColumns>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Expander Header="{DynamicResource ui.DspCompressorView.854a3cb33389}" HorizontalAlignment="Stretch">
+        <StackPanel Margin="0,18,0,0">
+          <StackPanel Spacing="18" IsEnabled="{Binding CanEdit}">
+            <local:DspColumns MinimumColumnWidth="380" MaximumColumns="2">
+              <local:DspParameterEditor DataContext="{Binding Fields[stereoLink]}"/>
+              <local:DspParameterEditor DataContext="{Binding Fields[sidechainHighpassHz]}"/>
+            </local:DspColumns>
+            <local:DspToggleEditor DataContext="{Binding Switches[sidechainHighpassEnabled]}"/>
+            <local:DspToggleEditor DataContext="{Binding Switches[autoRelease]}"/>
+          </StackPanel>
+        </StackPanel>
+      </Expander>
+      <Border Classes="dsp-section">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="7">
+            <TextBlock Text="{DynamicResource ui.DspCompressorView.86866cddb0e5}" Classes="dsp-section-title"/>
+          </StackPanel>
+          <local:DspRuntimeReadout/>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

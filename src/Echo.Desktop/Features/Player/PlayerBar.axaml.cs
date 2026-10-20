@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Echo.Desktop.Controls;
 using Echo.Desktop.Shell;
 using Echo.Playback;
 using Echo.Desktop.Motion;
@@ -15,6 +16,7 @@ public partial class PlayerBar : UserControl
     private readonly PlayerSliderInteraction seekInteraction;
     private readonly MotionFlyout outputFlyout;
     private readonly PlayerPopoverBinding popoverBinding = new();
+    private readonly TrackSwipeGesture swipe;
     public PlayerBar()
     {
         InitializeComponent();
@@ -25,6 +27,9 @@ public partial class PlayerBar : UserControl
         outputFlyout = new() { Placement = PlacementMode.Top, Content = new PlayerOutputPanel() };
         foreach (var flyout in new[] { SignalPathButton.Flyout, OutputSettingsButton.Flyout, VolumeButton.Flyout, outputFlyout }.OfType<Flyout>()) popoverBinding.Wrap(flyout);
         if (SignalPathButton.Flyout is { } signal) signal.Opened += (_, _) => Player?.RefreshPerformance();
+        swipe = new(NowPlayingHost, NowPlaying, () => Player is { CanControl: true, IsSeeking: false },
+            source => !TrackSwipeGesture.IsInteractive(source, NowPlayingHost, c => c.Name == "CoverButton"),
+            direction => { if (Player is { } p) (direction > 0 ? p.NextCommand : p.PreviousCommand).Execute(null); });
         SizeChanged += (_, _) => ApplyLayout();
         SeekSlider.PropertyChanged += (_, e) =>
         {

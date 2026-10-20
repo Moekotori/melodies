@@ -6,7 +6,7 @@ internal static partial class AutomixPlanner
     {
         var plan = Refine(Transition(input), input);
         plan.Schedule = AutomixHandoff.Schedule(plan, input.Current, input.Next);
-        return plan;
+        return AutomixAlphaDirector.Direct(plan, input.Current, input.Next);
     }
 
     private static AutomixPlan Transition(AutomixPlanInput input)

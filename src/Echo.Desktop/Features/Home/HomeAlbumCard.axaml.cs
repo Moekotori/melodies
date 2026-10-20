@@ -25,9 +25,9 @@ public partial class HomeAlbumCard : UserControl, IDisposable
         Metadata.Text = metadata ?? shell.Text.Format("home.trackCount", album.TrackCount);
         if (compact)
         {
-            CardLayout.RowDefinitions = new("*"); CardLayout.ColumnDefinitions = new("88,*"); CardLayout.ColumnSpacing = 14;
+            CardLayout.RowDefinitions = new("*"); CardLayout.ColumnDefinitions = new("64,*"); CardLayout.ColumnSpacing = 12;
             Grid.SetRow(Copy, 0); Grid.SetColumn(Copy, 1); Copy.Margin = new(0);
-            ArtworkFrame.Width = ArtworkFrame.Height = 88; OpenButton.Padding = new(0); Title.FontSize = 17; Artist.FontSize = 14; Metadata.FontSize = 12;
+            ArtworkFrame.Width = ArtworkFrame.Height = 64; OpenButton.Padding = new(0); Title.FontSize = 14; Artist.FontSize = 12; Metadata.FontSize = 11;
         }
         AttachedToVisualTree += (_, _) => _ = LoadCoverAsync();
     }
@@ -35,7 +35,7 @@ public partial class HomeAlbumCard : UserControl, IDisposable
     private async Task LoadCoverAsync()
     {
         if (closed || lease is not null || album is null || shell?.AlbumArtwork is not { } cache) return;
-        var loaded = await cache.AcquireAsync(album.SamplePath, lifetime.Token);
+        var loaded = compact ? await cache.AcquireAsync(album.SamplePath, lifetime.Token, 128) : await cache.AcquireAsync(album.SamplePath, lifetime.Token);
         if (closed) { loaded?.Dispose(); return; }
         lease = loaded; Cover.Source = loaded?.Image;
     }

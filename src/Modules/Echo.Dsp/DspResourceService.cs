@@ -5,7 +5,7 @@ using Echo.Core.Contracts;
 namespace Echo.Dsp;
 
 // Core-owned resource persistence. No UI, playback clock or native audio connection.
-public sealed class DspResourceService : IDisposable
+public sealed partial class DspResourceService : IDisposable
 {
     private readonly string root, library;
     private readonly SemaphoreSlim writer = new(1, 1);
@@ -22,6 +22,7 @@ public sealed class DspResourceService : IDisposable
         JsonNode result;
         if (request.Operation == DspResourceOperation.SearchOpra) result = await opra.SearchAsync(request.Query ?? "", request.Offset, request.Refresh, token).ConfigureAwait(false);
         else if (request.Operation == DspResourceOperation.OpraPreset) result = await opra.PresetAsync(RequireId(request.Id), token).ConfigureAwait(false);
+        else if (request.Operation == DspResourceOperation.BrowseOpra) result = await BrowseOpraAsync(request, token).ConfigureAwait(false);
         else
         {
             await writer.WaitAsync(token).ConfigureAwait(false);
@@ -39,6 +40,8 @@ public sealed class DspResourceService : IDisposable
                     DspResourceOperation.Banks => banks.List(),
                     DspResourceOperation.DeleteBank => banks.Delete(RequireId(request.Id)),
                     DspResourceOperation.ResolveBank => banks.Resolve(RequireId(request.Id)),
+                    DspResourceOperation.FavoriteOpra => SaveOpraProduct(request, recent: false),
+                    DspResourceOperation.RecentOpra => SaveOpraProduct(request, recent: true),
                     _ => throw new IOException("不支持的 DSP 资源操作。")
                 };
             }
